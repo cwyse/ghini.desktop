@@ -55,6 +55,7 @@ except ImportError:
 
 from gi.repository import Gtk
 
+from sqlalchemy import  event
 import sqlalchemy.orm as orm
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 
