@@ -1,8 +1,67 @@
 #!/bin/bash
 
+# 1. python3 -m venv ~/ghini
+# 2. cd ~/ghini
+# 3. . bin/activate
+# 4. pip install vext
+# 5. pip install vext.gi
+# 6. pip install vext.
+
 #echo missing in vanilla ubuntu - to run 'pip install bauble'
 #echo libxslt1-dev python-all-dev gettext
+PG=1
 
+if ! which sudo; then
+    function sudo() {
+	while test $# -gt 0; do
+	    param=$1
+	    if [ "${param:0:1}" == "-" ]; then
+		shift
+	    else
+	        break	
+	    fi
+        done	    
+	${@}
+	:
+    }
+fi
+sudo -k
+sudo apt update -y
+sudo apt install git python3 python3-venv  libpq-dev -y
+
+if [ -d $HOME/Local/github/Ghini/ghini.desktop ]
+then
+    echo "ghini checkout already in place"
+    cd $HOME/Local/github/Ghini
+else
+    mkdir -p $HOME/Local/github/Ghini >/dev/null 2>&1
+    cd $HOME/Local/github/Ghini
+    git clone https://github.com/Ghini/ghini.desktop
+fi
+cd ghini.desktop
+
+if [ $# -ne 0 ]
+then
+    VERSION=$1
+    LINE=ghini-$1
+else
+    VERSION=3.1-dev
+    LINE=ghini-3.1-dev
+fi
+
+git checkout $LINE
+
+mkdir -p $HOME/.virtualenvs
+python3 -m venv $HOME/.virtualenvs/$LINE --system-site-packages
+#virtualenv --python python3 $HOME/.virtualenvs/$LINE --system-site-packages
+find $HOME/.virtualenvs/$LINE -name "*.pyc" -or -name "*.pth" -execdir rm {} \;
+mkdir -p $HOME/.virtualenvs/$LINE/share
+mkdir -p $HOME/.ghini
+. $HOME/.virtualenvs/$LINE/bin/activate
+
+git config --global user.email "chris.wyse@wysechoice.net"
+git config --global user.name "Chris Wyse"
+pip install vext
 while true
 do
     MISSING=''
@@ -14,18 +73,6 @@ do
     fi
     if ! python3 --version >/dev/null 2>&1; then
         MISSING="$MISSING python3-minimal"
-    fi
-    if ! python3 -c 'import gi; gi.require_version' >/dev/null 2>&1; then
-        MISSING="$MISSING python3-gi"
-    fi
-    if ! python3 -c 'import gi; gi.require_version("Clutter", "1.0"); gi.require_version("GtkClutter", "1.0"); from gi.repository import Clutter, GtkClutter' >/dev/null 2>&1; then
-        MISSING="$MISSING gir1.2-gtkclutter"
-    fi
-    if ! python3 -c 'import gi; gi.require_version("Clutter", "1.0"); gi.require_version("GtkClutter", "1.0"); from gi.repository import Clutter, GtkClutter; gi.require_version("Champlain", "0.12"); from gi.repository import GtkChamplain; GtkClutter.init([]); from gi.repository import Champlain' >/dev/null 2>&1; then
-        MISSING="$MISSING gir1.2-gtkchamplain-0.12"
-    fi
-    if ! python3 -c 'import lxml' >/dev/null 2>&1; then
-        MISSING="$MISSING python3-lxml"
     fi
     if ! git help >/dev/null 2>&1; then
         MISSING="$MISSING git"
@@ -49,13 +96,29 @@ do
     if [ "$PYTHONHCOUNT" = "0" ]; then
         MISSING="$MISSING libpython3-all-dev"
     fi
+#    if ! pg_config ; then
+#        MISSING="$MISSING postgresql-client"
+#    fi
+#    if ! python3 -c 'import lxml' >/dev/null 2>&1; then
+#        MISSING="$MISSING lxml"
+#    fi
+#    if ! python3 -c 'import gi; gi.require_version' >/dev/null 2>&1; then
+#        MISSING="$MISSING vext.gi"
+#        pip install vext.gi
+#    fi
+#gir1.2-gtkchamplain-0.12 is already the newest version (0.12.20-1build1).
 
+    if ! python3 -c 'import gi; gi.require_version("Clutter", "1.0"); gi.require_version("GtkClutter", "1.0"); from gi.repository import Clutter, GtkClutter; gi.require_version("Champlain", "0.12"); from gi.repository import GtkChamplain; GtkClutter.init([]); from gi.repository import Champlain' >/dev/null 2>&1; then
+        MISSING="$MISSING gir1.2-gtkchamplain-0.12 gir1.2-gtkclutter-1.0"
+    fi
+
+    echo $MISSING
     # forget password, please.
     sudo -k
 
     if [ "$MISSING" == "" ]
     then
-        break;
+        break
     else
         echo 'Guessing package names, if you get in a loop, please double check.'
         echo 'In Debian terms, you need to solve the following dependencies:'
@@ -92,35 +155,6 @@ do
         read
     fi
 done
-
-if [ -d $HOME/Local/github/Ghini/ghini.desktop ]
-then
-    echo "ghini checkout already in place"
-    cd $HOME/Local/github/Ghini
-else
-    mkdir -p $HOME/Local/github/Ghini >/dev/null 2>&1
-    cd $HOME/Local/github/Ghini
-    git clone https://github.com/Ghini/ghini.desktop
-fi
-cd ghini.desktop
-
-if [ $# -ne 0 ]
-then
-    VERSION=$1
-    LINE=ghini-$1
-else
-    VERSION=3.1
-    LINE=ghini-3.1
-fi
-
-git checkout $LINE
-
-mkdir -p $HOME/.virtualenvs
-virtualenv --python python3 $HOME/.virtualenvs/$LINE --system-site-packages
-find $HOME/.virtualenvs/$LINE -name "*.pyc" -or -name "*.pth" -execdir rm {} \;
-mkdir -p $HOME/.virtualenvs/$LINE/share
-mkdir -p $HOME/.ghini
-. $HOME/.virtualenvs/$LINE/bin/activate
 
 if [ ! -z $PG ]
 then
