@@ -62,6 +62,7 @@ mkdir -p $HOME/.ghini
 git config --global user.email "chris.wyse@wysechoice.net"
 git config --global user.name "Chris Wyse"
 pip install vext
+pip install vext.gi
 while true
 do
     MISSING=''
