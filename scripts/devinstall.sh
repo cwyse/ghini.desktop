@@ -33,10 +33,14 @@ if [ -d $HOME/Local/github/Ghini/ghini.desktop ]
 then
     echo "ghini checkout already in place"
     cd $HOME/Local/github/Ghini
+    pwd
 else
     mkdir -p $HOME/Local/github/Ghini >/dev/null 2>&1
     cd $HOME/Local/github/Ghini
-    git clone git@github.com:cwyse/ghini.desktop.git
+    if ! git clone git@github.com:cwyse/ghini.desktop.git; then
+        printf "Error cloning cwyse/ghini.desktop"
+        exit
+    fi
 fi
 cd ghini.desktop
 
@@ -53,7 +57,6 @@ git checkout $LINE
 
 mkdir -p $HOME/.virtualenvs
 python3 -m venv $HOME/.virtualenvs/$LINE --system-site-packages
-#virtualenv --python python3 $HOME/.virtualenvs/$LINE --system-site-packages
 find $HOME/.virtualenvs/$LINE -name "*.pyc" -or -name "*.pth" -execdir rm {} \;
 mkdir -p $HOME/.virtualenvs/$LINE/share
 mkdir -p $HOME/.ghini
