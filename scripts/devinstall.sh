@@ -93,6 +93,9 @@ do
     if ! pkg-config --cflags jpeg --help >/dev/null 2>&1; then
         MISSING="$MISSING libjpeg-dev"
     fi
+    if ! pkg-config --cflags six --help >/dev/null 2>&1; then
+        MISSING="$MISSING six"
+    fi
     if ! gcc --version >/dev/null 2>&1; then
         MISSING="$MISSING build-essential"
     fi
