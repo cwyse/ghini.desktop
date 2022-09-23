@@ -347,14 +347,14 @@ class Voucher(db.Base):
     #                                       cascade='all, delete-orphan'))
 
 
+class AccessionMapperExtension:
+
 # invalidate an accessions string cache after it has been updated
 @event.listens_for(AccessionMapperExtension, 'after_update')
 def receive_after_update(mapper, connection, instance):
     instance.invalidate_str_cache()
     return EXT_CONTINUE
     
-class AccessionMapperExtension:
-
 # ITF2 - E.1; Provenance Type Flag; Transfer code: prot
 prov_type_values = [
     ('Wild', _('Accession of wild source')),  # W
