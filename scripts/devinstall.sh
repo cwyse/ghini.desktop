@@ -38,7 +38,7 @@ else
     mkdir -p $HOME/Local/github/Ghini >/dev/null 2>&1
     cd $HOME/Local/github/Ghini
     if ! git clone git@github.com:cwyse/ghini.desktop.git; then
-        printf "Error cloning cwyse/ghini.desktop"
+        printf "Error cloning cwyse/ghini.desktop\n\n"
         exit
     fi
 fi
