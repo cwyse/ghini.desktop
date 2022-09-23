@@ -36,7 +36,7 @@ then
 else
     mkdir -p $HOME/Local/github/Ghini >/dev/null 2>&1
     cd $HOME/Local/github/Ghini
-    git clone https://github.com/Ghini/ghini.desktop
+    git clone git@github.com:cwyse/ghini.desktop.git
 fi
 cd ghini.desktop
 
