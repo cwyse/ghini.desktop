@@ -109,18 +109,6 @@ def natsort(attr, obj):
     return sorted(obj, key=utils.natsort_key)
 
 
-@event.listens_for(HistoryExtension, 'after_update')
-def receive_after_update(mapper, connection, instance):
-    self._add('update', mapper, connection, instance)
-
-@event.listens_for(HistoryExtension, 'after_insert')
-def receive_after_delete(mapper, connection, instance):
-    self._add('insert', mapper, connection, instance)
-
-@event.listens_for(HistoryExtension, 'after_delete')
-def receive_after_delete(mapper, connection, instance):
-    self._add('delete', mapper, connection, instance)
-
 class HistoryExtension:
     """
     All inserts, updates, and deletes made to the mapped objects are
@@ -141,6 +129,18 @@ class HistoryExtension:
                                  operation=operation, user=user,
                                  timestamp=datetime.datetime.today()))
         connection.execute(stmt)
+
+@event.listens_for(HistoryExtension, 'after_update')
+def receive_after_update(mapper, connection, instance):
+    self._add('update', mapper, connection, instance)
+
+@event.listens_for(HistoryExtension, 'after_insert')
+def receive_after_delete(mapper, connection, instance):
+    self._add('insert', mapper, connection, instance)
+
+@event.listens_for(HistoryExtension, 'after_delete')
+def receive_after_delete(mapper, connection, instance):
+    self._add('delete', mapper, connection, instance)
 
 class MapperBase(DeclarativeMeta):
     """
