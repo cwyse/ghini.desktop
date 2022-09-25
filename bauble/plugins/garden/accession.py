@@ -503,7 +503,7 @@ def compute_serializable_fields(cls, session, keys):
 AccessionNote = db.make_note_class('Accession', compute_serializable_fields)
 
 
-class Accession(db.Base, db.Serializable, db.WithNotes):
+class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension):
     """
     :Table name: accession
 
@@ -568,8 +568,9 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
 
     """
     __tablename__ = 'accession'
-    __mapper_args__ = {'order_by': 'accession.code',
-                       'extension': AccessionMapperExtension()}
+    #__mapper_args__ = {'order_by': 'accession.code',
+    #                   'extension': AccessionMapperExtension()}
+    __mapper_args__ = {'order_by': 'accession.code')
 
     # columns
     #: the accession code
