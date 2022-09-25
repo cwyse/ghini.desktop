@@ -142,7 +142,7 @@ def receive_after_delete(mapper, connection, instance):
 def receive_after_delete(mapper, connection, instance):
     self._add('delete', mapper, connection, instance)
 
-class MapperBase(DeclarativeMeta):
+class MapperBase(DeclarativeMeta, HistoryExtension):
     """
     MapperBase adds the id, _created and _last_updated columns to all
     tables.
@@ -161,7 +161,7 @@ class MapperBase(DeclarativeMeta):
                                           types.DateTime(timezone=True),
                                           default=sa.func.now(),
                                           onupdate=sa.func.now())
-            cls.__mapper_args__ = {'extension': HistoryExtension()}
+#            cls.__mapper_args__ = {'extension': HistoryExtension()}
         if 'top_level_count' not in dict_:
             cls.top_level_count = lambda x: {classname: 1}
         if 'search_view_markup_pair' not in dict_:
