@@ -27,7 +27,21 @@ if ! which sudo; then
 fi
 sudo -k
 sudo apt update -y
-sudo apt install git python3 python3-venv  libpq-dev -y
+sudo apt install aptitude -y
+sudo aptitude install git python3 python3-venv  libpq-dev make build-essential libssl-dev zlib1g-dev \
+libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev -y
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+if [ ! -d "$PYENV_ROOT" ]; then
+    curl https://pyenv.run | bash
+fi
+eval "$(pyenv init -)"
+pyenv install -s -g 3.10.7 
+if [ ! -d "$(pyenv root)/plugins/pyenv-virtualenv" ]; then
+    git clone https://github.com/pyenv/pyenv-virtualenv.git $(pyenv root)/plugins/pyenv-virtualenv
+fi
+eval "$(pyenv virtualenv-init -)"
 
 if [ -d $HOME/Local/github/Ghini/ghini.desktop ]
 then
@@ -55,12 +69,16 @@ fi
 
 git checkout $LINE
 
-mkdir -p $HOME/.virtualenvs
-python3 -m venv $HOME/.virtualenvs/$LINE --system-site-packages
-find $HOME/.virtualenvs/$LINE -name "*.pyc" -or -name "*.pth" -execdir rm {} \;
-mkdir -p $HOME/.virtualenvs/$LINE/share
-mkdir -p $HOME/.ghini
-. $HOME/.virtualenvs/$LINE/bin/activate
+pyenv virtualenv -f 3.10.7-debug $LINE
+pyenv versions
+
+#python3 -m venv $HOME/.virtualenvs/$LINE --system-site-packages
+#find $HOME/.virtualenvs/$LINE -name "*.pyc" -or -name "*.pth" -execdir rm {} \;
+#mkdir -p $HOME/.virtualenvs/$LINE/share
+#mkdir -p $HOME/.ghini
+pyenv activate $LINE
+#. $HOME/.virtualenvs/$LINE/bin/activate
+#read
 
 git config --global user.email "chris.wyse@wysechoice.net"
 git config --global user.name "Chris Wyse"
@@ -81,9 +99,9 @@ do
     if ! git help >/dev/null 2>&1; then
         MISSING="$MISSING git"
     fi
-    if ! virtualenv --help >/dev/null 2>&1; then
-        MISSING="$MISSING virtualenv"
-    fi
+#    if ! virtualenv --help >/dev/null 2>&1; then
+#        MISSING="$MISSING virtualenv"
+#    fi
     if ! xslt-config --help >/dev/null 2>&1; then
         MISSING="$MISSING libxslt1-dev"
     fi
@@ -116,7 +134,10 @@ do
 #gir1.2-gtkchamplain-0.12 is already the newest version (0.12.20-1build1).
 
     if ! python3 -c 'import gi; gi.require_version("Clutter", "1.0"); gi.require_version("GtkClutter", "1.0"); from gi.repository import Clutter, GtkClutter; gi.require_version("Champlain", "0.12"); from gi.repository import GtkChamplain; GtkClutter.init([]); from gi.repository import Champlain' >/dev/null 2>&1; then
-        MISSING="$MISSING gir1.2-gtkchamplain-0.12 gir1.2-gtkclutter-1.0"
+        sudo apt-get install pkg-config libcairo2-dev gcc libgirepository1.0-dev
+        pip install gobject PyGObject
+        #MISSING="$MISSING gir1.2-gtkchamplain-0.12 gir1.2-gtkclutter-1.0"
+#        MISSING="$MISSING gobject PyGObject"
     fi
 
     echo $MISSING
@@ -166,7 +187,7 @@ done
 if [ ! -z $PG ]
 then
     echo 'installing postgresql adapter'
-    pip install psycopg2 ;
+    pip install psycopg2 pbr;
 fi
 
 if [ ! -z $MYSQL ]
@@ -177,12 +198,16 @@ fi
 
 python setup.py build
 python setup.py install
+GHINI_BIN=$HOME/bin/ghini
 mkdir -p $HOME/bin 2>/dev/null
-cat <<EOF > $HOME/bin/ghini
-#!/bin/bash
-
-GITHOME=$HOME/Local/github/Ghini/ghini.desktop/
-. \$HOME/.virtualenvs/$LINE/bin/activate
+echo -e '#!/bin/bash\n\n' > ${GHINI_BIN}
+echo 'GITHOME=$HOME/Local/github/Ghini/ghini.desktop/' >>${GHINI_BIN}
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ${GHINI_BIN}
+echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ${GHINI_BIN}
+echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n eval "$(pyenv init -)"\nfi' >> ${GHINI_BIN}
+echo 'eval "$(pyenv virtualenv-init -)"' >> ${GHINI_BIN}
+cat <<EOF >> $HOME/bin/ghini
+pyenv activate $LINE
 
 while getopts us:mp f
 do
@@ -226,12 +251,17 @@ echo enter your password to make Ghini available to other users.
 
 sudo groupadd ghini 2>/dev/null 
 sudo usermod -a -G ghini $(whoami)
-chmod -R g-w+rX,o-rwx $HOME/.virtualenvs/$LINE
-sudo chgrp -R ghini $HOME/.virtualenvs/$LINE
+chmod -R g-w+rX,o-rwx $HOME/.pyenv/versions/$LINE
+sudo chgrp -R ghini $HOME/.pyenv/versions/$LINE
 cat <<EOF | sudo tee /usr/local/bin/ghini > /dev/null
 #!/bin/bash
-. $HOME/.virtualenvs/$LINE/bin/activate
-$HOME/.virtualenvs/$LINE/bin/ghini
+GITHOME=$HOME/Local/github/Ghini/ghini.desktop/
+PYENV_ROOT="$HOME/.pyenv"
+PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+pyenv activate $LINE
+$PYENV_ROOT/versions/$LINE/bin/ghini
 EOF
 sudo chmod +x /usr/local/bin/ghini
 
