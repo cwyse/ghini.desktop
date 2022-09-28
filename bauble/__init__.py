@@ -290,7 +290,7 @@ dbengine.html#create-engine-url-arguments>`_
     import bauble.utils as utils
 
     # initialize threading
-    GObject.threads_init()
+#    GObject.threads_init()
 
     try:
         import bauble.db as db
