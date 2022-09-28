@@ -270,7 +270,8 @@ class GenericEditorView(object):
         make sure you have a Gtk.ResponseType.ACCEPT button.
 
         """
-        chooser = Gtk.FileChooserDialog(text, parent, action, buttons)
+        chooser = Gtk.FileChooserDialog(text, parent, action)
+        chooser.add_buttons(buttons)
         #chooser.set_do_overwrite_confirmation(True)
         #chooser.connect("confirm-overwrite", confirm_overwrite_callback)
         try:
@@ -2119,9 +2120,9 @@ class PictureBox(NoteBox):
 
     def on_activate_browse_button(self, widget, data=None):
         fileChooserDialog = Gtk.FileChooserDialog(
-            _("Choose a file…"), None,
-            buttons=(Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
-                     Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+            _("Choose a file…"), parent=self, action=Gtk.FileChooserAction.OPEN)
+        fileChooserDialog.add_buttons(Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
+                     Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         try:
             logger.debug('about to set current folder - %s' % self.last_folder)
             fileChooserDialog.set_current_folder(self.last_folder)
