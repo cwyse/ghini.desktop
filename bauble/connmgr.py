@@ -286,7 +286,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         previously = self.view.widget_get_value('file_entry')
         last_folder, bn = os.path.split(previously)
         self.view.run_file_chooser_dialog(
-            _("Choose a file…"), None,
+            _("Choose a file…"), parent=self,
             action=Gtk.FileChooserAction.SAVE,
             buttons=(Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
                      Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL),
@@ -297,7 +297,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         previously = self.view.widget_get_value('pictureroot_entry')
         last_folder, bn = os.path.split(previously)
         self.view.run_file_chooser_dialog(
-            _("Choose a file…"), None,
+            _("Choose a file…"), parent=self,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
             buttons=(Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
                      Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL),
@@ -308,7 +308,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         previously = self.view.widget_get_value('pictureroot2_entry')
         last_folder, bn = os.path.split(previously)
         self.view.run_file_chooser_dialog(
-            _("Choose a file…"), None,
+            _("Choose a file…"), parent=self,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
             buttons=(Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
                      Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL),
