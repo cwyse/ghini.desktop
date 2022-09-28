@@ -1057,8 +1057,9 @@ def make_label_clickable(label, on_clicked, *args):
     label.__on_clicked = on_clicked
 
     def on_enter_notify(widget, event, label, *args):
-        widget.modify_bg(Gtk.StateType.NORMAL, Gdk.RGBA.parse("#faf8f7"))
-        label.modify_fg(Gtk.StateType.NORMAL, Gdk.RGBA.parse("blue"))
+        color = Gdk.RGBA()
+        widget.modify_bg(Gtk.StateType.NORMAL, color.parse("#faf8f7"))
+        label.modify_fg(Gtk.StateType.NORMAL, color.parse("blue"))
 
     def on_leave_notify(widget, event, label, *args):
         widget.modify_bg(Gtk.StateType.NORMAL, None)
