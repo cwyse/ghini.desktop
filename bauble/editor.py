@@ -1062,7 +1062,7 @@ class GenericEditorPresenter(object):
     2. refresh the view, put values from the model into the widgets
     3. connect the signal handlers
     """
-    problem_color = Gdk.color_parse('#FFDCDF')
+    problem_color = Gdk.RGBA.parse('#FFDCDF')
     widget_to_field_map = {}
     view_accept_buttons = []
 

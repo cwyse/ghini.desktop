@@ -231,7 +231,7 @@ class GUI(object):
 
         # remove label from frame
         frame = statusbar.get_children()[0]
-        #frame.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('#FF0000'))
+        #frame.modify_bg(Gtk.StateType.NORMAL, Gdk.RGBA.parse('#FF0000'))
         label = frame.get_children()[0]
         frame.remove(label)
 
