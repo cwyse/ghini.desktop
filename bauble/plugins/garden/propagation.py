@@ -796,7 +796,7 @@ class CuttingPresenter(editor.GenericEditorPresenter):
 
     def refresh_view(self):
         # TODO: not so sure. is this a 'refresh', or a 'init' view?
-        for widget, attr in self.widget_to_field_map.items():
+        for widget, attr in list(self.widget_to_field_map.items()):
             value = getattr(self.model, attr)
             self.view.widget_set_value(widget, value)
         rooted_liststore = self.view.widgets.rooted_treeview.get_model()
@@ -892,7 +892,7 @@ class SeedPresenter(editor.GenericEditorPresenter):
 
     def refresh_view(self):
         date_format = prefs.prefs[prefs.date_format_pref]
-        for widget, attr in self.widget_to_field_map.items():
+        for widget, attr in list(self.widget_to_field_map.items()):
             value = getattr(self.model, attr)
             if isinstance(value, datetime.date):
                 value = value.strftime(date_format)
@@ -953,7 +953,7 @@ class PropagationPresenter(editor.ChildPresenter):
         prop_box_map = {'Seed': self.view.widgets.seed_box,
                         'UnrootedCutting': self.view.widgets.cutting_box,
                         }
-        for type_, box in prop_box_map.items():
+        for type_, box in list(prop_box_map.items()):
             box.set_visible((prop_type == type_))
 
         self.view.widgets.prop_details_box.set_visible(True)

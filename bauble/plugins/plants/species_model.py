@@ -42,7 +42,7 @@ from sqlalchemy import text
 def _remove_zws(s):
     "remove_zero_width_space"
     if s:
-        return s.replace('\u200b', '')
+        return s.replace('\\u200b', '')
     return s
 
 
@@ -493,7 +493,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         else:
             genus = ''
         if self.epithet and not remove_zws:
-            epithet = '\u200b' + self.epithet  # prepend with zero_width_space
+            epithet = '\\u200b' + self.epithet  # prepend with zero_width_space
         else:
             epithet = self.epithet
         sp2 = self.sp2

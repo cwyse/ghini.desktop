@@ -483,7 +483,7 @@ class FamilyEditorPresenter(editor.GenericEditorPresenter):
 
     def refresh_view(self):
         # Refresh each widget associated with the Family model fields
-        for widget, field in self.widget_to_field_map.items():
+        for widget, field in list(self.widget_to_field_map.items()):
             value = getattr(self.model, field, None)
             self.view.widget_set_value(widget, value)
 
