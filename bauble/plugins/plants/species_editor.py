@@ -780,7 +780,6 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
         path = treemodel.get_path(treeiter)
         self.treeview.set_cursor(path, column, start_editing=True)
         if len(treemodel) == 1:
-            #self.set_model_attr('default_vernacular_name', vn)
             self.model.default_vernacular_name = vn
 
     def on_remove_button_clicked(self, button, data=None):
@@ -806,8 +805,6 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
             # default vernacular name
             first = treemodel.get_iter_first()
             if first:
-#                 self.set_model_attr('default_vernacular_name',
-#                                     tree_model[first][0])
                 self.model.default_vernacular_name = treemodel[first][0]
         self.parent_ref().refresh_sensitivity()
         self._dirty = True
@@ -905,7 +902,6 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
 
     def refresh_view(self, default_vernacular_name):
         tree_model = self.treeview.get_model()
-        #if len(self.model) > 0 and default_vernacular_name is None:
         vernacular_names = self.model.vernacular_names
         default_vernacular_name = self.model.default_vernacular_name
         if len(vernacular_names) > 0 and default_vernacular_name is None:
@@ -916,7 +912,6 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
             first = tree_model.get_iter_first()
             value = tree_model[first][0]
             path = tree_model.get_path(first)
-            #self.set_model_attr('default_vernacular_name', value)
             self.model.default_vernacular_name = value
             self._dirty = True
             self.parent_ref().refresh_sensitivity()
