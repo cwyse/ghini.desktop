@@ -862,17 +862,32 @@ def setup_date_button(view, entry, button, date_func=None):
         button.connect('clicked', on_clicked)
 
 
+def whatisthis(s):
+    print(type(s))
+
+counter = 0
 def to_unicode(obj, encoding='utf-8'):
     """Convert obj to Python3 standard unicode string
 
     """
+    global counter
+    counter = counter + 1
+    print("%d: to_unicode" % counter)
+    whatisthis(obj)
     if obj is None:
         return None
     if not isinstance(obj, str):
         try:
             obj = str(obj, encoding)
+            print("%d: obj not str = %s" % (counter, obj))
         except Exception:
-            obj = "%s" % obj
+            print("%d: obj exception1 = %s" % (counter, obj))
+            whatisthis(obj)
+            obj = "%s" % str(obj)
+            print("%d: obj exception = %s" % (counter, obj))
+    else:
+        print("%d: obj str = %s" % (counter, str(obj)))
+        whatisthis(obj)
     return obj
 
 
