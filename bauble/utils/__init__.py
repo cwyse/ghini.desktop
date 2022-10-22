@@ -42,6 +42,7 @@ from gi.repository import GLib
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 import threading
 
@@ -861,33 +862,30 @@ def setup_date_button(view, entry, button, date_func=None):
     else:
         button.connect('clicked', on_clicked)
 
-
-def whatisthis(s):
-    print(type(s))
-
-counter = 0
 def to_unicode(obj, encoding='utf-8'):
     """Convert obj to Python3 standard unicode string
-
     """
-    global counter
-    counter = counter + 1
-    print("%d: to_unicode" % counter)
-    whatisthis(obj)
     if obj is None:
         return None
-    if not isinstance(obj, str):
+    if isinstance(obj, str):
         try:
-            obj = str(obj, encoding)
-            print("%d: obj not str = %s" % (counter, obj))
+            obj = obj.encode(encoding).decode(encoding)
         except Exception:
-            print("%d: obj exception1 = %s" % (counter, obj))
-            whatisthis(obj)
-            obj = "%s" % str(obj)
-            print("%d: obj exception = %s" % (counter, obj))
+            # Errors changing encoding
+            obj = None
+            pass
     else:
-        print("%d: obj str = %s" % (counter, str(obj)))
-        whatisthis(obj)
+        try:
+            # Bytes 
+            obj = str(obj, encoding)
+        except Exception:
+            try:
+                # Use the class' str() method to get the value
+                obj = str(obj)
+            except Exception:
+                # If the __str__ method returned a non-unicode value
+                obj = type(obj).__name__
+                pass
     return obj
 
 

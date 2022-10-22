@@ -40,6 +40,7 @@ from gi.repository import Gtk
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 from functools import partial
 
