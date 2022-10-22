@@ -350,6 +350,7 @@ class Voucher(db.Base):
 
 
 class AccessionMapperExtension:
+    pass
 
 # invalidate an accessions string cache after it has been updated
 @event.listens_for(AccessionMapperExtension, 'after_update')
@@ -572,7 +573,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
     __tablename__ = 'accession'
     #__mapper_args__ = {'order_by': 'accession.code',
     #                   'extension': AccessionMapperExtension()}
-    __mapper_args__ = {'order_by': 'accession.code')
+    __mapper_args__ = {'order_by': 'accession.code'}
 
     # columns
     #: the accession code

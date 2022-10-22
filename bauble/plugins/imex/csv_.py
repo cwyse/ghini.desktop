@@ -548,10 +548,10 @@ class CSVImporter(Importer):
             ok = filechooser.action_area.get_children()[1]
             ok.set_sensitive(os.path.isfile(f))
         fc = Gtk.FileChooserDialog(_("Choose file(s) to import…"),
-                                   parent=self,
-                                   Gtk.FileChooserAction.OPEN)
-        fc.add_buttons(Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
-                                    Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT)
+                                   self,
+                                   Gtk.FileChooserAction.OPEN, 
+                                   (Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
+                                    Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT))
         fc.set_select_multiple(True)
         fc.connect("selection-changed", on_selection_changed)
         filenames = None
@@ -571,10 +571,10 @@ class CSVExporter(object):
 
     def start(self, path=None):
         if path is None:
-            d = Gtk.FileChooserDialog(_("Select a directory"), parent=self,
-                                      Gtk.FileChooserAction.SELECT_FOLDER)
-            d.add_buttons(Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
-                          Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+            d = Gtk.FileChooserDialog(_("Select a directory"), self,
+                                      Gtk.FileChooserAction.SELECT_FOLDER, 
+                                      (Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT, 
+                                       Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
             response = d.run()
             path = d.get_filename()
             d.destroy()

@@ -169,6 +169,7 @@ class MapperBase(DeclarativeMeta, HistoryExtension):
                 utils.xml_safe(str(x)),
                 '(%s)' % type(x).__name__)
 
+        print("{%s} bases={%s}, dist_={%s}".format(classname, bases, dict_))
         super().__init__(classname, bases, dict_)
 
 
