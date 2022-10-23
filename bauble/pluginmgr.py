@@ -37,7 +37,7 @@ installed plugins in to the registry (happens in load())
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 import types
 import os

@@ -278,7 +278,8 @@ class PlantChange(db.Base):
     """
     """
     __tablename__ = 'plant_change'
-    __mapper_args__ = {'order_by': 'plant_change.date'}
+    #__mapper_args__ = {'order_by': 'plant_change.date'}
+    print("Mapper Args: PlantChange")
 
     plant_id = Column(Integer, ForeignKey('plant.id'), nullable=False)
     parent_plant_id = Column(Integer, ForeignKey('plant.id'))
@@ -304,7 +305,7 @@ class PlantChange(db.Base):
     # relations
     plant = relation('Plant', uselist=False,
                      primaryjoin='PlantChange.plant_id == Plant.id',
-                     backref=backref('changes', cascade='all, delete-orphan'))
+                     backref=backref('changes', cascade='all, delete-orphan',order_by=['plant.accession_id', 'plant.code']))
     parent_plant = relation(
         'Plant', uselist=False,
         primaryjoin='PlantChange.parent_plant_id == Plant.id',
@@ -374,7 +375,8 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     """
     __tablename__ = 'plant'
     __table_args__ = (UniqueConstraint('code', 'accession_id'), {})
-    __mapper_args__ = {'order_by': ['plant.accession_id', 'plant.code']}
+    #__mapper_args__ = {'order_by': ['plant.accession_id', 'plant.code']}
+    print("Mapper Args: Plant")
 
     # columns
     code = Column(Unicode(6), nullable=False)
@@ -397,7 +399,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     propagations = relation('Propagation', cascade='all, delete-orphan',
                             single_parent=True,
                             secondary=PlantPropagation.__table__,
-                            backref=backref('plant', uselist=False))
+                            backref=backref('plant', uselist=False, order_by=['plant.accession_id', 'plant.code']))
 
     _delimiter = None
 

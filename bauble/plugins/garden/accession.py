@@ -270,7 +270,8 @@ class Verification(db.Base):
 
     """
     __tablename__ = 'verification'
-    __mapper_args__ = {'order_by': 'verification.date'}
+    #__mapper_args__ = {'order_by': 'verification.date'}
+    print("Mapper Args: Verification")
 
     # columns
     verifier = Column(Unicode(64), nullable=False)
@@ -288,9 +289,11 @@ class Verification(db.Base):
     prev_species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
 
     species = relation(
-        'Species', primaryjoin='Verification.species_id==Species.id')
+        'Species', primaryjoin='Verification.species_id==Species.id',
+        order_by='verification.date')
     prev_species = relation(
-        'Species', primaryjoin='Verification.prev_species_id==Species.id')
+        'Species', primaryjoin='Verification.prev_species_id==Species.id',
+        order_by='verification.date')
 
     notes = Column(UnicodeText)
 
@@ -573,7 +576,8 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
     __tablename__ = 'accession'
     #__mapper_args__ = {'order_by': 'accession.code',
     #                   'extension': AccessionMapperExtension()}
-    __mapper_args__ = {'order_by': 'accession.code'}
+    #__mapper_args__ = {'order_by': 'accession.code'}
+    print("Mapper Args: Accession")
 
     # columns
     #: the accession code
@@ -628,7 +632,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
     # relations
     species = relation('Species', uselist=False,
                        backref=backref('accessions',
-                                       cascade='all, delete-orphan'))
+                                       cascade='all, delete-orphan'),order_by='accession.code')
 
     # use Plant.code for the order_by to avoid ambiguous column names
     plants = relation('Plant', cascade='all, delete-orphan',

@@ -163,7 +163,8 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     __table_args__ = (UniqueConstraint('epithet', 'author',
                                        'qualifier', 'family_id'),
                       {})
-    __mapper_args__ = {'order_by': ['epithet', 'author']}
+    #__mapper_args__ = {'order_by': ['epithet', 'author']}
+    print("Mapper Args: Genus")
 
     rank = 'genus'
     link_keys = ['accepted']
@@ -231,7 +232,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     _synonyms = relation('GenusSynonym',
                          primaryjoin='Genus.id==GenusSynonym.genus_id',
                          cascade='all, delete-orphan', uselist=True,
-                         backref='genus')
+                         backref=backref('genus', order_by=['epithet', 'author']))
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus

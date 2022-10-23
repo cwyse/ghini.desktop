@@ -97,7 +97,8 @@ class Source(db.Base):
     source_detail_id = Column(Integer, ForeignKey('contact.id'))
     source_detail = relation('Contact', uselist=False,
                              backref=backref('sources',
-                                             cascade='all, delete-orphan'))
+                                             cascade='all, delete-orphan',
+                                             order_by='Contact.name'))
 
     collection = relation('Collection', uselist=False,
                           cascade='all, delete-orphan',
@@ -807,7 +808,8 @@ ContactNote = db.make_note_class('Contact', compute_serializable_fields)
 
 class Contact(db.Base, db.Serializable, db.WithNotes):
     __tablename__ = 'contact'
-    __mapper_args__ = {'order_by': 'name'}
+    #__mapper_args__ = {'order_by': 'name'}
+    print("Mapper Args: Contact")
 
     # ITF2 - E6 - Donor
     name = Column(Unicode(75), unique=True)

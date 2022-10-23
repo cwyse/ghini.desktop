@@ -257,7 +257,8 @@ class PropCuttingRooted(db.Base):
     Rooting dates for cutting
     """
     __tablename__ = 'prop_cutting_rooted'
-    __mapper_args__ = {'order_by': 'date'}
+    #__mapper_args__ = {'order_by': 'date'}
+    print("Mapper Args: PropCuttingRooted")
 
     date = Column(types.Date)
     quantity = Column(Integer, autoincrement=False, default=0, nullable=False)
@@ -352,7 +353,7 @@ class PropCutting(db.Base):
 
     rooted = relation('PropCuttingRooted', cascade='all,delete-orphan',
                       primaryjoin='PropCutting.id==PropCuttingRooted.cutting_id',
-                      backref=backref('cutting', uselist=False))
+                      backref=backref('cutting', uselist=False, order_by='PropCuttingRooted.Date'))
 
 
 class PropSeed(db.Base):

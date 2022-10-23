@@ -124,7 +124,9 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
+print("Make Note Class: FamilyNote")
 FamilyNote = db.make_note_class('Family', compute_serializable_fields)
+print("Make Note Class Done: FamilyNote")
 
 
 class Family(db.Base, db.Serializable, db.WithNotes):
@@ -155,7 +157,8 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     """
     __tablename__ = 'family'
     __table_args__ = (UniqueConstraint('epithet'), {})
-    __mapper_args__ = {'order_by': ['Family.epithet', 'Family.qualifier']}
+    #__mapper_args__ = {'order_by': ['Family.epithet', 'Family.qualifier']}
+    print("Mapper Args: Family")
 
     rank = 'familia'
     link_keys = ['accepted']
@@ -195,7 +198,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     _synonyms = relation('FamilySynonym',
                          primaryjoin='Family.id==FamilySynonym.family_id',
                          cascade='all, delete-orphan', uselist=True,
-                         backref='family')
+                         backref=backref('family', order_by=['Family.epithet', 'Family.qualifier']))
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this family

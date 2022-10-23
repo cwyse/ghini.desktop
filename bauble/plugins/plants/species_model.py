@@ -159,7 +159,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         cv_group, trade_name, genus_id
     """
     __tablename__ = 'species'
-    __mapper_args__ = {'order_by': ['epithet', 'author']}
+    #__mapper_args__ = {'order_by': ['epithet', 'author']}
+    print("Mapper Args: Species")
 
     rank = 'species'
     link_keys = ['accepted']
@@ -324,7 +325,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     _synonyms = relation('SpeciesSynonym',
                          primaryjoin='Species.id==SpeciesSynonym.species_id',
                          cascade='all, delete-orphan', uselist=True,
-                         backref='species')
+                         backref=backref('species', order_by=['epithet', 'author']))
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus

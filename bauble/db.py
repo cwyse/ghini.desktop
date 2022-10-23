@@ -151,7 +151,11 @@ class MapperBase(DeclarativeMeta, HistoryExtension):
     than to extend it to add more default columns to all the bauble
     tables.
     """
-    def __init__(cls, classname, bases, dict_):
+    def __init__(cls, classname, bases, dict_, **kwargs):
+        cls.classname = classname
+        cls.bases = bases
+        cls.dict_ = dict_
+
         if '__tablename__' in dict_:
             cls.id = sa.Column('id', sa.Integer, primary_key=True,
                                autoincrement=True)
@@ -169,8 +173,8 @@ class MapperBase(DeclarativeMeta, HistoryExtension):
                 utils.xml_safe(str(x)),
                 '(%s)' % type(x).__name__)
 
-        print("{%s} bases={%s}, dist_={%s}".format(classname, bases, dict_))
-        super().__init__(classname, bases, dict_)
+        super().__init__(classname=classname, bases=bases, dict_=dict_, **kwargs)
+#        super().__init__(**kwargs)
 
 
 engine = None
@@ -543,7 +547,7 @@ def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrie
 
     bases = (Base, )
     fields = {'__tablename__': table_name,
-              '__mapper_args__': {'order_by': table_name + '.date'},
+#              '__mapper_args__': {'order_by': table_name + '.date'},
 
               'date': sa.Column(types.Date, default=sa.func.now()),
               'user': sa.Column(sa.Unicode(64), default=''),
@@ -552,7 +556,7 @@ def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrie
               'note': sa.Column(sa.UnicodeText, nullable=False),
               name.lower() + '_id': sa.Column(sa.Integer, sa.ForeignKey(name.lower() + '.id'), nullable=False),
               name.lower(): sa.orm.relation(name, uselist=False, backref=sa.orm.backref(
-                  'notes', cascade='all, delete-orphan')),
+                  'notes', cascade='all, delete-orphan', order_by=table_name + '.date')),
               'retrieve': classmethod(retrieve),
               'retrieve_or_create': classmethod(retrieve_or_create),
               'is_defined': is_defined,
@@ -562,7 +566,9 @@ def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrie
         bases = (Base, Serializable)
         fields['compute_serializable_fields'] = classmethod(compute_serializable_fields)
 
+    print("Before class creation: %s" % class_name)
     result = type(class_name, bases, fields)
+    print("After class creation: %s" % class_name)
     return result
 
 

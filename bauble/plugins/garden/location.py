@@ -122,7 +122,8 @@ class Location(db.Base, db.Serializable, db.WithNotes):
 
     """
     __tablename__ = 'location'
-    __mapper_args__ = {'order_by': 'name'}
+    #__mapper_args__ = {'order_by': 'name'}
+    print("Mapper Args: Location")
 
     # columns
     # refers to beds by unique codes
@@ -131,7 +132,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     description = Column(UnicodeText)
 
     # relations
-    plants = relation('Plant', backref=backref('location', uselist=False))
+    plants = relation('Plant', backref=backref('location', uselist=False, order_by='name'))
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
