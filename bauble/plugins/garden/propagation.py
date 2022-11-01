@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy import Column, Integer, ForeignKey, UnicodeText, Unicode
-from sqlalchemy.orm import backref, relation
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 
@@ -69,8 +69,9 @@ class PlantPropagation(db.Base):
     propagation_id = Column(Integer, ForeignKey('propagation.id'),
                             nullable=False)
 
-    propagation = relation('Propagation', uselist=False)
-    plant = relation('Plant', uselist=False)
+    propagation = relationship('Propagation', back_populates='plant_propagation', uselist=False)
+    plant = relationship('Plant', back_populates='plant_propagation', uselist=False)
+    notes = relationship('PropagationNote', back_populates='propagation', cascade='all, delete-orphan')
 
 
 PropagationNote = db.make_note_class('Propagation')
@@ -85,17 +86,22 @@ class Propagation(db.Base, db.WithNotes):
                        nullable=False)
     date = Column(types.Date)
 
-    _cutting = relation(
+    _cutting = relationship(
         'PropCutting',
         primaryjoin='Propagation.id==PropCutting.propagation_id',
         cascade='all,delete-orphan', uselist=False,
-        backref=backref('propagation', uselist=False))
-    _seed = relation(
+        back_populates='propagation')
+    _seed = relationship(
         'PropSeed',
         primaryjoin='Propagation.id==PropSeed.propagation_id',
         cascade='all,delete-orphan', uselist=False,
-        backref=backref('propagation', uselist=False))
+        back_populate='propagation')
 
+    plant_propagation = relationship('PlantPropagation', back_populates='propagation')
+    propagation_notes = relationship('PropagationNote', back_populates='propagation')
+    source_prop = relationship('Source', back_populates='propagation', uselist=False)
+    source_plant_prop = relationship('Source', back_populates='plant_propagation', uselist=True)
+    
     @property
     def accessions(self):
         if not self.used_source:
@@ -263,6 +269,7 @@ class PropCuttingRooted(db.Base):
     date = Column(types.Date)
     quantity = Column(Integer, autoincrement=False, default=0, nullable=False)
     cutting_id = Column(Integer, ForeignKey('prop_cutting.id'), nullable=False)
+    cutting = relationship('PropCutting', back_populates='rooted', uselist=False)
 
 
 cutting_type_values = {'Nodal': _('Nodal'),
@@ -351,9 +358,13 @@ class PropCutting(db.Base):
     propagation_id = Column(Integer, ForeignKey('propagation.id'),
                             nullable=False)
 
+    propagation = relationship( 'Propagation', back_populates='_cutting')
+
+
     rooted = relation('PropCuttingRooted', cascade='all,delete-orphan',
                       primaryjoin='PropCutting.id==PropCuttingRooted.cutting_id',
-                      backref=backref('cutting', uselist=False, order_by='PropCuttingRooted.Date'))
+                      back_populates='cutting',
+                      order_by=PropCuttingRooted.date)
 
 
 class PropSeed(db.Base):
@@ -386,6 +397,8 @@ class PropSeed(db.Base):
 
     propagation_id = Column(Integer, ForeignKey('propagation.id'),
                             nullable=False)
+    propagation = relationship('Propagation', back_populates='_seed')
+
 
     def __str__(self):
         # what would the string be...???

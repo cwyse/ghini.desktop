@@ -31,7 +31,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 
 from sqlalchemy import Column, Boolean, Unicode, Integer, ForeignKey, \
     UnicodeText, func, UniqueConstraint
-from sqlalchemy.orm import relation, backref, synonym
+from sqlalchemy.orm import relationship, synonym
 import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
@@ -164,6 +164,9 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     rank = 'species'
     link_keys = ['accepted']
+    notes = relationship('SpeciesNotes', back_populates='species', cascade='all, delete-orphan')
+    verification = relationship('Verification', back_populates='species')
+    prev_verification = relationship('Verification', back_populates='prev_species')
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -322,36 +325,37 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     # relations
     synonyms = association_proxy('_synonyms', 'synonym')
-    _synonyms = relation('SpeciesSynonym',
+    _synonyms = relationship('SpeciesSynonym',
                          primaryjoin='Species.id==SpeciesSynonym.species_id',
                          cascade='all, delete-orphan', uselist=True,
-                         backref=backref('species', order_by=['epithet', 'author']))
+                         back_populates='species')
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus
     # get deleted if this genus gets deleted
-    _syn = relation('SpeciesSynonym',
+    _syn = relationship('SpeciesSynonym',
                     primaryjoin='Species.id==SpeciesSynonym.synonym_id',
                     cascade='all, delete-orphan', uselist=True)
 
     ## VernacularName.species gets defined here too.
-    vernacular_names = relation('VernacularName', cascade='all, delete-orphan',
+    vernacular_names = relationship('VernacularName', cascade='all, delete-orphan',
                                 collection_class=VNList,
-                                backref=backref('species', uselist=False))
-    _default_vernacular_name = relation('DefaultVernacularName', uselist=False,
+                                back_populates='species')
+    _default_vernacular_name = relationship('DefaultVernacularName', uselist=False,
                                         cascade='all, delete-orphan',
-                                        backref=backref('species',
-                                                        uselist=False))
-    distribution = relation('SpeciesDistribution',
+                                        back_populates='species')
+    distribution = relationship('SpeciesDistribution',
                             cascade='all, delete-orphan',
-                            backref=backref('species', uselist=False))
+                            back_populates='species')
 
     habit_id = Column(Integer, ForeignKey('habit.id'), default=None)
-    habit = relation('Habit', uselist=False, backref='species')
+    habit = relationship('Habit', uselist=False, back_populates='species')
 
     flower_color_id = Column(Integer, ForeignKey('color.id'), default=None)
-    flower_color = relation('Color', uselist=False, backref='species')
+    flower_color = relationship('Color', uselist=False, back_populates='species')
 
+    genus = relationship('Genus', back_populates='species', uselist=False)
+    accession = relationship('Accession', back_populates='species', cascade='all, delete-orphan')
     #hardiness_zone = Column(Unicode(4))
 
     awards = Column(UnicodeText)
@@ -686,8 +690,9 @@ class SpeciesSynonym(db.Base):
                         nullable=False, unique=True)
 
     # relations
-    synonym = relation('Species', uselist=False,
-                       primaryjoin='SpeciesSynonym.synonym_id==Species.id')
+    species = relationship('Species', uselist=False,
+                       primaryjoin='SpeciesSynonym.synonym_id==Species.id',
+                       back_populates='_synonyms', order_by=[Species.epithet, Species.author])
 
     def __init__(self, synonym=None, **kwargs):
         # it is necessary that the first argument here be synonym for
@@ -724,6 +729,8 @@ class VernacularName(db.Base, db.Serializable):
     species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
     __table_args__ = (UniqueConstraint('name', 'language',
                                        'species_id', name='vn_index'), {})
+    species = relationship('Species', back_populates='vernacular_names', uselist=False)
+    default_vernacular_name = relationship('DefaultVernacularName', back_populates='vernacular_name')
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row.
@@ -809,7 +816,8 @@ class DefaultVernacularName(db.Base):
                                 nullable=False)
 
     # relations
-    vernacular_name = relation(VernacularName, uselist=False)
+    vernacular_name = relationship("VernacularName", back_populates="default_vernacular_name", uselist=False)
+    species = relationship('Species', back_populates='_default_vernacular_name', uselist=False)
 
     def __str__(self):
         return str(self.vernacular_name)
@@ -831,14 +839,17 @@ class SpeciesDistribution(db.Base):
     geographic_area_id = Column(Integer, ForeignKey('geographic_area.id'), nullable=False)
     species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
 
+    species = relationship("Species", back_populates='distribution', uselist=False)
+
     def __str__(self):
         return str(self.geographic_area)
 
 # late bindings
-SpeciesDistribution.geographic_area = relation(
+SpeciesDistribution.geographic_area = relationship(
     'GeographicArea',
     primaryjoin='SpeciesDistribution.geographic_area_id==GeographicArea.id',
-    uselist=False)
+    uselist=False,
+    back_populates='species_distribution')
 
 
 class Habit(db.Base):
@@ -846,6 +857,8 @@ class Habit(db.Base):
 
     name = Column(Unicode(64))
     code = Column(Unicode(8), unique=True)
+
+    species = relationship("Species", back_populates="habit")
 
     def __str__(self):
         if self.name:
@@ -859,6 +872,8 @@ class Color(db.Base):
 
     name = Column(Unicode(32))
     code = Column(Unicode(8), unique=True)
+
+    species = relationship("Species", back_populates='flower_color')
 
     def __str__(self):
         if self.name:

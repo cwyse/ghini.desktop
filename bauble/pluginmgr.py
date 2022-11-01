@@ -184,6 +184,8 @@ def init(force=False):
     # search for plugins that are in the plugins dict but not in the registry
     registered = list(plugins.values())
     logger.debug('registered plugins: %s' % plugins)
+    print('registered plugins: %s' % plugins)
+    sys.stdout.flush()
     try:
         # try to access the plugin registry, if the table does not exist
         # then it might mean that we are opening a pre 0.9 database, in this
@@ -194,13 +196,21 @@ def init(force=False):
         registered_names = PluginRegistry.names()
         not_installed = [p for n, p in list(plugins.items())
                          if n not in registered_names]
+        print("Installing plugins " )
+        sys.stdout.flush()
         if len(not_installed) > 0:
             msg = _('The following plugins were not found in the plugin '
                     'registry:\n\n<b>%s</b>\n\n'
                     '<i>Would you like to install them now?</i>') % \
                 ', '.join([p.__class__.__name__ for p in not_installed])
             if force or utils.yes_no_dialog(msg):
-                install([p for p in not_installed], import_defaults=force)
+                p_all = [p for p in not_installed]
+                print("Installing plugins " + str(p_all))
+                sys.stdout.flush()
+                install(p_all, import_defaults=force)
+                #for p in not_installed:
+                #    sys.stdout.flush()
+                #install([p for p in not_installed], import_defaults=force)
 
         # sort plugins in the registry by their dependencies
         not_registered = []
@@ -320,9 +330,16 @@ def install(plugins_to_install, import_defaults=True, force=False):
                             'means that two plugins '
                             '(possibly indirectly) rely on each other'))
 
+    print('install: ------------------------------------------------------------------------------')
+    sys.stdout.flush()
     try:
         for p in to_install:
+            logger.debug(str(p))
+            logger.debug(dir(p))
+        for p in to_install:
             logger.debug('install: %s' % p)
+            print('install: %s' % p)
+            sys.stdout.flush()
             p.install(import_defaults=import_defaults)
             # issue #28: here we make sure we don't add the plugin to the
             # registry twice but we should really update the version number
@@ -412,6 +429,9 @@ class PluginRegistry(db.Base):
         session = db.Session()
         try:
             logger.debug("not using value of version (%s)." % version)
+            logger.debug(str(plugin))
+            sys.stdout.flush()
+            logger.debug(dir(PluginRegistry))
             session.query(PluginRegistry).\
                 filter_by(name=utils.utf8(name)).one()
             return True

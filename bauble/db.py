@@ -555,8 +555,8 @@ def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrie
               'type': sa.Column(sa.Unicode(32), default=''),
               'note': sa.Column(sa.UnicodeText, nullable=False),
               name.lower() + '_id': sa.Column(sa.Integer, sa.ForeignKey(name.lower() + '.id'), nullable=False),
-              name.lower(): sa.orm.relation(name, uselist=False, backref=sa.orm.backref(
-                  'notes', cascade='all, delete-orphan', order_by=table_name + '.date')),
+              name.lower(): sa.orm.relationship(name, uselist=False, back_populates='notes'),
+              'order_by': 'date',
               'retrieve': classmethod(retrieve),
               'retrieve_or_create': classmethod(retrieve_or_create),
               'is_defined': is_defined,

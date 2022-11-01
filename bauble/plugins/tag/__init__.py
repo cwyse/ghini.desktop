@@ -36,7 +36,7 @@ logger.setLevel(logging.INFO)
 
 from sqlalchemy import (
     Column, Unicode, UnicodeText, Integer, String, ForeignKey)
-from sqlalchemy.orm import relation, backref
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import and_
 from sqlalchemy.exc import DBAPIError, InvalidRequestError
@@ -449,6 +449,7 @@ class TagItemGUI(editor.GenericEditorView):
 
 print("Before make_note_class")
 TagNote = db.make_note_class('Tag')
+
 print("After make_note_class")
 
 class Tag(db.Base, db.WithNotes):
@@ -471,8 +472,10 @@ class Tag(db.Base, db.WithNotes):
     description = Column(UnicodeText)
 
     # relations
-    _objects = relation('TaggedObj', cascade='all, delete-orphan',
-                        backref=backref('tag', order_by='tag.tag'))
+    # Parent of tagged_obj and tag_note
+    _objects = relationship('TaggedObj', cascade='all, delete-orphan',
+                            back_populates='tag', order_by=tag)
+    notes = relationship('TagNote', back_populates='tag', cascade='all, delete-orphan')
 
     __my_own_timestamp = None
     __last_objects = None
@@ -606,6 +609,8 @@ class TaggedObj(db.Base):
     obj_id = Column(Integer, autoincrement=False)
     obj_class = Column(String(128))
     tag_id = Column(Integer, ForeignKey('tag.id'))
+
+    tag = relationship("Tag", back_populates="_objects")
 
     def __str__(self):
         return '%s: %s' % (self.obj_class, self.obj_id)

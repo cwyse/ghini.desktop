@@ -38,7 +38,7 @@ from gi.repository import Gtk
 from sqlalchemy import and_, func
 from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
     UnicodeText, UniqueConstraint
-from sqlalchemy.orm import relation, backref, object_mapper, validates
+from sqlalchemy.orm import relationship, object_mapper, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError, OperationalError
 
@@ -247,6 +247,7 @@ def compute_serializable_fields(cls, session, keys):
     return result
 
 PlantNote = db.make_note_class('Plant', compute_serializable_fields, as_dict, retrieve)
+PlantNote.plant_change = relationship('PlantChange', back_populates='notes')
 
 
 # TODO: some of these reasons are specific to UBC and could probably be culled.
@@ -303,18 +304,23 @@ class PlantChange(db.Base):
     date = Column(types.DateTime, default=func.now())
 
     # relations
-    plant = relation('Plant', uselist=False,
+    plant = relationship('Plant', uselist=False,
                      primaryjoin='PlantChange.plant_id == Plant.id',
-                     backref=backref('changes', cascade='all, delete-orphan',order_by=['plant.accession_id', 'plant.code']))
-    parent_plant = relation(
+                     back_populates='plant_change',
+                     order_by='PlantChange.date')
+    parent_plant = relationship(
         'Plant', uselist=False,
         primaryjoin='PlantChange.parent_plant_id == Plant.id',
-        backref=backref('branches', cascade='delete, delete-orphan'))
+        back_populates='parent_plant_change')
 
-    from_location = relation(
-        'Location', primaryjoin='PlantChange.from_location_id == Location.id')
-    to_location = relation(
-        'Location', primaryjoin='PlantChange.to_location_id == Location.id')
+
+    from_location = relationship(
+        'Location', primaryjoin='PlantChange.from_location_id == Location.id',
+        back_populates='plant_change_from')
+    to_location = relationship(
+        'Location', primaryjoin='PlantChange.to_location_id == Location.id',
+        back_populates='plant_change_to')
+    notes = relationship('PlantNote', back_populates='plant_change')
 
 
 # TODO: should sex be recorded at the species, accession or plant
@@ -399,7 +405,15 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     propagations = relation('Propagation', cascade='all, delete-orphan',
                             single_parent=True,
                             secondary=PlantPropagation.__table__,
-                            backref=backref('plant', uselist=False, order_by=['plant.accession_id', 'plant.code']))
+                            back_populates='parent')
+
+    location = relationship('Location', back_populates='plants')
+    plant_propagation = relationship('PlantPropagation', back_populates='plant')
+    plant_change = relationship('PlantChange', back_populates='plant', cascade='all, delete-orphan')
+    parent_plant_change = relationship('PlantChange', back_populates='parent_plant', cascade='all, delete-orphan')
+    accession = relationship('Accession', back_populates='plants', uselist=False)
+    notes = relationship('PlantNote', back_populates='plant', cascade='all, delete-orphan')
+   
 
     _delimiter = None
 

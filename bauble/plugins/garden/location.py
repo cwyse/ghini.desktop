@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy import Column, Unicode, UnicodeText
-from sqlalchemy.orm import relation, backref, validates
+from sqlalchemy.orm import relationship, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 
@@ -132,7 +132,12 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     description = Column(UnicodeText)
 
     # relations
-    plants = relation('Plant', backref=backref('location', uselist=False, order_by='name'))
+    plants = relationship('Plant', back_populates='location', uselist=False, order_by=name)
+    plant_change_from = relationship('PlantChange', back_populates='from_location')
+    plant_change_to = relationship('PlantChange', back_populates='to_location')
+    accession1 = relationship('Accession', back_populates='intended_location')
+    accession2 = relationship('Accession', back_populates='intended2_location')
+    notes = relationship('LocationsNotes', back_populates='location', cascade='all, delete-orphan')
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.

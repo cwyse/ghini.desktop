@@ -36,7 +36,7 @@ from gi.repository import GObject
 from sqlalchemy import Column, Unicode, Integer, ForeignKey,\
     Float, UnicodeText, select
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import relation, backref
+from sqlalchemy.orm import relationship
 
 
 import bauble.db as db
@@ -95,33 +95,32 @@ class Source(db.Base):
     accession_id = Column(Integer, ForeignKey('accession.id'), unique=True)
 
     source_detail_id = Column(Integer, ForeignKey('contact.id'))
-    source_detail = relation('Contact', uselist=False,
-                             backref=backref('sources',
-                                             cascade='all, delete-orphan',
-                                             order_by='Contact.name'))
+    source_detail = relationship('Contact', uselist=False,
+                             back_populates='sources',
+                             order_by='Contact.name')
 
-    collection = relation('Collection', uselist=False,
+    collection = relationship('Collection', uselist=False,
                           cascade='all, delete-orphan',
-                          backref=backref('source', uselist=False))
+                          back_populates='source')
 
     # relation to a propagation that is specific to this Source and
     # not attached to a Plant. 2017-06-04 : WHAT IS THIS ?
     propagation_id = Column(Integer, ForeignKey('propagation.id'))
-    propagation = relation('Propagation', uselist=False, single_parent=True,
+    propagation = relationship('Propagation', uselist=False, single_parent=True,
                            primaryjoin='Source.propagation_id==Propagation.id',
                            cascade='all, delete-orphan',
-                           backref=backref('source', uselist=False))
+                           back_populates='source_prop')
+    accession = relationship('Accession', back_populates='source', uselist=False)
 
     # an Accession of known Source (what we are describing here) may be in
     # relation to a successful Plant Propagation trial. In this case, the
     # Propagation points back to all Accessions that resulted from it, via
     # `used_source[i].accession`. Arguably not practical.
     plant_propagation_id = Column(Integer, ForeignKey('propagation.id'))
-    plant_propagation = relation(
+    plant_propagation = relationship(
         'Propagation', uselist=False,
         primaryjoin='Source.plant_propagation_id==Propagation.id',
-        backref=backref('used_source', uselist=True))
-
+        back_populates='source_plant_prop')
 
 source_type_values = [('Expedition', _('Expedition')),
                       ('GeneBank', _('Gene Bank')),
@@ -227,9 +226,9 @@ class Collection(db.Base):
     notes = Column(UnicodeText)
 
     geographic_area_id = Column(Integer, ForeignKey('geographic_area.id'))
-    region = relation(GeographicArea, uselist=False)
-
+    region = relationship('GeographicArea', back_populates='collection', uselist=False)
     source_id = Column(Integer, ForeignKey('source.id'), unique=True)
+    source = relationship('Source', back_populates='collection', uselist=False)
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -819,6 +818,8 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     source_type = Column(types.Enum(values=[i[0] for i in source_type_values],
                                     translations=dict(source_type_values)),
                          default=None)
+    sources = relationship('Source', back_populates='source_detail', cascade='all, delete-orphan')
+    notes = relationship('ContactNote', back_populates='contact', cascade='all, delete-orphan')
 
     def __str__(self):
         return "%s" % self.name

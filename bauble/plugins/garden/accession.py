@@ -45,7 +45,7 @@ from sqlalchemy import and_, or_, func, event
 from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
     UnicodeText
 from sqlalchemy.orm import EXT_CONTINUE, \
-    backref, relation, reconstructor, validates
+    relationship, reconstructor, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 
@@ -288,12 +288,14 @@ class Verification(db.Base):
     # what it was verified from
     prev_species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
 
-    species = relation(
+    species = relationship(
         'Species', primaryjoin='Verification.species_id==Species.id',
         order_by='verification.date')
-    prev_species = relation(
+    prev_species = relationship(
         'Species', primaryjoin='Verification.prev_species_id==Species.id',
         order_by='verification.date')
+
+    accession = relationship('Accession', back_populates='verifications', uselist=False)
 
     notes = Column(UnicodeText)
 
@@ -346,6 +348,7 @@ class Voucher(db.Base):
     code = Column(Unicode(32), nullable=False)
     parent_material = Column(Boolean, default=False)
     accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
+    accession = relationship('Accession', uselist=False, back_populates='vouchers')
 
     # accession  = relation('Accession', uselist=False,
     #                       backref=backref('vouchers',
@@ -626,27 +629,32 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
     intended2_location_id = Column(Integer, ForeignKey('location.id'))
 
     # the source of the accession
-    source = relation('Source', uselist=False, cascade='all, delete-orphan',
-                      backref=backref('accession', uselist=False))
+    source = relationship('Source', uselist=False, cascade='all, delete-orphan',
+                      back_populates='accession')
 
     # relations
-    species = relation('Species', uselist=False,
-                       backref=backref('accessions',
-                                       cascade='all, delete-orphan'),order_by='accession.code')
+    species = relationship('Species', uselist=False,
+                       back_populates='accession', order_by='accession.code')
 
     # use Plant.code for the order_by to avoid ambiguous column names
-    plants = relation('Plant', cascade='all, delete-orphan',
+    plants = relationship('Plant', cascade='all, delete-orphan',
                       #order_by='plant.code',
-                      backref=backref('accession', uselist=False))
-    verifications = relation('Verification',  # order_by='date',
+                      back_populates='accession')
+    verifications = relationship('Verification',  # order_by='date',
                              cascade='all, delete-orphan',
-                             backref=backref('accession', uselist=False))
-    vouchers = relation('Voucher', cascade='all, delete-orphan',
-                        backref=backref('accession', uselist=False))
-    intended_location = relation(
-        'Location', primaryjoin='Accession.intended_location_id==Location.id')
-    intended2_location = relation(
-        'Location', primaryjoin='Accession.intended2_location_id==Location.id')
+                             back_populates='accession')
+    vouchers = relationship('Voucher', cascade='all, delete-orphan',
+                        back_populates='accession')
+    intended_location = relationship(
+        'Location', primaryjoin='Accession.intended_location_id==Location.id',
+        back_populates='accession1')
+    intended2_location = relationship(
+        'Location', primaryjoin='Accession.intended2_location_id==Location.id',
+        back_populates='accession2')
+    notes = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan')
+
+    species = relationship('Species', back_populates='verification')
+    prev_species = relationship('Species', back_populates='prev_verification')
 
     @classmethod
     def get_next_code(cls, code_format=None):
