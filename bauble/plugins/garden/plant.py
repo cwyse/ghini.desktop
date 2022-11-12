@@ -402,7 +402,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
     location_id = Column(Integer, ForeignKey('location.id'), nullable=False)
 
-    propagations = relation('Propagation', cascade='all, delete-orphan',
+    propagations = relationship('Propagation', cascade='all, delete-orphan',
                             single_parent=True,
                             secondary=PlantPropagation.__table__,
                             back_populates='parent')

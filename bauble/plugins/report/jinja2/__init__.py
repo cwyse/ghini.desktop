@@ -36,7 +36,6 @@ from bauble.plugins.report import TemplateFormatterPlugin, PS, SVG
 from bauble import utils
 from bauble import paths
 
-
 class Jinja2FormatterPlugin(TemplateFormatterPlugin):
 
     title = 'Jinja2'

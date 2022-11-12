@@ -171,7 +171,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
 
     family = relationship('Family', back_populates='genera')
     notes = relationship('GenusNote', back_populates='genus', cascade='all, delete-orphan')
-    species = relationship('Species', back_populates='genus', uselist=False)
+    #species = relationship('Species', back_populates='genus', uselist=False)
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -236,15 +236,15 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     _synonyms = relationship('GenusSynonym',
                          primaryjoin='Genus.id==GenusSynonym.genus_id',
                          cascade='all, delete-orphan', uselist=True,
-                         back_populates='genus')
+                         back_populates='synonym')
 #                         backref=backref('genus', order_by=[epithet, author]))
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus
     # get deleted if this genus gets deleted
-    __syn = relationship('GenusSynonym',
-                     primaryjoin='Genus.id==GenusSynonym.synonym_id',
-                     cascade='all, delete-orphan', uselist=True)
+    #__syn = relationship('GenusSynonym',
+    #                 primaryjoin='Genus.id==GenusSynonym.synonym_id',
+    #                 cascade='all, delete-orphan', uselist=True, back_populates='__syn')
 
     @property
     def accepted(self):
@@ -388,7 +388,11 @@ class GenusSynonym(db.Base):
     # relations
     synonym = relationship('Genus', uselist=False,
                        primaryjoin='GenusSynonym.synonym_id==Genus.id',
+                       order_by=[Genus.epithet, Genus.author],
                        back_populates='_synonyms')
+    #__syn = relationship('Genus',
+    #                 primaryjoin='Genus.id==GenusSynonym.synonym_id',
+    #                 cascade='all, delete-orphan', uselist=True, back_populates='__syn')
 
     def __init__(self, synonym=None, **kwargs):
         # it is necessary that the first argument here be synonym for

@@ -204,9 +204,9 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this family
     # get deleted if this family gets deleted
-    __syn = relationship('FamilySynonym',
-                     primaryjoin='Family.id==FamilySynonym.synonym_id',
-                     cascade='all, delete-orphan', uselist=True)
+    #__syn = relationship('FamilySynonym',
+    #                 primaryjoin='Family.id==FamilySynonym.synonym_id',
+    #                 cascade='all, delete-orphan', uselist=True, back_populates='__syn')
 
     def __repr__(self):
         return Family.str(self)
@@ -323,6 +323,9 @@ class FamilySynonym(db.Base):
     synonym = relationship('Family', uselist=False,
                        primaryjoin='FamilySynonym.synonym_id==Family.id',
                        back_populates='_synonyms')
+    #__syn = relationship('Family', uselist=False,
+    #                   primaryjoin='FamilySynonym.synonym_id==Family.id',
+    #                   back_populates='__syn')
 
     def __init__(self, synonym=None, **kwargs):
         # it is necessary that the first argument here be synonym for

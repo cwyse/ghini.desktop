@@ -290,10 +290,10 @@ class Verification(db.Base):
 
     species = relationship(
         'Species', primaryjoin='Verification.species_id==Species.id',
-        order_by='verification.date')
+         back_populates='verification')
     prev_species = relationship(
         'Species', primaryjoin='Verification.prev_species_id==Species.id',
-        order_by='verification.date')
+        back_populates='prev_verification')
 
     accession = relationship('Accession', back_populates='verifications', uselist=False)
 
@@ -653,7 +653,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
         back_populates='accession2')
     notes = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan')
 
-    species = relationship('Species', back_populates='verification')
+    ver_species = relationship('Species', back_populates='verification')
     prev_species = relationship('Species', back_populates='prev_verification')
 
     @classmethod

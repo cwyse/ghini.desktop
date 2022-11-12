@@ -164,9 +164,9 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     rank = 'species'
     link_keys = ['accepted']
-    notes = relationship('SpeciesNotes', back_populates='species', cascade='all, delete-orphan')
-    verification = relationship('Verification', back_populates='species')
-    prev_verification = relationship('Verification', back_populates='prev_species')
+    notes = relationship('SpeciesNote', back_populates='species', cascade='all, delete-orphan')
+    verification = relationship('Verification', primaryjoin='Verification.species_id==Species.id', back_populates='species')
+    prev_verification = relationship('Verification', primaryjoin='Verification.prev_species_id==Species.id', back_populates='prev_species')
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -327,8 +327,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     synonyms = association_proxy('_synonyms', 'synonym')
     _synonyms = relationship('SpeciesSynonym',
                          primaryjoin='Species.id==SpeciesSynonym.species_id',
-                         cascade='all, delete-orphan', uselist=True,
-                         back_populates='species')
+                         cascade='all, delete-orphan', uselist=True)
+                         #back_populates='species')
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus
@@ -336,6 +336,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     _syn = relationship('SpeciesSynonym',
                     primaryjoin='Species.id==SpeciesSynonym.synonym_id',
                     cascade='all, delete-orphan', uselist=True)
+                    #back_populates='_syn', cascade='all, delete-orphan', uselist=True)
 
     ## VernacularName.species gets defined here too.
     vernacular_names = relationship('VernacularName', cascade='all, delete-orphan',
@@ -690,9 +691,12 @@ class SpeciesSynonym(db.Base):
                         nullable=False, unique=True)
 
     # relations
-    species = relationship('Species', uselist=False,
-                       primaryjoin='SpeciesSynonym.synonym_id==Species.id',
-                       back_populates='_synonyms', order_by=[Species.epithet, Species.author])
+#    species = relationship('Species', uselist=False,
+#                       primaryjoin='SpeciesSynonym.synonym_id==Species.id',
+#                       back_populates='_synonyms', order_by=[Species.epithet, Species.author])
+#    _syn = relationship('Species', uselist=False,
+#                       primaryjoin='Species.id==SpeciesSynonym.synonym_id',
+#                       back_populates='_syn', order_by=[Species.epithet, Species.author])
 
     def __init__(self, synonym=None, **kwargs):
         # it is necessary that the first argument here be synonym for

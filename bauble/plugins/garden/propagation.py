@@ -71,7 +71,7 @@ class PlantPropagation(db.Base):
 
     propagation = relationship('Propagation', back_populates='plant_propagation', uselist=False)
     plant = relationship('Plant', back_populates='plant_propagation', uselist=False)
-    notes = relationship('PropagationNote', back_populates='propagation', cascade='all, delete-orphan')
+    #notes = relationship('PropagationNote', cascade='all, delete-orphan')
 
 
 PropagationNote = db.make_note_class('Propagation')
@@ -95,13 +95,14 @@ class Propagation(db.Base, db.WithNotes):
         'PropSeed',
         primaryjoin='Propagation.id==PropSeed.propagation_id',
         cascade='all,delete-orphan', uselist=False,
-        back_populate='propagation')
+        back_populates='propagation')
 
     plant_propagation = relationship('PlantPropagation', back_populates='propagation')
-    propagation_notes = relationship('PropagationNote', back_populates='propagation')
-    source_prop = relationship('Source', back_populates='propagation', uselist=False)
-    source_plant_prop = relationship('Source', back_populates='plant_propagation', uselist=True)
-    
+    #propagation_notes = relationship('PropagationNote', back_populates='propagation')
+    source_prop = relationship('Source', primaryjoin='Source.propagation_id==Propagation.id', back_populates='propagation', uselist=False)
+    source_plant_prop = relationship('Source', back_populates='plant_propagation', primaryjoin='Source.plant_propagation_id==Propagation.id', uselist=True)
+    notes = relationship('PropagationNote', back_populates='propagation', cascade='all, delete-orphan')
+
     @property
     def accessions(self):
         if not self.used_source:
@@ -361,7 +362,7 @@ class PropCutting(db.Base):
     propagation = relationship( 'Propagation', back_populates='_cutting')
 
 
-    rooted = relation('PropCuttingRooted', cascade='all,delete-orphan',
+    rooted = relationship('PropCuttingRooted', cascade='all,delete-orphan',
                       primaryjoin='PropCutting.id==PropCuttingRooted.cutting_id',
                       back_populates='cutting',
                       order_by=PropCuttingRooted.date)
