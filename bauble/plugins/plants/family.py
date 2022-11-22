@@ -124,10 +124,6 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-print("Make Note Class: FamilyNote")
-FamilyNote = db.make_note_class('Family', compute_serializable_fields)
-print("Make Note Class Done: FamilyNote")
-
 
 class Family(db.Base, db.Serializable, db.WithNotes):
     """
@@ -156,13 +152,40 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         The family table has a unique constraint on family/qualifier.
     """
     __tablename__ = 'family'
-    __table_args__ = (UniqueConstraint('epithet'), {})
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='family_pkey'),
+        UniqueConstraint('epithet', name='family_epithet_key')
+    )
     #__mapper_args__ = {'order_by': ['Family.epithet', 'Family.qualifier']}
     print("Mapper Args: Family")
 
+    # columns
+    epithet = Column(String(45), nullable=False, index=True)
+    family = synonym('epithet')
+
+    # use '' instead of None so that the constraints will work propertly
+    author = Column(Unicode(255), default='')
+
+    # we use the blank string here instead of None so that the
+    # contraints will work properly,
+    qualifier = Column(types.Enum(values=['s. lat.', 's. str.', '']),
+                       default='')
+
+    # relations
+    family_note = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan')
+    family_synonym = relationship('FamilySynonym', foreign_keys='[FamilySynonym.family_id]', back_populates='family')
+    family_synonym_ = relationship('FamilySynonym', uselist=True, foreign_keys='[FamilySynonym.synonym_id]', back_populates='synonym', cascade='all, delete-orphan')
+    genus = relationship('Genus', back_populates='family')
+
+    # `genera` relation is defined outside of `Family` class definition
+    #synonyms = association_proxy('_synonyms', 'synonym')
+    #_synonyms = relationship('FamilySynonym',
+    #                         primaryjoin='Family.id==FamilySynonym.family_id',
+    #                         cascade='all, delete-orphan', uselist=True,
+    #                         back_populates='synonym')
     rank = 'familia'
     link_keys = ['accepted']
-    notes = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan')
+    #family_note = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan')
 
     @validates('genus')
     def validate_stripping(self, key, value):
@@ -181,26 +204,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
             return None
         return cites_notes[0]
 
-    # columns
-    epithet = Column(String(45), nullable=False, index=True)
-    family = synonym('epithet')
-
-    # use '' instead of None so that the constraints will work propertly
-    author = Column(Unicode(255), default='')
-
-    # we use the blank string here instead of None so that the
-    # contraints will work properly,
-    qualifier = Column(types.Enum(values=['s. lat.', 's. str.', '']),
-                       default='')
-
-    # relations
-    # `genera` relation is defined outside of `Family` class definition
-    synonyms = association_proxy('_synonyms', 'synonym')
-    _synonyms = relationship('FamilySynonym',
-                             primaryjoin='Family.id==FamilySynonym.family_id',
-                             cascade='all, delete-orphan', uselist=True,
-                             back_populates='synonym')
-
+    
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this family
     # get deleted if this family gets deleted
@@ -293,9 +297,14 @@ class Family(db.Base, db.Serializable, db.WithNotes):
                                      for a in accessions
                                      if a.source and a.source.source_detail])}
 
+#family = relationship('Family', back_populates='family_note', uselist=False, order_by=['Family.epithet', 'Family.qualifier'])
 
 ## defining the latin alias to the class.
 Familia = Family
+
+print("Make Note Class: FamilyNote")
+FamilyNote = db.make_note_class('Family', compute_serializable_fields, order_by=[Family.epithet, Family.qualifier])
+print("Make Note Class Done: FamilyNote")
 
 
 class FamilySynonym(db.Base):
@@ -313,6 +322,12 @@ class FamilySynonym(db.Base):
         *family*:
     """
     __tablename__ = 'family_synonym'
+    __table_args__ = (
+        ForeignKeyConstraint(['family_id'], ['family.id'], name='family_synonym_family_id_fkey'),
+        ForeignKeyConstraint(['synonym_id'], ['family.id'], name='family_synonym_synonym_id_fkey'),
+        PrimaryKeyConstraint('id', name='family_synonym_pkey'),
+        UniqueConstraint('synonym_id', name='family_synonym_synonym_id_key')
+    )
 
     # columns
     family_id = Column(Integer, ForeignKey('family.id'), nullable=False)
@@ -320,12 +335,10 @@ class FamilySynonym(db.Base):
                         unique=True)
 
     # relations
+    family = relationship('Family', foreign_keys=[family_id], back_populates='family_synonym')
     synonym = relationship('Family', uselist=False,
                        primaryjoin='FamilySynonym.synonym_id==Family.id',
-                       back_populates='_synonyms')
-    #__syn = relationship('Family', uselist=False,
-    #                   primaryjoin='FamilySynonym.synonym_id==Family.id',
-    #                   back_populates='__syn')
+                       back_populates='family_synonym_')
 
     def __init__(self, synonym=None, **kwargs):
         # it is necessary that the first argument here be synonym for

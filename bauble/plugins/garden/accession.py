@@ -270,7 +270,13 @@ class Verification(db.Base):
 
     """
     __tablename__ = 'verification'
-    #__mapper_args__ = {'order_by': 'verification.date'}
+    __table_args__ = (
+        ForeignKeyConstraint(['accession_id'], ['accession.id'], name='verification_accession_id_fkey'),
+        ForeignKeyConstraint(['prev_species_id'], ['species.id'], name='verification_prev_species_id_fkey'),
+        ForeignKeyConstraint(['species_id'], ['species.id'], name='verification_species_id_fkey'),
+        PrimaryKeyConstraint('id', name='verification_pkey')
+    )
+#__mapper_args__ = {'order_by': 'verification.date'}
     print("Mapper Args: Verification")
 
     # columns
@@ -287,17 +293,17 @@ class Verification(db.Base):
 
     # what it was verified from
     prev_species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
+    notes = Column(UnicodeText)
 
-    species = relationship(
-        'Species', primaryjoin='Verification.species_id==Species.id',
-         back_populates='verification')
+    accession = relationship('Accession', back_populates='verification', uselist=False)
     prev_species = relationship(
         'Species', primaryjoin='Verification.prev_species_id==Species.id',
-        back_populates='prev_verification')
+        back_populates='verification')
+    species = relationship(
+        'Species', primaryjoin='Verification.species_id==Species.id',
+         back_populates='verification_')
 
-    accession = relationship('Accession', back_populates='verifications', uselist=False)
 
-    notes = Column(UnicodeText)
 
 
 # TODO: I have no internet, so I write this here. please remove this note
@@ -344,11 +350,17 @@ class Voucher(db.Base):
 
     """
     __tablename__ = 'voucher'
+    __table_args__ = (
+        ForeignKeyConstraint(['accession_id'], ['accession.id'], name='voucher_accession_id_fkey'),
+        PrimaryKeyConstraint('id', name='voucher_pkey')
+    )
+
     herbarium = Column(Unicode(5), nullable=False)
     code = Column(Unicode(32), nullable=False)
-    parent_material = Column(Boolean, default=False)
     accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
-    accession = relationship('Accession', uselist=False, back_populates='vouchers')
+    parent_material = Column(Boolean, default=False)
+
+    accession = relationship('Accession', uselist=False, back_populates='voucher')
 
     # accession  = relation('Accession', uselist=False,
     #                       backref=backref('vouchers',
@@ -509,8 +521,6 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-AccessionNote = db.make_note_class('Accession', compute_serializable_fields)
-
 
 class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension):
     """
@@ -577,6 +587,13 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
 
     """
     __tablename__ = 'accession'
+    __table_args__ = (
+        ForeignKeyConstraint(['intended2_location_id'], ['location.id'], name='accession_intended2_location_id_fkey'),
+        ForeignKeyConstraint(['intended_location_id'], ['location.id'], name='accession_intended_location_id_fkey'),
+        ForeignKeyConstraint(['species_id'], ['species.id'], name='accession_species_id_fkey'),
+        PrimaryKeyConstraint('id', name='accession_pkey'),
+        UniqueConstraint('code', name='accession_code_key')
+    )
     #__mapper_args__ = {'order_by': 'accession.code',
     #                   'extension': AccessionMapperExtension()}
     #__mapper_args__ = {'order_by': 'accession.code'}
@@ -585,13 +602,12 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
     # columns
     #: the accession code
     code = Column(Unicode(20), nullable=False, unique=True)
-    code_format = '%Y%PD####'
-
-    @validates('code')
-    def validate_stripping(self, key, value):
-        if value is None:
-            return None
-        return value.strip()
+    # ITF2 - C25 - Identification Qualifier - Transfer code: idql
+    id_qual = Column(types.Enum(values=['aff.', 'cf.', 'incorrect',
+                                        'forsan', 'near', '?', '']),
+                     nullable=False,
+                     default='')
+    species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
 
     prov_type = Column(types.Enum(values=[i[0] for i in prov_type_values],
                                   translations=dict(prov_type_values)),
@@ -614,47 +630,45 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
     ## Infraspecific Epithet; J: second Infraspecific Epithet; C: Cultivar;
     id_qual_rank = Column(Unicode(10))
 
-    # ITF2 - C25 - Identification Qualifier - Transfer code: idql
-    id_qual = Column(types.Enum(values=['aff.', 'cf.', 'incorrect',
-                                        'forsan', 'near', '?', '']),
-                     nullable=False,
-                     default='')
-
     # "private" new in 0.8b2
     private = Column(Boolean, default=False)
-    species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
 
     # intended location
     intended_location_id = Column(Integer, ForeignKey('location.id'))
     intended2_location_id = Column(Integer, ForeignKey('location.id'))
 
+
+    # relations
+    intended2_location = relationship(
+        'Location', primaryjoin='Accession.intended2_location_id==Location.id',
+        back_populates='accession')
+    intended_location = relationship(
+        'Location', primaryjoin='Accession.intended_location_id==Location.id',
+        back_populates='accession_')
+    species = relationship('Species', uselist=False,
+                       back_populates='accession', order_by='code')
+
+    accession_note = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan')
+    # use Plant.code for the order_by to avoid ambiguous column names
+    plants = relationship('Plant', cascade='all, delete-orphan',
+                      order_by='plant.code',
+                      back_populates='accession')
     # the source of the accession
     source = relationship('Source', uselist=False, cascade='all, delete-orphan',
                       back_populates='accession')
-
-    # relations
-    species = relationship('Species', uselist=False,
-                       back_populates='accession', order_by='accession.code')
-
-    # use Plant.code for the order_by to avoid ambiguous column names
-    plants = relationship('Plant', cascade='all, delete-orphan',
-                      #order_by='plant.code',
-                      back_populates='accession')
-    verifications = relationship('Verification',  # order_by='date',
+    verification = relationship('Verification',  # order_by='date',
                              cascade='all, delete-orphan',
                              back_populates='accession')
-    vouchers = relationship('Voucher', cascade='all, delete-orphan',
+    voucher = relationship('Voucher', cascade='all, delete-orphan',
                         back_populates='accession')
-    intended_location = relationship(
-        'Location', primaryjoin='Accession.intended_location_id==Location.id',
-        back_populates='accession1')
-    intended2_location = relationship(
-        'Location', primaryjoin='Accession.intended2_location_id==Location.id',
-        back_populates='accession2')
-    notes = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan')
 
-    ver_species = relationship('Species', back_populates='verification')
-    prev_species = relationship('Species', back_populates='prev_verification')
+    code_format = '%Y%PD####'
+
+    @validates('code')
+    def validate_stripping(self, key, value):
+        if value is None:
+            return None
+        return value.strip()
 
     @classmethod
     def get_next_code(cls, code_format=None):
@@ -862,7 +876,6 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
                 (6, 'Living plants'): sum(p.quantity for p in self.plants),
                 (7, 'Locations'): set([p.location.id for p in self.plants]),
                 (8, 'Sources'): set(sd and [sd.id] or [])}
-
 
 from bauble.plugins.garden.plant import Plant, PlantEditor
 
@@ -2840,6 +2853,11 @@ class AccessionInfoBox(InfoBox):
 
         self.source.props.sensitive = True
         self.source.update(row)
+
+#accession = relationship('Accession', back_populates='accession_note', uselist=False, order_by='accession.code')
+#AccessionNote = db.make_note_class('Accession', compute_serializable_fields, order_by=globals()['Accession'].code)
+AccessionNote = db.make_note_class('Accession', compute_serializable_fields, order_by=Accession.code)
+
 
 
 #

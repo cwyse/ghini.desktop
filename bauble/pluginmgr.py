@@ -292,6 +292,22 @@ def init(force=False):
         bauble.gui.build_tools_menu()
 
 
+
+import functools
+def debug_on(*exceptions):
+    if not exceptions:
+        exceptions = (AssertionError, )
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except exceptions:
+                pdb.post_mortem(sys.exc_info()[2])
+        return wrapper
+    return decorator
+
+@debug_on(TypeError)
 def install(plugins_to_install, import_defaults=True, force=False):
     """
     :param plugins_to_install: A list of plugins to install. If the

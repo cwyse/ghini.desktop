@@ -160,18 +160,42 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         and family_id must be unique.
     """
     __tablename__ = 'genus'
-    __table_args__ = (UniqueConstraint('epithet', 'author',
-                                       'qualifier', 'family_id'),
-                      {})
+    __table_args__ = (
+        ForeignKeyConstraint(['family_id'], ['family.id'], name='genus_family_id_fkey'),
+        PrimaryKeyConstraint('id', name='genus_pkey'),
+        UniqueConstraint('epithet', 'author', 'qualifier', 'family_id', name='genus_epithet_author_qualifier_family_id_key')
+    )
+
     #__mapper_args__ = {'order_by': ['epithet', 'author']}
     print("Mapper Args: Genus")
 
+    # columns
+    epithet = Column(String(64), nullable=False, index=True)
+    family_id = Column(Integer, ForeignKey('family.id'), nullable=False)
+    # use '' instead of None so that the constraints will work propertly
+    author = Column(Unicode(255), default='')
+    qualifier = Column(types.Enum(values=['s. lat.', 's. str', '']),
+                       default='')
+
+    family = relationship('Family', back_populates='genus')
+    genus_note = relationship('GenusNote', back_populates='genus', cascade='all, delete-orphan')
+    genus_synonym = relationship('GenusSynonym', foreign_keys='[GenusSynonym.genus_id]', back_populates='genus')
+    genus_synonym_ = relationship('GenusSynonym', uselist=False, foreign_keys='[GenusSynonym.synonym_id]', back_populates='synonym')
+    species = relationship('Species', back_populates='genus', uselist=False)
+
+
+ 
+    # relations
+    # `species` relation is defined outside of `Genus` class definition
+    synonyms = association_proxy('_synonyms', 'synonym')
+    _synonyms = relationship('GenusSynonym',
+                         primaryjoin='Genus.id==GenusSynonym.genus_id',
+                         cascade='all, delete-orphan', uselist=True,
+                         back_populates='synonym')
+#                         backref=backref('genus', order_by=[epithet, author]))
+    genus = synonym('epithet')
     rank = 'genus'
     link_keys = ['accepted']
-
-    family = relationship('Family', back_populates='genera')
-    notes = relationship('GenusNote', back_populates='genus', cascade='all, delete-orphan')
-    #species = relationship('Species', back_populates='genus', uselist=False)
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -212,32 +236,12 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             return 'H'
         return ''
 
-    # columns
-    epithet = Column(String(64), nullable=False, index=True)
-    genus = synonym('epithet')
-
-    # use '' instead of None so that the constraints will work propertly
-    author = Column(Unicode(255), default='')
-
     @validates('epithet', 'author')
     def validate_stripping(self, key, value):
         if value is None:
             return None
         return value.strip()
 
-    qualifier = Column(types.Enum(values=['s. lat.', 's. str', '']),
-                       default='')
-
-    family_id = Column(Integer, ForeignKey('family.id'), nullable=False)
-
-    # relations
-    # `species` relation is defined outside of `Genus` class definition
-    synonyms = association_proxy('_synonyms', 'synonym')
-    _synonyms = relationship('GenusSynonym',
-                         primaryjoin='Genus.id==GenusSynonym.genus_id',
-                         cascade='all, delete-orphan', uselist=True,
-                         back_populates='synonym')
-#                         backref=backref('genus', order_by=[epithet, author]))
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus
@@ -369,14 +373,20 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-GenusNote = db.make_note_class('Genus', compute_serializable_fields)
-
+GenusNote = db.make_note_class('Genus', compute_serializable_fields, order_by=[Genus.epithet, Genus.author])
+#genus_note = relationship('Genus', back_populates='genus_note', uselist=False) 
 
 class GenusSynonym(db.Base):
     """
     :Table name: genus_synonym
     """
     __tablename__ = 'genus_synonym'
+    __table_args__ = (
+        ForeignKeyConstraint(['genus_id'], ['genus.id'], name='genus_synonym_genus_id_fkey'),
+        ForeignKeyConstraint(['synonym_id'], ['genus.id'], name='genus_synonym_synonym_id_fkey'),
+        PrimaryKeyConstraint('id', name='genus_synonym_pkey'),
+        UniqueConstraint('synonym_id', name='genus_synonym_synonym_id_key')
+    )
 
     # columns
     genus_id = Column(Integer, ForeignKey('genus.id'), nullable=False)
@@ -386,13 +396,8 @@ class GenusSynonym(db.Base):
                         unique=True)
 
     # relations
-    synonym = relationship('Genus', uselist=False,
-                       primaryjoin='GenusSynonym.synonym_id==Genus.id',
-                       order_by=[Genus.epithet, Genus.author],
-                       back_populates='_synonyms')
-    #__syn = relationship('Genus',
-    #                 primaryjoin='Genus.id==GenusSynonym.synonym_id',
-    #                 cascade='all, delete-orphan', uselist=True, back_populates='__syn')
+    genus = relationship('Genus', foreign_keys=[genus_id], cascade='all, delete-orphan', uselist=True, back_populates='genus_synonym')
+    synonym = relationship('Genus', foreign_keys=[synonym_id], order_by=[Genus.epithet, Genus.author], back_populates='genus_synonym_')
 
     def __init__(self, synonym=None, **kwargs):
         # it is necessary that the first argument here be synonym for

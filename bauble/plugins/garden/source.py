@@ -47,6 +47,20 @@ import bauble.btypes as types
 import bauble.view as view
 import bauble.paths as paths
 
+import functools
+
+def debug_on(*exceptions):
+    if not exceptions:
+        exceptions = (AssertionError, )
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except exceptions:
+                pdb.post_mortem(sys.exc_info()[2])
+        return wrapper
+    return decorator
 
 def collection_edit_callback(coll):
     from bauble.plugins.garden.accession import edit_callback
@@ -78,6 +92,7 @@ collection_context_menu = [collection_edit_action, collection_add_plant_action,
                            collection_remove_action]
 
 
+@debug_on(TypeError)
 class Source(db.Base):
     """connected 1-1 to Accession.
 
@@ -89,38 +104,53 @@ class Source(db.Base):
 
     """
     __tablename__ = 'source'
+    __table_args__ = (
+        ForeignKeyConstraint(['accession_id'], ['accession.id'], name='source_accession_id_fkey'),
+        ForeignKeyConstraint(['plant_propagation_id'], ['propagation.id'], name='source_plant_propagation_id_fkey'),
+        ForeignKeyConstraint(['propagation_id'], ['propagation.id'], name='source_propagation_id_fkey'),
+        ForeignKeyConstraint(['source_detail_id'], ['contact.id'], name='source_source_detail_id_fkey'),
+        PrimaryKeyConstraint('id', name='source_pkey'),
+        UniqueConstraint('accession_id', name='source_accession_id_key')
+    )
+
     # ITF2 - E7 - Donor's Accession Identifier - donacc
     sources_code = Column(Unicode(32))
-
     accession_id = Column(Integer, ForeignKey('accession.id'), unique=True)
-
     source_detail_id = Column(Integer, ForeignKey('contact.id'))
-    source_detail = relationship('Contact', uselist=False,
-                             back_populates='sources',
-                             order_by='Contact.name')
-
-    collection = relationship('Collection', uselist=False,
-                          cascade='all, delete-orphan',
-                          back_populates='source')
-
-    # relation to a propagation that is specific to this Source and
-    # not attached to a Plant. 2017-06-04 : WHAT IS THIS ?
     propagation_id = Column(Integer, ForeignKey('propagation.id'))
-    propagation = relationship('Propagation', uselist=False, single_parent=True,
-                           primaryjoin='Source.propagation_id==Propagation.id',
-                           cascade='all, delete-orphan',
-                           back_populates='source_prop')
-    accession = relationship('Accession', back_populates='source', uselist=False)
+    plant_propagation_id = Column(Integer, ForeignKey('propagation.id'))
+
+    # the source of the accession
+    accession = relationship('Accession', uselist=False, 
+                      back_populates='source')
 
     # an Accession of known Source (what we are describing here) may be in
     # relation to a successful Plant Propagation trial. In this case, the
     # Propagation points back to all Accessions that resulted from it, via
     # `used_source[i].accession`. Arguably not practical.
-    plant_propagation_id = Column(Integer, ForeignKey('propagation.id'))
     plant_propagation = relationship(
         'Propagation', uselist=False,
         primaryjoin='Source.plant_propagation_id==Propagation.id',
-        back_populates='source_plant_prop')
+        back_populates='source')
+
+    # relation to a propagation that is specific to this Source and
+    # not attached to a Plant. 2017-06-04 : WHAT IS THIS ?
+    propagation = relationship('Propagation', uselist=False, single_parent=True,
+                           primaryjoin='Source.propagation_id==Propagation.id',
+                           cascade='all, delete-orphan',
+                           back_populates='source_')
+
+    source_detail = relationship('Contact', uselist=False,
+                             back_populates='source',
+                                             cascade='all, delete-orphan',
+                                             order_by='Contact.name')
+
+    collection = relationship('Collection', uselist=False,
+                          cascade='all, delete-orphan',
+                          back_populates='source')
+
+
+
 
 source_type_values = [('Expedition', _('Expedition')),
                       ('GeneBank', _('Gene Bank')),
@@ -200,15 +230,21 @@ class Collection(db.Base):
     :Constraints:
     """
     __tablename__ = 'collection'
+    __table_args__ = (
+        ForeignKeyConstraint(['geographic_area_id'], ['geographic_area.id'], name='collection_geographic_area_id_fkey'),
+        ForeignKeyConstraint(['source_id'], ['source.id'], name='collection_source_id_fkey'),
+        PrimaryKeyConstraint('id', name='collection_pkey'),
+        UniqueConstraint('source_id', name='collection_source_id_key')
+    )
 
     # columns
+    locale = Column(UnicodeText, nullable=False)
     # ITF2 - F24 - Primary Collector's Name
     collector = Column(Unicode(64))
     # ITF2 - F.25 - Collector's Identifier
     collectors_code = Column(Unicode(50))
     # ITF2 - F.27 - Collection Date
     date = Column(types.Date)
-    locale = Column(UnicodeText, nullable=False)
     # ITF2 - F1, F2, F3, F4 - Latitude, Degrees, Minutes, Seconds, Direction
     latitude = Column(Unicode(15))
     # ITF2 - F5, F6, F7, F8 - Longitude, Degrees, Minutes, Seconds, Direction
@@ -226,9 +262,10 @@ class Collection(db.Base):
     notes = Column(UnicodeText)
 
     geographic_area_id = Column(Integer, ForeignKey('geographic_area.id'))
-    region = relationship('GeographicArea', back_populates='collection', uselist=False)
     source_id = Column(Integer, ForeignKey('source.id'), unique=True)
-    source = relationship('Source', back_populates='collection', uselist=False)
+    
+    geographic_area = relationship('GeographicArea', uselist=False, back_populates='collection')
+    source = relationship('Source', back_populates='collection')
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -382,7 +419,7 @@ class CollectionPresenter(editor.ChildPresenter):
     def refresh_view(self):
         from bauble.plugins.garden.accession import latitude_to_dms, \
             longitude_to_dms
-        for widget, field in list(self.widget_to_field_map.items()):
+        for widget, field in self.widget_to_field_map.items():
             value = getattr(self.model, field)
             logger.debug('%s, %s, %s' % (widget, field, value))
             if value is not None and field == 'date':
@@ -446,7 +483,7 @@ class CollectionPresenter(editor.ChildPresenter):
             # integer before toggling
             int(lon_text.split(' ')[0])
         except Exception as e:
-            logger.warning("east-west %s(%s)" % (type(e), e))
+            logger.warn("east-west %s(%s)" % (type(e), e))
             return
 
         if direction == 'W' and lon_text[0] != '-':
@@ -542,8 +579,7 @@ class CollectionPresenter(editor.ChildPresenter):
                 dms_string = '%s %s\u00B0%s\'%s"' % latitude_to_dms(latitude)
         except Exception:
             logger.debug(traceback.format_exc())
-            #bg_color = Gdk.RGBA()
-            #bg_color.parse("red")
+            #bg_color = Gdk.color_parse("red")
             self.add_problem(self.PROBLEM_BAD_LATITUDE,
                              self.view.widgets.lat_entry)
         else:
@@ -576,8 +612,7 @@ class CollectionPresenter(editor.ChildPresenter):
                     longitude)
         except Exception:
             logger.debug(traceback.format_exc())
-            #bg_color = Gdk.RGBA()
-            #bg_color.parse("red")
+            #bg_color = Gdk.color_parse("red")
             self.add_problem(self.PROBLEM_BAD_LONGITUDE,
                              self.view.widgets.lon_entry)
         else:
@@ -802,14 +837,15 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-ContactNote = db.make_note_class('Contact', compute_serializable_fields)
-
 
 class Contact(db.Base, db.Serializable, db.WithNotes):
     __tablename__ = 'contact'
-    #__mapper_args__ = {'order_by': 'name'}
-    print("Mapper Args: Contact")
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='contact_pkey'),
+        UniqueConstraint('name', name='contact_name_key')
+    )
 
+    id = Column(Integer)
     # ITF2 - E6 - Donor
     name = Column(Unicode(75), unique=True)
     # extra description, not included in E6
@@ -818,11 +854,11 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     source_type = Column(types.Enum(values=[i[0] for i in source_type_values],
                                     translations=dict(source_type_values)),
                          default=None)
-    sources = relationship('Source', back_populates='source_detail', cascade='all, delete-orphan')
-    notes = relationship('ContactNote', back_populates='contact', cascade='all, delete-orphan')
+    contact_note = relationship('ContactNote', back_populates='contact', cascade='all, delete-orphan')
+    source = relationship('Source', back_populates='source_detail')
 
     def __str__(self):
-        return "%s" % self.name
+        return utils.utf8(self.name)
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -839,6 +875,10 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
                 cls.name == keys['name']).one()
         except:
             return None
+
+#contact = relationship('Contact', back_populates='contact_note', uselist=False, order_by='name')
+
+ContactNote = db.make_note_class('Contact', compute_serializable_fields, order_by=Contact.name)
 
 
 class ContactPresenter(editor.GenericEditorPresenter):

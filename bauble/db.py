@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy.orm import class_mapper
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 import datetime
 import os
@@ -173,6 +176,8 @@ class MapperBase(DeclarativeMeta, HistoryExtension):
                 utils.xml_safe(str(x)),
                 '(%s)' % type(x).__name__)
 
+        import pdb
+        pdb.set_trace()
         super().__init__(classname=classname, bases=bases, dict_=dict_, **kwargs)
 #        super().__init__(**kwargs)
 
@@ -240,6 +245,10 @@ class History(history_base):
         When the change was made.
     """
     __tablename__ = 'history'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='history_pkey'),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
     table_name = sa.Column(sa.Text, nullable=False)
     table_id = sa.Column(sa.Integer, nullable=False, autoincrement=False)
@@ -494,9 +503,17 @@ def verify_connection(engine, show_error_dialogs=False):
     return True
 
 
-def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrieve=None):
+def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrieve=None, **kwargs):
     class_name = str(name + 'Note')
     table_name = name.lower() + '_note'
+    fkey_id = name.lower() + '_id'
+    pkey_id = name.lower() + '.id'
+    fkey_rel_name = table_name + '_' + fkey_id + '_fkey'
+    pkey_rel_name = table_name + '_pkey'
+    table_args = '(ForeignKeyConstraint([\'' + fkey_id + '\'], ' \
+                                       '[\'' + pkey_id + '\'], ' \
+                                       'name=\'' + fkey_rel_name + '\'), ' \
+                  'PrimaryKeyConstraint(\'id\', name=\'' + pkey_rel_name + '\'))'
 
     def is_defined(self):
         return bool(self.user and self.category and self.note)
@@ -547,15 +564,16 @@ def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrie
 
     bases = (Base, )
     fields = {'__tablename__': table_name,
+              '__table_args__': table_args,
 #              '__mapper_args__': {'order_by': table_name + '.date'},
 
+              'note': sa.Column(sa.UnicodeText, nullable=False),
+              name.lower() + '_id': sa.Column(sa.Integer, sa.ForeignKey(name.lower() + '.id'), nullable=False),
               'date': sa.Column(types.Date, default=sa.func.now()),
               'user': sa.Column(sa.Unicode(64), default=''),
               'category': sa.Column(sa.Unicode(32), default=''),
               'type': sa.Column(sa.Unicode(32), default=''),
-              'note': sa.Column(sa.UnicodeText, nullable=False),
-              name.lower() + '_id': sa.Column(sa.Integer, sa.ForeignKey(name.lower() + '.id'), nullable=False),
-              name.lower(): sa.orm.relationship(name, uselist=False, back_populates='notes'),
+              name.lower(): sa.orm.relationship(name, uselist=False, back_populates=table_name, **kwargs),
               'order_by': table_name + '.date',
               'retrieve': classmethod(retrieve),
               'retrieve_or_create': classmethod(retrieve_or_create),

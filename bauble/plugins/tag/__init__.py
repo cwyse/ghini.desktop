@@ -41,7 +41,9 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import and_
 from sqlalchemy.exc import DBAPIError, InvalidRequestError
 from sqlalchemy.orm.session import object_session
-
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 import bauble
 from bauble import ui
@@ -447,10 +449,6 @@ class TagItemGUI(editor.GenericEditorView):
         session.close()
 
 
-print("Before make_note_class")
-TagNote = db.make_note_class('Tag')
-
-print("After make_note_class")
 
 class Tag(db.Base, db.WithNotes):
     """
@@ -462,6 +460,11 @@ class Tag(db.Base, db.WithNotes):
         A description of this tag.
     """
     __tablename__ = 'tag'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='tag_pkey'),
+        UniqueConstraint('tag', name='tag_tag_key')
+    )
+
     #__mapper_args__ = {'order_by': 'tag'}
     print("Mapper Args: Tag")
     print(str(db.Base))
@@ -473,9 +476,8 @@ class Tag(db.Base, db.WithNotes):
 
     # relations
     # Parent of tagged_obj and tag_note
-    _objects = relationship('TaggedObj', cascade='all, delete-orphan',
-                            back_populates='tag', order_by=tag)
-    notes = relationship('TagNote', back_populates='tag', cascade='all, delete-orphan')
+    tag_note = relationship('TagNote', back_populates='tag', cascade='all, delete-orphan' )
+    tagged_obj = relationship('TaggedObj', back_populates='tag', cascade='all, delete-orphan', order_by=tag)
 
     __my_own_timestamp = None
     __last_objects = None
@@ -590,6 +592,11 @@ class Tag(db.Base, db.WithNotes):
             (self.description or '').replace('\n', ' ')[:256])
         return first, second
 
+#tag = relationship('Tag', back_populates='tag_note', uselist=False, order_by='Tag.tag')
+print("Before make_note_class")
+TagNote = db.make_note_class('Tag', order_by='Tag.tag')
+
+print("After make_note_class")
 
 class TaggedObj(db.Base):
     """
@@ -604,13 +611,17 @@ class TaggedObj(db.Base):
 
     """
     __tablename__ = 'tagged_obj'
+    __table_args__ = (
+        ForeignKeyConstraint(['tag_id'], ['tag.id'], name='tagged_obj_tag_id_fkey'),
+        PrimaryKeyConstraint('id', name='tagged_obj_pkey')
+    )
 
     # columns
     obj_id = Column(Integer, autoincrement=False)
     obj_class = Column(String(128))
     tag_id = Column(Integer, ForeignKey('tag.id'))
 
-    tag = relationship("Tag", back_populates="_objects")
+    tag = relationship('Tag', back_populates='tagged_obj')
 
     def __str__(self):
         return '%s: %s' % (self.obj_class, self.obj_id)

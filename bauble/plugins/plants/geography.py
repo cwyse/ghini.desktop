@@ -169,15 +169,22 @@ class GeographicArea(db.Base):
     :Constraints:
     """
     __tablename__ = 'geographic_area'
+    __table_args__ = (
+        ForeignKeyConstraint(['parent_id'], ['geographic_area.id'], name='geographic_area_parent_id_fkey'),
+        PrimaryKeyConstraint('id', name='geographic_area_pkey')
+    )
 
     # columns
     name = Column(Unicode(255), nullable=False)
+    id = Column(Integer)
     tdwg_code = Column(String(6))
     iso_code = Column(String(7))
-    parent_id = Column(Integer, ForeignKey('geographic_area.id'))
+    parent_id = Column(Integer)
 
-    species_distribution = relationship("SpeciesDistribution", back_populates='geographic_area')
-    collection = relationship('Collection', back_populates='region')
+    parent = relationship('GeographicArea', remote_side=[id], back_populates='parent_reverse')
+    parent_reverse = relationship('GeographicArea', remote_side=[parent_id], back_populates='parent')
+    species_distribution = relationship('SpeciesDistribution', back_populates='geographic_area')
+    collection = relationship('Collection', back_populates='geographic_area')
 
     def __str__(self):
         return self.name

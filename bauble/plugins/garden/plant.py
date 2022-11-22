@@ -50,7 +50,7 @@ import bauble.meta as meta
 import bauble.paths as paths
 from bauble.plugins.plants.species_model import Species
 from bauble.plugins.garden.location import Location, LocationEditor
-from bauble.plugins.garden.propagation import PlantPropagation
+from bauble.plugins.garden.propagation import PlantProp
 import bauble.prefs as prefs
 from bauble.search import SearchStrategy
 import bauble.btypes as types
@@ -246,9 +246,6 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-PlantNote = db.make_note_class('Plant', compute_serializable_fields, as_dict, retrieve)
-PlantNote.plant_change = relationship('PlantChange', back_populates='notes')
-
 
 # TODO: some of these reasons are specific to UBC and could probably be culled.
 change_reasons = {
@@ -279,10 +276,19 @@ class PlantChange(db.Base):
     """
     """
     __tablename__ = 'plant_change'
+    __table_args__ = (
+        ForeignKeyConstraint(['from_location_id'], ['location.id'], name='plant_change_from_location_id_fkey'),
+        ForeignKeyConstraint(['note_id'], ['plant_note.id'], name='plant_change_note_id_fkey'),
+        ForeignKeyConstraint(['parent_plant_id'], ['plant.id'], name='plant_change_parent_plant_id_fkey'),
+        ForeignKeyConstraint(['plant_id'], ['plant.id'], name='plant_change_plant_id_fkey'),
+        ForeignKeyConstraint(['to_location_id'], ['location.id'], name='plant_change_to_location_id_fkey'),
+        PrimaryKeyConstraint('id', name='plant_change_pkey')
+    )
     #__mapper_args__ = {'order_by': 'plant_change.date'}
     print("Mapper Args: PlantChange")
 
     plant_id = Column(Integer, ForeignKey('plant.id'), nullable=False)
+    quantity = Column(Integer, autoincrement=False, nullable=False)
     parent_plant_id = Column(Integer, ForeignKey('plant.id'))
 
     # - if to_location_id is None changeis a removal
@@ -294,7 +300,6 @@ class PlantChange(db.Base):
     # the name of the person who made the change
     person = Column(Unicode(64))
 
-    quantity = Column(Integer, autoincrement=False, nullable=False)
     note_id = Column(Integer, ForeignKey('plant_note.id'))
 
     reason = Column(types.Enum(values=list(change_reasons.keys()),
@@ -304,23 +309,23 @@ class PlantChange(db.Base):
     date = Column(types.DateTime, default=func.now())
 
     # relations
+    from_location = relationship(
+        'Location', primaryjoin='PlantChange.from_location_id == Location.id',
+        back_populates='plant_change')
+    note = relationship('PlantNote', back_populates='plant_change')
+    parent_plant = relationship(
+        'Plant', uselist=False,
+        primaryjoin='PlantChange.parent_plant_id == Plant.id',
+        back_populates='plant_change_')
     plant = relationship('Plant', uselist=False,
                      primaryjoin='PlantChange.plant_id == Plant.id',
                      back_populates='plant_change',
                      order_by='PlantChange.date')
-    parent_plant = relationship(
-        'Plant', uselist=False,
-        primaryjoin='PlantChange.parent_plant_id == Plant.id',
-        back_populates='parent_plant_change')
 
 
-    from_location = relationship(
-        'Location', primaryjoin='PlantChange.from_location_id == Location.id',
-        back_populates='plant_change_from')
     to_location = relationship(
         'Location', primaryjoin='PlantChange.to_location_id == Location.id',
-        back_populates='plant_change_to')
-    notes = relationship('PlantNote', back_populates='plant_change')
+        back_populates='plant_change_')
 
 
 # TODO: should sex be recorded at the species, accession or plant
@@ -380,39 +385,46 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         The combination of code and accession_id must be unique.
     """
     __tablename__ = 'plant'
-    __table_args__ = (UniqueConstraint('code', 'accession_id'), {})
+    __table_args__ = (
+        ForeignKeyConstraint(['accession_id'], ['accession.id'], name='plant_accession_id_fkey'),
+        ForeignKeyConstraint(['location_id'], ['location.id'], name='plant_location_id_fkey'),
+        PrimaryKeyConstraint('id', name='plant_pkey'),
+        UniqueConstraint('code', 'accession_id', name='plant_code_accession_id_key')
+    )
     #__mapper_args__ = {'order_by': ['plant.accession_id', 'plant.code']}
     print("Mapper Args: Plant")
 
     # columns
     code = Column(Unicode(6), nullable=False)
+    quantity = Column(Integer, autoincrement=False, nullable=False)
+    accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
+    location_id = Column(Integer, ForeignKey('location.id'), nullable=False)
+    acc_type = Column(types.Enum(values=list(acc_type_values.keys()),
+                                 translations=acc_type_values),
+                      default=None)
+    memorial = Column(Boolean, default=False)
 
+    accession = relationship('Accession', back_populates='plant', uselist=False)
+    location = relationship('Location', back_populates='plant')
+    plant_note = relationship('PlantNote', back_populates='plant', cascade='all, delete-orphan')
+    plant_prop = relationship('PlantProp', back_populates='plant')
+    plant_change = relationship('PlantChange', back_populates='plant', cascade='all, delete-orphan')
+    plant_change_ = relationship('PlantChange', back_populates='parent_plant', cascade='all, delete-orphan')
+
+    propagation = relationship('Propagation', cascade='all, delete-orphan',
+                            single_parent=True,
+                            secondary=PlantProp.__table__,
+                            back_populates='parent')
+
+ 
     @validates('code')
     def validate_stripping(self, key, value):
         if value is None:
             return None
         return value.strip()
 
-    acc_type = Column(types.Enum(values=list(acc_type_values.keys()),
-                                 translations=acc_type_values),
-                      default=None)
-    memorial = Column(Boolean, default=False)
-    quantity = Column(Integer, autoincrement=False, nullable=False)
 
-    accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
-    location_id = Column(Integer, ForeignKey('location.id'), nullable=False)
 
-    propagations = relationship('Propagation', cascade='all, delete-orphan',
-                            single_parent=True,
-                            secondary=PlantPropagation.__table__,
-                            back_populates='parent')
-
-    location = relationship('Location', back_populates='plants')
-    plant_propagation = relationship('PlantPropagation', back_populates='plant')
-    plant_change = relationship('PlantChange', back_populates='plant', cascade='all, delete-orphan')
-    parent_plant_change = relationship('PlantChange', back_populates='parent_plant', cascade='all, delete-orphan')
-    accession = relationship('Accession', back_populates='plants', uselist=False)
-    notes = relationship('PlantNote', back_populates='plant', cascade='all, delete-orphan')
    
 
     _delimiter = None
@@ -540,6 +552,10 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                 (7, 'Locations'): set([self.location.id]),
                 (8, 'Sources'): set(sd and [sd.id] or []),
                 }
+
+#plant = relationship('Plant', back_populates='plant_note', uselist=False, order_by=['plant.accession_id', 'plant.code'])
+PlantNote = db.make_note_class('Plant', compute_serializable_fields, as_dict, retrieve, order_by=[Plant.accession_id, Plant.code])
+#PlantNote.plant_change = relationship('PlantChange', back_populates='notes')
 
 
 from bauble.plugins.garden.accession import Accession
