@@ -38,6 +38,7 @@ import re
 import bauble.error as error
 import json
 from bauble.utils import parse_date
+import pdb
 
 
 try:
@@ -176,8 +177,6 @@ class MapperBase(DeclarativeMeta, HistoryExtension):
                 utils.xml_safe(str(x)),
                 '(%s)' % type(x).__name__)
 
-        import pdb
-        pdb.set_trace()
         super().__init__(classname=classname, bases=bases, dict_=dict_, **kwargs)
 #        super().__init__(**kwargs)
 
@@ -502,7 +501,7 @@ def verify_connection(engine, show_error_dialogs=False):
     session.close()
     return True
 
-
+    
 def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrieve=None, **kwargs):
     class_name = str(name + 'Note')
     table_name = name.lower() + '_note'
@@ -510,10 +509,15 @@ def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrie
     pkey_id = name.lower() + '.id'
     fkey_rel_name = table_name + '_' + fkey_id + '_fkey'
     pkey_rel_name = table_name + '_pkey'
-    table_args = '(ForeignKeyConstraint([\'' + fkey_id + '\'], ' \
-                                       '[\'' + pkey_id + '\'], ' \
-                                       'name=\'' + fkey_rel_name + '\'), ' \
-                  'PrimaryKeyConstraint(\'id\', name=\'' + pkey_rel_name + '\'))'
+    mystr = f"(ForeignKeyConstraint([\'{fkey_id}\'], " \
+            f"                      [\'{pkey_id}\'],"  \
+            f"                       name=\'{fkey_rel_name}\')," \
+            f"     PrimaryKeyConstraint(id, name=\'{pkey_rel_name}\')) "
+
+    table_args = (sa.ForeignKeyConstraint([fkey_id], 
+                                          [pkey_id],
+                                          name=fkey_rel_name),
+                  sa.PrimaryKeyConstraint('id', name=pkey_rel_name))
 
     def is_defined(self):
         return bool(self.user and self.category and self.note)
@@ -584,9 +588,7 @@ def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrie
         bases = (Base, Serializable)
         fields['compute_serializable_fields'] = classmethod(compute_serializable_fields)
 
-    print("Before class creation: %s" % class_name)
     result = type(class_name, bases, fields)
-    print("After class creation: %s" % class_name)
     return result
 
 

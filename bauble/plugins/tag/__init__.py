@@ -466,9 +466,6 @@ class Tag(db.Base, db.WithNotes):
     )
 
     #__mapper_args__ = {'order_by': 'tag'}
-    print("Mapper Args: Tag")
-    print(str(db.Base))
-    print(str(db.WithNotes))
 
     # columns
     tag = Column(Unicode(64), unique=True, nullable=False)
@@ -593,10 +590,7 @@ class Tag(db.Base, db.WithNotes):
         return first, second
 
 #tag = relationship('Tag', back_populates='tag_note', uselist=False, order_by='Tag.tag')
-print("Before make_note_class")
 TagNote = db.make_note_class('Tag', order_by='Tag.tag')
-
-print("After make_note_class")
 
 class TaggedObj(db.Base):
     """

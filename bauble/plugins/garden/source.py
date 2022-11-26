@@ -37,6 +37,9 @@ from sqlalchemy import Column, Unicode, Integer, ForeignKey,\
     Float, UnicodeText, select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 
 import bauble.db as db
@@ -141,9 +144,8 @@ class Source(db.Base):
                            back_populates='source_')
 
     source_detail = relationship('Contact', uselist=False,
-                             back_populates='source',
-                                             cascade='all, delete-orphan',
-                                             order_by='Contact.name')
+                            back_populates='source',
+                            order_by='Contact.name')
 
     collection = relationship('Collection', uselist=False,
                           cascade='all, delete-orphan',
@@ -855,7 +857,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
                                     translations=dict(source_type_values)),
                          default=None)
     contact_note = relationship('ContactNote', back_populates='contact', cascade='all, delete-orphan')
-    source = relationship('Source', back_populates='source_detail')
+    source = relationship('Source', back_populates='source_detail', cascade='all, delete-orphan')
 
     def __str__(self):
         return utils.utf8(self.name)
@@ -878,7 +880,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
 
 #contact = relationship('Contact', back_populates='contact_note', uselist=False, order_by='name')
 
-ContactNote = db.make_note_class('Contact', compute_serializable_fields, order_by=Contact.name)
+ContactNote = db.make_note_class('Contact', compute_serializable_fields, order_by='Contact.name')
 
 
 class ContactPresenter(editor.GenericEditorPresenter):

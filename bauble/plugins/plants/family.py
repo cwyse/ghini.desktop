@@ -30,6 +30,10 @@ from gi.repository import Gtk
 import logging
 logger = logging.getLogger(__name__)
 
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
+
 from sqlalchemy import Column, Unicode, Integer, ForeignKey, \
     UnicodeText, func, and_, UniqueConstraint, String
 from sqlalchemy.orm import relationship, validates, synonym
@@ -157,11 +161,11 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         UniqueConstraint('epithet', name='family_epithet_key')
     )
     #__mapper_args__ = {'order_by': ['Family.epithet', 'Family.qualifier']}
-    print("Mapper Args: Family")
 
     # columns
     epithet = Column(String(45), nullable=False, index=True)
     family = synonym('epithet')
+    id = Column(Integer)
 
     # use '' instead of None so that the constraints will work propertly
     author = Column(Unicode(255), default='')
@@ -175,7 +179,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     family_note = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan')
     family_synonym = relationship('FamilySynonym', foreign_keys='[FamilySynonym.family_id]', back_populates='family')
     family_synonym_ = relationship('FamilySynonym', uselist=True, foreign_keys='[FamilySynonym.synonym_id]', back_populates='synonym', cascade='all, delete-orphan')
-    genus = relationship('Genus', back_populates='family')
+    #genus = relationship('Genus', back_populates='family')
 
     # `genera` relation is defined outside of `Family` class definition
     #synonyms = association_proxy('_synonyms', 'synonym')
@@ -302,9 +306,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
 ## defining the latin alias to the class.
 Familia = Family
 
-print("Make Note Class: FamilyNote")
 FamilyNote = db.make_note_class('Family', compute_serializable_fields, order_by=[Family.epithet, Family.qualifier])
-print("Make Note Class Done: FamilyNote")
 
 
 class FamilySynonym(db.Base):
@@ -357,7 +359,7 @@ from bauble.plugins.plants.genus import Genus, GenusEditor
 
 # only now that we have `Genus` can we define the sorted `genera` in the
 # `Family` class.
-Family.genera = relationship('Genus',
+Family.genus = relationship('Genus',
                          order_by=[Genus.genus],
                          back_populates='family', cascade='all, delete-orphan')
                          #backref='family', cascade='all, delete-orphan')
@@ -917,4 +919,4 @@ class FamilyInfoBox(InfoBox):
         self.links.update(row)
         self.props.update(row)
 
-db.Family = Family
+#db.Family = Family

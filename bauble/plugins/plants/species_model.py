@@ -28,6 +28,9 @@ logger.setLevel(logging.INFO)
 logger.setLevel(logging.DEBUG)
 
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 from sqlalchemy import Column, Boolean, Unicode, Integer, ForeignKey, \
     UnicodeText, func, UniqueConstraint
@@ -159,8 +162,14 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         cv_group, trade_name, genus_id
     """
     __tablename__ = 'species'
+    __table_args__ = (
+        ForeignKeyConstraint(['flower_color_id'], ['color.id'], name='species_flower_color_id_fkey'),
+        ForeignKeyConstraint(['genus_id'], ['genus.id'], name='species_genus_id_fkey'),
+        ForeignKeyConstraint(['habit_id'], ['habit.id'], name='species_habit_id_fkey'),
+        PrimaryKeyConstraint('id', name='species_pkey')
+    )
+
     #__mapper_args__ = {'order_by': ['epithet', 'author']}
-    print("Mapper Args: Species")
 
     # columns
     genus_id = Column(Integer, ForeignKey('genus.id'), nullable=False)
@@ -214,7 +223,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     species_synonym = relationship('SpeciesSynonym', foreign_keys='[SpeciesSynonym.species_id]', cascade='all, delete-orphan', uselist=True, back_populates='species')
     species_synonym_ = relationship('SpeciesSynonym', uselist=False, foreign_keys='[SpeciesSynonym.synonym_id]', cascade='all, delete-orphan', back_populates='synonym')
     ## VernacularName.species gets defined here too.
-    vernacular_names = relationship('VernacularName', cascade='all, delete-orphan',
+    vernacular_name = relationship('VernacularName', cascade='all, delete-orphan',
                                 collection_class=VNList,
                                 back_populates='species')
     _default_vernacular_name = relationship('DefaultVernacularName', uselist=False,
@@ -852,7 +861,7 @@ class SpeciesDistribution(db.Base):
     species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
 
     ##  LATE BINDING ##  geographic_area = relationship('GeographicArea', back_populates='species_distribution')
-    species = relationship("Species", back_populates='distribution', uselist=False)
+    species = relationship("Species", back_populates='species_distribution', uselist=False)
 
     def __str__(self):
         return str(self.geographic_area)

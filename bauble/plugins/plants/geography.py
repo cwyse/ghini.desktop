@@ -26,6 +26,9 @@ from gi.repository import Gtk
 
 from sqlalchemy import select, Column, Unicode, String, Integer, ForeignKey
 from sqlalchemy.orm import object_session, relationship
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 import bauble.db as db
 
@@ -181,8 +184,8 @@ class GeographicArea(db.Base):
     iso_code = Column(String(7))
     parent_id = Column(Integer)
 
-    parent = relationship('GeographicArea', remote_side=[id], back_populates='parent_reverse')
-    parent_reverse = relationship('GeographicArea', remote_side=[parent_id], back_populates='parent')
+    #parent = relationship('GeographicArea', remote_side=[id], back_populates='parent_reverse')
+    #parent_reverse = relationship('GeographicArea', remote_side=[parent_id], back_populates='parent')
     species_distribution = relationship('SpeciesDistribution', back_populates='geographic_area')
     collection = relationship('Collection', back_populates='geographic_area')
 
@@ -191,10 +194,11 @@ class GeographicArea(db.Base):
 
 
 # late bindings
-GeographicArea.children = relationship(
+GeographicArea.parent_reverse = relationship(
     'GeographicArea',
     primaryjoin=GeographicArea.parent_id == GeographicArea.id,
     cascade='all',
+    remote_side=[GeographicArea.parent_id],
     back_populates='parent',
     order_by=[GeographicArea.name])
 
@@ -202,7 +206,7 @@ GeographicArea.parent = relationship(
     'GeographicArea',
     primaryjoin=GeographicArea.parent_id == GeographicArea.id,
     cascade='all',
-    back_populates='children',
-    remote_side=[GeographicArea.__table__.c.id],
+    remote_side=[GeographicArea.id],
+    back_populates='parent_reverse',
     order_by=[GeographicArea.name])
 

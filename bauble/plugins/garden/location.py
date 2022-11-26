@@ -32,6 +32,9 @@ from sqlalchemy import Column, Unicode, UnicodeText
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 
 import bauble
@@ -126,7 +129,6 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     )
 
     #__mapper_args__ = {'order_by': 'name'}
-    print("Mapper Args: Location")
 
     # columns
     # refers to beds by unique codes

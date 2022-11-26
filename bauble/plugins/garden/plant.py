@@ -41,6 +41,9 @@ from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
 from sqlalchemy.orm import relationship, object_mapper, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError, OperationalError
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 import bauble.db as db
 from bauble.error import CheckConditionError
@@ -285,7 +288,6 @@ class PlantChange(db.Base):
         PrimaryKeyConstraint('id', name='plant_change_pkey')
     )
     #__mapper_args__ = {'order_by': 'plant_change.date'}
-    print("Mapper Args: PlantChange")
 
     plant_id = Column(Integer, ForeignKey('plant.id'), nullable=False)
     quantity = Column(Integer, autoincrement=False, nullable=False)
@@ -316,10 +318,10 @@ class PlantChange(db.Base):
     parent_plant = relationship(
         'Plant', uselist=False,
         primaryjoin='PlantChange.parent_plant_id == Plant.id',
-        back_populates='plant_change_')
+        back_populates='plant_change')
     plant = relationship('Plant', uselist=False,
                      primaryjoin='PlantChange.plant_id == Plant.id',
-                     back_populates='plant_change',
+                     back_populates='plant_change_',
                      order_by='PlantChange.date')
 
 
@@ -392,7 +394,6 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         UniqueConstraint('code', 'accession_id', name='plant_code_accession_id_key')
     )
     #__mapper_args__ = {'order_by': ['plant.accession_id', 'plant.code']}
-    print("Mapper Args: Plant")
 
     # columns
     code = Column(Unicode(6), nullable=False)
@@ -408,13 +409,14 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     location = relationship('Location', back_populates='plant')
     plant_note = relationship('PlantNote', back_populates='plant', cascade='all, delete-orphan')
     plant_prop = relationship('PlantProp', back_populates='plant')
-    plant_change = relationship('PlantChange', back_populates='plant', cascade='all, delete-orphan')
-    plant_change_ = relationship('PlantChange', back_populates='parent_plant', cascade='all, delete-orphan')
+    plant_change = relationship('PlantChange', foreign_keys='[PlantChange.plant_id]', back_populates='plant', cascade='all, delete-orphan')
+    plant_change_ = relationship('PlantChange', foreign_keys='[PlantChange.parent_plant_id]', back_populates='parent_plant', cascade='all, delete-orphan')
 
     propagation = relationship('Propagation', cascade='all, delete-orphan',
                             single_parent=True,
+                            uselist=False,
                             secondary=PlantProp.__table__,
-                            back_populates='parent')
+                            back_populates='plant')
 
  
     @validates('code')
@@ -535,6 +537,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
+            from .code import Accession
             return session.query(cls).filter(
                 cls.code == keys['code']).join(Accession).filter(
                 Accession.code == keys['accession']).one()
@@ -555,7 +558,8 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
 #plant = relationship('Plant', back_populates='plant_note', uselist=False, order_by=['plant.accession_id', 'plant.code'])
 PlantNote = db.make_note_class('Plant', compute_serializable_fields, as_dict, retrieve, order_by=[Plant.accession_id, Plant.code])
-#PlantNote.plant_change = relationship('PlantChange', back_populates='notes')
+#PlantNote = db.make_note_class('Plant', compute_serializable_fields, as_dict, retrieve)
+PlantNote.plant_change = relationship('PlantChange', back_populates='note')
 
 
 from bauble.plugins.garden.accession import Accession

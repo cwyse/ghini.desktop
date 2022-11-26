@@ -37,6 +37,9 @@ from sqlalchemy import Column, Integer, ForeignKey, UnicodeText, Unicode
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 import bauble
 import bauble.db as db
@@ -104,7 +107,7 @@ class Propagation(db.Base, db.WithNotes):
                              primaryjoin='Propagation.id==PropSeed.propagation_id',
                              cascade='all,delete-orphan', uselist=False,
                              back_populates='propagation')
-    propagation_note = relationship('PropagationNote', back_populates='propagation', cascade='all, delete-orphan')
+    propagation_note = relationship('PropagationNote', back_populates='propagation')
     source = relationship('Source', foreign_keys='[Source.plant_propagation_id]', back_populates='plant_propagation', uselist=True)
     source_ = relationship('Source', foreign_keys='[Source.propagation_id]', back_populates='propagation', uselist=False)
     plant_prop = relationship('PlantProp', back_populates='propagation')
@@ -264,7 +267,11 @@ class Propagation(db.Base, db.WithNotes):
             utils.delete_or_expunge(self._cutting)
             self._cutting = None
 
-propagation = relationship('Propagation', back_populates='propagation_note', uselist=False)
+Propagation.plant = relationship('Plant', back_populates='propagation',                        
+                            single_parent=True,
+                            uselist=False,
+                            secondary=PlantProp.__table__)
+#Propagation.propagation = relationship('Propagation', back_populates='propagation_note', uselist=False)
 
 class PropCuttingRooted(db.Base):
     """
@@ -277,7 +284,6 @@ class PropCuttingRooted(db.Base):
     )
 
     #__mapper_args__ = {'order_by': 'date'}
-    print("Mapper Args: PropCuttingRooted")
 
     date = Column(types.Date)
     quantity = Column(Integer, autoincrement=False, default=0, nullable=False)

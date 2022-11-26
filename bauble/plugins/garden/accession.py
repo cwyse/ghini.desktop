@@ -48,6 +48,9 @@ from sqlalchemy.orm import EXT_CONTINUE, \
     relationship, reconstructor, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 import bauble
 import bauble.db as db
@@ -68,6 +71,7 @@ from bauble.view import (InfoBox, InfoExpander, PropertiesExpander,
 import bauble.view as view
 from bauble.search import SearchStrategy
 from bauble.utils import safe_int
+import pdb 
 
 # TODO: underneath the species entry create a label that shows information
 # about the family of the genus of the species selected as well as more
@@ -277,7 +281,6 @@ class Verification(db.Base):
         PrimaryKeyConstraint('id', name='verification_pkey')
     )
 #__mapper_args__ = {'order_by': 'verification.date'}
-    print("Mapper Args: Verification")
 
     # columns
     verifier = Column(Unicode(64), nullable=False)
@@ -597,7 +600,6 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
     #__mapper_args__ = {'order_by': 'accession.code',
     #                   'extension': AccessionMapperExtension()}
     #__mapper_args__ = {'order_by': 'accession.code'}
-    print("Mapper Args: Accession")
 
     # columns
     #: the accession code
@@ -646,12 +648,12 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
         'Location', primaryjoin='Accession.intended_location_id==Location.id',
         back_populates='accession_')
     species = relationship('Species', uselist=False,
-                       back_populates='accession', order_by='code')
+                       back_populates='accession')
 
     accession_note = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan')
     # use Plant.code for the order_by to avoid ambiguous column names
-    plants = relationship('Plant', cascade='all, delete-orphan',
-                      order_by='plant.code',
+    plant = relationship('Plant', cascade='all, delete-orphan',
+                      #order_by='plant.code',
                       back_populates='accession')
     # the source of the accession
     source = relationship('Source', uselist=False, cascade='all, delete-orphan',
@@ -2856,7 +2858,8 @@ class AccessionInfoBox(InfoBox):
 
 #accession = relationship('Accession', back_populates='accession_note', uselist=False, order_by='accession.code')
 #AccessionNote = db.make_note_class('Accession', compute_serializable_fields, order_by=globals()['Accession'].code)
-AccessionNote = db.make_note_class('Accession', compute_serializable_fields, order_by=Accession.code)
+
+AccessionNote = db.make_note_class('Accession', compute_serializable_fields, order_by='Accession.code')
 
 
 

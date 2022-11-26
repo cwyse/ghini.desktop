@@ -40,6 +40,9 @@ from sqlalchemy.orm import relationship, validates, synonym
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 
 import bauble
@@ -167,7 +170,6 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     )
 
     #__mapper_args__ = {'order_by': ['epithet', 'author']}
-    print("Mapper Args: Genus")
 
     # columns
     epithet = Column(String(64), nullable=False, index=True)
@@ -179,19 +181,22 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
 
     family = relationship('Family', back_populates='genus')
     genus_note = relationship('GenusNote', back_populates='genus', cascade='all, delete-orphan')
-    genus_synonym = relationship('GenusSynonym', foreign_keys='[GenusSynonym.genus_id]', back_populates='genus')
+    genus_synonym = relationship('GenusSynonym', foreign_keys='[GenusSynonym.genus_id]', back_populates='genus', 
+                                cascade='all, delete-orphan', uselist=True)
+#    genus_synonym = relationship('GenusSynonym', foreign_keys='[GenusSynonym.genus_id]', back_populates='genus', 
+#                                cascade='all, delete-orphan', uselist=True, order_by=[genus_synonym.epithet, genus_synonym.author])
     genus_synonym_ = relationship('GenusSynonym', uselist=False, foreign_keys='[GenusSynonym.synonym_id]', back_populates='synonym')
-    species = relationship('Species', back_populates='genus', uselist=False)
+    #species = relationship('Species', back_populates='genus', uselist=False)
 
 
  
     # relations
     # `species` relation is defined outside of `Genus` class definition
     synonyms = association_proxy('_synonyms', 'synonym')
-    _synonyms = relationship('GenusSynonym',
-                         primaryjoin='Genus.id==GenusSynonym.genus_id',
-                         cascade='all, delete-orphan', uselist=True,
-                         back_populates='synonym')
+    #_synonyms = relationship('GenusSynonym',
+    #                     primaryjoin='Genus.id==GenusSynonym.genus_id',
+    #                     cascade='all, delete-orphan', uselist=True,
+    #                     back_populates='synonym')
 #                         backref=backref('genus', order_by=[epithet, author]))
     genus = synonym('epithet')
     rank = 'genus'
@@ -396,7 +401,7 @@ class GenusSynonym(db.Base):
                         unique=True)
 
     # relations
-    genus = relationship('Genus', foreign_keys=[genus_id], cascade='all, delete-orphan', uselist=True, back_populates='genus_synonym')
+    genus = relationship('Genus', foreign_keys=[genus_id], uselist=True, back_populates='genus_synonym')
     synonym = relationship('Genus', foreign_keys=[synonym_id], order_by=[Genus.epithet, Genus.author], back_populates='genus_synonym_')
 
     def __init__(self, synonym=None, **kwargs):
