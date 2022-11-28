@@ -25,7 +25,7 @@ gi.require_version('Gtk', '3.0')
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 from sqlalchemy.orm import class_mapper
 from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
@@ -501,7 +501,7 @@ def verify_connection(engine, show_error_dialogs=False):
     session.close()
     return True
 
-    
+
 def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrieve=None, **kwargs):
     class_name = str(name + 'Note')
     table_name = name.lower() + '_note'
@@ -514,7 +514,7 @@ def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrie
             f"                       name=\'{fkey_rel_name}\')," \
             f"     PrimaryKeyConstraint(id, name=\'{pkey_rel_name}\')) "
 
-    table_args = (sa.ForeignKeyConstraint([fkey_id], 
+    table_args = (sa.ForeignKeyConstraint([fkey_id],
                                           [pkey_id],
                                           name=fkey_rel_name),
                   sa.PrimaryKeyConstraint('id', name=pkey_rel_name))
@@ -577,7 +577,7 @@ def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrie
               'user': sa.Column(sa.Unicode(64), default=''),
               'category': sa.Column(sa.Unicode(32), default=''),
               'type': sa.Column(sa.Unicode(32), default=''),
-              name.lower(): sa.orm.relationship(name, uselist=False, back_populates=table_name, **kwargs),
+              name.lower(): sa.orm.relationship(name, uselist=False, back_populates='notes', **kwargs),
               'order_by': table_name + '.date',
               'retrieve': classmethod(retrieve),
               'retrieve_or_create': classmethod(retrieve_or_create),

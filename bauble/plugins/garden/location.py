@@ -137,7 +137,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     description = Column(UnicodeText)
 
     # relations
-    location_note = relationship('LocationNote', back_populates='location', cascade='all, delete-orphan')
+    notes = relationship('LocationNote', back_populates='location', cascade='all, delete-orphan')
     accession = relationship('Accession', foreign_keys='[Accession.intended2_location_id]', back_populates='intended2_location')
     accession_ = relationship('Accession', foreign_keys='[Accession.intended_location_id]', back_populates='intended_location')
 

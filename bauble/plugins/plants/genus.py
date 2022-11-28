@@ -180,16 +180,16 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
                        default='')
 
     family = relationship('Family', back_populates='genus')
-    genus_note = relationship('GenusNote', back_populates='genus', cascade='all, delete-orphan')
-    genus_synonym = relationship('GenusSynonym', foreign_keys='[GenusSynonym.genus_id]', back_populates='genus', 
+    notes = relationship('GenusNote', back_populates='genus', cascade='all, delete-orphan')
+    genus_synonym = relationship('GenusSynonym', foreign_keys='[GenusSynonym.genus_id]', back_populates='genus',
                                 cascade='all, delete-orphan', uselist=True)
-#    genus_synonym = relationship('GenusSynonym', foreign_keys='[GenusSynonym.genus_id]', back_populates='genus', 
+#    genus_synonym = relationship('GenusSynonym', foreign_keys='[GenusSynonym.genus_id]', back_populates='genus',
 #                                cascade='all, delete-orphan', uselist=True, order_by=[genus_synonym.epithet, genus_synonym.author])
     genus_synonym_ = relationship('GenusSynonym', uselist=False, foreign_keys='[GenusSynonym.synonym_id]', back_populates='synonym')
     #species = relationship('Species', back_populates='genus', uselist=False)
 
 
- 
+
     # relations
     # `species` relation is defined outside of `Genus` class definition
     synonyms = association_proxy('_synonyms', 'synonym')
@@ -379,7 +379,7 @@ def compute_serializable_fields(cls, session, keys):
     return result
 
 GenusNote = db.make_note_class('Genus', compute_serializable_fields, order_by=[Genus.epithet, Genus.author])
-#genus_note = relationship('Genus', back_populates='genus_note', uselist=False) 
+#genus_note = relationship('Genus', back_populates='genus_note', uselist=False)
 
 class GenusSynonym(db.Base):
     """

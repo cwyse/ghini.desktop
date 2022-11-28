@@ -23,6 +23,7 @@
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 from sqlalchemy.orm import object_session, eagerload
 

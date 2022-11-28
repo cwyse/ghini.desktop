@@ -30,7 +30,7 @@ from random import random
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 from gi.repository import Gtk
 
@@ -53,12 +53,13 @@ import bauble.meta as meta
 import bauble.paths as paths
 from bauble.plugins.plants.species_model import Species
 from bauble.plugins.garden.location import Location, LocationEditor
+from bauble.plugins.garden.propagation import Propagation
 from bauble.plugins.garden.propagation import PlantProp
 import bauble.prefs as prefs
 from bauble.search import SearchStrategy
 import bauble.btypes as types
 import bauble.utils as utils
-from bauble.view import (InfoBox, InfoExpander, PropertiesExpander, 
+from bauble.view import (InfoBox, InfoExpander, PropertiesExpander,
                          MapInfoExpander,
                          select_in_search_results, Action)
 import bauble.view as view
@@ -407,18 +408,20 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     accession = relationship('Accession', back_populates='plant', uselist=False)
     location = relationship('Location', back_populates='plant')
-    plant_note = relationship('PlantNote', back_populates='plant', cascade='all, delete-orphan')
+    notes = relationship('PlantNote', back_populates='plant', cascade='all, delete-orphan')
     plant_prop = relationship('PlantProp', back_populates='plant')
     plant_change = relationship('PlantChange', foreign_keys='[PlantChange.plant_id]', back_populates='plant', cascade='all, delete-orphan')
     plant_change_ = relationship('PlantChange', foreign_keys='[PlantChange.parent_plant_id]', back_populates='parent_plant', cascade='all, delete-orphan')
 
-    propagation = relationship('Propagation', cascade='all, delete-orphan',
-                            single_parent=True,
-                            uselist=False,
-                            secondary=PlantProp.__table__,
-                            back_populates='plant')
+#    propagation = relationship('Propagation',
+#                            cascade='all, delete-orphan',
+#                            single_parent=True,
+#                            uselist=False,
+#                            back_populates='plant',
+#                            secondary='plant_prop')
+                            #secondary=PlantProp.__table__)
 
- 
+
     @validates('code')
     def validate_stripping(self, key, value):
         if value is None:
@@ -427,7 +430,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
 
 
-   
+
 
     _delimiter = None
 
@@ -808,7 +811,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
             self.set_model_attr('code', None)
         else:
             self.set_model_attr('code', utils.utf8(text))
-            
+
         if not self.model.accession:
             self.remove_problem(self.PROBLEM_DUPLICATE_PLANT_CODE, entry)
             self.refresh_sensitivity()

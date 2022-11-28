@@ -31,7 +31,7 @@ from gi.repository import Gtk
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 from sqlalchemy import Column, Integer, ForeignKey, UnicodeText, Unicode
 from sqlalchemy.orm import relationship
@@ -49,7 +49,6 @@ import bauble.editor as editor
 import bauble.prefs as prefs
 import bauble.btypes as types
 from bauble.utils import parse_date
-
 
 prop_type_values = {
     'Seed': _("Seed"),
@@ -78,8 +77,8 @@ class PlantProp(db.Base):
     propagation_id = Column(Integer, ForeignKey('propagation.id'),
                             nullable=False)
 
-    plant = relationship('Plant', back_populates='plant_prop', uselist=False)
-    propagation = relationship('Propagation', back_populates='plant_prop', uselist=False)
+    plant = relationship('Plant', uselist=False)
+    propagation = relationship('Propagation', uselist=False)
     #notes = relationship('PropagationNote', cascade='all, delete-orphan')
 
 
@@ -99,15 +98,15 @@ class Propagation(db.Base, db.WithNotes):
                        nullable=False)
     date = Column(types.Date)
 
-    prop_cutting = relationship('PropCutting', 
+    prop_cutting = relationship('PropCutting',
                                  primaryjoin='Propagation.id==PropCutting.propagation_id',
                                  cascade='all,delete-orphan', uselist=False,
                                  back_populates='propagation')
-    prop_seed = relationship('PropSeed',         
+    prop_seed = relationship('PropSeed',
                              primaryjoin='Propagation.id==PropSeed.propagation_id',
                              cascade='all,delete-orphan', uselist=False,
                              back_populates='propagation')
-    propagation_note = relationship('PropagationNote', back_populates='propagation')
+    notes = relationship('PropagationNote', back_populates='propagation')
     source = relationship('Source', foreign_keys='[Source.plant_propagation_id]', back_populates='plant_propagation', uselist=True)
     source_ = relationship('Source', foreign_keys='[Source.propagation_id]', back_populates='propagation', uselist=False)
     plant_prop = relationship('PlantProp', back_populates='propagation')
@@ -267,10 +266,12 @@ class Propagation(db.Base, db.WithNotes):
             utils.delete_or_expunge(self._cutting)
             self._cutting = None
 
-Propagation.plant = relationship('Plant', back_populates='propagation',                        
-                            single_parent=True,
-                            uselist=False,
-                            secondary=PlantProp.__table__)
+#Propagation.plant = relationship('Plant',
+#                            single_parent=True,
+#                            uselist=False,
+#                            back_populates='propagation',
+#                            secondary='plant_prop')
+# PlantProp.__table__)
 #Propagation.propagation = relationship('Propagation', back_populates='propagation_note', uselist=False)
 
 class PropCuttingRooted(db.Base):
@@ -288,7 +289,7 @@ class PropCuttingRooted(db.Base):
     date = Column(types.Date)
     quantity = Column(Integer, autoincrement=False, default=0, nullable=False)
     cutting_id = Column(Integer, ForeignKey('prop_cutting.id'), nullable=False)
-    
+
     cutting = relationship('PropCutting', back_populates='prop_cutting_rooted', uselist=False)
 
 
@@ -369,7 +370,7 @@ class PropCutting(db.Base):
     container = Column(UnicodeText)
     location = Column(UnicodeText)
     cover = Column(UnicodeText)  # vispore, poly, plastic dome, poly bag
-  
+
     # temperature of bottom heat
     bottom_heat_temp = Column(Integer, autoincrement=False)
 
@@ -1122,7 +1123,7 @@ class PropagationEditor(editor.GenericModelViewPresenterEditor):
 
         view = PropagationEditorView(parent=self.parent)
         self.presenter = PropagationEditorPresenter(self.model, view)
-            
+
     def handle_response(self, response, commit=True):
         '''
         handle the response from self.presenter.start() in self.start()

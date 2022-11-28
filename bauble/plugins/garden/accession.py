@@ -71,7 +71,7 @@ from bauble.view import (InfoBox, InfoExpander, PropertiesExpander,
 import bauble.view as view
 from bauble.search import SearchStrategy
 from bauble.utils import safe_int
-import pdb 
+import pdb
 
 # TODO: underneath the species entry create a label that shows information
 # about the family of the genus of the species selected as well as more
@@ -378,7 +378,7 @@ class AccessionMapperExtension:
 def receive_after_update(mapper, connection, instance):
     instance.invalidate_str_cache()
     return EXT_CONTINUE
-    
+
 # ITF2 - E.1; Provenance Type Flag; Transfer code: prot
 prov_type_values = [
     ('Wild', _('Accession of wild source')),  # W
@@ -650,7 +650,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension
     species = relationship('Species', uselist=False,
                        back_populates='accession')
 
-    accession_note = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan')
+    notes = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan')
     # use Plant.code for the order_by to avoid ambiguous column names
     plant = relationship('Plant', cascade='all, delete-orphan',
                       #order_by='plant.code',
@@ -2515,7 +2515,7 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
             plant = Plant(accession=accession, code='1', quantity=accession.quantity_recvd, location=location,
                           acc_type=accession_type_to_plant_material.get(self.model.recvd_type))
             self.session.add(plant)
-            
+
         return super().commit_changes()
 
 

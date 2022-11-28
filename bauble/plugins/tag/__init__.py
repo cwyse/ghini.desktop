@@ -194,7 +194,7 @@ class TagsMenuManager:
             return
         applying(self.active_tag_name, values)
         view.update_bottom_notebook()
-    
+
     def on_apply_active_tag_activated(self, *args, **kwargs):
         logger.debug("you're applying %s to the selection", self.active_tag_name)
         self.toggle_tag(applying=tag_objects)
@@ -295,7 +295,7 @@ class TagEditorPresenter(GenericEditorPresenter):
         #            name --> type --> content --> icon-name --> id --> keep
         #               0        1           2             3      4        5
         self.view.widgets.notes_list.append(("","str","","gtk-apply", -1, True))
-    
+
     def on_tag_desc_textbuffer_changed(self, widget, value=None):
         return GenericEditorPresenter.on_textbuffer_changed(
             self, widget, value, attr='description')
@@ -473,7 +473,7 @@ class Tag(db.Base, db.WithNotes):
 
     # relations
     # Parent of tagged_obj and tag_note
-    tag_note = relationship('TagNote', back_populates='tag', cascade='all, delete-orphan' )
+    notes = relationship('TagNote', back_populates='tag', cascade='all, delete-orphan' )
     tagged_obj = relationship('TaggedObj', back_populates='tag', cascade='all, delete-orphan', order_by=tag)
 
     __my_own_timestamp = None

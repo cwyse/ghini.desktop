@@ -40,6 +40,7 @@ class Enum(types.TypeDecorator):
     database as a Unicode string.
     """
     impl = types.Unicode
+    cache_ok = True
 
     def __init__(self, values, empty_to_none=False, strict=True,
                  translations={}, **kwargs):
@@ -107,6 +108,7 @@ class DateTime(types.TypeDecorator):
     A DateTime type that allows strings
     """
     impl = types.DateTime
+    cache_ok = True
 
     import re
     _rx_tz = re.compile('[+-]')
@@ -137,6 +139,7 @@ class Date(types.TypeDecorator):
     A Date type that allows Date strings
     """
     impl = types.Date
+    cache_ok = True
 
     def process_bind_param(self, value, dialect):
         if not isinstance(value, str):

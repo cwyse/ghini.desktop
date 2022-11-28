@@ -31,6 +31,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from gi.repository import Gtk
+from gi.repository import Gdk
 from gi.repository import GObject
 
 from sqlalchemy import Column, Unicode, Integer, ForeignKey,\
@@ -124,7 +125,7 @@ class Source(db.Base):
     plant_propagation_id = Column(Integer, ForeignKey('propagation.id'))
 
     # the source of the accession
-    accession = relationship('Accession', uselist=False, 
+    accession = relationship('Accession', uselist=False,
                       back_populates='source')
 
     # an Accession of known Source (what we are describing here) may be in
@@ -265,7 +266,7 @@ class Collection(db.Base):
 
     geographic_area_id = Column(Integer, ForeignKey('geographic_area.id'))
     source_id = Column(Integer, ForeignKey('source.id'), unique=True)
-    
+
     geographic_area = relationship('GeographicArea', uselist=False, back_populates='collection')
     source = relationship('Source', back_populates='collection')
 
@@ -581,7 +582,7 @@ class CollectionPresenter(editor.ChildPresenter):
                 dms_string = '%s %s\u00B0%s\'%s"' % latitude_to_dms(latitude)
         except Exception:
             logger.debug(traceback.format_exc())
-            #bg_color = Gdk.color_parse("red")
+            bg_color = Gdk.Color.parse("red")
             self.add_problem(self.PROBLEM_BAD_LATITUDE,
                              self.view.widgets.lat_entry)
         else:
@@ -614,7 +615,7 @@ class CollectionPresenter(editor.ChildPresenter):
                     longitude)
         except Exception:
             logger.debug(traceback.format_exc())
-            #bg_color = Gdk.color_parse("red")
+            bg_color = Gdk.Color.parse("red")
             self.add_problem(self.PROBLEM_BAD_LONGITUDE,
                              self.view.widgets.lon_entry)
         else:
@@ -856,7 +857,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     source_type = Column(types.Enum(values=[i[0] for i in source_type_values],
                                     translations=dict(source_type_values)),
                          default=None)
-    contact_note = relationship('ContactNote', back_populates='contact', cascade='all, delete-orphan')
+    notes = relationship('ContactNote', back_populates='contact', cascade='all, delete-orphan')
     source = relationship('Source', back_populates='source_detail', cascade='all, delete-orphan')
 
     def __str__(self):
@@ -901,7 +902,7 @@ class ContactPresenter(editor.GenericEditorPresenter):
     def on_textbuffer_changed_description(self, widget, value=None, attr=None):
         return self.on_textbuffer_changed(widget, value, attr='description')
 
-    
+
 class GeneralSourceDetailExpander(view.InfoExpander):
     '''
     Displays name, number of donations, address, email, fax, tel,

@@ -219,11 +219,11 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     species_distribution = relationship('SpeciesDistribution',
                             cascade='all, delete-orphan',
                             back_populates='species')
-    species_note = relationship('SpeciesNote', back_populates='species', cascade='all, delete-orphan')
+    notes = relationship('SpeciesNote', back_populates='species', cascade='all, delete-orphan')
     species_synonym = relationship('SpeciesSynonym', foreign_keys='[SpeciesSynonym.species_id]', cascade='all, delete-orphan', uselist=True, back_populates='species')
     species_synonym_ = relationship('SpeciesSynonym', uselist=False, foreign_keys='[SpeciesSynonym.synonym_id]', cascade='all, delete-orphan', back_populates='synonym')
     ## VernacularName.species gets defined here too.
-    vernacular_name = relationship('VernacularName', cascade='all, delete-orphan',
+    vernacular_names = relationship('VernacularName', cascade='all, delete-orphan',
                                 collection_class=VNList,
                                 back_populates='species')
     _default_vernacular_name = relationship('DefaultVernacularName', uselist=False,
@@ -231,10 +231,10 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                                         back_populates='species')
     verification = relationship('Verification', primaryjoin='Verification.prev_species_id==Species.id', back_populates='prev_species')
     verification_ = relationship('Verification', primaryjoin='Species.id==Verification.species_id',  back_populates='species')
- 
+
 
     synonyms = association_proxy('_synonyms', 'synonym')
- 
+
     #hardiness_zone = Column(Unicode(4))
 
 
@@ -360,7 +360,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         return ''
 
 
- 
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -741,7 +741,7 @@ class VernacularName(db.Base, db.Serializable):
     species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
     language = Column(Unicode(128))
 
-    species = relationship('Species', back_populates='vernacular_name', uselist=False)
+    species = relationship('Species', back_populates='vernacular_names', uselist=False)
     default_vernacular_name = relationship('DefaultVernacularName', back_populates='vernacular_name')
 
     def search_view_markup_pair(self):
@@ -834,7 +834,7 @@ class DefaultVernacularName(db.Base):
     # relations
     species = relationship('Species', back_populates='_default_vernacular_name', uselist=False)
     vernacular_name = relationship("VernacularName", back_populates="default_vernacular_name", uselist=False)
- 
+
     def __str__(self):
         return str(self.vernacular_name)
 

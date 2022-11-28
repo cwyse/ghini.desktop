@@ -29,6 +29,7 @@ from gi.repository import Gtk
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import INTERVAL, OID
@@ -176,7 +177,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
                        default='')
 
     # relations
-    family_note = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan')
+    notes = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan')
     family_synonym = relationship('FamilySynonym', foreign_keys='[FamilySynonym.family_id]', back_populates='family')
     family_synonym_ = relationship('FamilySynonym', uselist=True, foreign_keys='[FamilySynonym.synonym_id]', back_populates='synonym', cascade='all, delete-orphan')
     #genus = relationship('Genus', back_populates='family')
@@ -208,7 +209,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
             return None
         return cites_notes[0]
 
-    
+
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this family
     # get deleted if this family gets deleted

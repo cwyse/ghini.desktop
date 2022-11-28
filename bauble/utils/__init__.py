@@ -20,7 +20,7 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
 # utils module
-# 
+#
 # A common set of utility functions used throughout Ghini.
 #
 
@@ -605,7 +605,7 @@ def idle_message(msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK,
 def message_dialog(msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK,
                    parent=None):
     '''Create and run a temporary MessageDialog.
- 
+
     Create a message dialog with :func:`bauble.utils.create_message_dialog`
     and run and destroy it.
 
@@ -876,7 +876,7 @@ def to_unicode(obj, encoding='utf-8'):
             pass
     else:
         try:
-            # Bytes 
+            # Bytes
             obj = str(obj, encoding)
         except Exception:
             try:
@@ -1057,9 +1057,10 @@ def make_label_clickable(label, on_clicked, *args):
     label.__on_clicked = on_clicked
 
     def on_enter_notify(widget, event, label, *args):
-        color = Gdk.RGBA()
-        widget.modify_bg(Gtk.StateType.NORMAL, color.parse("#faf8f7"))
-        label.modify_fg(Gtk.StateType.NORMAL, color.parse("blue"))
+        bg_color = Gdk.Color.parse('#FAF8F7')
+        fg_color = Gdk.Color.parse('blue')
+        widget.modify_bg(Gtk.StateType.NORMAL, bg_color.color)
+        label.modify_fg(Gtk.StateType.NORMAL, fg_color.color)
 
     def on_leave_notify(widget, event, label, *args):
         widget.modify_bg(Gtk.StateType.NORMAL, None)
@@ -1351,8 +1352,8 @@ class MessageBox(GenericMessageBox):
                 parent.remove(self)
         button.connect('clicked', on_close, True)
 
-        colors = [('bg', Gtk.StateType.NORMAL, '#FFFFFF'),
-                  ('bg', Gtk.StateType.PRELIGHT, '#FFFFFF')]
+        colors = [('bg', Gtk.StateType.NORMAL, Gdk.Color.parse('#FFFFFF').color),
+                  ('bg', Gtk.StateType.PRELIGHT, Gdk.Color.parse('#FFFFFF').color)]
         for color in colors:
             self.set_color(*color)
 
@@ -1414,8 +1415,8 @@ class YesNoMessageBox(GenericMessageBox):
             self.no_button.connect('clicked', on_response, False)
         button_box.pack_start(self.no_button, False, False, 0)
 
-        colors = [('bg', Gtk.StateType.NORMAL, '#FFFFFF'),
-                  ('bg', Gtk.StateType.PRELIGHT, '#FFFFFF')]
+        colors = [('bg', Gtk.StateType.NORMAL, Gdk.Color.parse('#FFFFFF').color),
+                  ('bg', Gtk.StateType.PRELIGHT, Gdk.Color.parse('#FFFFFF').color)]
         for color in colors:
             self.set_color(*color)
 

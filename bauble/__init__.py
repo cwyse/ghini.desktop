@@ -53,10 +53,16 @@ import bauble.i18n
 
 import pdb
 import sys
+import traceback as tb
 def excepthook(type, value, traceback):
-    pdb.set_trace()
+    tb.print_tb(traceback)
+    tb.format_tb(traceback)
+    tb.format_stack()
+    tb.print_exc()
+    #pdb.set_trace()
+    print('Exception')
 sys.excepthook = excepthook
-                                                                                                                            
+
 
 def pb_set_fraction(fraction):
     """set progressbar fraction safely
@@ -388,7 +394,7 @@ dbengine.html#create-engine-url-arguments>`_
                         return False
                 from gi.repository import GObject
                 GObject.timeout_add(2*1000, on_timeout)
-                
+
                 response = d.run()
                 d.destroy()
                 if response in (24, 42):
@@ -419,7 +425,7 @@ dbengine.html#create-engine-url-arguments>`_
     logger.info('This version installed on: %s; '
                 'This version installed at: %s; '
                 'Latest published version: %s; '
-                'Publication date: %s' % 
+                'Publication date: %s' %
                 (bauble.installation_date, __file__, bauble.release_version, bauble.release_date, ))
 
     gui.show()
