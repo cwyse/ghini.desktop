@@ -807,13 +807,15 @@ class GeneralTagExpander(InfoExpander):
             lab = Gtk.Label()
             lab.set_alignment(0, .5)
             safe_set_text(lab, c.__name__)
-            table.attach(lab, 0, 1, row_no, row_no + 1)
+            lab.set_hexpand(False)
+            table.attach(lab, 0, row_no, 1, 1)
 
             eb = Gtk.EventBox()
             leb = Gtk.Label()
             leb.set_alignment(0, .5)
             eb.add(leb)
-            table.attach(eb, 1, 2, row_no, row_no + 1)
+            eb.set_hexpand(False)
+            table.attach(eb, 1, row_no, 1, 1)
             safe_set_text(leb, " %s " % len(obj_ids))
             utils.make_label_clickable(
                 leb, on_label_clicked,
