@@ -714,7 +714,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
         safe_set_text(label, s)
 
     def on_add_button_pressed(self, button, event):
-        self.geo_menu.popup(None, None, None, event.button, event.time)
+        self.geo_menu.popup(None, None, None, None, button=event.button, activate_time=event.time)
 
     def on_remove_button_pressed(self, button, event):
         # clear the menu
@@ -727,7 +727,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
                               self.on_activate_remove_menu_item, dist)
             self.remove_menu.append(item)
         self.remove_menu.show_all()
-        self.remove_menu.popup(None, None, None, event.button, event.time)
+        self.remove_menu.popup(None, None, None, None, event.button, event.time)
 
     def on_activate_add_menu_item(self, widget, geoid=None):
         logger.debug('on_activate_add_menu_item %s %s' % (widget, geoid))
