@@ -231,7 +231,8 @@ class GUI(object):
 
         # remove label from frame
         frame = statusbar.get_children()[0]
-        #frame.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('#FF0000'))
+#        color = Gdk.Color.parse('#00FF00')
+#        frame.modify_bg(Gtk.StateType.NORMAL, color.color)
         label = frame.get_children()[0]
         frame.remove(label)
 
@@ -279,8 +280,8 @@ class GUI(object):
                                     utils.MESSAGE_BOX_INFO)
         box.message = msg
         box.details = details
-        colors = [('bg', Gtk.StateType.NORMAL, '#FF9999'),
-                  ('bg', Gtk.StateType.PRELIGHT, '#FFAAAA')]
+        colors = [('bg', Gtk.StateType.NORMAL, Gdk.Color.parse('#FF9999').color),
+                  ('bg', Gtk.StateType.PRELIGHT, Gdk.Color.parse('#FFAAAA').color)]
         for color in colors:
             box.set_color(*color)
         box.show()
@@ -294,9 +295,9 @@ class GUI(object):
                                     utils.MESSAGE_BOX_INFO)
         box.message = msg
         box.show()
-        # colors = [('bg', Gtk.StateType.NORMAL, '#b6daf2')]
-        # self._msg_common(msg, colors)
-        # self.widgets.msg_eventbox.show()
+#        colors = [('bg', Gtk.StateType.NORMAL, Gdk.Color.parse('#b6daf2').color)]
+#        self._msg_common(msg, colors)
+#        self.widgets.msg_eventbox.show()
 
     def show(self):
         self.window.show()

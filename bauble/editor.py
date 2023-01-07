@@ -1062,7 +1062,7 @@ class GenericEditorPresenter(object):
     2. refresh the view, put values from the model into the widgets
     3. connect the signal handlers
     """
-    problem_color = Gdk.color_parse('#FFDCDF')
+    problem_color = Gdk.Color.parse('#FFDCDF')
     widget_to_field_map = {}
     view_accept_buttons = []
 
@@ -1501,8 +1501,8 @@ class GenericEditorPresenter(object):
         if isinstance(widget, str):
             self.view.mark_problem(widget)
         elif widget is not None:
-            widget.modify_bg(Gtk.StateType.NORMAL, self.problem_color)
-            widget.modify_base(Gtk.StateType.NORMAL, self.problem_color)
+            widget.modify_bg(Gtk.StateType.NORMAL, self.problem_color.color)
+            widget.modify_base(Gtk.StateType.NORMAL, self.problem_color.color)
             widget.queue_draw()
         logger.debug('problems now: %s' % self.problems)
 

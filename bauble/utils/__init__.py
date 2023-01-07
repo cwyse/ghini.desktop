@@ -1044,8 +1044,10 @@ def make_label_clickable(label, on_clicked, *args):
     label.__on_clicked = on_clicked
 
     def on_enter_notify(widget, event, label, *args):
-        widget.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse("#faf8f7"))
-        label.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse("blue"))
+        bg_color = Gdk.Color.parse('#FAF8F7')
+        fg_color = Gdk.Color.parse('blue')
+        widget.modify_bg(Gtk.StateType.NORMAL, bg_color.color)
+        label.modify_fg(Gtk.StateType.NORMAL, fg_color.color)
 
     def on_leave_notify(widget, event, label, *args):
         widget.modify_bg(Gtk.StateType.NORMAL, None)
@@ -1337,8 +1339,8 @@ class MessageBox(GenericMessageBox):
                 parent.remove(self)
         button.connect('clicked', on_close, True)
 
-        colors = [('bg', Gtk.StateType.NORMAL, '#FFFFFF'),
-                  ('bg', Gtk.StateType.PRELIGHT, '#FFFFFF')]
+        colors = [('bg', Gtk.StateType.NORMAL, Gdk.Color.parse('#FFFFFF').color),
+                  ('bg', Gtk.StateType.PRELIGHT, Gdk.Color.parse('#FFFFFF').color)]
         for color in colors:
             self.set_color(*color)
 
@@ -1400,8 +1402,8 @@ class YesNoMessageBox(GenericMessageBox):
             self.no_button.connect('clicked', on_response, False)
         button_box.pack_start(self.no_button, False, False, 0)
 
-        colors = [('bg', Gtk.StateType.NORMAL, '#FFFFFF'),
-                  ('bg', Gtk.StateType.PRELIGHT, '#FFFFFF')]
+        colors = [('bg', Gtk.StateType.NORMAL, Gdk.Color.parse('#FFFFFF').color),
+                  ('bg', Gtk.StateType.PRELIGHT, Gdk.Color.parse('#FFFFFF').color)]
         for color in colors:
             self.set_color(*color)
 
