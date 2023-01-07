@@ -29,9 +29,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy import Column, Unicode, UnicodeText
-from sqlalchemy.orm import relation, backref, validates
+from sqlalchemy.orm import relationship, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 
 import bauble
@@ -105,7 +108,6 @@ def compute_serializable_fields(cls, session, keys):
     return result
 
 
-LocationNote = db.make_note_class('Location', compute_serializable_fields)
 
 
 class Location(db.Base, db.Serializable, db.WithNotes):
@@ -122,16 +124,27 @@ class Location(db.Base, db.Serializable, db.WithNotes):
 
     """
     __tablename__ = 'location'
-    __mapper_args__ = {'order_by': 'name'}
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='location_pkey'),
+        UniqueConstraint('code', name='location_code_key')
+    )
+
+    #__mapper_args__ = {'order_by': 'name'}
 
     # columns
     # refers to beds by unique codes
     code = Column(Unicode(12), unique=True, nullable=False)
-    name = Column(Unicode(80))
+    name = Column(Unicode(64))
     description = Column(UnicodeText)
 
     # relations
-    plants = relation('Plant', backref=backref('location', uselist=False))
+    notes = relationship('LocationNote', back_populates='location', cascade='all, delete-orphan')
+    accession = relationship('Accession', foreign_keys='[Accession.intended2_location_id]', back_populates='intended2_location')
+    accession_ = relationship('Accession', foreign_keys='[Accession.intended_location_id]', back_populates='intended_location')
+
+    plant = relationship('Plant', back_populates='location', uselist=False, order_by=name)
+    plant_change = relationship('PlantChange', foreign_keys='[PlantChange.from_location_id]', back_populates='from_location')
+    plant_change_ = relationship('PlantChange', foreign_keys='[PlantChange.to_location_id]', back_populates='to_location')
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -182,6 +195,8 @@ class Location(db.Base, db.Serializable, db.WithNotes):
                 (8, 'Sources'): set([a.source.source_detail.id
                                      for a in accessions
                                      if a.source and a.source.source_detail])}
+#location = relationship('Location', back_populates='location_note', uselist=False, order_by='name')
+LocationNote = db.make_note_class('Location', compute_serializable_fields, order_by=Location.name)
 
 
 def mergevalues(value1, value2, formatter):

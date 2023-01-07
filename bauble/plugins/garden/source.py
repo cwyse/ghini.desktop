@@ -37,7 +37,10 @@ from gi.repository import GObject
 from sqlalchemy import Column, Unicode, Integer, ForeignKey,\
     Float, UnicodeText, select
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import relation, backref
+from sqlalchemy.orm import relationship
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 
 import bauble.db as db
@@ -90,37 +93,50 @@ class Source(db.Base):
 
     """
     __tablename__ = 'source'
+    __table_args__ = (
+        ForeignKeyConstraint(['accession_id'], ['accession.id'], name='source_accession_id_fkey'),
+        ForeignKeyConstraint(['plant_propagation_id'], ['propagation.id'], name='source_plant_propagation_id_fkey'),
+        ForeignKeyConstraint(['propagation_id'], ['propagation.id'], name='source_propagation_id_fkey'),
+        ForeignKeyConstraint(['source_detail_id'], ['contact.id'], name='source_source_detail_id_fkey'),
+        PrimaryKeyConstraint('id', name='source_pkey'),
+        UniqueConstraint('accession_id', name='source_accession_id_key')
+    )
     # ITF2 - E7 - Donor's Accession Identifier - donacc
     sources_code = Column(Unicode(32))
 
     accession_id = Column(Integer, ForeignKey('accession.id'), unique=True)
 
     source_detail_id = Column(Integer, ForeignKey('contact.id'))
-    source_detail = relation('Contact', uselist=False,
-                             backref=backref('sources',
-                                             cascade='all, delete-orphan'))
-
-    collection = relation('Collection', uselist=False,
-                          cascade='all, delete-orphan',
-                          backref=backref('source', uselist=False))
-
-    # relation to a propagation that is specific to this Source and
-    # not attached to a Plant. 2017-06-04 : WHAT IS THIS ?
     propagation_id = Column(Integer, ForeignKey('propagation.id'))
-    propagation = relation('Propagation', uselist=False, single_parent=True,
-                           primaryjoin='Source.propagation_id==Propagation.id',
-                           cascade='all, delete-orphan',
-                           backref=backref('source', uselist=False))
+    plant_propagation_id = Column(Integer, ForeignKey('propagation.id'))
+
+    # the source of the accession
+    accession = relationship('Accession', uselist=False,
+                      back_populates='source')
 
     # an Accession of known Source (what we are describing here) may be in
     # relation to a successful Plant Propagation trial. In this case, the
     # Propagation points back to all Accessions that resulted from it, via
     # `used_source[i].accession`. Arguably not practical.
-    plant_propagation_id = Column(Integer, ForeignKey('propagation.id'))
-    plant_propagation = relation(
+    plant_propagation = relationship(
         'Propagation', uselist=False,
         primaryjoin='Source.plant_propagation_id==Propagation.id',
-        backref=backref('used_source', uselist=True))
+        back_populates='source')
+
+    # relation to a propagation that is specific to this Source and
+    # not attached to a Plant. 2017-06-04 : WHAT IS THIS ?
+    propagation = relationship('Propagation', uselist=False, single_parent=True,
+                           primaryjoin='Source.propagation_id==Propagation.id',
+                           cascade='all, delete-orphan',
+                           back_populates='source_')
+
+    source_detail = relationship('Contact', uselist=False,
+                            back_populates='source',
+                            order_by='Contact.name')
+
+    collection = relationship('Collection', uselist=False,
+                          cascade='all, delete-orphan',
+                          back_populates='source')
 
 
 source_type_values = [('Expedition', _('Expedition')),
@@ -201,15 +217,21 @@ class Collection(db.Base):
     :Constraints:
     """
     __tablename__ = 'collection'
+    __table_args__ = (
+        ForeignKeyConstraint(['geographic_area_id'], ['geographic_area.id'], name='collection_geographic_area_id_fkey'),
+        ForeignKeyConstraint(['source_id'], ['source.id'], name='collection_source_id_fkey'),
+        PrimaryKeyConstraint('id', name='collection_pkey'),
+        UniqueConstraint('source_id', name='collection_source_id_key')
+    )
 
     # columns
+    locale = Column(UnicodeText, nullable=False)
     # ITF2 - F24 - Primary Collector's Name
     collector = Column(Unicode(64))
     # ITF2 - F.25 - Collector's Identifier
     collectors_code = Column(Unicode(50))
     # ITF2 - F.27 - Collection Date
     date = Column(types.Date)
-    locale = Column(UnicodeText, nullable=False)
     # ITF2 - F1, F2, F3, F4 - Latitude, Degrees, Minutes, Seconds, Direction
     latitude = Column(Unicode(15))
     # ITF2 - F5, F6, F7, F8 - Longitude, Degrees, Minutes, Seconds, Direction
@@ -227,10 +249,11 @@ class Collection(db.Base):
     notes = Column(UnicodeText)
 
     geographic_area_id = Column(Integer, ForeignKey('geographic_area.id'))
-    region = relation(GeographicArea, uselist=False)
 
     source_id = Column(Integer, ForeignKey('source.id'), unique=True)
 
+    geographic_area = relationship('GeographicArea', uselist=False, back_populates='collection')
+    source = relationship('Source', back_populates='collection')
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
         '''
@@ -383,7 +406,7 @@ class CollectionPresenter(editor.ChildPresenter):
     def refresh_view(self):
         from bauble.plugins.garden.accession import latitude_to_dms, \
             longitude_to_dms
-        for widget, field in list(self.widget_to_field_map.items()):
+        for widget, field in self.widget_to_field_map.items():
             value = getattr(self.model, field)
             logger.debug('%s, %s, %s' % (widget, field, value))
             if value is not None and field == 'date':
@@ -447,7 +470,7 @@ class CollectionPresenter(editor.ChildPresenter):
             # integer before toggling
             int(lon_text.split(' ')[0])
         except Exception as e:
-            logger.warning("east-west %s(%s)" % (type(e), e))
+            logger.warn("east-west %s(%s)" % (type(e), e))
             return
 
         if direction == 'W' and lon_text[0] != '-':
@@ -801,13 +824,16 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-ContactNote = db.make_note_class('Contact', compute_serializable_fields)
 
 
 class Contact(db.Base, db.Serializable, db.WithNotes):
     __tablename__ = 'contact'
-    __mapper_args__ = {'order_by': 'name'}
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='contact_pkey'),
+        UniqueConstraint('name', name='contact_name_key')
+    )
 
+    id = Column(Integer)
     # ITF2 - E6 - Donor
     name = Column(Unicode(75), unique=True)
     # extra description, not included in E6
@@ -816,9 +842,11 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     source_type = Column(types.Enum(values=[i[0] for i in source_type_values],
                                     translations=dict(source_type_values)),
                          default=None)
+    notes = relationship('ContactNote', back_populates='contact', cascade='all, delete-orphan')
+    source = relationship('Source', back_populates='source_detail', cascade='all, delete-orphan')
 
     def __str__(self):
-        return "%s" % self.name
+        return utils.utf8(self.name)
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -835,6 +863,9 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
                 cls.name == keys['name']).one()
         except:
             return None
+#contact = relationship('Contact', back_populates='contact_note', uselist=False, order_by='name')
+
+ContactNote = db.make_note_class('Contact', compute_serializable_fields, order_by='Contact.name')
 
 
 class ContactPresenter(editor.GenericEditorPresenter):

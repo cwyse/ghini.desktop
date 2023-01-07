@@ -25,7 +25,10 @@ from operator import itemgetter
 from gi.repository import Gtk
 
 from sqlalchemy import select, Column, Unicode, String, Integer, ForeignKey
-from sqlalchemy.orm import object_session, relation, backref
+from sqlalchemy.orm import object_session, relationship
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 import bauble.db as db
 
@@ -169,22 +172,40 @@ class GeographicArea(db.Base):
     :Constraints:
     """
     __tablename__ = 'geographic_area'
+    __table_args__ = (
+        ForeignKeyConstraint(['parent_id'], ['geographic_area.id'], name='geographic_area_parent_id_fkey'),
+        PrimaryKeyConstraint('id', name='geographic_area_pkey')
+    )
 
     # columns
     name = Column(Unicode(255), nullable=False)
+    id = Column(Integer)
     tdwg_code = Column(String(6))
     iso_code = Column(String(7))
-    parent_id = Column(Integer, ForeignKey('geographic_area.id'))
+    parent_id = Column(Integer)
+
+    #parent = relationship('GeographicArea', remote_side=[id], back_populates='parent_reverse')
+    #parent_reverse = relationship('GeographicArea', remote_side=[parent_id], back_populates='parent')
+    species_distribution = relationship('SpeciesDistribution', back_populates='geographic_area')
+    collection = relationship('Collection', back_populates='geographic_area')
 
     def __str__(self):
         return self.name
 
 
 # late bindings
-GeographicArea.children = relation(
-    GeographicArea,
+GeographicArea.parent_reverse = relationship(
+    'GeographicArea',
     primaryjoin=GeographicArea.parent_id == GeographicArea.id,
     cascade='all',
-    backref=backref("parent",
-                    remote_side=[GeographicArea.__table__.c.id]),
+    remote_side=[GeographicArea.parent_id],
+    back_populates='parent',
     order_by=[GeographicArea.name])
+GeographicArea.parent = relationship(
+    'GeographicArea',
+    primaryjoin=GeographicArea.parent_id == GeographicArea.id,
+    cascade='all',
+    remote_side=[GeographicArea.id],
+    back_populates='parent_reverse',
+    order_by=[GeographicArea.name])
+

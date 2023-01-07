@@ -27,10 +27,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 from sqlalchemy import Column, Boolean, Unicode, Integer, ForeignKey, \
     UnicodeText, func, UniqueConstraint
-from sqlalchemy.orm import relation, backref, synonym
+from sqlalchemy.orm import relationship, synonym
 import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
@@ -158,7 +161,80 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         cv_group, trade_name, genus_id
     """
     __tablename__ = 'species'
-    __mapper_args__ = {'order_by': ['epithet', 'author']}
+    __table_args__ = (
+        ForeignKeyConstraint(['flower_color_id'], ['color.id'], name='species_flower_color_id_fkey'),
+        ForeignKeyConstraint(['genus_id'], ['genus.id'], name='species_genus_id_fkey'),
+        ForeignKeyConstraint(['habit_id'], ['habit.id'], name='species_habit_id_fkey'),
+        PrimaryKeyConstraint('id', name='species_pkey')
+    )
+
+    #__mapper_args__ = {'order_by': ['epithet', 'author']}
+
+    # columns
+    genus_id = Column(Integer, ForeignKey('genus.id'), nullable=False)
+    epithet = Column(Unicode(64), index=True)
+    sp = synonym('epithet')
+    sp2 = Column(Unicode(64), index=True)  # in case hybrid=True
+    author = Column(Unicode(128))
+    hybrid = Column(Boolean, default=False)
+    sp_qual = Column(types.Enum(values=['agg.', 's. lat.', 's. str.', None]),
+                     default=None)
+    cv_group = Column(Unicode(50))
+    trade_name = Column(Unicode(64))
+
+    infrasp1 = Column(Unicode(64))
+    infrasp1_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
+                                      translations=infrasp_rank_values))
+    infrasp1_author = Column(Unicode(64))
+
+    infrasp2 = Column(Unicode(64))
+    infrasp2_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
+                                      translations=infrasp_rank_values))
+    infrasp2_author = Column(Unicode(64))
+
+    infrasp3 = Column(Unicode(64))
+    infrasp3_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
+                                      translations=infrasp_rank_values))
+    infrasp3_author = Column(Unicode(64))
+
+    infrasp4 = Column(Unicode(64))
+    infrasp4_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
+                                      translations=infrasp_rank_values))
+    infrasp4_author = Column(Unicode(64))
+
+    ## the Species.genus property is defined as backref in Genus.species
+
+    label_distribution = Column(UnicodeText)
+    bc_distribution = Column(UnicodeText)
+    habit_id = Column(Integer, ForeignKey('habit.id'), default=None)
+    flower_color_id = Column(Integer, ForeignKey('color.id'), default=None)
+    awards = Column(UnicodeText)
+
+    # relations
+    flower_color = relationship('Color', uselist=False, back_populates='species')
+    genus = relationship('Genus', back_populates='species', uselist=False)
+    habit = relationship('Habit', uselist=False, back_populates='species')
+    accession = relationship('Accession', back_populates='species', cascade='all, delete-orphan')
+    species_distribution = relationship('SpeciesDistribution',
+                            cascade='all, delete-orphan',
+                            back_populates='species')
+    notes = relationship('SpeciesNote', back_populates='species', cascade='all, delete-orphan')
+    _synonyms = relationship('SpeciesSynonym', foreign_keys='[SpeciesSynonym.species_id]', cascade='all, delete-orphan', uselist=True, back_populates='species')
+    species_synonym = relationship('SpeciesSynonym', uselist=False, foreign_keys='[SpeciesSynonym.synonym_id]', cascade='all, delete-orphan', back_populates='synonym')
+    ## VernacularName.species gets defined here too.
+    vernacular_names = relationship('VernacularName', cascade='all, delete-orphan',
+                                collection_class=VNList,
+                                back_populates='species')
+    _default_vernacular_name = relationship('DefaultVernacularName', uselist=False,
+                                        cascade='all, delete-orphan',
+                                        back_populates='species')
+    verification = relationship('Verification', primaryjoin='Verification.prev_species_id==Species.id', back_populates='prev_species')
+    verification_ = relationship('Verification', primaryjoin='Species.id==Verification.species_id',  back_populates='species')
+
+
+    synonyms = association_proxy('_synonyms', 'synonym')
+
+    #hardiness_zone = Column(Unicode(4))
 
     rank = 'species'
     link_keys = ['accepted']
@@ -281,78 +357,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                 return epithet
         return ''
 
-    # columns
-    epithet = Column(Unicode(64), index=True)
-    sp = synonym('epithet')
-    sp2 = Column(Unicode(64), index=True)  # in case hybrid=True
-    author = Column(Unicode(128))
-    hybrid = Column(Boolean, default=False)
-    sp_qual = Column(types.Enum(values=['agg.', 's. lat.', 's. str.', None]),
-                     default=None)
-    cv_group = Column(Unicode(50))
-    trade_name = Column(Unicode(64))
 
-    infrasp1 = Column(Unicode(64))
-    infrasp1_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
-                                      translations=infrasp_rank_values))
-    infrasp1_author = Column(Unicode(64))
 
-    infrasp2 = Column(Unicode(64))
-    infrasp2_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
-                                      translations=infrasp_rank_values))
-    infrasp2_author = Column(Unicode(64))
-
-    infrasp3 = Column(Unicode(64))
-    infrasp3_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
-                                      translations=infrasp_rank_values))
-    infrasp3_author = Column(Unicode(64))
-
-    infrasp4 = Column(Unicode(64))
-    infrasp4_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
-                                      translations=infrasp_rank_values))
-    infrasp4_author = Column(Unicode(64))
-
-    genus_id = Column(Integer, ForeignKey('genus.id'), nullable=False)
-    ## the Species.genus property is defined as backref in Genus.species
-
-    label_distribution = Column(UnicodeText)
-    bc_distribution = Column(UnicodeText)
-
-    # relations
-    synonyms = association_proxy('_synonyms', 'synonym')
-    _synonyms = relation('SpeciesSynonym',
-                         primaryjoin='Species.id==SpeciesSynonym.species_id',
-                         cascade='all, delete-orphan', uselist=True,
-                         backref='species')
-
-    # this is a dummy relation, it is only here to make cascading work
-    # correctly and to ensure that all synonyms related to this genus
-    # get deleted if this genus gets deleted
-    _syn = relation('SpeciesSynonym',
-                    primaryjoin='Species.id==SpeciesSynonym.synonym_id',
-                    cascade='all, delete-orphan', uselist=True)
-
-    ## VernacularName.species gets defined here too.
-    vernacular_names = relation('VernacularName', cascade='all, delete-orphan',
-                                collection_class=VNList,
-                                backref=backref('species', uselist=False))
-    _default_vernacular_name = relation('DefaultVernacularName', uselist=False,
-                                        cascade='all, delete-orphan',
-                                        backref=backref('species',
-                                                        uselist=False))
-    distribution = relation('SpeciesDistribution',
-                            cascade='all, delete-orphan',
-                            backref=backref('species', uselist=False))
-
-    habit_id = Column(Integer, ForeignKey('habit.id'), default=None)
-    habit = relation('Habit', uselist=False, backref='species')
-
-    flower_color_id = Column(Integer, ForeignKey('color.id'), default=None)
-    flower_color = relation('Color', uselist=False, backref='species')
-
-    #hardiness_zone = Column(Unicode(4))
-
-    awards = Column(UnicodeText)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -668,7 +674,8 @@ def retrieve(cls, session, keys):
     except:
         return None
 
-SpeciesNote = db.make_note_class('Species', compute_serializable_fields, as_dict, retrieve)
+SpeciesNote = db.make_note_class('Species', compute_serializable_fields, as_dict, retrieve, order_by=[Species.epithet, Species.author])
+#species = relationship('Species', back_populates='species_note', uselist=False, order_by=['epithet', 'author'])
 
 
 class SpeciesSynonym(db.Base):
@@ -676,6 +683,12 @@ class SpeciesSynonym(db.Base):
     :Table name: species_synonym
     """
     __tablename__ = 'species_synonym'
+    __table_args__ = (
+        ForeignKeyConstraint(['species_id'], ['species.id'], name='species_synonym_species_id_fkey'),
+        ForeignKeyConstraint(['synonym_id'], ['species.id'], name='species_synonym_synonym_id_fkey'),
+        PrimaryKeyConstraint('id', name='species_synonym_pkey'),
+        UniqueConstraint('synonym_id', name='species_synonym_synonym_id_key')
+    )
 
     # columns
     species_id = Column(Integer, ForeignKey('species.id'),
@@ -684,8 +697,8 @@ class SpeciesSynonym(db.Base):
                         nullable=False, unique=True)
 
     # relations
-    synonym = relation('Species', uselist=False,
-                       primaryjoin='SpeciesSynonym.synonym_id==Species.id')
+    species = relationship('Species', foreign_keys=[species_id], back_populates='_synonyms')
+    synonym = relationship('Species', foreign_keys=[synonym_id], uselist=False, order_by=[Species.epithet, Species.author], back_populates='species_synonym')
 
     def __init__(self, synonym=None, **kwargs):
         # it is necessary that the first argument here be synonym for
@@ -717,11 +730,16 @@ class VernacularName(db.Base, db.Serializable):
     :Constraints:
     """
     __tablename__ = 'vernacular_name'
+    __table_args__ = (
+        ForeignKeyConstraint(['species_id'], ['species.id'], name='vernacular_name_species_id_fkey'),
+        PrimaryKeyConstraint('id', name='vernacular_name_pkey'),
+        UniqueConstraint('name', 'language', 'species_id', name='vn_index')
+    )
     name = Column(Unicode(128), nullable=False)
-    language = Column(Unicode(128))
     species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
-    __table_args__ = (UniqueConstraint('name', 'language',
-                                       'species_id', name='vn_index'), {})
+    language = Column(Unicode(128))
+    species = relationship('Species', back_populates='vernacular_names', uselist=False)
+    default_vernacular_name = relationship('DefaultVernacularName', back_populates='vernacular_name')
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row.
@@ -798,8 +816,12 @@ class DefaultVernacularName(db.Base):
     :Constraints:
     """
     __tablename__ = 'default_vernacular_name'
-    __table_args__ = (UniqueConstraint('species_id', 'vernacular_name_id',
-                                       name='default_vn_index'), {})
+    __table_args__ = (
+        ForeignKeyConstraint(['species_id'], ['species.id'], name='default_vernacular_name_species_id_fkey'),
+        ForeignKeyConstraint(['vernacular_name_id'], ['vernacular_name.id'], name='default_vernacular_name_vernacular_name_id_fkey'),
+        PrimaryKeyConstraint('id', name='default_vernacular_name_pkey'),
+        UniqueConstraint('species_id', 'vernacular_name_id', name='default_vn_index')
+    )
 
     # columns
     species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
@@ -807,7 +829,8 @@ class DefaultVernacularName(db.Base):
                                 nullable=False)
 
     # relations
-    vernacular_name = relation(VernacularName, uselist=False)
+    species = relationship('Species', back_populates='_default_vernacular_name', uselist=False)
+    vernacular_name = relationship("VernacularName", back_populates="default_vernacular_name", uselist=False)
 
     def __str__(self):
         return str(self.vernacular_name)
@@ -824,27 +847,40 @@ class SpeciesDistribution(db.Base):
     :Constraints:
     """
     __tablename__ = 'species_distribution'
+    __table_args__ = (
+        ForeignKeyConstraint(['geographic_area_id'], ['geographic_area.id'], name='species_distribution_geographic_area_id_fkey'),
+        ForeignKeyConstraint(['species_id'], ['species.id'], name='species_distribution_species_id_fkey'),
+        PrimaryKeyConstraint('id', name='species_distribution_pkey')
+    )
 
     # columns
     geographic_area_id = Column(Integer, ForeignKey('geographic_area.id'), nullable=False)
     species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
 
+    ##  LATE BINDING ##  geographic_area = relationship('GeographicArea', back_populates='species_distribution')
+    species = relationship("Species", back_populates='species_distribution', uselist=False)
     def __str__(self):
         return str(self.geographic_area)
 
 # late bindings
-SpeciesDistribution.geographic_area = relation(
+SpeciesDistribution.geographic_area = relationship(
     'GeographicArea',
     primaryjoin='SpeciesDistribution.geographic_area_id==GeographicArea.id',
-    uselist=False)
+    uselist=False,
+    back_populates='species_distribution')
 
 
 class Habit(db.Base):
     __tablename__ = 'habit'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='habit_pkey'),
+        UniqueConstraint('code', name='habit_code_key')
+    )
 
     name = Column(Unicode(64))
     code = Column(Unicode(8), unique=True)
 
+    species = relationship('Species', back_populates='habit')
     def __str__(self):
         if self.name:
             return '%s (%s)' % (self.name, self.code)
@@ -854,9 +890,18 @@ class Habit(db.Base):
 
 class Color(db.Base):
     __tablename__ = 'color'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='color_pkey'),
+        UniqueConstraint('code', name='color_code_key')
+    )
 
-    name = Column(Unicode(32))
-    code = Column(Unicode(8), unique=True)
+    id = Column(Integer)
+    name = Column(String(32))
+    code = Column(String(8))
+    _created = Column(DateTime(True))
+    _last_updated = Column(DateTime(True))
+
+    species = relationship('Species', back_populates='flower_color')
 
     def __str__(self):
         if self.name:

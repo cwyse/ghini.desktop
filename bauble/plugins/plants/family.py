@@ -30,9 +30,13 @@ from gi.repository import Gtk
 import logging
 logger = logging.getLogger(__name__)
 
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship, relation, backref
+
 from sqlalchemy import Column, Unicode, Integer, ForeignKey, \
     UnicodeText, func, and_, UniqueConstraint, String
-from sqlalchemy.orm import relation, backref, validates, synonym
+from sqlalchemy.orm import relationship, validates, synonym
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -124,7 +128,6 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-FamilyNote = db.make_note_class('Family', compute_serializable_fields)
 
 
 class Family(db.Base, db.Serializable, db.WithNotes):
@@ -154,11 +157,53 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         The family table has a unique constraint on family/qualifier.
     """
     __tablename__ = 'family'
-    __table_args__ = (UniqueConstraint('epithet'), {})
-    __mapper_args__ = {'order_by': ['Family.epithet', 'Family.qualifier']}
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='family_pkey'),
+        UniqueConstraint('epithet', name='family_epithet_key')
+    )
+    #__mapper_args__ = {'order_by': ['Family.epithet', 'Family.qualifier']}
 
+    # columns
+    epithet = Column(String(45), nullable=False, index=True)
+    family = synonym('epithet')
+    id = Column(Integer)
+
+    # use '' instead of None so that the constraints will work propertly
+    author = Column(Unicode(255), default='')
+
+    # we use the blank string here instead of None so that the
+    # contraints will work properly,
+    qualifier = Column(types.Enum(values=['s. lat.', 's. str.', '']),
+                       default='')
+
+    # relations
+    notes = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan')
+    synonyms = association_proxy('_synonyms', 'synonym')
+    _synonyms = relation('FamilySynonym',
+                         primaryjoin='Family.id==FamilySynonym.family_id',
+                         cascade='all, delete-orphan', uselist=True,
+                         backref='family')
+
+    # this is a dummy relation, it is only here to make cascading work
+    # correctly and to ensure that all synonyms related to this family
+    # get deleted if this family gets deleted
+    __syn = relation('FamilySynonym',
+                     primaryjoin='Family.id==FamilySynonym.synonym_id',
+                     cascade='all, delete-orphan', uselist=True)
+#    synonyms = association_proxy('_synonyms', 'synonym')
+#    _synonyms = relationship('FamilySynonym', foreign_keys='[FamilySynonym.family_id]', back_populates='family', cascade='all, delete-orphan', uselist=True)
+    #family_synonym = relationship('FamilySynonym', uselist=False, foreign_keys='[FamilySynonym.synonym_id]', back_populates='synonym')
+    #genus = relationship('Genus', back_populates='family')
+
+    # `genera` relation is defined outside of `Family` class definition
+
+    #_synonyms = relationship('FamilySynonym',
+    #                         primaryjoin='Family.id==FamilySynonym.family_id',
+    #                         cascade='all, delete-orphan', uselist=True,
+    #                         back_populates='synonym')
     rank = 'familia'
     link_keys = ['accepted']
+    #family_note = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan')
 
     @validates('genus')
     def validate_stripping(self, key, value):
@@ -177,32 +222,13 @@ class Family(db.Base, db.Serializable, db.WithNotes):
             return None
         return cites_notes[0]
 
-    # columns
-    epithet = Column(String(45), nullable=False, index=True)
-    family = synonym('epithet')
-
-    # use '' instead of None so that the constraints will work propertly
-    author = Column(Unicode(255), default='')
-
-    # we use the blank string here instead of None so that the
-    # contraints will work properly,
-    qualifier = Column(types.Enum(values=['s. lat.', 's. str.', '']),
-                       default='')
-
-    # relations
-    # `genera` relation is defined outside of `Family` class definition
-    synonyms = association_proxy('_synonyms', 'synonym')
-    _synonyms = relation('FamilySynonym',
-                         primaryjoin='Family.id==FamilySynonym.family_id',
-                         cascade='all, delete-orphan', uselist=True,
-                         backref='family')
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this family
     # get deleted if this family gets deleted
-    __syn = relation('FamilySynonym',
-                     primaryjoin='Family.id==FamilySynonym.synonym_id',
-                     cascade='all, delete-orphan', uselist=True)
+    #__syn = relationship('FamilySynonym',
+    #                 primaryjoin='Family.id==FamilySynonym.synonym_id',
+    #                 cascade='all, delete-orphan', uselist=True, back_populates='__syn')
 
     def __repr__(self):
         return Family.str(self)
@@ -289,10 +315,12 @@ class Family(db.Base, db.Serializable, db.WithNotes):
                                      for a in accessions
                                      if a.source and a.source.source_detail])}
 
+#family = relationship('Family', back_populates='family_note', uselist=False, order_by=['Family.epithet', 'Family.qualifier'])
 
 ## defining the latin alias to the class.
 Familia = Family
 
+FamilyNote = db.make_note_class('Family', compute_serializable_fields, order_by=[Family.epithet, Family.qualifier])
 
 class FamilySynonym(db.Base):
     """
@@ -309,6 +337,12 @@ class FamilySynonym(db.Base):
         *family*:
     """
     __tablename__ = 'family_synonym'
+    __table_args__ = (
+        ForeignKeyConstraint(['family_id'], ['family.id'], name='family_synonym_family_id_fkey'),
+        ForeignKeyConstraint(['synonym_id'], ['family.id'], name='family_synonym_synonym_id_fkey'),
+        PrimaryKeyConstraint('id', name='family_synonym_pkey'),
+        UniqueConstraint('synonym_id', name='family_synonym_synonym_id_key')
+    )
 
     # columns
     family_id = Column(Integer, ForeignKey('family.id'), nullable=False)
@@ -316,6 +350,10 @@ class FamilySynonym(db.Base):
                         unique=True)
 
     # relations
+    #family = relationship('Family', foreign_keys=[family_id], back_populates='family_synonym')
+#    synonym = relationship('Family', uselist=False,
+#                       primaryjoin='FamilySynonym.synonym_id==Family.id',
+#                       back_populates='_synonyms')
     synonym = relation('Family', uselist=False,
                        primaryjoin='FamilySynonym.synonym_id==Family.id')
 
@@ -336,9 +374,10 @@ from bauble.plugins.plants.genus import Genus, GenusEditor
 
 # only now that we have `Genus` can we define the sorted `genera` in the
 # `Family` class.
-Family.genera = relation('Genus',
+Family.genus = relationship('Genus',
                          order_by=[Genus.genus],
-                         backref='family', cascade='all, delete-orphan')
+                         back_populates='family', cascade='all, delete-orphan')
+                         #backref='family', cascade='all, delete-orphan')
 
 
 class FamilyEditorView(editor.GenericEditorView):
@@ -450,7 +489,7 @@ class FamilyEditorPresenter(editor.GenericEditorPresenter):
             or self.notes_presenter.dirty()
 
     def refresh_view(self):
-        for widget, field in list(self.widget_to_field_map.items()):
+        for widget, field in self.widget_to_field_map.items():
             value = getattr(self.model, field)
             self.view.widget_set_value(widget, value)
 
@@ -895,4 +934,4 @@ class FamilyInfoBox(InfoBox):
         self.links.update(row)
         self.props.update(row)
 
-db.Family = Family
+#db.Family = Family

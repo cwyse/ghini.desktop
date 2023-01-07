@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy.orm import class_mapper
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 import datetime
 import os
@@ -151,7 +154,10 @@ class MapperBase(DeclarativeMeta, HistoryExtension):
     than to extend it to add more default columns to all the bauble
     tables.
     """
-    def __init__(cls, classname, bases, dict_):
+    def __init__(cls, classname, bases, dict_, **kwargs):
+        cls.classname = classname
+        cls.bases = bases
+        cls.dict_ = dict_
         if '__tablename__' in dict_:
             cls.id = sa.Column('id', sa.Integer, primary_key=True,
                                autoincrement=True)
@@ -161,7 +167,7 @@ class MapperBase(DeclarativeMeta, HistoryExtension):
                                           types.DateTime(timezone=True),
                                           default=sa.func.now(),
                                           onupdate=sa.func.now())
-            cls.__mapper_args__ = {'extension': HistoryExtension()}
+#            cls.__mapper_args__ = {'extension': HistoryExtension()}
         if 'top_level_count' not in dict_:
             cls.top_level_count = lambda x: {classname: 1}
         if 'search_view_markup_pair' not in dict_:
@@ -169,7 +175,8 @@ class MapperBase(DeclarativeMeta, HistoryExtension):
                 utils.xml_safe(str(x)),
                 '(%s)' % type(x).__name__)
 
-        super().__init__(classname, bases, dict_)
+        super().__init__(classname=classname, bases=bases, dict_=dict_, **kwargs)
+#        super().__init__(**kwargs)
 
 
 engine = None
@@ -235,6 +242,9 @@ class History(history_base):
         When the change was made.
     """
     __tablename__ = 'history'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='history_pkey'),
+    )
     id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
     table_name = sa.Column(sa.Text, nullable=False)
     table_id = sa.Column(sa.Integer, nullable=False, autoincrement=False)
@@ -489,9 +499,22 @@ def verify_connection(engine, show_error_dialogs=False):
     return True
 
 
-def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrieve=None):
+def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrieve=None, **kwargs):
     class_name = str(name + 'Note')
     table_name = name.lower() + '_note'
+    fkey_id = name.lower() + '_id'
+    pkey_id = name.lower() + '.id'
+    fkey_rel_name = table_name + '_' + fkey_id + '_fkey'
+    pkey_rel_name = table_name + '_pkey'
+    mystr = f"(ForeignKeyConstraint([\'{fkey_id}\'], " \
+            f"                      [\'{pkey_id}\'],"  \
+            f"                       name=\'{fkey_rel_name}\')," \
+            f"     PrimaryKeyConstraint(id, name=\'{pkey_rel_name}\')) "
+
+    table_args = (sa.ForeignKeyConstraint([fkey_id],
+                                          [pkey_id],
+                                          name=fkey_rel_name),
+                  sa.PrimaryKeyConstraint('id', name=pkey_rel_name))
 
     def is_defined(self):
         return bool(self.user and self.category and self.note)
@@ -542,16 +565,17 @@ def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrie
 
     bases = (Base, )
     fields = {'__tablename__': table_name,
-              '__mapper_args__': {'order_by': table_name + '.date'},
+              '__table_args__': table_args,
+#              '__mapper_args__': {'order_by': table_name + '.date'},
 
+              'note': sa.Column(sa.UnicodeText, nullable=False),
+              name.lower() + '_id': sa.Column(sa.Integer, sa.ForeignKey(name.lower() + '.id'), nullable=False),
               'date': sa.Column(types.Date, default=sa.func.now()),
               'user': sa.Column(sa.Unicode(64), default=''),
               'category': sa.Column(sa.Unicode(32), default=''),
               'type': sa.Column(sa.Unicode(32), default=''),
-              'note': sa.Column(sa.UnicodeText, nullable=False),
-              name.lower() + '_id': sa.Column(sa.Integer, sa.ForeignKey(name.lower() + '.id'), nullable=False),
-              name.lower(): sa.orm.relation(name, uselist=False, backref=sa.orm.backref(
-                  'notes', cascade='all, delete-orphan')),
+              name.lower(): sa.orm.relationship(name, uselist=False, back_populates='notes', **kwargs),
+              'order_by': table_name + '.date',
               'retrieve': classmethod(retrieve),
               'retrieve_or_create': classmethod(retrieve_or_create),
               'is_defined': is_defined,

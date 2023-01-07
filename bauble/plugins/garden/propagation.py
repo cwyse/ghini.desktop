@@ -34,9 +34,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy import Column, Integer, ForeignKey, UnicodeText, Unicode
-from sqlalchemy.orm import backref, relation
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INTERVAL, OID
+from sqlalchemy.orm import declarative_base, relationship
 
 import bauble
 import bauble.db as db
@@ -59,18 +62,24 @@ prop_type_results = {
 }
 
 
-class PlantPropagation(db.Base):
+class PlantProp(db.Base):
     """
-    PlantPropagation provides an intermediate relation from
+    PlantProp provides an intermediate relation from
     Plant->Propagation
     """
     __tablename__ = 'plant_prop'
+    __table_args__ = (
+        ForeignKeyConstraint(['plant_id'], ['plant.id'], name='plant_prop_plant_id_fkey'),
+        ForeignKeyConstraint(['propagation_id'], ['propagation.id'], name='plant_prop_propagation_id_fkey'),
+        PrimaryKeyConstraint('id', name='plant_prop_pkey')
+    )
     plant_id = Column(Integer, ForeignKey('plant.id'), nullable=False)
     propagation_id = Column(Integer, ForeignKey('propagation.id'),
                             nullable=False)
 
-    propagation = relation('Propagation', uselist=False)
-    plant = relation('Plant', uselist=False)
+    plant = relationship('Plant', uselist=False)
+    propagation = relationship('Propagation', uselist=False)
+    #notes = relationship('PropagationNote', cascade='all, delete-orphan')
 
 
 PropagationNote = db.make_note_class('Propagation')
@@ -80,21 +89,26 @@ class Propagation(db.Base, db.WithNotes):
     Propagation
     """
     __tablename__ = 'propagation'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='propagation_pkey'),
+    )
     prop_type = Column(types.Enum(values=list(prop_type_values.keys()),
                                   translations=prop_type_values),
                        nullable=False)
     date = Column(types.Date)
 
-    _cutting = relation(
-        'PropCutting',
+    prop_cutting = relationship('PropCutting',
         primaryjoin='Propagation.id==PropCutting.propagation_id',
         cascade='all,delete-orphan', uselist=False,
-        backref=backref('propagation', uselist=False))
-    _seed = relation(
-        'PropSeed',
+                                 back_populates='propagation')
+    prop_seed = relationship('PropSeed',
         primaryjoin='Propagation.id==PropSeed.propagation_id',
         cascade='all,delete-orphan', uselist=False,
-        backref=backref('propagation', uselist=False))
+                             back_populates='propagation')
+    notes = relationship('PropagationNote', back_populates='propagation')
+    source = relationship('Source', foreign_keys='[Source.plant_propagation_id]', back_populates='plant_propagation', uselist=True)
+    source_ = relationship('Source', foreign_keys='[Source.propagation_id]', back_populates='propagation', uselist=False)
+    plant_prop = relationship('PlantProp', back_populates='propagation')
 
     @property
     def accessions(self):
@@ -251,17 +265,30 @@ class Propagation(db.Base, db.WithNotes):
             utils.delete_or_expunge(self._cutting)
             self._cutting = None
 
+#Propagation.plant = relationship('Plant',
+#                            single_parent=True,
+#                            uselist=False,
+#                            back_populates='propagation',
+#                            secondary='plant_prop')
+# PlantProp.__table__)
+#Propagation.propagation = relationship('Propagation', back_populates='propagation_note', uselist=False)
 
 class PropCuttingRooted(db.Base):
     """
     Rooting dates for cutting
     """
     __tablename__ = 'prop_cutting_rooted'
-    __mapper_args__ = {'order_by': 'date'}
+    __table_args__ = (
+        ForeignKeyConstraint(['cutting_id'], ['prop_cutting.id'], name='prop_cutting_rooted_cutting_id_fkey'),
+        PrimaryKeyConstraint('id', name='prop_cutting_rooted_pkey')
+    )
+
+    #__mapper_args__ = {'order_by': 'date'}
 
     date = Column(types.Date)
     quantity = Column(Integer, autoincrement=False, default=0, nullable=False)
     cutting_id = Column(Integer, ForeignKey('prop_cutting.id'), nullable=False)
+    cutting = relationship('PropCutting', back_populates='prop_cutting_rooted', uselist=False)
 
 
 cutting_type_values = {'Nodal': _('Nodal'),
@@ -307,6 +334,13 @@ class PropCutting(db.Base):
     A cutting
     """
     __tablename__ = 'prop_cutting'
+    __table_args__ = (
+        ForeignKeyConstraint(['propagation_id'], ['propagation.id'], name='prop_cutting_propagation_id_fkey'),
+        PrimaryKeyConstraint('id', name='prop_cutting_pkey')
+    )
+
+    propagation_id = Column(Integer, ForeignKey('propagation.id'),
+                            nullable=False)
     cutting_type = Column(types.Enum(values=list(cutting_type_values.keys()),
                                      translations=cutting_type_values),
                           default='Other')
@@ -347,22 +381,30 @@ class PropCutting(db.Base):
                               nullable=True)
     rooted_pct = Column(Integer, autoincrement=False)
 
-    propagation_id = Column(Integer, ForeignKey('propagation.id'),
-                            nullable=False)
 
-    rooted = relation('PropCuttingRooted', cascade='all,delete-orphan',
+    propagation = relationship( 'Propagation', back_populates='prop_cutting')
+
+
+    prop_cutting_rooted = relationship('PropCuttingRooted', cascade='all,delete-orphan',
                       primaryjoin='PropCutting.id==PropCuttingRooted.cutting_id',
-                      backref=backref('cutting', uselist=False))
+                      back_populates='cutting',
+                      order_by=PropCuttingRooted.date)
 
 
 class PropSeed(db.Base):
     """
     """
     __tablename__ = 'prop_seed'
-    pretreatment = Column(UnicodeText)
+    __table_args__ = (
+        ForeignKeyConstraint(['propagation_id'], ['propagation.id'], name='prop_seed_propagation_id_fkey'),
+        PrimaryKeyConstraint('id', name='prop_seed_pkey')
+    )
     nseeds = Column(Integer, nullable=False, autoincrement=False)
     date_sown = Column(types.Date, nullable=False)
+    propagation_id = Column(Integer, ForeignKey('propagation.id'),
+                            nullable=False)
     container = Column(UnicodeText)  # 4" pot plug tray, other
+    pretreatment = Column(UnicodeText)
     media = Column(UnicodeText)  # seedling media, sphagnum, other
 
     # covered with #2 granite grit: no, yes, lightly heavily
@@ -383,8 +425,7 @@ class PropSeed(db.Base):
     germ_pct = Column(Integer, autoincrement=False)  # % of germination
     date_planted = Column(types.Date)
 
-    propagation_id = Column(Integer, ForeignKey('propagation.id'),
-                            nullable=False)
+    propagation = relationship('Propagation', back_populates='prop_seed')
 
     def __str__(self):
         # what would the string be...???
