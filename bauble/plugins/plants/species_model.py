@@ -25,6 +25,7 @@ from itertools import chain
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint

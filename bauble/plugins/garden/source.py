@@ -51,6 +51,20 @@ import bauble.btypes as types
 import bauble.view as view
 import bauble.paths as paths
 
+import functools
+
+def debug_on(*exceptions):
+    if not exceptions:
+        exceptions = (AssertionError, )
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except exceptions:
+                pdb.post_mortem(sys.exc_info()[2])
+        return wrapper
+    return decorator
 
 def collection_edit_callback(coll):
     from bauble.plugins.garden.accession import edit_callback
@@ -82,6 +96,7 @@ collection_context_menu = [collection_edit_action, collection_add_plant_action,
                            collection_remove_action]
 
 
+@debug_on(TypeError)
 class Source(db.Base):
     """connected 1-1 to Accession.
 

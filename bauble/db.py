@@ -25,7 +25,7 @@ gi.require_version('Gtk', '3.0')
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 from sqlalchemy.orm import class_mapper
 from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, String, Table, Text, UniqueConstraint
@@ -38,6 +38,7 @@ import re
 import bauble.error as error
 import json
 from bauble.utils import parse_date
+import pdb
 
 
 try:

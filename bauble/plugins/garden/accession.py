@@ -71,6 +71,7 @@ from bauble.view import (InfoBox, InfoExpander, PropertiesExpander,
 import bauble.view as view
 from bauble.search import SearchStrategy
 from bauble.utils import safe_int
+import pdb
 
 # TODO: underneath the species entry create a label that shows information
 # about the family of the genus of the species selected as well as more
@@ -150,6 +151,8 @@ def generic_taxon_add_action(model, view, presenter, top_presenter,
         logger.debug('new taxon added from within AccessionEditor')
         # add the new taxon to the session and start using it
         presenter.session.add(committed)
+        if "%s" % committed == NULL:
+            print("committed = %s" % committed)
         taxon_entry.set_text("%s" % committed)
         presenter.remove_problem(
             hash(Gtk.Buildable.get_name(taxon_entry)), None)
@@ -1355,6 +1358,8 @@ class VerificationPresenter(editor.GenericEditorPresenter):
                 return
             # copy verification species to general tab
             if self.model.accession:
+                if self.model.species == NULL:
+                    print("self.model.species = NULL")
                 self.presenter().parent_ref().view.widgets.acc_species_entry.\
                     set_text(utils.utf8(self.model.species))
                 self.presenter()._dirty = True
@@ -1922,6 +1927,8 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                     model = Gtk.ListStore(object)
                     model.append([syn.species])
                     completion.set_model(model)
+                    if utils.utf8(syn.species) == NULL:
+                        print("utils.utf8(syn.species) is NULL")
                     self.view.widgets.acc_species_entry.\
                         set_text(utils.utf8(syn.species))
                     set_model(syn.species)

@@ -51,6 +51,17 @@ installation_date = "1970-01-01T00:00:00Z"
 
 import bauble.i18n
 
+import pdb
+import sys
+import traceback as tb
+def excepthook(type, value, traceback):
+    tb.print_tb(traceback)
+    tb.format_tb(traceback)
+    tb.format_stack()
+    tb.print_exc()
+    #pdb.set_trace()
+    print('Exception')
+sys.excepthook = excepthook
 
 def pb_set_fraction(fraction):
     """set progressbar fraction safely

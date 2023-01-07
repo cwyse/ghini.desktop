@@ -24,6 +24,7 @@ from gi.repository import Pango
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 import bauble
 from bauble import db, meta, editor, paths, pluginmgr
