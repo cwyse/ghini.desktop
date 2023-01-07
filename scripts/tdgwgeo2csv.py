@@ -100,7 +100,7 @@ class Row(dict):
             if self[c] is None:
                 #s.append('None')
                 s.append('')
-            elif c is 'id' or c is 'parent_id':
+            elif c == 'id' or c == 'parent_id':
                 s.append(self[c])
             else:
                 s.append('"%s"' % self[c].encode('utf8'))

@@ -56,7 +56,7 @@ class Plant:
         elif species.find("var.") != -1:
             self.infrasp_rank = "var."
 
-        if self.infrasp_rank is not "":
+        if self.infrasp_rank != "":
             infraspPart = partsList[1].strip();
             m = re.match(
                 """\A(?P<infrasp>[\w]*)\s?
