@@ -818,7 +818,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
                          default=None)
 
     def __str__(self):
-        return utils.utf8(self.name)
+        return "%s" % self.name
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
