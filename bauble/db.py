@@ -55,6 +55,7 @@ except ImportError:
 
 from gi.repository import Gtk
 
+from sqlalchemy import  event
 import sqlalchemy.orm as orm
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 
@@ -108,12 +109,9 @@ def natsort(attr, obj):
     return sorted(obj, key=utils.natsort_key)
 
 
-class HistoryExtension(orm.MapperExtension):
+class HistoryExtension:
     """
-    HistoryExtension is a
-    :class:`~sqlalchemy.orm.interfaces.MapperExtension` that is added
-    to all clases that inherit from bauble.db.Base so that all
-    inserts, updates, and deletes made to the mapped objects are
+    All inserts, updates, and deletes made to the mapped objects are
     recorded in the `history` table.
     """
     def _add(self, operation, mapper, connection, instance):
@@ -132,17 +130,19 @@ class HistoryExtension(orm.MapperExtension):
                                  timestamp=datetime.datetime.today()))
         connection.execute(stmt)
 
-    def after_update(self, mapper, connection, instance):
-        self._add('update', mapper, connection, instance)
+@event.listens_for(HistoryExtension, 'after_update')
+def receive_after_update(mapper, connection, instance):
+    self._add('update', mapper, connection, instance)
 
-    def after_insert(self, mapper, connection, instance):
-        self._add('insert', mapper, connection, instance)
+@event.listens_for(HistoryExtension, 'after_insert')
+def receive_after_delete(mapper, connection, instance):
+    self._add('insert', mapper, connection, instance)
 
-    def after_delete(self, mapper, connection, instance):
-        self._add('delete', mapper, connection, instance)
+@event.listens_for(HistoryExtension, 'after_delete')
+def receive_after_delete(mapper, connection, instance):
+    self._add('delete', mapper, connection, instance)
 
-
-class MapperBase(DeclarativeMeta):
+class MapperBase(DeclarativeMeta, HistoryExtension):
     """
     MapperBase adds the id, _created and _last_updated columns to all
     tables.
