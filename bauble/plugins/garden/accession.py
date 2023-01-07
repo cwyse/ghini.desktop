@@ -41,10 +41,10 @@ from gi.repository import Gtk
 
 import lxml.etree as etree
 from gi.repository import Pango
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, or_, func, event
 from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
     UnicodeText
-from sqlalchemy.orm import EXT_CONTINUE, MapperExtension, \
+from sqlalchemy.orm import EXT_CONTINUE, \
     backref, relation, reconstructor, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
@@ -347,13 +347,14 @@ class Voucher(db.Base):
     #                                       cascade='all, delete-orphan'))
 
 
+class AccessionMapperExtension:
+    pass
+
 # invalidate an accessions string cache after it has been updated
-class AccessionMapperExtension(MapperExtension):
-
-    def after_update(self, mapper, conn, instance):
-        instance.invalidate_str_cache()
-        return EXT_CONTINUE
-
+@event.listens_for(AccessionMapperExtension, 'after_update')
+def receive_after_update(mapper, connection, instance):
+    instance.invalidate_str_cache()
+    return EXT_CONTINUE
 
 # ITF2 - E.1; Provenance Type Flag; Transfer code: prot
 prov_type_values = [
@@ -502,8 +503,7 @@ def compute_serializable_fields(cls, session, keys):
 
 AccessionNote = db.make_note_class('Accession', compute_serializable_fields)
 
-
-class Accession(db.Base, db.Serializable, db.WithNotes):
+class Accession(db.Base, db.Serializable, db.WithNotes, AccessionMapperExtension):
     """
     :Table name: accession
 
