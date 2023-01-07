@@ -861,18 +861,30 @@ def setup_date_button(view, entry, button, date_func=None):
     else:
         button.connect('clicked', on_clicked)
 
-
 def to_unicode(obj, encoding='utf-8'):
     """Convert obj to Python3 standard unicode string
-
     """
     if obj is None:
         return None
-    if not isinstance(obj, str):
+    if isinstance(obj, str):
         try:
+            obj = obj.encode(encoding).decode(encoding)
+        except Exception:
+            # Errors changing encoding
+            obj = None
+            pass
+    else:
+        try:
+            # Bytes
             obj = str(obj, encoding)
         except Exception:
-            obj = "%s" % obj
+            try:
+                # Use the class' str() method to get the value
+                obj = str(obj)
+            except Exception:
+                # If the __str__ method returned a non-unicode value
+                obj = type(obj).__name__
+                pass
     return obj
 
 
