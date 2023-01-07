@@ -157,7 +157,7 @@ for mapper in sorted(_mapper_registry, key=lambda x: x.class_.__name__):
             props_str += '<li>%s</li>' % [str(c) for c in p.columns]
         else:
             props_str += '<li>%s</li>' % saxutils.escape(str(p))
-    if props_str is not '':
+    if props_str != '':
         print(('<ul>%s</ul>' % props_str))
     print('</div>')
 
