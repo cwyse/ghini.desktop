@@ -29,10 +29,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy import Column, Unicode, UnicodeText
-from sqlalchemy.orm import relation, backref, validates
-from sqlalchemy.orm.session import object_session
-from sqlalchemy.exc import DBAPIError
-
+from sqlalchemy.orm import relationship, validates
+from sqlalchemy.exc import DatabaseError
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_mixin
 
 import bauble
 import bauble.db as db
@@ -99,16 +99,21 @@ def compute_serializable_fields(cls, session, keys):
     result = {'location': None}
 
     annotated_object_keys = {'code': keys['location']}
-    result['location'] = Location.retrieve_or_create(
-        session, annotated_object_keys, create=False)
+    result['location'] = session.query(Location).filter_by(
+        **annotated_object_keys).one_or_none()
 
     return result
 
 
-LocationNote = db.make_note_class('Location', compute_serializable_fields)
+Base = declarative_base()
 
 
-class Location(db.Base, db.Serializable, db.WithNotes):
+@declarative_mixin
+class SerializableMixin(object):
+    pass
+
+
+class Location(Base, LocationNote):
     """
     :Table name: location
 
@@ -131,16 +136,16 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     description = Column(UnicodeText)
 
     # relations
-    plants = relation('Plant', backref=backref('location', uselist=False))
+    plants = relationship(Plant, backref='location', uselist=False)
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
         '''
         if self.description is not None:
-            return (utils.xml_safe(str(self)),
-                    utils.xml_safe(str(self.description)))
+            return (str(self),
+                    str(self.description))
         else:
-            return utils.xml_safe(str(self))
+            return str(self)
 
     @validates('code', 'name')
     def validate_stripping(self, key, value):
@@ -163,8 +168,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.query(cls).filter(
-                cls.code == keys['code']).one()
+            return session.query(cls).filter_by(code=keys['code']).one()
         except:
             return None
 
@@ -182,7 +186,6 @@ class Location(db.Base, db.Serializable, db.WithNotes):
                 (8, 'Sources'): set([a.source.source_detail.id
                                      for a in accessions
                                      if a.source and a.source.source_detail])}
-
 
 def mergevalues(value1, value2, formatter):
     """return the common value
@@ -248,7 +251,7 @@ class LocationEditorPresenter(GenericEditorPresenter):
         '''
         super().__init__(model, view)
         self.create_toolbar()
-        self.session = object_session(model)
+        self.session = db.Session.object_session(model)
         self._dirty = False
 
         notes_parent = self.view.widgets.notes_parent_box
@@ -266,7 +269,7 @@ class LocationEditorPresenter(GenericEditorPresenter):
         self.assign_simple_handler('loc_desc_textview', 'description',
                                    UnicodeOrNoneValidator())
         self.refresh_sensitivity()
-        if self.model not in self.session.new:
+        if self.model not in self.session:
             self.view.widgets.loc_ok_and_add_button.set_sensitive(True)
 
         # the merger danger zone
@@ -291,14 +294,9 @@ class LocationEditorPresenter(GenericEditorPresenter):
         logger.debug('request to merge %s into %s' %
                      (self.model, self.merger_candidate, ))
 
-        md = Gtk.MessageDialog(
-            self.view.get_window(), Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            Gtk.MessageType.QUESTION, Gtk.ButtonsType.YES_NO,
-            (_('please confirm merging %(1)s into %(2)s') %
-             {'1': self.model, '2': self.merger_candidate, }))
-        confirm = md.run()
-        md.destroy()
-
+        confirm = utils.yes_no_dialog(
+            _("Please confirm merging %(1)s into %(2)s") %
+            {'1': self.model, '2': self.merger_candidate})
         if not confirm:
             return
 
@@ -309,46 +307,48 @@ class LocationEditorPresenter(GenericEditorPresenter):
         # step 1: update tables plant and plant_changes, by altering all
         # references to self.merger_candidate into references to self.model.
         from bauble.plugins.garden.plant import Plant, PlantChange
-        for p in self.session.query(Plant).filter(
-                Plant.location == self.merger_candidate).all():
+        plants_to_update = session.query(Plant).filter(
+            Plant.location == self.merger_candidate).all()
+        for p in plants_to_update:
             p.location = self.model
-        for p in self.session.query(PlantChange).filter(
-                PlantChange.from_location == self.merger_candidate).all():
+        plant_changes_to_update = session.query(PlantChange).filter(
+            PlantChange.from_location == self.merger_candidate).all()
+        for p in plant_changes_to_update:
             p.from_location = self.model
-        for p in self.session.query(PlantChange).filter(
-                PlantChange.to_location == self.merger_candidate).all():
+        plant_changes_to_update = session.query(PlantChange).filter(
+            PlantChange.to_location == self.merger_candidate).all()
+        for p in plant_changes_to_update:
             p.to_location = self.model
 
-        # step 2: merge model and merger_candidate  `description` and `name`
+        # step 2: merge model and merger_candidate `description` and `name`
         # fields, mark there's a problem to solve there.
-        self.view.widget_set_value('loc_code_entry',
-                                   getattr(self.model, 'code'))
+        self.view.widget_set_value('loc_code_entry', self.model.code)
 
         buf = self.view.widgets.loc_desc_textview.get_buffer()
         self.view.widget_set_value(
             'loc_desc_textview', mergevalues(
-                buf.get_text(*buf.get_bounds()),
-                getattr(self.merger_candidate, 'description'),
+                buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False),
+                self.merger_candidate.description,
                 "%s\n---------\n%s"))
         self.view.widget_set_value(
             'loc_name_entry', mergevalues(
                 self.view.widgets.loc_name_entry.get_text(),
-                getattr(self.merger_candidate, 'name'),
+                self.merger_candidate.name,
                 "%s\n---------\n%s"))
-        #self.add_problem('MERGED', self.view.widgets.loc_desc_textview)
 
         # step 3: delete self.merger_candidate and clean the entry
-        self.session.delete(self.merger_candidate)
+        session.delete(self.merger_candidate)
         self.view.widget_set_value('loc_merge_comboentry', '')
 
         # step 4: collapse the expander
         self.view.widgets.danger_zone.set_expanded(False)
 
+        self._dirty = True
+        self.refresh_sensitivity()
     def refresh_sensitivity(self):
         sensitive = False
-        ignore = ('id')
-        if self.is_dirty() and not \
-                utils.get_invalid_columns(self.model, ignore_columns=ignore):
+        ignore = ('id',)
+        if self.is_dirty() and not utils.get_invalid_columns(self.model, ignore_columns=ignore):
             sensitive = True
         self.view.set_accept_buttons_sensitive(sensitive)
 
@@ -358,18 +358,15 @@ class LocationEditorPresenter(GenericEditorPresenter):
         self.refresh_sensitivity()
 
     def is_dirty(self):
-        return (self.notes_presenter.is_dirty() or
-                self._dirty)
+        return self.notes_presenter.is_dirty() or self._dirty
 
     def refresh_view(self):
-        for widget, field in list(self.widget_to_field_map.items()):
+        for widget, field in self.widget_to_field_map.items():
             value = getattr(self.model, field)
             self.view.widget_set_value(widget, value)
 
     def start(self):
-        r = self.view.start()
-        return r
-
+        return self.view.start()
 
 class LocationEditor(GenericModelViewPresenterEditor):
 
@@ -461,37 +458,31 @@ class LocationEditor(GenericModelViewPresenterEditor):
         return self._committed
 
 
-from bauble.view import InfoBox, InfoExpander, PropertiesExpander, MapInfoExpander
-
+from bauble.utils import make_label_clickable
+from bauble.view.info_box import InfoExpander
 
 class GeneralLocationExpander(InfoExpander):
-
     def __init__(self, widgets):
-        '''
-        '''
         super().__init__(_("General"), widgets)
         general_box = self.widgets.loc_gen_box
-        self.widgets.remove_parent(general_box)
+        self.widgets.remove(general_box)
         self.vbox.pack_start(general_box, True, True, 0)
         self.current_obj = None
 
         def on_nplants_clicked(*args):
-            cmd = 'plant where location.code="%s"' % self.current_obj.code
+            cmd = 'plant where location.code="{}"'.format(self.current_obj.code)
             bauble.gui.send_command(cmd)
-        utils.make_label_clickable(self.widgets.loc_nplants_data,
-                                   on_nplants_clicked)
+
+        make_label_clickable(self.widgets.loc_nplants_data, on_nplants_clicked)
 
     def update(self, row):
-        '''
-        '''
         self.current_obj = row
         from bauble.plugins.garden.plant import Plant
-        self.widget_set_value('loc_name_data',
-                              '<big>%s</big>' % utils.xml_safe(str(row)),
-                              markup=True)
+        self.widget_set_value('loc_name_data', '<big>{}</big>'.format(utils.xml_safe(str(row))), markup=True)
         session = object_session(row)
         nplants = session.query(Plant).filter_by(location_id=row.id).count()
         self.widget_set_value('loc_nplants_data', nplants)
+
 
 
 class DescriptionExpander(InfoExpander):
@@ -502,12 +493,10 @@ class DescriptionExpander(InfoExpander):
     def __init__(self, widgets):
         super().__init__(_("Description"), widgets)
         descr_box = self.widgets.loc_descr_box
-        self.widgets.remove_parent(descr_box)
+        self.widgets.remove(descr_box)
         self.vbox.pack_start(descr_box, True, True, 0)
 
     def update(self, row):
-        '''
-        '''
         if row.description is None:
             self.set_expanded(False)
             self.set_sensitive(False)
@@ -515,20 +504,13 @@ class DescriptionExpander(InfoExpander):
             self.set_expanded(True)
             self.set_sensitive(True)
             self.widget_set_value('loc_descr_data', str(row.description))
-
-
+            
 class LocationInfoBox(InfoBox):
-    """
-    an InfoBox for a Location table row
-    """
 
     def __init__(self):
-        '''
-        '''
         super().__init__()
-        filename = os.path.join(paths.lib_dir(), "plugins", "garden",
-                                "loc_infobox.glade")
-        self.widgets = utils.BuilderWidgets(filename)
+        filename = "plugins/garden/loc_infobox.glade"
+        self.widgets = Gtk.Builder.new_from_file(filename)
         self.general = GeneralLocationExpander(self.widgets)
         self.add_expander(self.general)
         self.description = DescriptionExpander(self.widgets)
@@ -548,8 +530,6 @@ class LocationInfoBox(InfoBox):
         return result
 
     def update(self, row):
-        '''
-        '''
         self.general.update(row)
         self.description.update(row)
         self.mapinfo.update(row)
