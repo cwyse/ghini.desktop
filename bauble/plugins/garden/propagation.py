@@ -21,7 +21,6 @@
 # propagation module
 #
 
-
 import datetime
 import os
 import weakref
@@ -34,7 +33,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy import Column, Integer, ForeignKey, UnicodeText, Unicode
-from sqlalchemy.orm import backref, relation
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 
@@ -69,8 +68,8 @@ class PlantPropagation(db.Base):
     propagation_id = Column(Integer, ForeignKey('propagation.id'),
                             nullable=False)
 
-    propagation = relation('Propagation', uselist=False)
-    plant = relation('Plant', uselist=False)
+    propagation = relationship('Propagation', uselist=False)
+    plant = relationship('Plant', uselist=False)
 
 
 PropagationNote = db.make_note_class('Propagation')
@@ -85,12 +84,12 @@ class Propagation(db.Base, db.WithNotes):
                        nullable=False)
     date = Column(types.Date)
 
-    _cutting = relation(
+    _cutting = relationship(
         'PropCutting',
         primaryjoin='Propagation.id==PropCutting.propagation_id',
         cascade='all,delete-orphan', uselist=False,
         backref=backref('propagation', uselist=False))
-    _seed = relation(
+    _seed = relationship(
         'PropSeed',
         primaryjoin='Propagation.id==PropSeed.propagation_id',
         cascade='all,delete-orphan', uselist=False,
@@ -251,18 +250,22 @@ class Propagation(db.Base, db.WithNotes):
             utils.delete_or_expunge(self._cutting)
             self._cutting = None
 
-
 class PropCuttingRooted(db.Base):
     """
-    Rooting dates for cutting
+    A rooted cutting resulting from a propagation cutting
     """
+
     __tablename__ = 'prop_cutting_rooted'
     __mapper_args__ = {'order_by': 'date'}
 
-    date = Column(types.Date)
-    quantity = Column(Integer, autoincrement=False, default=0, nullable=False)
+    date = Column(types.Date, nullable=False)
+    quantity = Column(Integer, nullable=False, default=1, 
+                      doc="The quantity of rooted cuttings")
     cutting_id = Column(Integer, ForeignKey('prop_cutting.id'), nullable=False)
 
+    def __repr__(self):
+        return "<PropCuttingRooted(date='%s', quantity='%d')>" % (
+                            self.date, self.quantity)
 
 cutting_type_values = {'Nodal': _('Nodal'),
                        'InterNodal': _('Internodal'),
@@ -300,7 +303,6 @@ length_unit_values = {'mm': _('mm'),
                       'cm': _('cm'),
                       'in': _('in'),
                       None: ''}
-
 
 class PropCutting(db.Base):
     """
@@ -345,15 +347,12 @@ class PropCutting(db.Base):
     bottom_heat_unit = Column(types.Enum(values=list(bottom_heat_unit_values.keys()),
                                          translations=bottom_heat_unit_values),
                               nullable=True)
-    rooted_pct = Column(Integer, autoincrement=False)
+    
+    # relationship to PropCuttingRooted
+    rooted = relationship('PropCuttingRooted', back_populates='cutting', uselist=False)
 
     propagation_id = Column(Integer, ForeignKey('propagation.id'),
                             nullable=False)
-
-    rooted = relation('PropCuttingRooted', cascade='all,delete-orphan',
-                      primaryjoin='PropCutting.id==PropCuttingRooted.cutting_id',
-                      backref=backref('cutting', uselist=False))
-
 
 class PropSeed(db.Base):
     """
@@ -390,7 +389,6 @@ class PropSeed(db.Base):
         # what would the string be...???
         # cuttings of self.accession.species_str() and accession number
         return repr(self)
-
 
 class PropagationTabPresenter(editor.GenericEditorPresenter):
 
@@ -442,7 +440,12 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
 
     def create_propagation_box(self, propagation):
         """
+        Create a Gtk.Box for the given propagation.
+
+        :param propagation: the Propagation instance
+        :return: a Gtk.Box containing information about the propagation
         """
+
         hbox = Gtk.HBox()
         expander = Gtk.Expander()
         hbox.pack_start(expander, True, True, 0)
@@ -496,7 +499,8 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
                             "You cannot remove it.") % count
                 utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
                 return False
-            self.model.propagations.remove(propagation)
+            self.session.delete(propagation)
+            self.session.commit()
             self.view.widgets.prop_tab_box.remove(box)
             self._dirty = True
             self.parent_ref().refresh_sensitivity()
@@ -529,7 +533,6 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
         self.add_propagation()
         self.parent_ref().refresh_sensitivity()
 
-
 class PropagationEditorView(editor.GenericEditorView):
     """
     """
@@ -551,7 +554,6 @@ class PropagationEditorView(editor.GenericEditorView):
 
     def start(self):
         return self.get_window().run()
-
 
 class CuttingPresenter(editor.GenericEditorPresenter):
 
@@ -575,10 +577,6 @@ class CuttingPresenter(editor.GenericEditorPresenter):
                            }
 
     def __init__(self, parent, model, view, session):
-        '''
-        :param model: an instance of class Propagation
-        :param view: an instance of PropagationEditorView
-        '''
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
         self.session = session
@@ -748,7 +746,6 @@ class CuttingPresenter(editor.GenericEditorPresenter):
         for rooted in self.model.rooted:
             rooted_liststore.append([rooted])
 
-
 class SeedPresenter(editor.GenericEditorPresenter):
 
     widget_to_field_map = {'seed_pretreatment_textview': 'pretreatment',
@@ -770,26 +767,26 @@ class SeedPresenter(editor.GenericEditorPresenter):
         :param view: an instance of PropagationEditorView
         '''
         super().__init__(model, view)
-        self._dirty = False
         self.parent_ref = weakref.ref(parent)
         self.session = session
+        self._dirty = False
 
         self.propagation = self.model
         if not self.propagation._seed:
             self.propagation._seed = PropSeed()
         self.model = self.model._seed
 
+
         # TODO: if % germinated is not entered and nseeds and #
         # germinated are then automatically calculate the % germinated
 
         widgets = self.view.widgets
         distinct = lambda c: utils.get_distinct_values(c, self.session)
-        # TODO: should also setup a completion on the entry
-        utils.setup_text_combobox(self.view.widgets.seed_media_comboentry,
+        utils.setup_text_combobox(widgets.seed_media_comboentry,
                                   distinct(PropSeed.media))
-        utils.setup_text_combobox(self.view.widgets.seed_container_comboentry,
+        utils.setup_text_combobox(widgets.seed_container_comboentry,
                                   distinct(PropSeed.container))
-        utils.setup_text_combobox(self.view.widgets.seed_location_comboentry,
+        utils.setup_text_combobox(widgets.seed_location_comboentry,
                                   distinct(PropSeed.location))
 
         self.refresh_view()
@@ -797,7 +794,6 @@ class SeedPresenter(editor.GenericEditorPresenter):
         self.assign_simple_handler('seed_pretreatment_textview',
                                    'pretreatment',
                                    editor.UnicodeOrNoneValidator())
-        # TODO: this should validate to an integer
         self.assign_simple_handler('seed_nseeds_entry', 'nseeds',
                                    editor.UnicodeOrNoneValidator())
         self.assign_simple_handler('seed_sown_entry', 'date_sown',
@@ -820,18 +816,15 @@ class SeedPresenter(editor.GenericEditorPresenter):
                                 'seed_germdate_button')
         self.assign_simple_handler('seed_ngerm_entry', 'nseedlings')
         self.assign_simple_handler('seed_pctgerm_entry', 'germ_pct')
-        self.assign_simple_handler('seed_date_planted_entry', 'date_planted',
-                                   editor.DateValidator())
-        utils.setup_date_button(self.view, 'seed_date_planted_entry',
-                                'seed_date_planted_button')
+        self.assign_simple_handler('seed_date_planted_entry', 'seed_date_planted_button')
 
     def is_dirty(self):
-        return self._dirty
+        return self._dirty or self.propagation.is_dirty()
 
     def set_model_attr(self, field, value, validator=None):
-        #debug('%s = %s' % (field, value))
         super().set_model_attr(field, value, validator)
         self._dirty = True
+        self.propagation.dirty = True
         self.parent_ref().refresh_sensitivity()
 
     def refresh_view(self):
@@ -841,13 +834,18 @@ class SeedPresenter(editor.GenericEditorPresenter):
             if isinstance(value, datetime.date):
                 value = value.strftime(date_format)
             self.view.widget_set_value(widget, value)
-
+        # Update the germination percentage if nseeds and nseedlings are set
+        nseeds = self.model.nseeds
+        nseedlings = self.model.nseedlings
+        if nseeds and nseedlings:
+            self.model.germ_pct = round((nseedlings / nseeds) * 100, 1)
+            self.view.widget_set_value('seed_pctgerm_entry', self.model.germ_pct)
 
 class PropagationPresenter(editor.ChildPresenter):
     """PropagationPresenter is extended by SourcePropagationPresenter and
     PropagationEditorPresenter.
-
     """
+
     widget_to_field_map = {'prop_type_combo': 'prop_type',
                            'prop_date_entry': 'date',
                            }
@@ -864,18 +862,14 @@ class PropagationPresenter(editor.ChildPresenter):
             view.widgets.prop_details_box.set_visible(False)
 
         # initialize the propagation type combo and set the initial value
-        self.view.connect('prop_type_combo', 'changed',
-                          self.on_prop_type_changed)
+        self.view.connect('prop_type_combo', 'changed', self.on_prop_type_changed)
         if self.model.prop_type:
             self.view.widget_set_value('prop_type_combo', self.model.prop_type)
 
-        self._cutting_presenter = CuttingPresenter(self, self.model, self.view,
-                                                   self.session)
-        self._seed_presenter = SeedPresenter(self, self.model, self.view,
-                                             self.session)
+        self._cutting_presenter = CuttingPresenter(self, self.model, self.view, self.session)
+        self._seed_presenter = SeedPresenter(self, self.model, self.view, self.session)
 
-        self.assign_simple_handler('prop_date_entry', 'date',
-                                   editor.DateValidator())
+        self.assign_simple_handler('prop_date_entry', 'date', editor.DateValidator())
         if self.model.date is None:
             date_str = utils.today_str()
         else:
@@ -884,8 +878,7 @@ class PropagationPresenter(editor.ChildPresenter):
         self.view.widget_set_value(self.view.widgets.prop_date_entry, date_str)
 
         self._dirty = False
-        utils.setup_date_button(self.view, 'prop_date_entry',
-                                'prop_date_button')
+        utils.setup_date_button(self.view, 'prop_date_entry', 'prop_date_button')
 
     def on_prop_type_changed(self, combo, *args):
         it = combo.get_active_iter()
@@ -906,12 +899,12 @@ class PropagationPresenter(editor.ChildPresenter):
             self.view.widgets.prop_date_entry.emit('changed')
 
     def is_dirty(self):
-        if self.model.prop_type == 'UnrootedCutting':
+        if self.model.prop_type is None:
+            return self._dirty
+        elif self.model.prop_type == 'UnrootedCutting':
             return self._cutting_presenter.is_dirty() or self._dirty
         elif self.model.prop_type == 'Seed':
             return self._seed_presenter.is_dirty() or self._dirty
-        else:
-            return self._dirty
 
     def set_model_attr(self, field, value, validator=None):
         """
@@ -921,6 +914,10 @@ class PropagationPresenter(editor.ChildPresenter):
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.refresh_sensitivity()
+        if self.model.prop_type == 'Seed':
+            self._seed_presenter.refresh_view()
+        elif self.model.prop_type == 'UnrootedCutting':
+            self._cutting_presenter.refresh_view()
 
     def cleanup(self):
         self._cutting_presenter.cleanup()
@@ -930,99 +927,59 @@ class PropagationPresenter(editor.ChildPresenter):
         pass
 
     def refresh_view(self):
-        pass
-
-
-class SourcePropagationPresenter(PropagationPresenter):
-    """
-    Presenter for creating a new Propagation for the
-    Source.propagation property.  This type of propagation is not
-    associated with a Plant.
-
-    :param parent: AccessionEditorPresenter
-    :param model:  Propagation instance
-    :param view:  AccessionEditorView
-    :param session: sqlalchemy.orm.sesssion
-    """
-    def __init__(self, parent, model, view, session):
-        self.parent_ref = weakref.ref(parent)
-        self.parent_session = session
-        try:
-            view.widgets.prop_main_box
-        except:
-            # only add the propagation editor widgets to the view
-            # widgets if the widgets haven't yet been added
-            filename = os.path.join(paths.lib_dir(), 'plugins', 'garden',
-                                    'prop_editor.glade')
-            view.widgets.builder.add_from_file(filename)
-        prop_main_box = view.widgets.prop_main_box
-        view.widgets.remove_parent(prop_main_box)
-        view.widgets.acc_prop_box_parent.add(prop_main_box)
-
-        # since the view here will be an AccessionEditorView and not a
-        # PropagationEditorView then we need to do anything here that
-        # PropagationEditorView would do
-        view.init_translatable_combo('prop_type_combo', prop_type_values)
-        # add None to the prop types which is specific to
-        # SourcePropagationPresenter since we might also need to
-        # remove the propagation...this will need to be called before
-        # the PropagationPresenter.on_prop_type_changed or it won't work
-        view.widgets.prop_type_combo.get_model().append([None, ''])
-
-        self._dirty = False
-        super().__init__(model, view)
-
-    def on_prop_type_changed(self, combo, *args):
-        """
-        Override PropagationPresenter.on_type_changed() to handle the
-        None value in the prop_type_combo which is specific the
-        SourcePropagationPresenter
-        """
-        logger.debug('SourcePropagationPresenter.on_prop_type_changed()')
-        it = combo.get_active_iter()
-        prop_type = combo.get_model()[it][0]
-        if not prop_type:
-            self.set_model_attr('prop_type', None)
-            self.view.widgets.prop_details_box.set_visible(False)
-        else:
-            super().on_prop_type_changed(combo, *args)
-        self._dirty = False
-
-    def set_model_attr(self, attr, value, validator=None):
-        logger.debug('set_model_attr(%s, %s)' % (attr, value))
-        super().set_model_attr(attr, value)
-        self._dirty = True
-        self.refresh_sensitivity()
-
-    def refresh_sensitivity(self):
-        self.parent_ref().refresh_sensitivity()
-
-    def is_dirty(self):
-        return super().is_dirty() or self._dirty
-
+        date_format = prefs.prefs[prefs.date_format_pref]
+        for widget, attr in list(self.widget_to_field_map.items()):
+            value = getattr(self.model, attr)
+            if isinstance(value, datetime.date):
+                value = value.strftime(date_format)
+            self.view.widget_set_value(widget, value)
+        if self.model.prop_type == 'UnrootedCutting':
+            self._cutting_presenter.refresh_view()
+        elif self.model.prop_type == 'Seed':
+            self._seed_presenter.refresh_view()            
 
 class PropagationEditorPresenter(PropagationPresenter):
+    """
+    Presenter class for editing Propagation instances
+    """
 
     def __init__(self, model, view):
-        '''
+        """
+        Initialize the presenter
+
         :param model: an instance of class Propagation
         :param view: an instance of PropagationEditorView
-        '''
+        """
         super().__init__(model, view)
-        # don't allow changing the propagation type if we are editing
-        # an existing propagation
+
+        # Don't allow changing the propagation type if we are editing an
+        # existing propagation
         self.view.widgets.prop_type_box.set_sensitive(model in self.session.new)
+
+        # Show the propagation details box
         self.view.widgets.prop_details_box.set_visible(True)
+
+        # Disable the "OK" button until the propagation data is valid
         self.view.widgets.prop_ok_button.set_sensitive(False)
 
     def start(self):
+        """
+        Start the view and return the response
+        """
         r = self.view.start()
         return r
 
     def refresh_sensitivity(self):
+        """
+        Refresh the sensitivity of the view widgets based on the current
+        model data
+        """
         super().refresh_sensitivity()
+
+        # By default, allow saving the propagation data
         sensitive = True
 
+        # Disable the "OK" button if any of the propagation data is invalid
         if utils.get_invalid_columns(self.model):
             sensitive = False
 
@@ -1033,17 +990,16 @@ class PropagationEditorPresenter(PropagationPresenter):
             elif self.model.prop_type == 'Seed':
                 model = self.model._seed
 
+        # Disable the "OK" button if any of the propagation details data is invalid
         if model:
-            invalid = utils.get_invalid_columns(
-                model, ['id', 'propagation_id'])
-            # TODO: highlight the widget with are associated with the
-            # columns that have bad values
+            invalid = utils.get_invalid_columns(model, ['id', 'propagation_id'])
             if invalid:
                 sensitive = False
         else:
             sensitive = False
-        self.view.widgets.prop_ok_button.set_sensitive(sensitive)
 
+        # Set the sensitivity of the "OK" button
+        self.view.widgets.prop_ok_button.set_sensitive(sensitive)
 
 class PropagationEditor(editor.GenericModelViewPresenterEditor):
 
@@ -1137,3 +1093,4 @@ class PropagationEditor(editor.GenericModelViewPresenterEditor):
         #self.session.close()  # cleanup session
         self.presenter.cleanup()
         return self._return
+        
