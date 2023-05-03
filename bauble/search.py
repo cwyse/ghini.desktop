@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
-
 import weakref
 
 from gi.repository import Gtk
@@ -29,12 +28,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy import or_, and_
-from sqlalchemy import Unicode
-from sqlalchemy import UnicodeText
+from sqlalchemy import String  # Change 1: Replacing Unicode and UnicodeText with String
 from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm import relationship  # Change 2: Importing relationship for ORM relationship definitions
 from sqlalchemy.orm.properties import (
-    ColumnProperty, RelationshipProperty)
-RelationProperty = RelationshipProperty
+    ColumnProperty)  # Change 3: Removing RelationshipProperty from the import
+
+RelationProperty = relationship  # Change 4: Assigning the relationship to RelationProperty
 
 import bauble
 from bauble.error import check
@@ -164,7 +164,6 @@ class TypedValueToken(ValueABC):
 
     def __repr__(self):
         return "%s" % (self.value)
-
 
 class IdentifierAction(object):
     def __init__(self, t):
@@ -298,7 +297,6 @@ class IdentExpression(object):
     def needs_join(self, env):
         return [self.operands[0].needs_join(env)]
 
-
 class ElementSetExpression(IdentExpression):
     # currently only implements `in`
 
@@ -423,7 +421,6 @@ class ParenthesisedQuery(object):
     def needs_join(self, env):
         return self.content.needs_join(env)
 
-
 class QueryAction(object):
     def __init__(self, t):
         self.domain = t[0]
@@ -441,7 +438,6 @@ class QueryAction(object):
         database types. For example, on a PostgreSQL database you can
         use ilike but this would raise an error on SQLite.
         """
-
         logger.debug('QueryAction:invoke - %s(%s) %s(%s)' %
                      (type(self.domain), self.domain,
                       type(self.filter), self.filter))
@@ -465,7 +461,6 @@ class QueryAction(object):
             result = set(i for i in result if i is not None)
         return result
 
-
 class StatementAction(object):
     def __init__(self, t):
         self.content = t[0]
@@ -474,13 +469,11 @@ class StatementAction(object):
     def __repr__(self):
         return repr(self.content)
 
-
 class BinomialNameAction(object):
     """created when the parser hits a binomial_name token.
 
     Searching using binomial names returns one or more species objects.
     """
-
     def __init__(self, t):
         self.genus_epithet = t[0]
         self.species_epithet = t[1]
@@ -501,7 +494,6 @@ class BinomialNameAction(object):
             logger.warning('removing None from result set')
             result = set(i for i in result if i is not None)
         return result
-
 
 class DomainExpressionAction(object):
     """created when the parser hits a domain_expression token.
@@ -566,7 +558,6 @@ class DomainExpressionAction(object):
             logger.warning('removing None from result set')
             result = set(i for i in result if i is not None)
         return result
-
 
 class AggregatingAction(object):
 
@@ -743,34 +734,31 @@ class SearchParser(object):
                         | Group(aggregated + binop + value
                                 ).setParseAction(AggregatedExpression)
                         | (Literal('(') + query_expression + Literal(')')
-                           ).setParseAction(ParenthesisedQuery))
-    between_expression = Group(
-        identifier + BETWEEN_ + value + AND_ + value
-        ).setParseAction(BetweenExpressionAction)
-    query_expression <<= infixNotation(
-        (ident_expression | between_expression),
-        [(NOT_, 1, opAssoc.RIGHT, SearchNotAction),
-         (AND_, 2, opAssoc.LEFT,  SearchAndAction),
-         (OR_,  2, opAssoc.LEFT,  SearchOrAction)])
-    query = (domain + Keyword('where', caseless=True).suppress() +
-             Group(query_expression) + stringEnd).setParseAction(QueryAction)
+                           ).setParseAction(SubqueryExpression)
+                        | Group(identifier).setParseAction(IdentExpression)
+                        )('ident_expression')
 
-    statement = (query('query')
-                 | domain_expression('domain')
-                 | binomial_name('binomial')
-                 | value_list('value_list')
-                 ).setParseAction(StatementAction)('statement')
+    not_op = NOT_.setParseAction(lambda t: NotToken())('not_op')
+    or_op = OR_.setParseAction(lambda t: OrToken())('or_op')
+    and_op = AND_.setParseAction(lambda t: AndToken())('and_op')
 
-    def parse_string(self, text):
-        '''request pyparsing object to parse text
+    query_expression <<= infixNotation(ident_expression,
+                                       [(not_op, 1, opAssoc.RIGHT,),
+                                        (and_op, 2, opAssoc.LEFT,),
+                                        (or_op, 2, opAssoc.LEFT,),
+                                        ])
 
-        `text` can be either a query, or a domain expression, or a list of
-        values. the `self.statement` pyparsing object parses the input text
-        and return a pyparsing.ParseResults object that represents the input
-        '''
+    search_token = (domain_expression | binomial_name | query_expression |
+                    value_list)('search')
 
-        return self.statement.parseString(text)
+    def __init__(self):
+        self.parser = self.search_token.ignore(" --" + Word(printables) * (
+            stringEnd ^ LineEnd()))
 
+    def parse(self, search_string):
+        # this log statement prints the search string in the log file
+        logger.debug("parse: %s" % search_string)
+        return self.parser.parseString(search_string)[0]
 
 class SearchStrategy(object):
     """
