@@ -34,14 +34,18 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# Importing new `relationship` and `select` functions
 from sqlalchemy import (
-    Column, Unicode, UnicodeText, Integer, String, ForeignKey)
-from sqlalchemy.orm import relation
+    Column, Unicode, UnicodeText, Integer, String, ForeignKey, select)
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import and_
 from sqlalchemy.exc import DBAPIError, InvalidRequestError
 from sqlalchemy.orm.session import object_session
 
+# Importing the `future` flag for the Session class
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session
 
 import bauble
 from bauble import ui
@@ -56,6 +60,9 @@ from bauble.view import InfoBox, InfoExpander, SearchView, Action
 from bauble.editor import (
     GenericEditorView, GenericEditorPresenter)
 
+
+# Update the Session creation with the future flag
+db.Session = scoped_session(sessionmaker(future=True))
 
 class TagsMenuManager:
     def __init__(self):
@@ -122,8 +129,10 @@ class TagsMenuManager:
         tags_menu.append(add_tag_menu_item)
 
         session = db.Session()
-        query = session.query(Tag).order_by(Tag.tag)
-        has_tags = query.first()
+        # Using the new select function instead of query
+        stmt = select(Tag).order_by(Tag.tag)
+        result = session.execute(stmt)
+        has_tags = result.scalars().first()
         if has_tags:
             tags_menu.append(Gtk.SeparatorMenuItem())
         submenu = {'': [None, tags_menu]}  # menuitem and submenu
@@ -147,7 +156,8 @@ class TagsMenuManager:
                 parent = submenu[full_path]
                 full_path += '/'
         try:
-            for tag in query:
+            # Using the new way to iterate over the result
+            for tag in result.scalars():
                 *path, tail = tag.tag.split('/')
                 head = '/'.join(path)
                 item = Gtk.ImageMenuItem(tail)
@@ -171,7 +181,7 @@ class TagsMenuManager:
             tags_menu.append(self.remove_active_tag_menu_item)
             self.apply_active_tag_menu_item.set_sensitive(False)
             self.remove_active_tag_menu_item.set_sensitive(False)
-        return tags_menu
+        return tags_menu      
 
     def toggle_tag(self, applying):
         view = bauble.gui.get_view()
@@ -201,9 +211,7 @@ class TagsMenuManager:
         logger.debug("you're removing %s from the selection", self.active_tag_name)
         self.toggle_tag(applying=untag_objects)
 
-
 tags_menu_manager = TagsMenuManager()
-
 
 def edit_callback(tags):
     tag = tags[0]
@@ -259,7 +267,6 @@ remove_action = Action('tag_remove', _('_Delete'),
 
 tag_context_menu = [edit_action, remove_action]
 
-
 class TagEditorPresenter(GenericEditorPresenter):
 
     widget_to_field_map = {
@@ -309,7 +316,7 @@ class TagEditorPresenter(GenericEditorPresenter):
                     self.session.add(note)
             else:
                 # retrieve and update existing note
-                note = self.session.query(TagNote).filter_by(id=note_id).one()
+                note = self.session.execute(select(TagNote).filter_by(id=note_id)).scalar_one()
                 if keep is False:
                     self.session.delete(note)
                 else:
@@ -317,7 +324,6 @@ class TagEditorPresenter(GenericEditorPresenter):
                     note.note = value
                     note.type = value_type
         super().commit_changes()
-
 
 class TagItemGUI(editor.GenericEditorView):
     '''
@@ -340,7 +346,7 @@ class TagItemGUI(editor.GenericEditorView):
         '''
         create a new tag
         '''
-        session = db.Session()
+        session = Session()
         tag = Tag(description='')
         session.add(tag)
         error_state = edit_callback([tag])
@@ -364,6 +370,7 @@ class TagItemGUI(editor.GenericEditorView):
             tag_objects(name, self.values)
         else:
             untag_objects(name, self.values)
+
 
     def build_tag_tree_columns(self):
         """
@@ -394,10 +401,11 @@ class TagItemGUI(editor.GenericEditorView):
         msg = _('Are you sure you want to delete the tag "%s"?') % tag_name
         if not utils.yes_no_dialog(msg):
             return
-        session = db.Session()
+
+        session = Session()
         try:
-            query = session.query(Tag)
-            tag = query.filter_by(tag=str(tag_name)).one()
+            query = session.execute(select(Tag).filter_by(tag=str(tag_name)))
+            tag = query.scalar_one()
             session.delete(tag)
             session.commit()
             model.remove(row_iter)
@@ -446,9 +454,6 @@ class TagItemGUI(editor.GenericEditorView):
         self.disconnect_all()
         session.close()
 
-
-TagNote = db.make_note_class('Tag')
-
 class Tag(db.Base, db.WithNotes):
     """
     :Table name: tag
@@ -487,11 +492,12 @@ class Tag(db.Base, db.WithNotes):
             cls = and_(TaggedObj.obj_class == _classname(obj),
                        TaggedObj.obj_id == obj.id,
                        TaggedObj.tag_id == self.id)
-            ntagged = session.query(TaggedObj).filter(cls).count()
+            ntagged = session.execute(select(TaggedObj).filter(cls)).count()
             if ntagged == 0:
                 tagged_obj = TaggedObj(obj_class=_classname(obj), obj_id=obj.id,
                                        tag=self)
                 session.add(tagged_obj)
+
 
     @property
     def objects(self):
@@ -529,7 +535,7 @@ class Tag(db.Base, db.WithNotes):
         """
         session = object_session(self)
 
-        r = [session.query(mapper).filter_by(id=obj_id).first()
+        r = [session.execute(select(mapper).filter_by(id=obj_id)).scalar()
              for mapper, obj_id in _get_tagged_object_pairs(self)]
 
         # if `self` was tagging objects that have been later removed from
@@ -582,7 +588,6 @@ class Tag(db.Base, db.WithNotes):
             (self.description or '').replace('\n', ' ')[:256])
         return first, second
 
-
 class TaggedObj(db.Base):
     """
     :Table name: tagged_obj
@@ -604,7 +609,6 @@ class TaggedObj(db.Base):
 
     def __str__(self):
         return '%s: %s' % (self.obj_class, self.obj_id)
-
 
 def _get_tagged_object_pairs(tag):
     """
@@ -637,13 +641,12 @@ def _get_tagged_object_pairs(tag):
 
     return kids
 
-
 def create_named_empty_tag(name):
     """make sure the named tag exists
     """
     session = db.Session()
     try:
-        tag = session.query(Tag).filter_by(tag=name).one()
+        tag = session.execute(select(Tag).filter_by(tag=name)).scalar()
     except InvalidRequestError as e:
         logger.debug("%s - %s" % (type(e), e))
         tag = Tag(tag=name)
@@ -651,7 +654,6 @@ def create_named_empty_tag(name):
         session.commit()
     session.close()
     return
-
 
 def untag_objects(name, objs):
     """
@@ -668,7 +670,7 @@ def untag_objects(name, objs):
         return
     session = object_session(objs[0])
     try:
-        tag = session.query(Tag).filter_by(tag=name).one()
+        tag = session.execute(select(Tag).options(selectinload(Tag._objects)).filter_by(tag=name)).scalar()
     except Exception as e:
         logger.info("Can't remove non existing tag from non-empty list of objects"
                     "%s - %s" % (type(e), e))
@@ -678,14 +680,12 @@ def untag_objects(name, objs):
     for item in tag._objects:
         if (item.obj_class, item.obj_id) not in objs:
             continue
-        o = session.query(TaggedObj).filter_by(id=item.id).one()
+        o = session.execute(select(TaggedObj).filter_by(id=item.id)).scalar()
         session.delete(o)
     session.commit()
 
-
 # create the classname stored in the tagged_obj table
 _classname = lambda x: '%s.%s' % (type(x).__module__, type(x).__name__)
-
 
 def tag_objects(name, objects):
     """create or retrieve a tag, use it to tag list of objects
@@ -703,14 +703,13 @@ def tag_objects(name, objects):
         return
     session = object_session(objects[0])
     try:
-        tag = session.query(Tag).filter_by(tag=name).one()
+        tag = session.execute(select(Tag).filter_by(tag=name)).scalar()
     except InvalidRequestError as e:
         logger.debug("%s - %s" % (type(e), e))
         tag = Tag(tag=name)
         session.add(tag)
     tag.tag_objects(objects)
     session.commit()
-
 
 def get_tag_ids(objs):
     """Return a 3-tuple describing which tags apply to objs.
@@ -724,15 +723,15 @@ def get_tag_ids(objs):
 
     """
     session = object_session(objs[0])
-    tag_id_query = session.query(Tag.id).join('_objects')
+    tag_id_query = select(Tag.id).join(Tag._objects)
     starting_now = True
     s_all = set()
     s_some = set()
-    s_none = set(i[0] for i in tag_id_query)  # per default none apply
+    s_none = set(i[0] for i in session.execute(tag_id_query))  # per default none apply
     for obj in objs:
         clause = and_(TaggedObj.obj_class == _classname(obj),
                       TaggedObj.obj_id == obj.id)
-        applied_tag_ids = [r[0] for r in tag_id_query.filter(clause)]
+        applied_tag_ids = [r[0] for r in session.execute(tag_id_query.filter(clause))]
         if starting_now:
             s_all = set(applied_tag_ids)
             starting_now = False
@@ -743,7 +742,6 @@ def get_tag_ids(objs):
 
     s_some.difference_update(s_all)
     return (s_all, s_some, s_none)
-
 
 def _on_add_tag_activated(*args, **kwargs):
     # get the selection from the search view
@@ -762,7 +760,6 @@ def _on_add_tag_activated(*args, **kwargs):
     tagitem = TagItemGUI(values)
     tagitem.start()
     view.update_bottom_notebook()
-
 
 class GeneralTagExpander(InfoExpander):
     """
@@ -857,5 +854,5 @@ class TagPlugin(pluginmgr.Plugin):
         else:
             pass
 
-
 plugin = TagPlugin
+           

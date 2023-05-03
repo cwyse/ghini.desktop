@@ -18,25 +18,24 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
 from itertools import chain
 
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 
 from sqlalchemy import Column, Boolean, Unicode, Integer, ForeignKey, \
     UnicodeText, func, UniqueConstraint
-from sqlalchemy.orm import relation, backref, synonym
+from sqlalchemy.orm import relationship, backref, synonym
 import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
 import bauble.btypes as types
 
-
+Base = declarative_base()  # Added for new ORM API
 
 def _remove_zws(s):
     "remove_zero_width_space"
@@ -96,7 +95,7 @@ def compare_rank(rank1, rank2):
     return rank_level(rank1).__cmp__(rank_level(rank2))
 
 
-class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
+class Species(Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     """
     :Table name: species
 
@@ -287,29 +286,24 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     sp2 = Column(Unicode(64), index=True)  # in case hybrid=True
     author = Column(Unicode(128))
     hybrid = Column(Boolean, default=False)
-    sp_qual = Column(types.Enum(values=['agg.', 's. lat.', 's. str.', None]),
-                     default=None)
+    sp_qual = Column(Enum('agg.', 's. lat.', 's. str.', None), default=None)
     cv_group = Column(Unicode(50))
     trade_name = Column(Unicode(64))
 
     infrasp1 = Column(Unicode(64))
-    infrasp1_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
-                                      translations=infrasp_rank_values))
+    infrasp1_rank = Column(Enum(*infrasp_rank_values.keys(), values_callable=lambda x: [i.value for i in x]))
     infrasp1_author = Column(Unicode(64))
 
     infrasp2 = Column(Unicode(64))
-    infrasp2_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
-                                      translations=infrasp_rank_values))
+    infrasp2_rank = Column(Enum(*infrasp_rank_values.keys(), values_callable=lambda x: [i.value for i in x]))
     infrasp2_author = Column(Unicode(64))
 
     infrasp3 = Column(Unicode(64))
-    infrasp3_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
-                                      translations=infrasp_rank_values))
+    infrasp3_rank = Column(Enum(*infrasp_rank_values.keys(), values_callable=lambda x: [i.value for i in x]))
     infrasp3_author = Column(Unicode(64))
 
     infrasp4 = Column(Unicode(64))
-    infrasp4_rank = Column(types.Enum(values=list(infrasp_rank_values.keys()),
-                                      translations=infrasp_rank_values))
+    infrasp4_rank = Column(Enum(*infrasp_rank_values.keys(), values_callable=lambda x: [i.value for i in x]))
     infrasp4_author = Column(Unicode(64))
 
     genus_id = Column(Integer, ForeignKey('genus.id'), nullable=False)
@@ -320,7 +314,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     # relations
     synonyms = association_proxy('_synonyms', 'synonym')
-    _synonyms = relation('SpeciesSynonym',
+    _synonyms = relationship('SpeciesSynonym',
                          primaryjoin='Species.id==SpeciesSynonym.species_id',
                          cascade='all, delete-orphan', uselist=True,
                          backref='species')
@@ -328,27 +322,27 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus
     # get deleted if this genus gets deleted
-    _syn = relation('SpeciesSynonym',
+    _syn = relationship('SpeciesSynonym',
                     primaryjoin='Species.id==SpeciesSynonym.synonym_id',
                     cascade='all, delete-orphan', uselist=True)
 
     ## VernacularName.species gets defined here too.
-    vernacular_names = relation('VernacularName', cascade='all, delete-orphan',
+    vernacular_names = relationship('VernacularName', cascade='all, delete-orphan',
                                 collection_class=VNList,
                                 backref=backref('species', uselist=False))
-    _default_vernacular_name = relation('DefaultVernacularName', uselist=False,
+    _default_vernacular_name = relationship('DefaultVernacularName', uselist=False,
                                         cascade='all, delete-orphan',
                                         backref=backref('species',
                                                         uselist=False))
-    distribution = relation('SpeciesDistribution',
+    distribution = relationship('SpeciesDistribution',
                             cascade='all, delete-orphan',
                             backref=backref('species', uselist=False))
 
     habit_id = Column(Integer, ForeignKey('habit.id'), default=None)
-    habit = relation('Habit', uselist=False, backref='species')
+    habit = relationship('Habit', uselist=False, backref='species')
 
     flower_color_id = Column(Integer, ForeignKey('color.id'), default=None)
-    flower_color = relation('Color', uselist=False, backref='species')
+    flower_color = relationship('Color', uselist=False, backref='species')
 
     #hardiness_zone = Column(Unicode(4))
 
@@ -390,20 +384,20 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             dist = ['%s' % d for d in self.distribution]
             return str(', ').join(sorted(dist))
 
-    def markup(self, authors=False, genus=True):
+    def markup(self, authors=False, genus=True, family=False):
         '''returns this object as a string with markup
 
         :param authors: whether the authorship should be included
         :param genus: whether the genus name should be included
-
+        :param family: whether the family name should be included
         '''
-        return self.str(authors, markup=True, genus=genus)
+        return self.str(authors, markup=True, genus=genus, family=family)
 
     # in PlantPlugins.init() we set this to 'x' for win32
     hybrid_char = '×'
 
     def str(self, authors=False, markup=False, remove_zws=False, genus=True,
-            qualification=None):
+            qualification=None, family=False):
         '''
         returns a string for species
 
@@ -423,6 +417,12 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             genus = str(self.genus)
         else:
             genus = ''
+        
+        if family:
+            family = str(self.genus.family)
+        else:
+            family = ''
+
         if self.epithet and not remove_zws:
             epithet = '\u200b' + self.epithet  # prepend with zero_width_space
         else:
@@ -512,8 +512,10 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         s = utils.utf8(' '.join(i for i in parts if i))
         if self.hybrid:
             s = s.replace('%s ' % self.hybrid_char, self.hybrid_char)
+        if remove_zws:
+            s = s.replace('\u200b', '')
         return s
-
+           
     @property
     def accepted(self):
         'Name that should be used if name of self should be rejected'
@@ -553,7 +555,6 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     def has_accessions(self):
         '''true if species is linked to at least one accession
         '''
-
         return False
 
     infrasp_attr = {1: {'rank': 'infrasp1_rank',
@@ -577,25 +578,14 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             getattr(self, self.infrasp_attr[level]['epithet']), \
             getattr(self, self.infrasp_attr[level]['author'])
 
-    def set_infrasp(self, level, rank, epithet, author=None):
-        """
-        level should be 1-4
-        """
-        setattr(self, self.infrasp_attr[level]['rank'], rank)
-        setattr(self, self.infrasp_attr[level]['epithet'], epithet)
-        setattr(self, self.infrasp_attr[level]['author'], author)
-
     def as_dict(self, recurse=True):
-        result = dict((col, getattr(self, col))
-                      for col in list(self.__table__.columns.keys())
-                      if col not in ['id']
-                      and col[0] != '_'
-                      and getattr(self, col) is not None
-                      and not col.endswith('_id'))
-        result['object'] = 'taxon'
-        result['rank'] = 'species'
-        result['ht-rank'] = 'genus'
-        result['ht-epithet'] = self.genus.epithet
+        result = super().as_dict(recurse=False)
+        result.update({
+            'object': 'taxon',
+            'rank': 'species',
+            'ht-rank': 'genus',
+            'ht-epithet': self.genus.epithet
+        })
         if recurse and self.accepted is not None:
             result['accepted'] = self.accepted.as_dict(recurse=False)
         return result
@@ -606,10 +596,9 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     @classmethod
     def retrieve(cls, session, keys):
-        from .genus import Genus
         try:
-            return session.query(cls).filter(
-                cls.epithet == keys['epithet']).join(Genus).filter(
+            return session.query(cls).join(cls.genus).filter(
+                cls.epithet == keys['epithet'],
                 Genus.epithet == keys['ht-epithet']).one()
         except:
             return None
@@ -618,35 +607,42 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     def compute_serializable_fields(cls, session, keys):
         from .genus import Genus
         result = {'genus': None}
-        ## retrieve genus object
+        # Retrieve genus object based on the 'ht-epithet' key
         specifies_family = keys.get('familia')
         result['genus'] = Genus.retrieve_or_create(
-            session, {'epithet': keys['ht-epithet'],
-                      'ht-epithet': specifies_family},
+            session, {'epithet': keys['ht-epithet'], 'ht-epithet': specifies_family},
             create=(specifies_family is not None))
         if result['genus'] is None:
             raise error.NoResultException()
+        # Add 'familia' key to result if it exists in the 'keys' dictionary
+        if specifies_family:
+            result['familia'] = specifies_family
         return result
 
     def top_level_count(self):
         plants = [p for a in self.accessions for p in a.plants]
+        # Use a set instead of a list to avoid duplicates
+        genus_ids = set([self.genus.id])
+        family_ids = set([self.genus.family.id])
+        location_ids = set(p.location.id for p in plants)
+        source_detail_ids = set([a.source.source_detail.id
+                                 for a in self.accessions
+                                 if a.source and a.source.source_detail])
         return {(1, 'Species'): 1,
-                (2, 'Genera'): set([self.genus.id]),
-                (3, 'Families'): set([self.genus.family.id]),
+                (2, 'Genera'): len(genus_ids),
+                (3, 'Families'): len(family_ids),
                 (4, 'Accessions'): len(self.accessions),
                 (5, 'Plantings'): len(plants),
                 (6, 'Living plants'): sum(p.quantity for p in plants),
-                (7, 'Locations'): set(p.location.id for p in plants),
-                (8, 'Sources'): set([a.source.source_detail.id
-                                     for a in self.accessions
-                                     if a.source and a.source.source_detail])}
-
+                (7, 'Locations'): len(location_ids),
+                (8, 'Sources'): len(source_detail_ids)}
 
 def as_dict(self):
     result = db.Serializable.as_dict(self)
     result['species'] = self.species.str(self.species, remove_zws=True)
     return result
 
+@classmethod
 def compute_serializable_fields(cls, session, keys):
     logger.debug('compute_serializable_fields(session, %s)' % keys)
     result = {}
@@ -657,6 +653,7 @@ def compute_serializable_fields(cls, session, keys):
         session, sp_dict, create=False)
     return result
 
+@classmethod
 def retrieve(cls, session, keys):
     from .genus import Genus
     genus, epithet = keys['species'].split(' ', 1)
@@ -668,8 +665,14 @@ def retrieve(cls, session, keys):
     except:
         return None
 
-SpeciesNote = db.make_note_class('Species', compute_serializable_fields, as_dict, retrieve)
+# updated relation method
+def relations(self):
+    result = {}
+    if self.species:
+        result['species'] = self.species.as_dict()
+    return result
 
+SpeciesNote = db.make_note_class('Species', compute_serializable_fields, as_dict, retrieve)
 
 class SpeciesSynonym(db.Base):
     """
@@ -677,30 +680,29 @@ class SpeciesSynonym(db.Base):
     """
     __tablename__ = 'species_synonym'
 
-    # columns
-    species_id = Column(Integer, ForeignKey('species.id'),
-                        nullable=False)
-    synonym_id = Column(Integer, ForeignKey('species.id'),
-                        nullable=False, unique=True)
+ # columns
+species_id = Column(Integer, ForeignKey('species.id'),
+                    nullable=False)
+synonym_id = Column(Integer, ForeignKey('species.id'),
+                    nullable=False, unique=True)
 
-    # relations
-    synonym = relation('Species', uselist=False,
-                       primaryjoin='SpeciesSynonym.synonym_id==Species.id')
+# relations
+synonym = relationship('Species', uselist=False,
+                   primaryjoin='SpeciesSynonym.synonym_id==Species.id')
 
-    def __init__(self, synonym=None, **kwargs):
-        # it is necessary that the first argument here be synonym for
-        # the Species.synonyms association_proxy to work
-        self.synonym = synonym
-        super().__init__(**kwargs)
+def __init__(self, synonym=None, **kwargs):
+    # it is necessary that the first argument here be synonym for
+    # the Species.synonyms association_proxy to work
+    self.synonym = synonym
+    super().__init__(**kwargs)
 
-    def __str__(self):
-        return str(self.synonym)
+def __str__(self):
+    return str(self.synonym)
 
 
 class VernacularName(db.Base, db.Serializable):
     """
     :Table name: vernacular_name
-
     :Columns:
         *name*:
             the vernacular name
@@ -774,7 +776,6 @@ class VernacularName(db.Base, db.Serializable):
     def pictures(self):
         return self.species.pictures
 
-
 class DefaultVernacularName(db.Base):
     """
     :Table name: default_vernacular_name
@@ -806,18 +807,22 @@ class DefaultVernacularName(db.Base):
     vernacular_name_id = Column(Integer, ForeignKey('vernacular_name.id'),
                                 nullable=False)
 
-    # relations
-    vernacular_name = relation(VernacularName, uselist=False)
+    # relationships
+    vernacular_name = relationship(VernacularName, uselist=False)
 
     def __str__(self):
         return str(self.vernacular_name)
-
 
 class SpeciesDistribution(db.Base):
     """
     :Table name: species_distribution
 
     :Columns:
+        *geographic_area_id*:
+            foreign key to geographic_area.id, nullable=False
+
+        *species_id*:
+            foreign key to species.id, nullable=False
 
     :Properties:
 
@@ -829,15 +834,18 @@ class SpeciesDistribution(db.Base):
     geographic_area_id = Column(Integer, ForeignKey('geographic_area.id'), nullable=False)
     species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
 
+    # relations
+    geographic_area = relationship('GeographicArea', backref='species_distributions')
+    species = relationship('Species', backref='distributions')
+
     def __str__(self):
         return str(self.geographic_area)
 
 # late bindings
-SpeciesDistribution.geographic_area = relation(
+SpeciesDistribution.geographic_area = relationship(
     'GeographicArea',
     primaryjoin='SpeciesDistribution.geographic_area_id==GeographicArea.id',
     uselist=False)
-
 
 class Habit(db.Base):
     __tablename__ = 'habit'
