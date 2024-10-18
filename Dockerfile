@@ -1,10 +1,12 @@
+# syntax=docker/dockerfile:1.2
+
 # Dockerfile
 
 #
 #
 #  Configuration is stored in $HOME/.bauble/config
 #
-#  Build: docker buildx build --load -t ghini-desktop .
+#  Build: docker buildx build --ssh default --load -t ghini-desktop .
 #  Run:   docker run --rm -it ghini-desktop
 # docker run --rm -it   -e USER=$(id -un)   -e DISPLAY=$DISPLAY   -e DB_HOST=postgres.wysechoice.net   -e DB_PORT=5432   -e DB_NAME=ghini_test3   -e DB_USER=ghini   -e DB_SSLMODE=prefer   -e KRB5_CONFIG=/krb5/krb5.conf   -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab   -v /tmp/.X11-unix:/tmp/.X11-unix   -v $HOME/krb5:/krb5:ro   -v $HOME:$HOME -v$HOME/.bauble:$HOME/.bauble ghini-desktop bash -c "ghini"
 #
@@ -17,7 +19,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Set up environment variables
 ENV HOME=/root
-ENV LINE=ghini-3.1
+ENV LINE=ghini-3.1-dev-cjw
 ENV VIRTUAL_ENV=/root/.virtualenvs/$LINE
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV USER=root
@@ -45,15 +47,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gir1.2-gtkchamplain-0.12 \
     krb5-user \
     libkrb5-dev \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone ghini.desktop repository
-RUN mkdir -p $HOME/Local/github/Ghini \
+# Configure SSH for GitLab
+RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
+
+# Add GitLab to known_hosts to prevent host key verification prompts
+RUN ssh-keyscan gitlab.com >> /root/.ssh/known_hosts
+
+# Clone ghini-desktop repository using SSH mount
+RUN --mount=type=ssh mkdir -p $HOME/Local/github/Ghini \
     && cd $HOME/Local/github/Ghini \
-    && git clone -b $LINE https://github.com/Ghini/ghini.desktop.git
+    && git clone -b $LINE git@gitlab.com:cwyse/ghini-desktop.git
 
 # Set the working directory to the cloned repository
-WORKDIR $HOME/Local/github/Ghini/ghini.desktop
+WORKDIR $HOME/Local/github/Ghini/ghini-desktop
 
 # Create and activate virtual environment, install dependencies
 RUN python3 -m venv $VIRTUAL_ENV \
@@ -73,7 +82,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Set up environment variables
 ENV HOME=/root
-ENV LINE=ghini-3.1
+ENV LINE=ghini-3.1-dev-cjw
 ENV VIRTUAL_ENV=/root/.virtualenvs/$LINE
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV USER=root
@@ -101,7 +110,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=build $VIRTUAL_ENV $VIRTUAL_ENV
 
 # Copy application code from build stage
-COPY --from=build /root/Local/github/Ghini/ghini.desktop /app
+COPY --from=build /root/Local/github/Ghini/ghini-desktop /app
 
 # Set the working directory
 WORKDIR /app
