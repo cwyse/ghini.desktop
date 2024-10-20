@@ -8,7 +8,7 @@
 #
 #  Build: docker buildx build --ssh default --load -t ghini-desktop .
 #  Run:   docker run --rm -it ghini-desktop
-# docker run --rm -it   -e USER=$(id -un)   -e DISPLAY=$DISPLAY   -e DB_HOST=postgres.wysechoice.net   -e DB_PORT=5432   -e DB_NAME=ghini_test3   -e DB_USER=ghini   -e DB_SSLMODE=prefer   -e KRB5_CONFIG=/krb5/krb5.conf   -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab   -v /tmp/.X11-unix:/tmp/.X11-unix   -v $HOME/krb5:/krb5:ro   -v $HOME:$HOME -v$HOME/.bauble:$HOME/.bauble ghini-desktop bash -c "ghini"
+# docker run --rm -it   -e USER=$(id -un)   -e DISPLAY=$DISPLAY   -e DB_HOST=postgres.wysechoice.net   -e DB_PORT=5432   -e DB_NAME=ghini_test3   -e DB_USER=ghini   -e DB_SSLMODE=prefer   -e KRB5_CONFIG=/krb5/krb5.conf   -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab  -e NO_AT_BRIDGE=1  -v /tmp/.X11-unix:/tmp/.X11-unix   -v $HOME/krb5:/krb5:ro   -v $HOME:$HOME -v $HOME/.bauble:$HOME/.bauble -v /usr/lib/dri:/usr/lib/dri --device /dev/dri:/dev/dri ghini-desktop bash -c "ghini"
 #
 
 # Stage 1: Build Stage
@@ -48,6 +48,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     krb5-user \
     libkrb5-dev \
     openssh-client \
+    libcanberra-gtk-module \
+    libcanberra-gtk3-module \
+    gdk-pixbuf2.0-0 \
+    libgdk-pixbuf2.0-dev \
+    libglib2.0-dev \
+    libgtk2.0-dev \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure SSH for GitLab
@@ -86,6 +94,7 @@ ENV LINE=ghini-3.1-dev-cjw
 ENV VIRTUAL_ENV=/root/.virtualenvs/$LINE
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV USER=root
+ENV NO_AT_BRIDGE=1
 
 # Install necessary system packages for runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -104,7 +113,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     krb5-user \
     libkrb5-3 \
     postgresql-client \
+    libcanberra-gtk-module \
+    libcanberra-gtk3-module \
+    gdk-pixbuf2.0-0 \
+    libgdk-pixbuf2.0-dev \
+    libglib2.0-dev \
+    libgtk2.0-dev \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
+    mesa-utils \
+    at-spi2-core \
+    libgdk-pixbuf2.0-bin \
+    libgdk-pixbuf2.0-common \
+    shared-mime-info \
+    librsvg2-common \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Update gdk-pixbuf loaders cache
+RUN /usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders --update-cache
 
 # Copy virtual environment from build stage
 COPY --from=build $VIRTUAL_ENV $VIRTUAL_ENV
