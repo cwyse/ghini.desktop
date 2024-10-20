@@ -50,6 +50,17 @@ import bauble.utils as utils
 PADDING=6
 import math
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
+
 class MapViewer(Gtk.Dialog):
 
     def __init__(self, title="", parent=None, *args, **kwargs):
@@ -318,7 +329,7 @@ class MapViewer(Gtk.Dialog):
         plant_marker.set_size(5)
         self.plant_layer.add_marker(plant_marker)
         def on_select_this(widget, ev):
-            self.plant_highlighted.set_text(text)
+            safe_set_text(self.plant_highlighted, text)
             self.plant_highlighted.set_location(lat, lon)
             self.plant_layer.set_child_above_sibling(self.plant_highlighted)
         plant_marker.connect("button-release-event", on_select_this)

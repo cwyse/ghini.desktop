@@ -61,6 +61,17 @@ from bauble import utils
 from bauble import editor
 from bauble import pictures_view
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
+
 # use different formatting template for the result view depending on the
 # platform
 _mainstr_tmpl = '<b>%s</b>'
@@ -226,13 +237,14 @@ class PropertiesExpander(InfoExpander):
         """"
         Update the widget in the expander.
         """
-        self.id_data.set_text(str(row.id))
-        self.type_data.set_text(str(type(row).__name__))
-        self.created_data.set_text(
+
+        safe_set_text(self.id_data, str(row.id))
+        safe_set_text(self.type_data, str(type(row).__name__))
+        safe_set_text(self.created_data, 
             row._created
             and row._created.strftime('%Y-%m-%d %H:%m:%S')
             or '')
-        self.updated_data.set_text(
+        safe_set_text(self.updated_data, 
             row._last_updated
             and row._last_updated.strftime('%Y-%m-%d %H:%m:%S')
             or '')
@@ -709,7 +721,7 @@ class SearchView(pluginmgr.View):
             # construct the query
             query = "%s where notes[category='%s'].note='%s'" % (domain, row[2], row[3])
             # fire it
-            bauble.gui.widgets.main_comboentry.child.set_text(query)
+            safe_set_text(bauble.gui.widgets.main_comboentry.child, query)
             bauble.gui.widgets.go_button.emit("clicked")            
         except Exception as e:
             logger.debug("%s(%s)" % (type(e), e))
@@ -1440,7 +1452,7 @@ class HistoryView(pluginmgr.View):
         mapper_search = search.get_strategy('MapperSearch')
         if table in mapper_search._domains:
             query = '%s where id=%s' % (table, obj_id)
-            bauble.gui.widgets.main_comboentry.get_child().set_text(query)
+            safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), query)
             bauble.gui.widgets.go_button.emit("clicked")
 
     def update(self):

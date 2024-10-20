@@ -79,6 +79,16 @@ Familia, SpeciesDistribution,
 from threading import Thread
 from gi.repository import GObject
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 class LabelUpdater(Thread):
     def __init__(self, widget, query, *args, **kwargs):
@@ -89,7 +99,7 @@ class LabelUpdater(Thread):
     def run(self):
         ssn = db.Session()
         value, = ssn.execute(self.query).first()
-        GObject.idle_add(utils.none, self.widget.set_text, str(value))
+        GObject.idle_add(utils.none, self.widget.set_text, str(value) if str(value) is not None else '')
         ssn.close()
 
 
@@ -194,7 +204,7 @@ class SplashInfoBox(pluginmgr.View):
         statusbar = bauble.gui.widgets.statusbar
         sbcontext_id = statusbar.get_context_id('searchview.nresults')
         statusbar.pop(sbcontext_id)
-        bauble.gui.widgets.main_comboentry.get_child().set_text('')
+        safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), '')
 
         ssn = db.Session()
         q = ssn.query(bauble.meta.BaubleMeta)
@@ -307,7 +317,7 @@ class SplashInfoBox(pluginmgr.View):
     def on_sqb_clicked(self, btn_no, *args):
         try:
             query = self.name_tooltip_query[btn_no][2]
-            bauble.gui.widgets.main_comboentry.get_child().set_text(query)
+            safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), query)
             bauble.gui.widgets.go_button.emit("clicked")
         except:
             pass

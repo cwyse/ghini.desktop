@@ -66,6 +66,16 @@ config_list_pref = 'report.options'
 default_config_pref = 'report.xsl'
 formatter_settings_expanded_pref = 'report.settings.expanded'
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 def get_plant_query(obj, session):
     """
@@ -570,7 +580,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             else:
                 self.options.setdefault(fname, fdefault)
                 entry = Gtk.Entry()
-                entry.set_text(self.options[fname])
+                safe_set_text(entry, self.options[fname])
                 entry.connect('changed', self.set_option, fname)
             entry.set_tooltip_text(ftooltip)
             # entry updates the corresponding item in report.options
@@ -589,7 +599,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             if isinstance(value, bool):
                 entry.set_active(value)
             else:
-                entry.set_text(value)
+                safe_set_text(entry, value)
 
     def set_option(self, widget, fname):
         self.options[fname] = widget.get_text()

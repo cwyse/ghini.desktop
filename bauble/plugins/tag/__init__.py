@@ -56,6 +56,16 @@ from bauble.view import InfoBox, InfoExpander, SearchView, Action
 from bauble.editor import (
     GenericEditorView, GenericEditorPresenter)
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 class TagsMenuManager:
     def __init__(self):
@@ -329,7 +339,7 @@ class TagItemGUI(editor.GenericEditorView):
         super().__init__(filename)
         self.item_data_label = self.widgets.items_data
         self.values = values
-        self.item_data_label.set_text(', '.join([str(s) for s in self.values]))
+        safe_set_text(self.item_data_label, ', '.join([str(s) for s in self.values]))
         self.connect(self.widgets.new_button,
                      'clicked', self.on_new_button_clicked)
 
@@ -795,7 +805,7 @@ class GeneralTagExpander(InfoExpander):
             obj_ids = [str(o.id) for o in objects if isinstance(o, c)]
             lab = Gtk.Label()
             lab.set_alignment(0, .5)
-            lab.set_text(c.__name__)
+            safe_set_text(lab, c.__name__)
             table.attach(lab, 0, 1, row_no, row_no + 1)
 
             eb = Gtk.EventBox()
@@ -803,7 +813,7 @@ class GeneralTagExpander(InfoExpander):
             leb.set_alignment(0, .5)
             eb.add(leb)
             table.attach(eb, 1, 2, row_no, row_no + 1)
-            leb.set_text(" %s " % len(obj_ids))
+            safe_set_text(leb, " %s " % len(obj_ids))
             utils.make_label_clickable(
                 leb, on_label_clicked,
                 '%s where id in %s' % (c.__name__.lower(), ', '.join(obj_ids)))

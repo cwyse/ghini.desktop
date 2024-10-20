@@ -47,6 +47,16 @@ import bauble.btypes as types
 import bauble.view as view
 import bauble.paths as paths
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 def collection_edit_callback(coll):
     from bauble.plugins.garden.accession import edit_callback
@@ -303,7 +313,7 @@ class CollectionPresenter(editor.ChildPresenter):
             value = model[iter][0]
             validator = editor.UnicodeOrNoneValidator()
             self.set_model_attr('gps_data', value, validator)
-            completion.get_entry().set_text(value)
+            safe_set_text(completion.get_entry(), value)
         completion = self.view.widgets.datum_entry.get_completion()
         self.view.connect(completion, 'match-selected', on_match)
         self.assign_simple_handler('datum_entry', 'gps_datum',
@@ -393,25 +403,25 @@ class CollectionPresenter(editor.ChildPresenter):
         latitude = self.model.latitude
         if latitude is not None:
             dms_string = '%s %s\u00B0%s\'%s"' % latitude_to_dms(latitude)
-            self.view.widgets.lat_dms_label.set_text(dms_string)
+            safe_set_text(self.view.widgets.lat_dms_label, dms_string)
             if float(latitude) < 0:
                 self.view.widgets.south_radio.set_active(True)
             else:
                 self.view.widgets.north_radio.set_active(True)
         else:
-            self.view.widgets.lat_dms_label.set_text('')
+            safe_set_text(self.view.widgets.lat_dms_label, '')
             self.view.widgets.north_radio.set_active(True)
 
         longitude = self.model.longitude
         if longitude is not None:
             dms_string = '%s %s\u00B0%s\'%s"' % longitude_to_dms(longitude)
-            self.view.widgets.lon_dms_label.set_text(dms_string)
+            safe_set_text(self.view.widgets.lon_dms_label, dms_string)
             if float(longitude) < 0:
                 self.view.widgets.west_radio.set_active(True)
             else:
                 self.view.widgets.east_radio.set_active(True)
         else:
-            self.view.widgets.lon_dms_label.set_text('')
+            safe_set_text(self.view.widgets.lon_dms_label, '')
             self.view.widgets.east_radio.set_active(True)
 
         if self.model.elevation is None:
@@ -450,9 +460,9 @@ class CollectionPresenter(editor.ChildPresenter):
             return
 
         if direction == 'W' and lon_text[0] != '-':
-            entry.set_text('-%s' % lon_text)
+            safe_set_text(entry, '-%s' % lon_text)
         elif direction == 'E' and lon_text[0] == '-':
-            entry.set_text(lon_text[1:])
+            safe_set_text(entry, lon_text[1:])
 
     def on_north_south_radio_toggled(self, button, data=None):
         direction = self._get_lat_direction()
@@ -470,9 +480,9 @@ class CollectionPresenter(editor.ChildPresenter):
             return
 
         if direction == 'S' and lat_text[0] != '-':
-            entry.set_text('-%s' % lat_text)
+            safe_set_text(entry, '-%s' % lat_text)
         elif direction == 'N' and lat_text[0] == '-':
-            entry.set_text(lat_text[1:])
+            safe_set_text(entry, lat_text[1:])
 
     @staticmethod
     def _parse_lat_lon(direction, text):
@@ -549,7 +559,7 @@ class CollectionPresenter(editor.ChildPresenter):
             self.remove_problem(self.PROBLEM_BAD_LATITUDE,
                                 self.view.widgets.lat_entry)
 
-        self.view.widgets.lat_dms_label.set_text(dms_string)
+        safe_set_text(self.view.widgets.lat_dms_label, dms_string)
         if text is None or text.strip() == '':
             self.set_model_attr('latitude', None)
         else:
@@ -582,7 +592,7 @@ class CollectionPresenter(editor.ChildPresenter):
             self.remove_problem(self.PROBLEM_BAD_LONGITUDE,
                                 self.view.widgets.lon_entry)
 
-        self.view.widgets.lon_dms_label.set_text(dms_string)
+        safe_set_text(self.view.widgets.lon_dms_label, dms_string)
         # self.set_model_attr('longitude', utils.utf8(longitude))
         if text is None or text.strip() == '':
             self.set_model_attr('longitude', None)
