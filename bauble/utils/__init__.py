@@ -864,14 +864,13 @@ def setup_date_button(view, entry, button, date_func=None):
 def to_unicode(obj, encoding='utf-8'):
     if isinstance(obj, bytes):
         try:
-            obj = obj.decode(encoding)
+            return obj.decode(encoding)
         except UnicodeDecodeError:
-            obj = obj.decode(encoding, errors='replace')
-    elif isinstance(obj, Contact):
-        obj = str(obj) if obj else ""
+            return obj.decode(encoding, errors='replace')
+    elif obj is None:
+        return ""
     else:
-        obj = str(obj) if obj else ""
-    return obj
+        return str(obj)
 
 def utf8(obj):
     """
