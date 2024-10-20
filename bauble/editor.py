@@ -1548,7 +1548,15 @@ class GenericEditorPresenter(object):
         logger.debug('editor.set_model_attr(%s, %s)' % (attr, value))
         if validator:
             try:
-                logger.debug("validating %s(%s) for %s using %s" % (type(value).__name__, value, attr, validator.wrapped))
+                # Safely retrieve the 'wrapped' attribute if it exists
+                wrapped_validator = getattr(validator, 'wrapped', validator)
+
+                if wrapped_validator:
+                    log_validator = wrapped_validator
+                else:
+                    log_validator = validator
+
+                logger.debug("validating %s(%s) for %s using %s" % (type(value).__name__, value, attr, log_validator))
                 value = validator.to_python(value)
                 self.remove_problem('BAD_VALUE_%s' % attr)
             except ValidatorError as e:
