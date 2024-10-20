@@ -1176,7 +1176,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             filename = os.path.join(paths.lib_dir(), "plugins", "garden",
                                     "acc_editor.glade")
             xml = etree.parse(filename)
-            el = xml.find("//object[@id='ver_box']")
+            el = xml.find(".//object[@id='ver_box']")
             builder = Gtk.Builder()
             s = '<interface>%s</interface>' % etree.tostring(el)
             if sys.platform == 'win32':
