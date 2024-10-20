@@ -1872,7 +1872,7 @@ class NoteBox(Gtk.HBox):
         # expander will use
         filename = os.path.join(paths.lib_dir(), self.glade_ui)
         xml = etree.parse(filename)
-        el = xml.find("//object[@id='notes_box']")
+        el = xml.find(".//object[@id='notes_box']")
         builder = Gtk.Builder()
         s = '<interface>%s</interface>' % etree.tostring(el)
         if sys.platform == 'win32':
