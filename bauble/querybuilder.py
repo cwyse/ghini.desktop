@@ -35,6 +35,17 @@ from .querybuilderparser import BuiltQuery
 from bauble.editor import (
     GenericEditorView, GenericEditorPresenter)
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
+
 
 def parse_typed_value(value):
     """parse the input string and return the corresponding typed value
@@ -466,7 +477,7 @@ class QueryBuilder(GenericEditorPresenter):
             prop = mapper.get_property(steps[-1])
             row.on_schema_menu_activated(None, clause.field, prop)
             if isinstance(row.value_widget, Gtk.Entry):
-                row.value_widget.set_text(clause.value)
+                safe_set_text(row.value_widget, clause.value)
             elif isinstance(row.value_widget, Gtk.ComboBox):
                 for item in row.value_widget.props.model:
                     if item[0] == clause.value:

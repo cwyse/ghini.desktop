@@ -65,6 +65,16 @@ import bauble.view as view
 # to use the accepted name and show the author of the genus then so
 # they aren't using the wrong version of the Genus, e.g. Cananga
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 def edit_callback(genera):
     genus = genera[0]
@@ -534,8 +544,7 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
                     model = Gtk.ListStore(object)
                     model.append([syn.family])
                     completion.set_model(model)
-                    self.view.widgets.gen_family_entry.\
-                        set_text(utils.utf8(syn.family))
+                    safe_set_text(self.view.widgets.gen_family_entry, utils.utf8(syn.family))
                     # the family value should be set properly when the
                     # text is set on the entry but it doesn't hurt to
                     # duplicate it here

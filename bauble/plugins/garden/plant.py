@@ -67,6 +67,16 @@ import bauble.view as view
 plant_delimiter_key = 'plant_delimiter'
 default_plant_delimiter = '.'
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 def edit_callback(plants):
     e = PlantEditor(model=plants[0])
@@ -1338,7 +1348,7 @@ class PropagationExpander(InfoExpander):
                 eventbox.add(accession_lbl)
                 v2.pack_start(eventbox, True, True, 0)
                 accession_lbl.set_alignment(0.0, 0.0)
-                accession_lbl.set_text(acc.code)
+                safe_set_text(accession_lbl, acc.code)
 
                 def on_clicked(widget, event, obj):
                     select_in_search_results(obj)
@@ -1348,7 +1358,7 @@ class PropagationExpander(InfoExpander):
             label = Gtk.Label()
             v2.pack_start(label, True, True, 0)
 
-            label.set_text(prop.get_summary(partial=2))
+            safe_set_text(label, prop.get_summary(partial=2))
             label.props.wrap = True
             label.set_alignment(0.0, 0.0)
             label.connect("size-allocate", label_size_allocate)

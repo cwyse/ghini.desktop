@@ -106,6 +106,16 @@ import bauble.utils as utils
 #         trans.commit()
 #     return conn
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 def get_users():
     """Return the list of user names.
@@ -634,8 +644,8 @@ class UsersEditor(editor.GenericEditorView):
         self.connect(dialog,  'delete-event', _on_something)
         self.connect(dialog, 'close', _on_something)
         self.connect(dialog, 'response', _on_something)
-        self.widgets.pwd_entry1.set_text('')
-        self.widgets.pwd_entry2.set_text('')
+        safe_set_text(self.widgets.pwd_entry1, '')
+        safe_set_text(self.widgets.pwd_entry2, '')
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             pwd1 = self.widgets.pwd_entry1.get_text()

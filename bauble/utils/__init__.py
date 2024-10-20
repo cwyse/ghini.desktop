@@ -50,6 +50,16 @@ import bauble
 from bauble.error import check
 from bauble import paths
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 def read_in_chunks(file_object, chunk_size=1024):
     """read a chunk from a stream
@@ -175,13 +185,13 @@ class ImageLoader(threading.Thread):
                          (self.url, type(e).__name__, e))
             text = _('picture file %s not found.') % self.url
             label = Gtk.Label()
-            label.set_text(text)
+            safe_set_text(label, text)
             self.box.add(label)
         except Exception as e:
             logger.warning("picture %s caused Exception %s:%s" %
                            (self.url, type(e), e))
             label = Gtk.Label()
-            label.set_text("%s" % e)
+            safe_set_text(label, "%s" % e)
             self.box.add(label)
         self.box.show_all()
 
@@ -476,7 +486,7 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
         value = value.strftime(date_format)
 
     if isinstance(widget, Gtk.Label):
-        #widget.set_text(str(value))
+        # safe_set_text(widget, str(value))
         # FIXME: some of the enum values that have <not set> as a values
         # will give errors here, but we can't escape the string because
         # if someone does pass something that needs to be marked up
@@ -487,13 +497,13 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
         if markup:
             widget.set_markup(utf8(value) or '')
         else:
-            widget.set_text(utf8(value) or '')
+            safe_set_text(widget, utf8(value) or '')
     elif isinstance(widget, Gtk.TextView):
-        widget.get_buffer().set_text("%s" % value)
+        safe_set_text(widget.get_buffer(), "%s" % value)
     elif isinstance(widget, Gtk.TextBuffer):
-        widget.set_text("%s" % value)
+        safe_set_text(widget, "%s" % value)
     elif isinstance(widget, Gtk.Entry):
-        widget.set_text(utf8(value) or "")
+        safe_set_text(widget, utf8(value) or "")
     elif isinstance(widget, Gtk.ComboBox):
         treeiter = None
         if not widget.get_model():
@@ -701,7 +711,7 @@ def create_message_details_dialog(msg, details, type=Gtk.MessageType.INFO,
     text_view.set_editable(False)
     text_view.set_wrap_mode(Gtk.WrapMode.WORD)
     tb = Gtk.TextBuffer()
-    tb.set_text((details or '')[:4096])
+    safe_set_text(tb, (details or '')[:4096])
     text_view.set_buffer(tb)
     sw = Gtk.ScrolledWindow()
     sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -855,7 +865,7 @@ def setup_date_button(view, entry, button, date_func=None):
             s = date_func()
         else:
             s = today_str()
-        entry.set_text(s)
+        safe_set_text(entry, s)
     if view and hasattr(view, 'connect'):
         view.connect(button, 'clicked', on_clicked)
     else:
@@ -1295,7 +1305,7 @@ class MessageBox(GenericMessageBox):
         self.buffer = Gtk.TextBuffer()
         self.label.set_buffer(self.buffer)
         if msg:
-            self.buffer.set_text(msg)
+            safe_set_text(self.buffer, msg)
         self.vbox.pack_start(self.label, True, True, 0)
 
         button_box = Gtk.VBox()
@@ -1347,7 +1357,7 @@ class MessageBox(GenericMessageBox):
         return self.buffer.text
 
     def _set_message(self, msg):
-        self.buffer.set_text(msg or '')
+        safe_set_text(self.buffer, msg or '')
 
     message = property(_get_message, _set_message)
 

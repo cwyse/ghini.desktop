@@ -49,6 +49,16 @@ from bauble.plugins.plants.species_model import (
     Species, SpeciesDistribution, VernacularName, SpeciesSynonym, Habit,
     infrasp_rank_values, compare_rank)
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 class SpeciesEditorPresenter(editor.GenericEditorPresenter):
 
@@ -702,7 +712,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
     def refresh_view(self):
         label = self.view.widgets.sp_dist_label
         s = ', '.join([str(d) for d in self.model.distribution])
-        label.set_text(s)
+        safe_set_text(label, s)
 
     def on_add_button_pressed(self, button, event):
         self.geo_menu.popup(None, None, None, event.button, event.time)
@@ -1020,7 +1030,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         tree_model.append([syn])
         self._selected = None
         entry = self.view.widgets.sp_syn_entry
-        entry.set_text('')
+        safe_set_text(entry, '')
         entry.set_position(-1)
         self.view.widgets.sp_syn_add_button.set_sensitive(False)
         self.view.widgets.sp_syn_add_button.set_sensitive(False)

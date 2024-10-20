@@ -57,6 +57,16 @@ from bauble.error import CheckConditionError
 
 # TODO: create a generic date entry that can take a mask for the date format
 # see the date entries for the accession and accession source presenters
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 
 class ValidatorError(Exception):
@@ -597,7 +607,7 @@ class GenericEditorView(object):
 
     def widget_set_text(self, widget, text):
         widget = self.__get_widget(widget)
-        widget.set_text(text)
+        safe_set_text(widget, text)
 
     def widget_get_text(self, widget):
         widget = self.__get_widget(widget)
@@ -1610,7 +1620,7 @@ class GenericEditorPresenter(object):
                 value = model[combo.get_active_iter()][0]
                 value = combo.get_model()[combo.get_active_iter()][0]
                 if isinstance(widget, Gtk.ComboBox) and isinstance(widget.get_child(), Gtk.Entry):
-                    widget.get_child().set_text(utils.utf8(value) or '')
+                    safe_set_text(widget.get_child(), utils.utf8(value) or '')
                 self.set_model_attr(model_attr, value, validator)
 
             def entry_changed(entry, data=None):
@@ -2104,15 +2114,15 @@ class PictureBox(NoteBox):
                              (basename, e))
                 label = _('picture file %s not found.') % basename
                 im = Gtk.Label()
-                im.set_text(label)
+                safe_set_text(im, label)
             except Exception as e:
                 logger.warning("can't commit changes: (%s) %s" % (type(e), e))
                 im = Gtk.Label()
-                im.set_text(e)
+                safe_set_text(im, e)
         else:
             # make button hold some text
             im = Gtk.Label()
-            im.set_text(_('Choose a file…'))
+            safe_set_text(im, _('Choose a file…'))
         im.show()
         self.widgets.picture_button.add(im)
         self.widgets.picture_button.show()

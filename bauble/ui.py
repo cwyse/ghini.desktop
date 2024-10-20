@@ -48,6 +48,16 @@ from bauble.view import SearchView
 from bauble.editor import (
     GenericEditorView, GenericEditorPresenter)
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 class DefaultView(pluginmgr.View):
     '''ghini's home screen
@@ -309,7 +319,7 @@ class GUI(object):
     history_size = property(_get_history_size)
 
     def send_command(self, command):
-        self.widgets.main_comboentry.get_child().set_text(command)
+        safe_set_text(self.widgets.main_comboentry.get_child(), command)
         self.widgets.go_button.emit("clicked")
 
     def on_main_entry_activate(self, widget, data=None):
@@ -323,7 +333,7 @@ class GUI(object):
     def on_prev_view_button_clicked(self, widget):
         '''
         '''
-        self.widgets.main_comboentry.get_child().set_text('')
+        safe_set_text(self.widgets.main_comboentry.get_child(), '')
         bauble.gui.set_view('previous')
 
     def on_go_button_clicked(self, widget):
@@ -361,7 +371,7 @@ class GUI(object):
         response = qb.start()
         if response == Gtk.ResponseType.OK:
             query = qb.get_query()
-            self.widgets.main_comboentry.get_child().set_text(query)
+            safe_set_text(self.widgets.main_comboentry.get_child(), query)
             self.widgets.go_button.emit("clicked")
         qb.cleanup()
 

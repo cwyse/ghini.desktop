@@ -39,6 +39,17 @@ from bauble.editor import (
     GenericEditorView, GenericEditorPresenter)
 from bauble import meta
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
+
 
 def get_ip():
     '''get the ip address relative to default route
@@ -294,7 +305,7 @@ class PocketServerPresenter(GenericEditorPresenter):
 
     def on_new_snapshot_button_clicked(self, *args):
         text = self.view.widgets.creating_snapshot_label.get_text()
-        self.view.widgets.last_snapshot_date_entry.set_text(text)
+        safe_set_text(self.view.widgets.last_snapshot_date_entry, text)
         self.view.widgets.new_snapshot_button.set_sensitive(False)
         from .exporttopocket import create_pocket, ExportToPocketThread
         create_pocket(self.pocket_fn)
@@ -324,7 +335,7 @@ class PocketServerPresenter(GenericEditorPresenter):
     def on_refresh_code_button_clicked(self, target, *args):
         self.model.code = get_code()
         entry = self.view.widgets.code_entry
-        entry.set_text(self.model.code)
+        safe_set_text(entry, self.model.code)
         
     def start_stop_server(self, target, *args):
         if target.get_active():

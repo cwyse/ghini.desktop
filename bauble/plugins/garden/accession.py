@@ -74,6 +74,16 @@ from bauble.utils import safe_int
 # info about the genus so we know exactly what plant is being selected
 # e.g. Malvaceae (sensu lato), Hibiscus (senso stricto)
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+    
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ''
+    gtk_widget.set_text(text)
 
 def longitude_to_dms(decimal):
     return decimal_to_dms(Decimal(decimal), 'long')
@@ -147,7 +157,7 @@ def generic_taxon_add_action(model, view, presenter, top_presenter,
         logger.debug('new taxon added from within AccessionEditor')
         # add the new taxon to the session and start using it
         presenter.session.add(committed)
-        taxon_entry.set_text("%s" % committed)
+        safe_set_text(taxon_entry, "%s" % committed)
         presenter.remove_problem(
             hash(Gtk.Buildable.get_name(taxon_entry)), None)
         setattr(model, 'species', committed)
@@ -1328,8 +1338,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
                 return
             # copy verification species to general tab
             if self.model.accession:
-                self.presenter().parent_ref().view.widgets.acc_species_entry.\
-                    set_text(utils.utf8(self.model.species))
+                safe_set_text(self.presenter().parent_ref().view.widgets.acc_species_entry, utils.utf8(self.model.species))
                 self.presenter()._dirty = True
                 self.presenter().parent_ref().refresh_sensitivity()
 
@@ -1895,8 +1904,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                     model = Gtk.ListStore(object)
                     model.append([syn.species])
                     completion.set_model(model)
-                    self.view.widgets.acc_species_entry.\
-                        set_text(utils.utf8(syn.species))
+                    safe_set_text(self.view.widgets.acc_species_entry, utils.utf8(syn.species))
                     set_model(syn.species)
             box = self.view.add_message_box(utils.MESSAGE_BOX_YESNO)
             box.message = msg
