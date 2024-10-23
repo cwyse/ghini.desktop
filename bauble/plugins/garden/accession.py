@@ -74,6 +74,16 @@ from bauble.utils import safe_int
 # info about the genus so we know exactly what plant is being selected
 # e.g. Malvaceae (sensu lato), Hibiscus (senso stricto)
 
+def get_species_instance(session, epithet, genus_epithet=None, create=False):
+    """
+    Retrieves a Species instance based on epithet and optional genus epithet.
+    Returns a Species instance or None.
+    """
+    keys = {'epithet': epithet}
+    if genus_epithet:
+        keys['ht-epithet'] = genus_epithet  # Application-level attribute
+    return Species.retrieve_or_create(session=session, keys=keys, create=create)
+
 def safe_set_text(gtk_widget, text):
     """
     Sets the text of a Gtk widget replacing None with an empty string.
@@ -1870,21 +1880,43 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                          ilike(Genus.genus, '%s%%' % genus)))).\
                 order_by(Species.sp)
 
-        def on_select(value):
-            logger.debug('on select: %s' % value)
+        def on_select(self, value):
+            logger.debug('on select: %s', value)
             if isinstance(value, str):
-                value = Species.retrieve(
-                    self.session, {'species': value})
+                try:
+                    genus_name, epithet = value.split(' ', 1)
+                except ValueError:
+                    logger.error(f"Invalid taxon format: '{value}'. Expected 'Genus epithet'.")
+                    utils.message_dialog(_("Invalid species format. Please enter in 'Genus epithet' format."))
+                    self.set_model_attr('species', None)
+                    return
+                species_instance = get_species_instance(session=self.session, genus_epithet=genus_name, epithet=epithet, create=False)
+                if species_instance:
+                    value = species_instance
+                else:
+                    logger.error(f"Species '{value}' not found in the database with criteria {{'epithet': '{epithet}', 'ht-epithet': '{genus_name}'}}.")
+                    utils.message_dialog(_("Selected species not found. Please select a valid species."))
+                    self.set_model_attr('species', None)
+                    return
+            elif not isinstance(value, Species):
+                logger.error(f"Unexpected type for species: {type(value).__name__}")
+                utils.message_dialog(_("Invalid species selection. Please select a valid species."))
+                self.set_model_attr('species', None)
+                return
+
             def set_model(v):
                 self.set_model_attr('species', v)
                 self.refresh_id_qual_rank_combo()
+
+            # Remove any existing message boxes
             for kid in self.view.widgets.message_box_parent.get_children():
                 self.view.widgets.remove_parent(kid)
+
             set_model(value)
             if not value:
                 return
-            syn = self.session.query(SpeciesSynonym).\
-                filter(SpeciesSynonym.synonym_id == value.id).first()
+
+            syn = self.session.query(SpeciesSynonym).filter(SpeciesSynonym.synonym_id == value.id).first()
             if not syn:
                 set_model(value)
                 return
@@ -1892,22 +1924,21 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                     '<b>%(species)s</b>.\n\nWould you like to choose '
                     '<b>%(species)s</b> instead?') % \
                 {'synonym': syn.synonym, 'species': syn.species}
-            box = None
+            box = self.view.add_message_box(utils.MESSAGE_BOX_YESNO)
+            box.message = msg
 
             def on_response(button, response):
                 self.view.widgets.remove_parent(box)
                 box.destroy()
                 if response:
-                    completion = self.view.widgets.acc_species_entry.\
-                        get_completion()
+                    completion = self.view.widgets.acc_species_entry.get_completion()
                     utils.clear_model(completion)
                     model = Gtk.ListStore(object)
                     model.append([syn.species])
                     completion.set_model(model)
                     safe_set_text(self.view.widgets.acc_species_entry, utils.utf8(syn.species))
                     set_model(syn.species)
-            box = self.view.add_message_box(utils.MESSAGE_BOX_YESNO)
-            box.message = msg
+
             box.on_response = on_response
             box.show()
 
