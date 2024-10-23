@@ -170,6 +170,8 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         and family_id must be unique.
     """
     __tablename__ = 'genus'
+    id = Column(Integer, primary_key=True)
+    epithet = Column(String(64), nullable=False, unique=True, index=True)
     __table_args__ = (UniqueConstraint('epithet', 'author',
                                        'qualifier', 'family_id'),
                       {})
@@ -177,6 +179,9 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
 
     rank = 'genus'
     link_keys = ['accepted']
+
+    # Define relationship to Species using string-based reference to avoid circular imports
+    species = relationship('Species', backref=backref('genus', lazy='joined'))
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -218,7 +223,6 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         return ''
 
     # columns
-    epithet = Column(String(64), nullable=False, index=True)
     genus = synonym('epithet')
 
     # use '' instead of None so that the constraints will work propertly

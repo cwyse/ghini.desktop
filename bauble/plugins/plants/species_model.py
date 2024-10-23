@@ -158,10 +158,80 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         cv_group, trade_name, genus_id
     """
     __tablename__ = 'species'
+    id = Column(Integer, primary_key=True)
+    epithet = Column(Unicode(64), nullable=False, index=True)
+    genus_id = Column(Integer, ForeignKey('genus.id'), nullable=False)
+    __table_args__ = (UniqueConstraint('genus_id', 'epithet', name='_genus_epithet_uc'),)
     __mapper_args__ = {'order_by': ['epithet', 'author']}
+
+    # Define relationship to Genus
+    genus = relationship('Genus', backref=backref('species', lazy='dynamic'))
 
     rank = 'species'
     link_keys = ['accepted']
+
+    @hybrid_property
+    def ht_epithet(self):
+        '''Retrieve the genus epithet from the related Genus instance.'''
+        return self.genus.epithet if self.genus else None
+
+    @ht_epithet.expression
+    def ht_epithet(cls):
+        '''Enable SQL querying on ht_epithet by joining with Genus.'''
+        return Genus.epithet
+
+    @classmethod
+    def retrieve(cls, session, keys):
+        from .genus import Genus
+        query = session.query(cls)
+        if 'epithet' in keys:
+            query = query.filter(cls.epithet == keys['epithet'])
+        if 'ht-epithet' in keys:
+            query = query.join(cls.genus).filter(Genus.epithet == keys['ht-epithet'])
+        try:
+            return query.one()
+        except NoResultFound:
+            logger.warning(f"No Species found for criteria: {keys}")
+            return None
+        except MultipleResultsFound:
+            logger.warning(f"Multiple Species found for criteria: {keys}")
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving Species with criteria {keys}: {e}")
+            return None
+
+    @classmethod
+    def retrieve_or_create(cls, session, keys, create=False):
+        """
+        Retrieves an existing Species instance based on keys.
+        If not found and create=True, creates a new instance.
+        Returns the Species instance or None.
+        """
+        query = session.query(cls)
+        if 'epithet' in keys:
+            query = query.filter(cls.epithet == keys['epithet'])
+        if 'ht-epithet' in keys:
+            query = query.join(cls.genus).filter(Genus.epithet == keys['ht-epithet'])
+        try:
+            return query.one()
+        except NoResultFound:
+            if create:
+                genus_instance = Genus.retrieve_or_create(session, {'epithet': keys.get('ht-epithet')}, create=True)
+                if not genus_instance:
+                    logger.error(f"Genus '{keys.get('ht-epithet')}' could not be created.")
+                    return None
+                species_instance = cls(epithet=keys['epithet'], genus=genus_instance)
+                session.add(species_instance)
+                session.commit()
+                return species_instance
+            else:
+                return None
+        except MultipleResultsFound:
+            logger.warning(f"Multiple Species found for criteria: {keys}")
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving Species with criteria {keys}: {e}")
+            return None
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -282,7 +352,6 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         return ''
 
     # columns
-    epithet = Column(Unicode(64), index=True)
     sp = synonym('epithet')
     sp2 = Column(Unicode(64), index=True)  # in case hybrid=True
     author = Column(Unicode(128))
@@ -312,7 +381,6 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                                       translations=infrasp_rank_values))
     infrasp4_author = Column(Unicode(64))
 
-    genus_id = Column(Integer, ForeignKey('genus.id'), nullable=False)
     ## the Species.genus property is defined as backref in Genus.species
 
     label_distribution = Column(UnicodeText)
