@@ -2,25 +2,50 @@
 
 # Dockerfile
 
-#
-#
-#  Configuration is stored in $HOME/.bauble/config
-#
-#  Build: docker buildx build --ssh default --build-arg REPO_COMMIT=$(git rev-parse ghini-3.1-dev-cjw) --load -t ghini-desktop .
-#  Run:   docker run --rm -it ghini-desktop
-# docker run --rm -it   -e USER=$(id -un)   -e DISPLAY=$DISPLAY   -e DB_HOST=postgres.wysechoice.net   -e DB_PORT=5432   -e DB_NAME=ghini_test3   -e DB_USER=ghini   -e DB_SSLMODE=prefer   -e KRB5_CONFIG=/krb5/krb5.conf   -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab  -e NO_AT_BRIDGE=1  -v /tmp/.X11-unix:/tmp/.X11-unix   -v $HOME/krb5:/krb5:ro   -v $HOME:$HOME -v $HOME/.bauble:$HOME/.bauble -v /usr/lib/dri:/usr/lib/dri --device /dev/dri:/dev/dri ghini-desktop bash -c "ghini"
-#
-
 # Stage 1: Build Stage
 FROM debian:bullseye AS build
 
-# Set environment variables to suppress debconf warnings
+# Configuration is stored in $HOME/.bauble/3.1/config
+
+#
+# Cut and pastable comments
+#
+ENV DOCKER_BUILD_CMD="\
+          docker buildx build --ssh default                                                \
+                              --build-arg REPO_COMMIT=$(git rev-parse ghini-3.1-dev-cjw)   \
+                              --build-arg USER_ID=$(id -u)                                 \
+                              --build-arg GROUP_ID=$(id -g)                                \
+                              --load                                                       \
+                              -t ghini-desktop:latest .                                    "
+
+ENV DOCKER_RUN_CMD="\
+          docker run --rm -it                                          \
+                     -e USER=ghini                                     \
+                     -e DISPLAY=$DISPLAY                               \
+                     -e DB_HOST=postgres.wysechoice.net                \
+                     -e DB_PORT=5432                                   \
+                     -e DB_NAME=ghini_test3                            \
+                     -e DB_USER=ghini                                  \
+                     -e DB_SSLMODE=prefer                              \
+                     -e KRB5_CONFIG=/krb5/krb5.conf                    \
+                     -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab           \
+                     -e NO_AT_BRIDGE=1                                 \
+                     -v /tmp/.X11-unix:/tmp/.X11-unix                  \
+                     -v $HOME/krb5:/krb5:ro                            \
+                     -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1      \
+                     -v /usr/lib/dri:/usr/lib/dri                      \
+                     --device /dev/dri:/dev/dri                        \
+                     --user $(id -u):$(id -g)                          \
+                     ghini-desktop:latest bash -c ghini                "
+
+
+## Set environment variables to suppress debconf warnings
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set up environment variables
 ENV HOME=/root
 ENV LINE=ghini-3.1-dev-cjw
-ENV VIRTUAL_ENV=/root/.virtualenvs/$LINE
+ENV VIRTUAL_ENV=/opt/venv/$LINE
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV USER=root
 
@@ -62,10 +87,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure SSH for GitLab
-RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
+RUN mkdir -p $HOME/.ssh && chmod 700 $HOME/.ssh
 
 # Add GitLab to known_hosts to prevent host key verification prompts
-RUN ssh-keyscan gitlab.com >> /root/.ssh/known_hosts
+RUN ssh-keyscan gitlab.com >> $HOME/.ssh/known_hosts
 
 # Clone ghini-desktop repository using SSH mount
 RUN --mount=type=ssh \
@@ -91,15 +116,19 @@ RUN python3 -m venv $VIRTUAL_ENV \
 # Stage 2: Runtime Stage
 FROM debian:bullseye
 
+# Add build arguments for user ID and group ID
+ARG USER_ID
+ARG GROUP_ID
+
 # Set environment variables to suppress debconf warnings
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set up environment variables
-ENV HOME=/root
+ENV HOME=/home/ghini
 ENV LINE=ghini-3.1-dev-cjw
-ENV VIRTUAL_ENV=/root/.virtualenvs/$LINE
+ENV VIRTUAL_ENV=/opt/venv/$LINE
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-ENV USER=root
+ENV USER=ghini
 ENV NO_AT_BRIDGE=1
 
 # Install necessary system packages for runtime
@@ -139,11 +168,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Update gdk-pixbuf loaders cache
 RUN /usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders --update-cache
 
-# Copy virtual environment from build stage
-COPY --from=build $VIRTUAL_ENV $VIRTUAL_ENV
+# Create a group and user with the specified UID and GID
+RUN groupadd --gid $GROUP_ID ghini && \
+    useradd --uid $USER_ID --gid ghini --create-home ghini
 
-# Copy application code from build stage
-COPY --from=build /root/Local/github/Ghini/ghini-desktop /app
+# Create virtualenv directory
+RUN mkdir -p /opt/venv
+
+# Copy virtual environment from build stage with correct ownership
+COPY --from=build --chown=ghini:ghini $VIRTUAL_ENV $VIRTUAL_ENV
+
+# Ensure /app directory exists
+RUN mkdir -p /app
+
+# Copy application code from build stage with correct ownership
+COPY --from=build --chown=ghini:ghini /root/Local/github/Ghini/ghini-desktop /app
+
+# Switch to the ghini user
+USER ghini
 
 # Set the working directory
 WORKDIR /app
