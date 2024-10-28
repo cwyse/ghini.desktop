@@ -36,7 +36,7 @@ logger.setLevel(logging.INFO)
 
 from sqlalchemy import (
     Column, Unicode, UnicodeText, Integer, String, ForeignKey)
-from sqlalchemy.orm import relation
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import and_
 from sqlalchemy.exc import DBAPIError, InvalidRequestError
@@ -476,7 +476,7 @@ class Tag(db.Base, db.WithNotes):
     description = Column(UnicodeText)
 
     # relations
-    _objects = relation('TaggedObj', cascade='all, delete-orphan',
+    _objects = relationship('TaggedObj', cascade='all, delete-orphan',
                         backref='tag')
 
     __my_own_timestamp = None

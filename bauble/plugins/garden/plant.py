@@ -38,7 +38,7 @@ from gi.repository import Gtk
 from sqlalchemy import and_, func
 from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
     UnicodeText, UniqueConstraint
-from sqlalchemy.orm import relation, backref, object_mapper, validates
+from sqlalchemy.orm import relationship, backref, object_mapper, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError, OperationalError
 
@@ -312,17 +312,17 @@ class PlantChange(db.Base):
     date = Column(types.DateTime, default=func.now())
 
     # relations
-    plant = relation('Plant', uselist=False,
+    plant = relationship('Plant', uselist=False,
                      primaryjoin='PlantChange.plant_id == Plant.id',
                      backref=backref('changes', cascade='all, delete-orphan'))
-    parent_plant = relation(
+    parent_plant = relationship(
         'Plant', uselist=False,
         primaryjoin='PlantChange.parent_plant_id == Plant.id',
         backref=backref('branches', cascade='delete, delete-orphan'))
 
-    from_location = relation(
+    from_location = relationship(
         'Location', primaryjoin='PlantChange.from_location_id == Location.id')
-    to_location = relation(
+    to_location = relationship(
         'Location', primaryjoin='PlantChange.to_location_id == Location.id')
 
 
@@ -404,7 +404,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
     location_id = Column(Integer, ForeignKey('location.id'), nullable=False)
 
-    propagations = relation('Propagation', cascade='all, delete-orphan',
+    propagations = relationship('Propagation', cascade='all, delete-orphan',
                             single_parent=True,
                             secondary=PlantPropagation.__table__,
                             backref=backref('plant', uselist=False))
