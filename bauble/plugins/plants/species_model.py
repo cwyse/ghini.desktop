@@ -30,7 +30,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 
 from sqlalchemy import Column, Boolean, Unicode, Integer, ForeignKey, \
     UnicodeText, func, UniqueConstraint
-from sqlalchemy.orm import relation, backref, synonym
+from sqlalchemy.orm import relationship, backref, synonym
 import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
@@ -388,7 +388,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     # relations
     synonyms = association_proxy('_synonyms', 'synonym')
-    _synonyms = relation('SpeciesSynonym',
+    _synonyms = relationship('SpeciesSynonym',
                          primaryjoin='Species.id==SpeciesSynonym.species_id',
                          cascade='all, delete-orphan', uselist=True,
                          backref='species')
@@ -396,27 +396,27 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus
     # get deleted if this genus gets deleted
-    _syn = relation('SpeciesSynonym',
+    _syn = relationship('SpeciesSynonym',
                     primaryjoin='Species.id==SpeciesSynonym.synonym_id',
                     cascade='all, delete-orphan', uselist=True)
 
     ## VernacularName.species gets defined here too.
-    vernacular_names = relation('VernacularName', cascade='all, delete-orphan',
+    vernacular_names = relationship('VernacularName', cascade='all, delete-orphan',
                                 collection_class=VNList,
                                 backref=backref('species', uselist=False))
-    _default_vernacular_name = relation('DefaultVernacularName', uselist=False,
+    _default_vernacular_name = relationship('DefaultVernacularName', uselist=False,
                                         cascade='all, delete-orphan',
                                         backref=backref('species',
                                                         uselist=False))
-    distribution = relation('SpeciesDistribution',
+    distribution = relationship('SpeciesDistribution',
                             cascade='all, delete-orphan',
                             backref=backref('species', uselist=False))
 
     habit_id = Column(Integer, ForeignKey('habit.id'), default=None)
-    habit = relation('Habit', uselist=False, backref='species')
+    habit = relationship('Habit', uselist=False, backref='species')
 
     flower_color_id = Column(Integer, ForeignKey('color.id'), default=None)
-    flower_color = relation('Color', uselist=False, backref='species')
+    flower_color = relationship('Color', uselist=False, backref='species')
 
     #hardiness_zone = Column(Unicode(4))
 
@@ -752,7 +752,7 @@ class SpeciesSynonym(db.Base):
                         nullable=False, unique=True)
 
     # relations
-    synonym = relation('Species', uselist=False,
+    synonym = relationship('Species', uselist=False,
                        primaryjoin='SpeciesSynonym.synonym_id==Species.id')
 
     def __init__(self, synonym=None, **kwargs):
@@ -875,7 +875,7 @@ class DefaultVernacularName(db.Base):
                                 nullable=False)
 
     # relations
-    vernacular_name = relation(VernacularName, uselist=False)
+    vernacular_name = relationship(VernacularName, uselist=False)
 
     def __str__(self):
         return str(self.vernacular_name)
@@ -901,7 +901,7 @@ class SpeciesDistribution(db.Base):
         return str(self.geographic_area)
 
 # late bindings
-SpeciesDistribution.geographic_area = relation(
+SpeciesDistribution.geographic_area = relationship(
     'GeographicArea',
     primaryjoin='SpeciesDistribution.geographic_area_id==GeographicArea.id',
     uselist=False)

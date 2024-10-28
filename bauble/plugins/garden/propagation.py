@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy import Column, Integer, ForeignKey, UnicodeText, Unicode
-from sqlalchemy.orm import backref, relation
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 
@@ -69,8 +69,8 @@ class PlantPropagation(db.Base):
     propagation_id = Column(Integer, ForeignKey('propagation.id'),
                             nullable=False)
 
-    propagation = relation('Propagation', uselist=False)
-    plant = relation('Plant', uselist=False)
+    propagation = relationship('Propagation', uselist=False)
+    plant = relationship('Plant', uselist=False)
 
 
 PropagationNote = db.make_note_class('Propagation')
@@ -85,12 +85,12 @@ class Propagation(db.Base, db.WithNotes):
                        nullable=False)
     date = Column(types.Date)
 
-    _cutting = relation(
+    _cutting = relationship(
         'PropCutting',
         primaryjoin='Propagation.id==PropCutting.propagation_id',
         cascade='all,delete-orphan', uselist=False,
         backref=backref('propagation', uselist=False))
-    _seed = relation(
+    _seed = relationship(
         'PropSeed',
         primaryjoin='Propagation.id==PropSeed.propagation_id',
         cascade='all,delete-orphan', uselist=False,
@@ -350,7 +350,7 @@ class PropCutting(db.Base):
     propagation_id = Column(Integer, ForeignKey('propagation.id'),
                             nullable=False)
 
-    rooted = relation('PropCuttingRooted', cascade='all,delete-orphan',
+    rooted = relationship('PropCuttingRooted', cascade='all,delete-orphan',
                       primaryjoin='PropCutting.id==PropCuttingRooted.cutting_id',
                       backref=backref('cutting', uselist=False))
 

@@ -36,7 +36,7 @@ from gi.repository import GObject
 from sqlalchemy import Column, Unicode, Integer, ForeignKey,\
     Float, UnicodeText, select
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import relation, backref
+from sqlalchemy.orm import relationship, backref
 
 
 import bauble.db as db
@@ -105,18 +105,18 @@ class Source(db.Base):
     accession_id = Column(Integer, ForeignKey('accession.id'), unique=True)
 
     source_detail_id = Column(Integer, ForeignKey('contact.id'))
-    source_detail = relation('Contact', uselist=False,
+    source_detail = relationship('Contact', uselist=False,
                              backref=backref('sources',
                                              cascade='all, delete-orphan'))
 
-    collection = relation('Collection', uselist=False,
+    collection = relationship('Collection', uselist=False,
                           cascade='all, delete-orphan',
                           backref=backref('source', uselist=False))
 
     # relation to a propagation that is specific to this Source and
     # not attached to a Plant. 2017-06-04 : WHAT IS THIS ?
     propagation_id = Column(Integer, ForeignKey('propagation.id'))
-    propagation = relation('Propagation', uselist=False, single_parent=True,
+    propagation = relationship('Propagation', uselist=False, single_parent=True,
                            primaryjoin='Source.propagation_id==Propagation.id',
                            cascade='all, delete-orphan',
                            backref=backref('source', uselist=False))
@@ -126,7 +126,7 @@ class Source(db.Base):
     # Propagation points back to all Accessions that resulted from it, via
     # `used_source[i].accession`. Arguably not practical.
     plant_propagation_id = Column(Integer, ForeignKey('propagation.id'))
-    plant_propagation = relation(
+    plant_propagation = relationship(
         'Propagation', uselist=False,
         primaryjoin='Source.plant_propagation_id==Propagation.id',
         backref=backref('used_source', uselist=True))
@@ -236,7 +236,7 @@ class Collection(db.Base):
     notes = Column(UnicodeText)
 
     geographic_area_id = Column(Integer, ForeignKey('geographic_area.id'))
-    region = relation(GeographicArea, uselist=False)
+    region = relationship(GeographicArea, uselist=False)
 
     source_id = Column(Integer, ForeignKey('source.id'), unique=True)
 

@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 from sqlalchemy import (
     Column, Unicode, Integer, ForeignKey, UnicodeText, String,
     UniqueConstraint, func, and_)
-from sqlalchemy.orm import relation, backref, validates, synonym
+from sqlalchemy.orm import relationship, backref, validates, synonym
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -242,7 +242,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     # relations
     # `species` relation is defined outside of `Genus` class definition
     synonyms = association_proxy('_synonyms', 'synonym')
-    _synonyms = relation('GenusSynonym',
+    _synonyms = relationship('GenusSynonym',
                          primaryjoin='Genus.id==GenusSynonym.genus_id',
                          cascade='all, delete-orphan', uselist=True,
                          backref='genus')
@@ -250,7 +250,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus
     # get deleted if this genus gets deleted
-    __syn = relation('GenusSynonym',
+    __syn = relationship('GenusSynonym',
                      primaryjoin='Genus.id==GenusSynonym.synonym_id',
                      cascade='all, delete-orphan', uselist=True)
 
@@ -394,7 +394,7 @@ class GenusSynonym(db.Base):
                         unique=True)
 
     # relations
-    synonym = relation('Genus', uselist=False,
+    synonym = relationship('Genus', uselist=False,
                        primaryjoin='GenusSynonym.synonym_id==Genus.id')
 
     def __init__(self, synonym=None, **kwargs):
@@ -414,7 +414,7 @@ from bauble.plugins.plants.species_editor import edit_species
 
 # only now that we have `Species` can we define the sorted `species` in
 # the `Genus` class.
-Genus.species = relation('Species', cascade='all, delete-orphan',
+Genus.species = relationship('Species', cascade='all, delete-orphan',
                          order_by=[Species.sp],
                          backref=backref('genus', uselist=False))
 
