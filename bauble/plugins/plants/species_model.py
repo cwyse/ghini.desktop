@@ -31,6 +31,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import Column, Boolean, Unicode, Integer, ForeignKey, \
     UnicodeText, func, UniqueConstraint
 from sqlalchemy.orm import relationship, backref, synonym
+from sqlalchemy.ext.hybrid import hybrid_property
 import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
