@@ -489,7 +489,17 @@ def verify_connection(engine, show_error_dialogs=False):
     return True
 
 
-def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrieve=None):
+#def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrieve=None):
+def make_note_class(name, related_class, compute_serializable_fields=None, as_dict=None, retrieve=None):
+    """
+    Create a Note class with a relationship to the related_class using back_populates.
+
+    :param name: The name of the related class (e.g., 'Genus', 'Species').
+    :param related_class: The class to which the Note is related.
+    :param compute_serializable_fields: Optional callable to compute serializable fields.
+    :param as_dict: Optional callable to define how the object is serialized.
+    :param retrieve: Optional callable to define how to retrieve the object.
+    """
     class_name = str(name + 'Note')
     table_name = name.lower() + '_note'
 
@@ -550,8 +560,7 @@ def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrie
               'type': sa.Column(sa.Unicode(32), default=''),
               'note': sa.Column(sa.UnicodeText, nullable=False),
               name.lower() + '_id': sa.Column(sa.Integer, sa.ForeignKey(name.lower() + '.id'), nullable=False),
-              name.lower(): sa.orm.relationship(name, uselist=False, backref=sa.orm.backref(
-                  'notes', cascade='all, delete-orphan')),
+              name.lower(): sa.orm.relationship(related_class.__name__, uselist=False, back_populates='notes', cascade='all, delete-orphan'),
               'retrieve': classmethod(retrieve),
               'retrieve_or_create': classmethod(retrieve_or_create),
               'is_defined': is_defined,

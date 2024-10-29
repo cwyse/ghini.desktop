@@ -30,7 +30,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 
 from sqlalchemy import Column, Boolean, Unicode, Integer, ForeignKey, \
     UnicodeText, func, UniqueConstraint
-from sqlalchemy.orm import relationship, backref, synonym
+from sqlalchemy.orm import relationship, synonym
 from sqlalchemy.ext.hybrid import hybrid_property
 import bauble.db as db
 import bauble.error as error
@@ -166,7 +166,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     __mapper_args__ = {'order_by': ['epithet', 'author']}
 
     # Define relationship to Genus
-    genus = relationship('Genus', backref=backref('species', lazy='dynamic'))
+    genus = relationship('Genus', back_populates='species', lazy='dynamic')
+    accessions = relationship('Accession', back_populates='species')
 
     rank = 'species'
     link_keys = ['accepted']
@@ -382,7 +383,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                                       translations=infrasp_rank_values))
     infrasp4_author = Column(Unicode(64))
 
-    ## the Species.genus property is defined as backref in Genus.species
+    ## the Species.genus property is defined as back_populates in Genus.species
 
     label_distribution = Column(UnicodeText)
     bc_distribution = Column(UnicodeText)
@@ -392,7 +393,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     _synonyms = relationship('SpeciesSynonym',
                          primaryjoin='Species.id==SpeciesSynonym.species_id',
                          cascade='all, delete-orphan', uselist=True,
-                         backref='species')
+                         back_populates='species')
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus
@@ -404,20 +405,19 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     ## VernacularName.species gets defined here too.
     vernacular_names = relationship('VernacularName', cascade='all, delete-orphan',
                                 collection_class=VNList,
-                                backref=backref('species', uselist=False))
+                                back_populates='species', uselist=False)
     _default_vernacular_name = relationship('DefaultVernacularName', uselist=False,
                                         cascade='all, delete-orphan',
-                                        backref=backref('species',
-                                                        uselist=False))
+                                        back_populates='species')
     distribution = relationship('SpeciesDistribution',
                             cascade='all, delete-orphan',
-                            backref=backref('species', uselist=False))
+                            back_populates='species', uselist=False)
 
     habit_id = Column(Integer, ForeignKey('habit.id'), default=None)
-    habit = relationship('Habit', uselist=False, backref='species')
+    habit = relationship('Habit', uselist=False, back_populates='species')
 
     flower_color_id = Column(Integer, ForeignKey('color.id'), default=None)
-    flower_color = relationship('Color', uselist=False, backref='species')
+    flower_color = relationship('Color', uselist=False, back_populates='species')
 
     #hardiness_zone = Column(Unicode(4))
 
@@ -737,7 +737,7 @@ def retrieve(cls, session, keys):
     except:
         return None
 
-SpeciesNote = db.make_note_class('Species', compute_serializable_fields, as_dict, retrieve)
+SpeciesNote = db.make_note_class('Species', Species, compute_serializable_fields, as_dict, retrieve)
 
 
 class SpeciesSynonym(db.Base):
@@ -791,6 +791,9 @@ class VernacularName(db.Base, db.Serializable):
     species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
     __table_args__ = (UniqueConstraint('name', 'language',
                                        'species_id', name='vn_index'), {})
+    species = relationship('Species', cascade='all, delete-orphan',
+                                collection_class=VNList,
+                                back_populates='VernacularName', uselist=False)
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row.
@@ -877,7 +880,9 @@ class DefaultVernacularName(db.Base):
 
     # relations
     vernacular_name = relationship(VernacularName, uselist=False)
-
+    species = relationship('Species', uselist=False,
+                                        cascade='all, delete-orphan',
+                                        back_populates='_default_vernacular_name')
     def __str__(self):
         return str(self.vernacular_name)
 
@@ -897,6 +902,10 @@ class SpeciesDistribution(db.Base):
     # columns
     geographic_area_id = Column(Integer, ForeignKey('geographic_area.id'), nullable=False)
     species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
+    species = relationship(
+        'Species',
+        back_populates='distribution'
+    )
 
     def __str__(self):
         return str(self.geographic_area)
@@ -913,6 +922,11 @@ class Habit(db.Base):
 
     name = Column(Unicode(64))
     code = Column(Unicode(8), unique=True)
+    species = relationship(
+        'Species',
+        back_populates='habit',
+        uselist=False  # If Habit is associated with only one Species
+    )
 
     def __str__(self):
         if self.name:

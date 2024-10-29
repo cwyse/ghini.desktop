@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 from sqlalchemy import Column, Unicode, Integer, ForeignKey, \
     UnicodeText, func, and_, UniqueConstraint, String
-from sqlalchemy.orm import relationship, backref, validates, synonym
+from sqlalchemy.orm import relationship, validates, synonym
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -124,9 +124,6 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-FamilyNote = db.make_note_class('Family', compute_serializable_fields)
-
-
 class Family(db.Base, db.Serializable, db.WithNotes):
     """
     :Table name: family
@@ -193,14 +190,14 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     # `genera` relation is defined outside of `Family` class definition
     synonyms = association_proxy('_synonyms', 'synonym')
     _synonyms = relationship('FamilySynonym',
-                         primaryjoin='Family.id==FamilySynonym.family_id',
-                         cascade='all, delete-orphan', uselist=True,
-                         backref='family')
+                             primaryjoin='Family.id==FamilySynonym.family_id',
+                             cascade='all, delete-orphan', uselist=True,
+                             back_populates='family')
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this family
     # get deleted if this family gets deleted
-    __syn = relationship('FamilySynonym',
+    synonyms_relationship = relationship('FamilySynonym',
                      primaryjoin='Family.id==FamilySynonym.synonym_id',
                      cascade='all, delete-orphan', uselist=True)
 
@@ -293,6 +290,9 @@ class Family(db.Base, db.Serializable, db.WithNotes):
 ## defining the latin alias to the class.
 Familia = Family
 
+FamilyNote = db.make_note_class('Family', Family, compute_serializable_fields)
+FamilyNote.notes = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan')
+
 
 class FamilySynonym(db.Base):
     """
@@ -315,9 +315,14 @@ class FamilySynonym(db.Base):
     synonym_id = Column(Integer, ForeignKey('family.id'), nullable=False,
                         unique=True)
 
-    # relations
+    # Relationships
     synonym = relationship('Family', uselist=False,
-                       primaryjoin='FamilySynonym.synonym_id==Family.id')
+                           primaryjoin='FamilySynonym.synonym_id==Family.id',
+                           back_populates='synonyms_relationship')  # Renamed for clarity
+
+    family = relationship('Family',
+                          back_populates='_synonyms',
+                          primaryjoin='FamilySynonym.family_id==Family.id')
 
     def __init__(self, synonym=None, **kwargs):
         # it is necessary that the first argument here be synonym for
@@ -338,8 +343,7 @@ from bauble.plugins.plants.genus import Genus, GenusEditor
 # `Family` class.
 Family.genera = relationship('Genus',
                          order_by=[Genus.genus],
-                         backref='family', cascade='all, delete-orphan')
-
+                         back_populates='family', cascade='all, delete-orphan')
 
 class FamilyEditorView(editor.GenericEditorView):
 

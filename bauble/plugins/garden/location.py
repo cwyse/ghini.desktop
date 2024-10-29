@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy import Column, Unicode, UnicodeText
-from sqlalchemy.orm import relationship, backref, validates
+from sqlalchemy.orm import relationship, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 
@@ -105,9 +105,6 @@ def compute_serializable_fields(cls, session, keys):
     return result
 
 
-LocationNote = db.make_note_class('Location', compute_serializable_fields)
-
-
 class Location(db.Base, db.Serializable, db.WithNotes):
     """
     :Table name: location
@@ -131,7 +128,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     description = Column(UnicodeText)
 
     # relations
-    plants = relationship('Plant', backref=backref('location', uselist=False))
+    plants = relationship('Plant', back_populates='location', uselist=False)
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -183,6 +180,9 @@ class Location(db.Base, db.Serializable, db.WithNotes):
                                      for a in accessions
                                      if a.source and a.source.source_detail])}
 
+
+LocationNote = db.make_note_class('Location', Location, compute_serializable_fields)
+LocationNote.notes = relationship('LocationNote', back_populates='description', cascade='all, delete-orphan')
 
 def mergevalues(value1, value2, formatter):
     """return the common value
