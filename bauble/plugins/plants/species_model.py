@@ -393,25 +393,25 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     _synonyms = relationship('SpeciesSynonym',
                          primaryjoin='Species.id==SpeciesSynonym.species_id',
                          cascade='all, delete-orphan', uselist=True,
-                         back_populates='species')
+                         back_populates='species', single_parent=True)
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus
     # get deleted if this genus gets deleted
     _syn = relationship('SpeciesSynonym',
                     primaryjoin='Species.id==SpeciesSynonym.synonym_id',
-                    cascade='all, delete-orphan', uselist=True)
+                    cascade='all, delete-orphan', uselist=True, single_parent=True)
 
     ## VernacularName.species gets defined here too.
     vernacular_names = relationship('VernacularName', cascade='all, delete-orphan',
                                 collection_class=VNList,
-                                back_populates='species', uselist=False)
+                                back_populates='species', uselist=False, single_parent=True)
     _default_vernacular_name = relationship('DefaultVernacularName', uselist=False,
                                         cascade='all, delete-orphan',
-                                        back_populates='species')
+                                        back_populates='species', single_parent=True)
     distribution = relationship('SpeciesDistribution',
                             cascade='all, delete-orphan',
-                            back_populates='species', uselist=False)
+                            back_populates='species', uselist=False, single_parent=True)
 
     habit_id = Column(Integer, ForeignKey('habit.id'), default=None)
     habit = relationship('Habit', uselist=False, back_populates='species')
@@ -793,7 +793,7 @@ class VernacularName(db.Base, db.Serializable):
                                        'species_id', name='vn_index'), {})
     species = relationship('Species', cascade='all, delete-orphan',
                                 collection_class=VNList,
-                                back_populates='VernacularName', uselist=False)
+                                back_populates='VernacularName', uselist=False, single_parent=True)
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row.
@@ -882,7 +882,7 @@ class DefaultVernacularName(db.Base):
     vernacular_name = relationship(VernacularName, uselist=False)
     species = relationship('Species', uselist=False,
                                         cascade='all, delete-orphan',
-                                        back_populates='_default_vernacular_name')
+                                        back_populates='_default_vernacular_name', single_parent=True)
     def __str__(self):
         return str(self.vernacular_name)
 

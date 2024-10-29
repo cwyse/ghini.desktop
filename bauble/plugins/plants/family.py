@@ -192,14 +192,14 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     _synonyms = relationship('FamilySynonym',
                              primaryjoin='Family.id==FamilySynonym.family_id',
                              cascade='all, delete-orphan', uselist=True,
-                             back_populates='family')
+                             back_populates='family', single_parent=True)
 
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this family
     # get deleted if this family gets deleted
     synonyms_relationship = relationship('FamilySynonym',
                      primaryjoin='Family.id==FamilySynonym.synonym_id',
-                     cascade='all, delete-orphan', uselist=True)
+                     cascade='all, delete-orphan', uselist=True, single_parent=True)
 
     def __repr__(self):
         return Family.str(self)
@@ -291,7 +291,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
 Familia = Family
 
 FamilyNote = db.make_note_class('Family', Family, compute_serializable_fields)
-FamilyNote.notes = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan')
+FamilyNote.notes = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan', single_parent=True)
 
 
 class FamilySynonym(db.Base):
@@ -343,7 +343,7 @@ from bauble.plugins.plants.genus import Genus, GenusEditor
 # `Family` class.
 Family.genera = relationship('Genus',
                          order_by=[Genus.genus],
-                         back_populates='family', cascade='all, delete-orphan')
+                         back_populates='family', cascade='all, delete-orphan', single_parent=True)
 
 class FamilyEditorView(editor.GenericEditorView):
 

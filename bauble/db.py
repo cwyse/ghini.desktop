@@ -560,7 +560,7 @@ def make_note_class(name, related_class, compute_serializable_fields=None, as_di
               'type': sa.Column(sa.Unicode(32), default=''),
               'note': sa.Column(sa.UnicodeText, nullable=False),
               name.lower() + '_id': sa.Column(sa.Integer, sa.ForeignKey(name.lower() + '.id'), nullable=False),
-              name.lower(): sa.orm.relationship(related_class.__name__, uselist=False, back_populates='notes', cascade='all, delete-orphan'),
+              name.lower(): sa.orm.relationship(related_class.__name__, uselist=False, back_populates='notes', cascade='all, delete-orphan', single_parent=True),
               'retrieve': classmethod(retrieve),
               'retrieve_or_create': classmethod(retrieve_or_create),
               'is_defined': is_defined,

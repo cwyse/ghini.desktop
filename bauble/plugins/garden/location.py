@@ -182,7 +182,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
 
 
 LocationNote = db.make_note_class('Location', Location, compute_serializable_fields)
-LocationNote.notes = relationship('LocationNote', back_populates='description', cascade='all, delete-orphan')
+LocationNote.notes = relationship('LocationNote', back_populates='description', cascade='all, delete-orphan', single_parent=True)
 
 def mergevalues(value1, value2, formatter):
     """return the common value
