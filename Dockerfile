@@ -111,7 +111,16 @@ RUN python3 -m venv $VIRTUAL_ENV \
     && pip install PyGObject \
     && pip install psycopg2 \
     && pip install . \
+    && pip install SQLAlchemy==1.2.7 alembic \
+    && pip install 'sqlalchemy-diff==0.1.3' || echo "sqlalchemy-diff version incompatible, skipping" \
     && rm -rf $HOME/.cache/pip
+
+# Initialize Alembic configuration (optional: modify alembic.ini for project setup)
+RUN alembic init alembic
+
+# Example configuration: Update alembic.ini with the database URL (if required)
+RUN sed -i 's|sqlalchemy.url = .*|sqlalchemy.url = postgresql://192.168.40.32:9yuzebes@localhost:5432/ghini_test3|' alembic.ini
+# Note: Replace 'username:password@localhost:5432/your_database' with actual DB credentials
 
 # Stage 2: Runtime Stage
 FROM debian:bullseye
