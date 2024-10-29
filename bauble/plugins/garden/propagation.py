@@ -104,6 +104,7 @@ class Propagation(db.Base, db.WithNotes):
         primaryjoin='Propagation.id == PropCutting.propagation_id',
         cascade='all, delete-orphan',
         uselist=False,
+        single_parent=True,
         back_populates='propagation'
     )
     _seed = relationship(
@@ -111,6 +112,7 @@ class Propagation(db.Base, db.WithNotes):
         primaryjoin='Propagation.id == PropSeed.propagation_id',
         cascade='all, delete-orphan',
         uselist=False,
+        single_parent=True,
         back_populates='propagation'
     )
 

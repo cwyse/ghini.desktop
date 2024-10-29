@@ -475,7 +475,7 @@ class Tag(db.Base, db.WithNotes):
 
     # relations
     _objects = relationship('TaggedObj', cascade='all, delete-orphan',
-                        back_populates='tag')
+                        back_populates='tag', single_parent=True)
 
     __my_own_timestamp = None
     __last_objects = None
@@ -611,7 +611,7 @@ class TaggedObj(db.Base):
     obj_class = Column(String(128))
     tag_id = Column(Integer, ForeignKey('tag.id'))
     tag = relationship('Tag', cascade='all, delete-orphan',
-                        back_populates='_objects')
+                        back_populates='_objects', single_parent=True)
     def __str__(self):
         return '%s: %s' % (self.obj_class, self.obj_id)
 

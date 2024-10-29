@@ -108,11 +108,11 @@ class Source(db.Base):
     source_detail_id = Column(Integer, ForeignKey('contact.id'))
     source_detail = relationship('Contact', uselist=False,
                              back_populates='sources',
-                                             cascade='all, delete-orphan')
+                                             cascade='all, delete-orphan', single_parent=True)
 
     collection = relationship('Collection', uselist=False,
                           cascade='all, delete-orphan',
-                          back_populates='source')
+                          back_populates='source', single_parent=True)
 
     # relation to a propagation that is specific to this Source and
     # not attached to a Plant. 2017-06-04 : WHAT IS THIS ?
@@ -825,7 +825,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
                          default=None)
     sources = relationship('Sources', uselist=False,
                              back_populates='Contact',
-                                             cascade='all, delete-orphan')
+                                             cascade='all, delete-orphan', single_parent=True)
 
     def __str__(self):
         return utils.utf8(self.name)

@@ -183,7 +183,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     # Define relationship to Species using string-based reference to avoid circular imports
     species = relationship('Species', back_populates='genus', lazy='joined')
     # Define a relationship to notes with back_populates
-    notes = relationship('GenusNote', back_populates='genus', cascade='all, delete-orphan')
+    notes = relationship('GenusNote', back_populates='genus', cascade='all, delete-orphan', single_parent=True)
     family = relationship('Family', back_populates='genera')
     
     def search_view_markup_pair(self):
@@ -248,13 +248,13 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     _synonyms = relationship('GenusSynonym',
                          primaryjoin='Genus.id==GenusSynonym.genus_id',
                          cascade='all, delete-orphan', uselist=True,
-                         back_populates='genus')
+                         back_populates='genus', single_parent=True)
 
     # New relationship for synonyms via synonym_id
     _synonyms_synonym = relationship('GenusSynonym',
                                      primaryjoin='Genus.id==GenusSynonym.synonym_id',
                                      cascade='all, delete-orphan', uselist=True,
-                                     back_populates='synonym')
+                                     back_populates='synonym', single_parent=True)
 
     @property
     def accepted(self):
@@ -423,7 +423,7 @@ from bauble.plugins.plants.species_editor import edit_species
 # the `Genus` class.
 Genus.species = relationship('Species', cascade='all, delete-orphan',
                          order_by=[Species.sp],
-                         back_populates='genus', uselist=False)
+                         back_populates='genus', uselist=False, single_parent=True)
 
 
 class GenusEditorView(editor.GenericEditorView):

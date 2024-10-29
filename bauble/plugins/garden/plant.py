@@ -313,13 +313,13 @@ class PlantChange(db.Base):
                          back_populates='changes',
                          primaryjoin='PlantChange.plant_id == Plant.id',
                          uselist=False,
-                         cascade='all, delete-orphan')
+                         cascade='all, delete-orphan', single_parent=True)
 
     parent_plant = relationship('Plant',
                                  back_populates='branches',
                                  primaryjoin='PlantChange.parent_plant_id == Plant.id',
                                  uselist=False, 
-                                 cascade='delete, delete-orphan')
+                                 cascade='delete, delete-orphan', single_parent=True)
 
     from_location = relationship('Location', primaryjoin='PlantChange.from_location_id == Location.id')
     to_location = relationship('Location', primaryjoin='PlantChange.to_location_id == Location.id')
@@ -413,11 +413,11 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     changes = relationship('PlantChange',
                            back_populates='plant',
-                           cascade='all, delete-orphan')
+                           cascade='all, delete-orphan', single_parent=True)
 
     branches = relationship('PlantChange',
                             back_populates='parent_plant',
-                            cascade='delete, delete-orphan')
+                            cascade='delete, delete-orphan', single_parent=True)
     
     location = relationship('Location', back_populates='plants', uselist=False)
 

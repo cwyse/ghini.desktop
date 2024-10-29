@@ -633,22 +633,22 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
 
     # the source of the accession
     source = relationship('Source', uselist=False, cascade='all, delete-orphan',
-                      back_populates='accession')
+                      back_populates='accession', single_parent=True)
 
     # relations
     species = relationship('Species', uselist=False,
                        back_populates='accessions',
-                                       cascade='all, delete-orphan')
+                                       cascade='all, delete-orphan', single_parent=True)
 
     # use Plant.code for the order_by to avoid ambiguous column names
     plants = relationship('Plant', cascade='all, delete-orphan',
                       #order_by='plant.code',
-                      back_populates='accession', uselist=False)
+                      back_populates='accession', uselist=False, single_parent=True)
     verifications = relationship('Verification',  # order_by='date',
                              cascade='all, delete-orphan',
-                             back_populates ='accession', uselist=False)
+                             back_populates ='accession', uselist=False, single_parent=True)
     vouchers = relationship('Voucher', cascade='all, delete-orphan',
-                        back_populates='accession', uselist=False)
+                        back_populates='accession', uselist=False, single_parent=True)
     intended_location = relationship(
         'Location', primaryjoin='Accession.intended_location_id==Location.id')
     intended2_location = relationship(
@@ -863,7 +863,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
 
 
 AccessionNote = db.make_note_class('Accession', Accession, compute_serializable_fields)
-AccessionNote.notes = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan')
+AccessionNote.notes = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan', single_parent=True)
 
 from bauble.plugins.garden.plant import Plant, PlantEditor
 
