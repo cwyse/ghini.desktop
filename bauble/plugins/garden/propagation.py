@@ -274,6 +274,7 @@ class Propagation(db.Base, db.WithNotes):
             self._cutting = None
 
 PropagationNote = db.make_note_class('Propagation', Propagation)
+PropagationNote.notes = relationship('PropagationNote', back_populates='propagation')
 
 class PropCuttingRooted(db.Base):
     """
