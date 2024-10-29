@@ -111,15 +111,34 @@ RUN python3 -m venv $VIRTUAL_ENV \
     && pip install PyGObject \
     && pip install psycopg2 \
     && pip install . \
-    && pip install SQLAlchemy==1.2.7 alembic \
+    && pip install SQLAlchemy==1.2.7 alembic==1.0.11 sqlalchemy-utils==0.32.4 \
     && pip install 'sqlalchemy-diff==0.1.3' || echo "sqlalchemy-diff version incompatible, skipping" \
+    && alembic init alembic \
     && rm -rf $HOME/.cache/pip
 
 # Initialize Alembic configuration (optional: modify alembic.ini for project setup)
-RUN alembic init alembic
+#RUN alembic init alembic
+#        import os
+#        import sys
+#
+#        sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'bauble')))
+#
+#        from db import Base  # Import your models here
+#
+#        config = context.config
+#
+#        # Interpret the config file for Python logging.
+#        # This line sets up loggers basically.
+#        fileConfig(config.config_file_name)
+#
+#        # add your model's MetaData object here
+#        # for 'autogenerate' support
+#        # from myapp import mymodel
+#        # target_metadata = mymodel.Base.metadata
+#        target_metadata = Base.metadata
 
 # Example configuration: Update alembic.ini with the database URL (if required)
-RUN sed -i 's|sqlalchemy.url = .*|sqlalchemy.url = postgresql://192.168.40.32:9yuzebes@localhost:5432/ghini_test3|' alembic.ini
+RUN sed -i 's|sqlalchemy.url = .*|sqlalchemy.url = postgresql://ghini:9yuzebes@192.168.40.32:5432/ghini_test3|' alembic.ini
 # Note: Replace 'username:password@localhost:5432/your_database' with actual DB credentials
 
 # Stage 2: Runtime Stage
