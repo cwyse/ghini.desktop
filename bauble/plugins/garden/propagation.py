@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy import Column, Integer, ForeignKey, UnicodeText, Unicode
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 
@@ -58,22 +58,28 @@ prop_type_results = {
     'UnrootedCutting': 'RCUT',
 }
 
+from sqlalchemy import Table, Column, Integer, ForeignKey
 
-class PlantPropagation(db.Base):
-    """
-    PlantPropagation provides an intermediate relation from
-    Plant->Propagation
-    """
-    __tablename__ = 'plant_prop'
-    plant_id = Column(Integer, ForeignKey('plant.id'), nullable=False)
-    propagation_id = Column(Integer, ForeignKey('propagation.id'),
-                            nullable=False)
+PlantPropagation = Table(
+    'plant_prop',
+    db.Base.metadata,
+    Column('plant_id', Integer, ForeignKey('plant.id'), primary_key=True),
+    Column('propagation_id', Integer, ForeignKey('propagation.id'), primary_key=True)
+)
 
-    propagation = relationship('Propagation', uselist=False)
-    plant = relationship('Plant', uselist=False)
+# class PlantPropagation(db.Base):
+#     """
+#     PlantPropagation provides an intermediate relation from
+#     Plant->Propagation
+#     """
+#     __tablename__ = 'plant_prop'
+#     plant_id = Column(Integer, ForeignKey('plant.id'), nullable=False)
+#     propagation_id = Column(Integer, ForeignKey('propagation.id'),
+#                             nullable=False)
 
+#     propagation = relationship('Propagation', uselist=False)
+#     plant = relationship('Plant', uselist=False)
 
-PropagationNote = db.make_note_class('Propagation')
 
 class Propagation(db.Base, db.WithNotes):
     """
@@ -85,16 +91,30 @@ class Propagation(db.Base, db.WithNotes):
                        nullable=False)
     date = Column(types.Date)
 
+    plants = relationship(
+        'Plant',
+        secondary='plant_prop',
+        back_populates='propagations',
+        cascade='all, delete-orphan',
+        single_parent=True
+    )
+
     _cutting = relationship(
         'PropCutting',
-        primaryjoin='Propagation.id==PropCutting.propagation_id',
-        cascade='all,delete-orphan', uselist=False,
-        backref=backref('propagation', uselist=False))
+        primaryjoin='Propagation.id == PropCutting.propagation_id',
+        cascade='all, delete-orphan',
+        uselist=False,
+        back_populates='propagation'
+    )
     _seed = relationship(
         'PropSeed',
-        primaryjoin='Propagation.id==PropSeed.propagation_id',
-        cascade='all,delete-orphan', uselist=False,
-        backref=backref('propagation', uselist=False))
+        primaryjoin='Propagation.id == PropSeed.propagation_id',
+        cascade='all, delete-orphan',
+        uselist=False,
+        back_populates='propagation'
+    )
+
+
 
     @property
     def accessions(self):
@@ -251,6 +271,7 @@ class Propagation(db.Base, db.WithNotes):
             utils.delete_or_expunge(self._cutting)
             self._cutting = None
 
+PropagationNote = db.make_note_class('Propagation', Propagation)
 
 class PropCuttingRooted(db.Base):
     """
@@ -350,10 +371,18 @@ class PropCutting(db.Base):
     propagation_id = Column(Integer, ForeignKey('propagation.id'),
                             nullable=False)
 
-    rooted = relationship('PropCuttingRooted', cascade='all,delete-orphan',
-                      primaryjoin='PropCutting.id==PropCuttingRooted.cutting_id',
-                      backref=backref('cutting', uselist=False))
+    rooted = relationship(
+        'PropCuttingRooted',
+        cascade='all, delete-orphan',
+        primaryjoin='PropCutting.id == PropCuttingRooted.cutting_id',
+        back_populates='cutting'
+    )
 
+    propagation = relationship(
+        'Propagation',
+        back_populates='_cutting',
+        uselist=False
+    )
 
 class PropSeed(db.Base):
     """
@@ -385,6 +414,12 @@ class PropSeed(db.Base):
 
     propagation_id = Column(Integer, ForeignKey('propagation.id'),
                             nullable=False)
+
+    propagation = relationship(
+        'Propagation',
+        back_populates='_seed',
+        uselist=False
+    )
 
     def __str__(self):
         # what would the string be...???

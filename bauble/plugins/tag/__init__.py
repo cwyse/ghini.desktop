@@ -457,8 +457,6 @@ class TagItemGUI(editor.GenericEditorView):
         session.close()
 
 
-TagNote = db.make_note_class('Tag')
-
 class Tag(db.Base, db.WithNotes):
     """
     :Table name: tag
@@ -477,7 +475,7 @@ class Tag(db.Base, db.WithNotes):
 
     # relations
     _objects = relationship('TaggedObj', cascade='all, delete-orphan',
-                        backref='tag')
+                        back_populates='tag')
 
     __my_own_timestamp = None
     __last_objects = None
@@ -592,6 +590,7 @@ class Tag(db.Base, db.WithNotes):
             (self.description or '').replace('\n', ' ')[:256])
         return first, second
 
+TagNote = db.make_note_class('Tag', Tag)
 
 class TaggedObj(db.Base):
     """
@@ -611,7 +610,8 @@ class TaggedObj(db.Base):
     obj_id = Column(Integer, autoincrement=False)
     obj_class = Column(String(128))
     tag_id = Column(Integer, ForeignKey('tag.id'))
-
+    tag = relationship('Tag', cascade='all, delete-orphan',
+                        back_populates='_objects')
     def __str__(self):
         return '%s: %s' % (self.obj_class, self.obj_id)
 

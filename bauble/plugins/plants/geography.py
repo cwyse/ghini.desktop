@@ -25,7 +25,7 @@ from operator import itemgetter
 from gi.repository import Gtk
 
 from sqlalchemy import select, Column, Unicode, String, Integer, ForeignKey
-from sqlalchemy.orm import object_session, relationship, backref
+from sqlalchemy.orm import object_session, relationship
 
 import bauble.db as db
 
@@ -182,9 +182,13 @@ class GeographicArea(db.Base):
 
 # late bindings
 GeographicArea.children = relationship(
-    GeographicArea,
+    'GeographicArea',
     primaryjoin=GeographicArea.parent_id == GeographicArea.id,
     cascade='all',
-    backref=backref("parent",
-                    remote_side=[GeographicArea.__table__.c.id]),
+    back_populates="parent",
     order_by=[GeographicArea.name])
+
+GeographicArea.parent = relationship(
+    'GeographicArea',
+    back_populates="children",
+    remote_side=[GeographicArea.__table__.c.id])

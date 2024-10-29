@@ -45,7 +45,7 @@ from sqlalchemy import and_, or_, func
 from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
     UnicodeText
 from sqlalchemy.orm import EXT_CONTINUE, MapperExtension, \
-    backref, relationship, reconstructor, validates
+    relationship, reconstructor, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 
@@ -295,6 +295,7 @@ class Verification(db.Base):
     date = Column(types.Date, nullable=False)
     reference = Column(UnicodeText)
     accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
+    accession = relationship('Accession', back_populates='verifications')
 
     # the level of assurance of this verification
     level = Column(Integer, nullable=False, autoincrement=False)
@@ -361,11 +362,7 @@ class Voucher(db.Base):
     code = Column(Unicode(32), nullable=False)
     parent_material = Column(Boolean, default=False)
     accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
-
-    # accession  = relationship('Accession', uselist=False,
-    #                       backref=backref('vouchers',
-    #                                       cascade='all, delete-orphan'))
-
+    accession = relationship('Accession', back_populates='vouchers')
 
 # invalidate an accessions string cache after it has been updated
 class AccessionMapperExtension(MapperExtension):
@@ -520,9 +517,6 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-AccessionNote = db.make_note_class('Accession', compute_serializable_fields)
-
-
 class Accession(db.Base, db.Serializable, db.WithNotes):
     """
     :Table name: accession
@@ -639,22 +633,22 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
 
     # the source of the accession
     source = relationship('Source', uselist=False, cascade='all, delete-orphan',
-                      backref=backref('accession', uselist=False))
+                      back_populates='accession')
 
     # relations
     species = relationship('Species', uselist=False,
-                       backref=backref('accessions',
-                                       cascade='all, delete-orphan'))
+                       back_populates='accessions',
+                                       cascade='all, delete-orphan')
 
     # use Plant.code for the order_by to avoid ambiguous column names
     plants = relationship('Plant', cascade='all, delete-orphan',
                       #order_by='plant.code',
-                      backref=backref('accession', uselist=False))
+                      back_populates='accession', uselist=False)
     verifications = relationship('Verification',  # order_by='date',
                              cascade='all, delete-orphan',
-                             backref=backref('accession', uselist=False))
+                             back_populates ='accession', uselist=False)
     vouchers = relationship('Voucher', cascade='all, delete-orphan',
-                        backref=backref('accession', uselist=False))
+                        back_populates='accession', uselist=False)
     intended_location = relationship(
         'Location', primaryjoin='Accession.intended_location_id==Location.id')
     intended2_location = relationship(
@@ -867,6 +861,9 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
                 (7, 'Locations'): set([p.location.id for p in self.plants]),
                 (8, 'Sources'): set(sd and [sd.id] or [])}
 
+
+AccessionNote = db.make_note_class('Accession', Accession, compute_serializable_fields)
+AccessionNote.notes = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan')
 
 from bauble.plugins.garden.plant import Plant, PlantEditor
 

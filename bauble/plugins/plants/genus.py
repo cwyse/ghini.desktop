@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 from sqlalchemy import (
     Column, Unicode, Integer, ForeignKey, UnicodeText, String,
     UniqueConstraint, func, and_)
-from sqlalchemy.orm import relationship, backref, validates, synonym
+from sqlalchemy.orm import relationship, validates, synonym
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -181,8 +181,11 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     link_keys = ['accepted']
 
     # Define relationship to Species using string-based reference to avoid circular imports
-    species = relationship('Species', backref=backref('genus', lazy='joined'))
-
+    species = relationship('Species', back_populates='genus', lazy='joined')
+    # Define a relationship to notes with back_populates
+    notes = relationship('GenusNote', back_populates='genus', cascade='all, delete-orphan')
+    family = relationship('Family', back_populates='genera')
+    
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
         '''
@@ -245,14 +248,13 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     _synonyms = relationship('GenusSynonym',
                          primaryjoin='Genus.id==GenusSynonym.genus_id',
                          cascade='all, delete-orphan', uselist=True,
-                         backref='genus')
+                         back_populates='genus')
 
-    # this is a dummy relation, it is only here to make cascading work
-    # correctly and to ensure that all synonyms related to this genus
-    # get deleted if this genus gets deleted
-    __syn = relationship('GenusSynonym',
-                     primaryjoin='Genus.id==GenusSynonym.synonym_id',
-                     cascade='all, delete-orphan', uselist=True)
+    # New relationship for synonyms via synonym_id
+    _synonyms_synonym = relationship('GenusSynonym',
+                                     primaryjoin='Genus.id==GenusSynonym.synonym_id',
+                                     cascade='all, delete-orphan', uselist=True,
+                                     back_populates='synonym')
 
     @property
     def accepted(self):
@@ -377,7 +379,7 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-GenusNote = db.make_note_class('Genus', compute_serializable_fields)
+GenusNote = db.make_note_class('Genus', Genus, compute_serializable_fields)
 
 
 class GenusSynonym(db.Base):
@@ -393,9 +395,14 @@ class GenusSynonym(db.Base):
     synonym_id = Column(Integer, ForeignKey('genus.id'), nullable=False,
                         unique=True)
 
-    # relations
-    synonym = relationship('Genus', uselist=False,
-                       primaryjoin='GenusSynonym.synonym_id==Genus.id')
+    # Primary relationship to Genus via genus_id
+    genus = relationship('Genus', back_populates='_synonyms', foreign_keys=[genus_id])
+
+    # Secondary relationship to Genus via synonym_id (if applicable)
+    synonym = relationship('Genus', back_populates='_synonyms_synonym', foreign_keys=[synonym_id])
+
+#    synonym = relationship('Genus', uselist=False,
+#                       primaryjoin='GenusSynonym.synonym_id==Genus.id')
 
     def __init__(self, synonym=None, **kwargs):
         # it is necessary that the first argument here be synonym for
@@ -416,7 +423,7 @@ from bauble.plugins.plants.species_editor import edit_species
 # the `Genus` class.
 Genus.species = relationship('Species', cascade='all, delete-orphan',
                          order_by=[Species.sp],
-                         backref=backref('genus', uselist=False))
+                         back_populates='genus', uselist=False)
 
 
 class GenusEditorView(editor.GenericEditorView):

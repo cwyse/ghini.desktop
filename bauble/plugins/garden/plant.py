@@ -38,7 +38,7 @@ from gi.repository import Gtk
 from sqlalchemy import and_, func
 from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
     UnicodeText, UniqueConstraint
-from sqlalchemy.orm import relationship, backref, object_mapper, validates
+from sqlalchemy.orm import relationship, object_mapper, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError, OperationalError
 
@@ -256,9 +256,6 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-PlantNote = db.make_note_class('Plant', compute_serializable_fields, as_dict, retrieve)
-
-
 # TODO: some of these reasons are specific to UBC and could probably be culled.
 change_reasons = {
     'DEAD': _('Dead'),
@@ -311,20 +308,21 @@ class PlantChange(db.Base):
     # date of change
     date = Column(types.DateTime, default=func.now())
 
-    # relations
-    plant = relationship('Plant', uselist=False,
-                     primaryjoin='PlantChange.plant_id == Plant.id',
-                     backref=backref('changes', cascade='all, delete-orphan'))
-    parent_plant = relationship(
-        'Plant', uselist=False,
-        primaryjoin='PlantChange.parent_plant_id == Plant.id',
-        backref=backref('branches', cascade='delete, delete-orphan'))
+    # Relationships
+    plant = relationship('Plant',
+                         back_populates='changes',
+                         primaryjoin='PlantChange.plant_id == Plant.id',
+                         uselist=False,
+                         cascade='all, delete-orphan')
 
-    from_location = relationship(
-        'Location', primaryjoin='PlantChange.from_location_id == Location.id')
-    to_location = relationship(
-        'Location', primaryjoin='PlantChange.to_location_id == Location.id')
+    parent_plant = relationship('Plant',
+                                 back_populates='branches',
+                                 primaryjoin='PlantChange.parent_plant_id == Plant.id',
+                                 uselist=False, 
+                                 cascade='delete, delete-orphan')
 
+    from_location = relationship('Location', primaryjoin='PlantChange.from_location_id == Location.id')
+    to_location = relationship('Location', primaryjoin='PlantChange.to_location_id == Location.id')
 
 # TODO: should sex be recorded at the species, accession or plant
 # level or just as part of a check since sex can change in some species
@@ -404,10 +402,24 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
     location_id = Column(Integer, ForeignKey('location.id'), nullable=False)
 
-    propagations = relationship('Propagation', cascade='all, delete-orphan',
-                            single_parent=True,
-                            secondary=PlantPropagation.__table__,
-                            backref=backref('plant', uselist=False))
+    # Relationships
+    accession = relationship('Accession', back_populates='plants')
+
+    propagations = relationship('Propagation',
+                                 secondary='plant_prop',
+                                 back_populates='plants',
+                                 cascade='all, delete-orphan',
+                                 single_parent=True)
+
+    changes = relationship('PlantChange',
+                           back_populates='plant',
+                           cascade='all, delete-orphan')
+
+    branches = relationship('PlantChange',
+                            back_populates='parent_plant',
+                            cascade='delete, delete-orphan')
+    
+    location = relationship('Location', back_populates='plants', uselist=False)
 
     _delimiter = None
 
@@ -535,6 +547,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                 (8, 'Sources'): set(sd and [sd.id] or []),
                 }
 
+PlantNote = db.make_note_class('Plant', Plant, compute_serializable_fields, as_dict, retrieve)
 
 from bauble.plugins.garden.accession import Accession
 

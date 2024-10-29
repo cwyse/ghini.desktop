@@ -36,7 +36,7 @@ from gi.repository import GObject
 from sqlalchemy import Column, Unicode, Integer, ForeignKey,\
     Float, UnicodeText, select
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
 
 
 import bauble.db as db
@@ -103,15 +103,16 @@ class Source(db.Base):
     sources_code = Column(Unicode(32))
 
     accession_id = Column(Integer, ForeignKey('accession.id'), unique=True)
+    accession = relationship('Accession', back_populates='source')
 
     source_detail_id = Column(Integer, ForeignKey('contact.id'))
     source_detail = relationship('Contact', uselist=False,
-                             backref=backref('sources',
-                                             cascade='all, delete-orphan'))
+                             back_populates='sources',
+                                             cascade='all, delete-orphan')
 
     collection = relationship('Collection', uselist=False,
                           cascade='all, delete-orphan',
-                          backref=backref('source', uselist=False))
+                          back_populates='source')
 
     # relation to a propagation that is specific to this Source and
     # not attached to a Plant. 2017-06-04 : WHAT IS THIS ?
@@ -119,7 +120,7 @@ class Source(db.Base):
     propagation = relationship('Propagation', uselist=False, single_parent=True,
                            primaryjoin='Source.propagation_id==Propagation.id',
                            cascade='all, delete-orphan',
-                           backref=backref('source', uselist=False))
+                           back_populates='source')
 
     # an Accession of known Source (what we are describing here) may be in
     # relation to a successful Plant Propagation trial. In this case, the
@@ -127,9 +128,9 @@ class Source(db.Base):
     # `used_source[i].accession`. Arguably not practical.
     plant_propagation_id = Column(Integer, ForeignKey('propagation.id'))
     plant_propagation = relationship(
-        'Propagation', uselist=False,
+        'Propagation', 
         primaryjoin='Source.plant_propagation_id==Propagation.id',
-        backref=backref('used_source', uselist=True))
+        back_populates='used_source', uselist=True)
 
 
 source_type_values = [('Expedition', _('Expedition')),
@@ -810,9 +811,6 @@ def compute_serializable_fields(cls, session, keys):
 
     return result
 
-ContactNote = db.make_note_class('Contact', compute_serializable_fields)
-
-
 class Contact(db.Base, db.Serializable, db.WithNotes):
     __tablename__ = 'contact'
     __mapper_args__ = {'order_by': 'name'}
@@ -825,6 +823,9 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     source_type = Column(types.Enum(values=[i[0] for i in source_type_values],
                                     translations=dict(source_type_values)),
                          default=None)
+    sources = relationship('Sources', uselist=False,
+                             back_populates='Contact',
+                                             cascade='all, delete-orphan')
 
     def __str__(self):
         return utils.utf8(self.name)
@@ -845,6 +846,8 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
         except:
             return None
 
+
+ContactNote = db.make_note_class('Contact', Contact, compute_serializable_fields)
 
 class ContactPresenter(editor.GenericEditorPresenter):
 
