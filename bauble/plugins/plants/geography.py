@@ -56,8 +56,10 @@ def get_species_in_geographic_area(geo):
         return kids
     geokids = get_geographic_area_children(geo.id)
     master_ids.update(geokids)
+    from sqlalchemy import bindparam
     q = session.query(Species).join(SpeciesDistribution).\
-        filter(SpeciesDistribution.geographic_area_id.in_(master_ids))
+        filter(SpeciesDistribution.geographic_area_id.in_(bindparam('master_ids', expanding=True)))\
+        .params(master_ids=master_ids)
     return list(q)
 
 

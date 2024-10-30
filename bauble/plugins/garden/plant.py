@@ -175,8 +175,9 @@ def is_code_unique(plant, code):
     # accession_id until the session is flushed
     session = db.Session()
     from bauble.plugins.garden import Accession
+    from sqlalchemy import bindparam
     count = session.query(Plant).join(Accession, Plant.accession_id == Accession.id).\
-        filter(and_(Accession.id == plant.accession.id, Plant.code.in_(codes))).count()
+        filter(and_(Accession.id == plant.accession.id, Plant.code.in_(bindparam('codes', expanding=True)))).count()
     session.close()
     return count == 0
 

@@ -124,7 +124,10 @@ def get_plant_query(obj, session):
 
     elif isinstance(obj, Tag):
         plants = get_pertinent_objects(Plant, obj.objects)
-        return q.filter(Plant.id.in_([p.id for p in plants]))
+        from sqlalchemy import bindparam
+
+        return q.filter(Plant.id.in_(bindparam('plant_ids', expanding=True))).params(plant_ids=[p.id for p in plants])
+
     else:
         raise BaubleError(_("Can't get plants from a %s") % type(obj).__name__)
 
@@ -171,7 +174,9 @@ def get_accession_query(obj, session):
 
     elif isinstance(obj, Tag):
         acc = get_pertinent_objects(Accession, obj.objects)
-        return q.filter(Accession.id.in_([a.id for a in acc]))
+        from sqlalchemy import bindparam
+
+        return q.filter(Accession.id.in_(bindparam('accession_ids', expanding=True))).params(accession_ids=[a.id for a in acc])
     else:
         raise BaubleError(_("Can't get accessions from a %s") %
                           type(obj).__name__)
@@ -215,7 +220,10 @@ def get_species_query(obj, session):
 
     elif isinstance(obj, Tag):
         acc = get_pertinent_objects(Species, obj.objects)
-        return q.filter(Species.id.in_([a.id for a in acc]))
+        from sqlalchemy import bindparam
+
+        return q.filter(Species.id.in_(bindparam('species_ids', expanding=True))).params(species_ids=[a.id for a in acc])
+
     else:
         raise BaubleError(_("Can't get species from a %s") %
                           type(obj).__name__)
@@ -266,7 +274,10 @@ def get_location_query(obj, session):
 
     elif isinstance(obj, Tag):
         locs = get_pertinent_objects(Location, obj.objects)
-        return q.filter(Location.id.in_([l.id for l in locs]))
+        from sqlalchemy import bindparam
+
+        return q.filter(Location.id.in_(bindparam('location_ids', expanding=True))).params(location_ids=[l.id for l in locs])
+
     else:
         raise BaubleError(_("Can't get Location from a %s") %
                           type(obj).__name__)
