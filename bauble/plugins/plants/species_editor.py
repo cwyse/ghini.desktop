@@ -956,8 +956,9 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self.init_treeview()
 
         def sp_get_completions(text):
-            query = self.session.query(Species).join('genus').\
-                filter(utils.ilike(Genus.genus, '%s%%' % text)).\
+            query = self.session.query(Species).\
+                join(Genus, Species.genus_id == Genus.id).\
+                filter(utils.ilike(Genus.genus, f'{text}%')).\
                 filter(Species.id != self.model.id).\
                 order_by(Genus.genus, Species.epithet)
             return query

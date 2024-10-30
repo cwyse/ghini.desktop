@@ -83,21 +83,45 @@ def get_plant_query(obj, session):
     # .order_by(None) is needed for the later union() to work properly
     q = session.query(Plant)
     if isinstance(obj, Family):
-        return q.join('accession', 'species', 'genus', 'family').filter_by(id=obj.id)
+        return q.join(Accession, Plant.accession) \
+                .join(Species, Accession.species) \
+                .join(Genus, Species.genus) \
+                .join(Family, Genus.family) \
+                .filter(Family.id == obj.id)
+
     elif isinstance(obj, Genus):
-        return q.join('accession', 'species', 'genus').filter_by(id=obj.id)
+        return q.join(Accession, Plant.accession) \
+                .join(Species, Accession.species) \
+                .join(Genus, Species.genus) \
+                .filter(Genus.id == obj.id)
+
     elif isinstance(obj, Species):
-        return q.join('accession', 'species').filter_by(id=obj.id)
+        return q.join(Accession, Plant.accession) \
+                .join(Species, Accession.species) \
+                .filter(Species.id == obj.id)
+
     elif isinstance(obj, VernacularName):
-        return q.join('accession', 'species', 'vernacular_names').filter_by(id=obj.id)
+        return q.join(Accession, Plant.accession) \
+                .join(Species, Accession.species) \
+                .join(Species.vernacular_names) \
+                .filter(VernacularName.id == obj.id)
+
     elif isinstance(obj, Plant):
-        return q.filter_by(id=obj.id)
+        return q.filter(Plant.id == obj.id)
+
     elif isinstance(obj, Accession):
-        return q.join('accession').filter_by(id=obj.id)
+        return q.join(Accession, Plant.accession) \
+                .filter(Accession.id == obj.id)
+
     elif isinstance(obj, Location):
-        return q.filter_by(location_id=obj.id)
+        return q.filter(Plant.location_id == obj.id)
+
     elif isinstance(obj, Contact):
-        return q.join('accession', 'source', 'source_detail').filter_by(id=obj.id)
+        return q.join(Accession, Plant.accession) \
+                .join(Source, Accession.source) \
+                .join(SourceDetail, Source.source_detail) \
+                .filter(Contact.id == obj.id)
+
     elif isinstance(obj, Tag):
         plants = get_pertinent_objects(Plant, obj.objects)
         return q.filter(Plant.id.in_([p.id for p in plants]))
@@ -110,21 +134,41 @@ def get_accession_query(obj, session):
     """
     q = session.query(Accession)
     if isinstance(obj, Family):
-        return q.join('species', 'genus', 'family').filter_by(id=obj.id)
+        return q.join(Species, Accession.species) \
+                .join(Genus, Species.genus) \
+                .join(Family, Genus.family) \
+                .filter(Family.id == obj.id)
+
     elif isinstance(obj, Genus):
-        return q.join('species', 'genus').filter_by(id=obj.id)
+        return q.join(Species, Accession.species) \
+                .join(Genus, Species.genus) \
+                .filter(Genus.id == obj.id)
+
     elif isinstance(obj, Species):
-        return q.join('species').filter_by(id=obj.id)
+        return q.join(Species, Accession.species) \
+                .filter(Species.id == obj.id)
+
     elif isinstance(obj, VernacularName):
-        return q.join('species', 'vernacular_names').filter_by(id=obj.id)
+        return q.join(Species, Accession.species) \
+                .join(Species.vernacular_names) \
+                .filter(VernacularName.id == obj.id)
+
     elif isinstance(obj, Plant):
-        return q.join('plants').filter_by(id=obj.id)
+        return q.join(Plant, Accession.plants) \
+                .filter(Plant.id == obj.id)
+
     elif isinstance(obj, Accession):
-        return q.filter_by(id=obj.id)
+        return q.filter(Accession.id == obj.id)
+
     elif isinstance(obj, Location):
-        return q.join('plants').filter_by(location_id=obj.id)
+        return q.join(Plant, Accession.plants) \
+                .filter(Plant.location_id == obj.id)
+
     elif isinstance(obj, Contact):
-        return q.join('source', 'source_detail').filter_by(id=obj.id)
+        return q.join(Source, Accession.source) \
+                .join(SourceDetail, Source.source_detail) \
+                .filter(Contact.id == obj.id)
+
     elif isinstance(obj, Tag):
         acc = get_pertinent_objects(Accession, obj.objects)
         return q.filter(Accession.id.in_([a.id for a in acc]))
@@ -138,21 +182,37 @@ def get_species_query(obj, session):
     """
     q = session.query(Species)
     if isinstance(obj, Family):
-        return q.join('genus', 'family').filter_by(id=obj.id)
+        return q.join(Genus, Species.genus) \
+                .join(Family, Genus.family) \
+                .filter(Family.id == obj.id)
+
     elif isinstance(obj, Genus):
-        return q.join('genus').filter_by(id=obj.id)
+        return q.join(Genus, Species.genus) \
+                .filter(Genus.id == obj.id)
+
     elif isinstance(obj, Species):
-        return q.filter_by(id=obj.id)
+        return q.filter(Species.id == obj.id)
+
     elif isinstance(obj, VernacularName):
-        return q.join('vernacular_names').filter_by(id=obj.id)
+        return q.join(Species.vernacular_names) \
+                .filter(VernacularName.id == obj.id)
+
     elif isinstance(obj, Plant):
-        return q.join('accessions', 'plants').filter_by(id=obj.id)
+        return q.join(Accession.plants) \
+                .filter(Plant.id == obj.id)
+
     elif isinstance(obj, Accession):
-        return q.join('accessions').filter_by(id=obj.id)
+        return q.filter(Accession.id == obj.id)
+
     elif isinstance(obj, Location):
-        return q.join('accessions', 'plants', 'location').filter_by(id=obj.id)
+        return q.join(Accession.plants) \
+                .filter(Plant.location_id == obj.id)
+
     elif isinstance(obj, Contact):
-        return q.join('accessions', 'source', 'source_detail').filter_by(id=obj.id)
+        return q.join(Accession.source) \
+                .join(Source.source_detail) \
+                .filter(Contact.id == obj.id)
+
     elif isinstance(obj, Tag):
         acc = get_pertinent_objects(Species, obj.objects)
         return q.filter(Species.id.in_([a.id for a in acc]))
@@ -166,26 +226,44 @@ def get_location_query(obj, session):
     """
     q = session.query(Location)
     if isinstance(obj, Location):
-        return q.filter_by(id=obj.id)
+        return q.filter(Location.id == obj.id)
+
     elif isinstance(obj, Plant):
-        return q.join('plants').filter_by(id=obj.id)
+        return q.filter(Plant.id == obj.id)
+
     elif isinstance(obj, Accession):
-        return q.join('plants', 'accession').filter_by(id=obj.id)
+        return q.join(Plant.accession).filter(Accession.id == obj.id)
+
     elif isinstance(obj, Family):
-        return q.join('plants', 'accession', 'species', 'genus', 'family').\
-            filter_by(id=obj.id)
+        return q.join(Plant.accession) \
+                .join(Accession.species) \
+                .join(Species.genus) \
+                .join(Genus.family) \
+                .filter(Family.id == obj.id)
+
     elif isinstance(obj, Genus):
-        return q.join('plants', 'accession', 'species', 'genus').\
-            filter_by(id=obj.id)
+        return q.join(Plant.accession) \
+                .join(Accession.species) \
+                .join(Species.genus) \
+                .filter(Genus.id == obj.id)
+
     elif isinstance(obj, Species):
-        return q.join('plants', 'accession', 'species').\
-            filter_by(id=obj.id)
+        return q.join(Plant.accession) \
+                .join(Accession.species) \
+                .filter(Species.id == obj.id)
+
     elif isinstance(obj, VernacularName):
-        return q.join('plants', 'accession', 'species', 'vernacular_names').\
-            filter_by(id=obj.id)
+        return q.join(Plant.accession) \
+                .join(Accession.species) \
+                .join(Species.vernacular_names) \
+                .filter(VernacularName.id == obj.id)
+
     elif isinstance(obj, Contact):
-        return q.join('plants', 'accession', 'source', 'source_detail').\
-            filter_by(id=obj.id)
+        return q.join(Plant.accession) \
+                .join(Accession.source) \
+                .join(Source.source_detail) \
+                .filter(Contact.id == obj.id)
+
     elif isinstance(obj, Tag):
         locs = get_pertinent_objects(Location, obj.objects)
         return q.filter(Location.id.in_([l.id for l in locs]))

@@ -370,23 +370,29 @@ class GeneralSpeciesExpander(InfoExpander):
         from bauble.plugins.garden.accession import Accession
         from bauble.plugins.garden.plant import Plant
 
-        nacc = session.query(Accession).join('species').\
-            filter_by(id=row.id).count()
+        nacc = session.query(Accession).\
+            join(Species, Accession.species_id == Species.id).\
+            filter(Species.id == row.id).count()
         self.widget_set_value('sp_nacc_data', nacc)
 
-        nplants = session.query(Plant).join('accession', 'species').\
-            filter_by(id=row.id).count()
+        nplants = session.query(Plant).\
+            join(Accession, Plant.accession_id == Accession.id).\
+            join(Species, Accession.species_id == Species.id).\
+            filter(Species.id == row.id).count()
         if nplants == 0:
             self.widget_set_value('sp_nplants_data', nplants)
         else:
             nacc_in_plants = session.query(Plant.accession_id).\
-                join('accession', 'species').\
-                filter_by(id=row.id).distinct().count()
+                join(Accession, Plant.accession_id == Accession.id).\
+                join(Species, Accession.species_id == Species.id).\
+                filter(Species.id == row.id).distinct().count()
             self.widget_set_value('sp_nplants_data', '%s in %s accessions'
                                   % (nplants, nacc_in_plants))
 
-        living_plants = sum(i.quantity for i in session.query(Plant).join('accession', 'species').\
-                            filter_by(id=row.id).all())
+        living_plants = sum(i.quantity for i in session.query(Plant).\
+                            join(Accession, Plant.accession_id == Accession.id).\
+                            join(Species, Accession.species_id == Species.id).\
+                            filter(Species.id == row.id).all())
         self.widget_set_value('living_plants_count', living_plants)
 
 

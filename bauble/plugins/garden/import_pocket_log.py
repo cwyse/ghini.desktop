@@ -107,7 +107,7 @@ def process_inventory_line(session, baseline, timestamp, parameters):
     location = lookup(session, Location, code=(location_code or 'default'))
 
     # if plant is in place, edit it, otherwise, create it.
-    plant = session.query(Plant).filter_by(code=plant_code).join(Accession).filter_by(code=accession_code).first()
+    plant = session.query(Plant).filter_by(code=plant_code).join(Accession, Plant.accession_id == Accession.id).filter_by(code=accession_code).first()
     if plant is not None:
         # no location_code means just asserting existence, on existing plant, so no effect.
         if location_code:
@@ -158,7 +158,7 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
         species = lookup(session, Species, genus=genus, epithet=epithets[1])
     
     # does this plant already exist?  
-    plant = session.query(Plant).filter_by(code=plant_code).join(Accession).filter_by(code=accession_code).first()
+    plant = session.query(Plant).filter_by(code=plant_code).join(Accession, Plant.accession_id == Accession.id).filter_by(code=accession_code).first()
     accession = session.query(Accession).filter_by(code=accession_code).first()
     if plant is None:
         # if it does not, we have work to do …
@@ -210,8 +210,7 @@ def process_line(session, line, baseline):
 
 
 if False:
-    q = session.query(Species).filter(Species.infrasp1 == u'sp')
-    q = q.join(Genus).filter(Genus.epithet == u'Zzz')
+    q = session.query(Species).filter(Species.infrasp1 == u'sp').join(Genus, Species.genus_id == Genus.id).filter(Genus.epithet == u'Zzz')
     zzz = q.one()
 
     import csv
@@ -237,9 +236,7 @@ if False:
         species = get_species(session, obj)
 
         try:
-            q = session.query(Plant)
-            q = q.join(Accession).filter(Accession.code == obj['acc_code'])
-            q = q.filter(Plant.code == u'1')
+            q = session.query(Plant).join(Accession, Plant.accession_id == Accession.id).filter(Accession.code == obj['acc_code']).filter(Plant.code == u'1')
             plant = q.one()
             if plant.location != loc:
                 plant.location = loc

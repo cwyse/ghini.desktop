@@ -269,7 +269,7 @@ class PlantTests(GardenTestCase):
         rng = '2,3,4-6'
 
         for code in utils.range_builder(rng):
-            q = self.session.query(Plant).join('accession').\
+            q = self.session.query(Plant).join(Accession, Plant.accession_id == Accession.id).\
                 filter(and_(Accession.id == self.plant.accession.id,
                             Plant.code == utils.utf8(code)))
             self.assertTrue(not q.first(), 'code already exists')
@@ -291,9 +291,12 @@ class PlantTests(GardenTestCase):
         self.editor.handle_response(Gtk.ResponseType.OK)
 
         for code in utils.range_builder(rng):
-            q = self.session.query(Plant).join('accession').\
+            from sqlalchemy import and_
+
+            q = self.session.query(Plant).join(Accession).\
                 filter(and_(Accession.id == self.plant.accession.id,
                             Plant.code == utils.utf8(code)))
+
             self.assertTrue(q.first(), 'plant %s.%s not created' %
                          (self.accession, code))
 

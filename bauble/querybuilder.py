@@ -46,24 +46,21 @@ def safe_set_text(gtk_widget, text):
         text = ''
     gtk_widget.set_text(text)
 
-
 def parse_typed_value(value):
-    """parse the input string and return the corresponding typed value
-
-    handles integers, floats, None, Empty, and falls back to string.
-    """
+    """Parses input and returns corresponding typed value: int, float, None, or EmptyToken."""
     try:
-        new_val = value
-        new_val = float(value)
-        new_val = int(value)
-    except:
         if value == 'None':
-            new_val = None
-        if value == 'Empty':
-            new_val = EmptyToken()
-    value = new_val
-    return value
-
+            return None
+        elif value == 'Empty':
+            return EmptyToken()
+        try:
+            new_val = int(value)
+        except ValueError:
+            new_val = float(value)
+        return new_val
+    except ValueError as e:
+        logger.error("Invalid input type: %s", value)
+        return value  # fallback to string
 
 class SchemaMenu(Gtk.Menu):
     """SchemaMenu

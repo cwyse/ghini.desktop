@@ -734,7 +734,7 @@ def get_tag_ids(objs):
 
     """
     session = object_session(objs[0])
-    tag_id_query = session.query(Tag.id).join('_objects')
+    tag_id_query = session.query(Tag.id).join(TaggedObj, Tag._objects)
     starting_now = True
     s_all = set()
     s_some = set()
