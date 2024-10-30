@@ -12,7 +12,7 @@ FROM debian:bullseye AS build
 #
 ENV DOCKER_BUILD_CMD="\
           docker buildx build --ssh default                                                \
-                              --build-arg REPO_COMMIT=$(git rev-parse ghini-3.1-dev-cjw)   \
+                              --build-arg REPO_COMMIT=$(git rev-parse migrate_to_1.3)      \
                               --build-arg USER_ID=$(id -u)                                 \
                               --build-arg GROUP_ID=$(id -g)                                \
                               --load                                                       \
@@ -44,7 +44,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Set up environment variables
 ENV HOME=/root
-ENV LINE=ghini-3.1-dev-cjw
+ENV LINE=migrate_to_1.3
 ENV VIRTUAL_ENV=/opt/venv/$LINE
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV USER=root
@@ -111,7 +111,7 @@ RUN python3 -m venv $VIRTUAL_ENV \
     && pip install PyGObject \
     && pip install psycopg2 \
     && pip install . \
-    && pip install SQLAlchemy==1.2.7 alembic==1.0.11 sqlalchemy-utils==0.32.4 \
+    && pip install SQLAlchemy==1.3 alembic==1.0.11 sqlalchemy-utils==0.32.4 \
     && pip install 'sqlalchemy-diff==0.1.3' || echo "sqlalchemy-diff version incompatible, skipping" \
     && alembic init alembic \
     && rm -rf $HOME/.cache/pip
@@ -153,7 +153,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Set up environment variables
 ENV HOME=/home/ghini
-ENV LINE=ghini-3.1-dev-cjw
+ENV LINE=migrate_to_1.3
 ENV VIRTUAL_ENV=/opt/venv/$LINE
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV USER=ghini
