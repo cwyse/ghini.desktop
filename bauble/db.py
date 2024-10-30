@@ -107,41 +107,6 @@ def natsort(attr, obj):
         obj = getattr(obj, attr)
     return sorted(obj, key=utils.natsort_key)
 
-
-class HistoryExtension(orm.MapperExtension):
-    """
-    HistoryExtension is a
-    :class:`~sqlalchemy.orm.interfaces.MapperExtension` that is added
-    to all clases that inherit from bauble.db.Base so that all
-    inserts, updates, and deletes made to the mapped objects are
-    recorded in the `history` table.
-    """
-    def _add(self, operation, mapper, connection, instance):
-        """
-        Add a new entry to the history table.
-        """
-        user = current_user()
-
-        row = {}
-        for c in mapper.local_table.c:
-            row[c.name] = utils.utf8(getattr(instance, c.name))
-        table = History.__table__
-        stmt = table.insert(dict(table_name=mapper.local_table.name,
-                                 table_id=instance.id, values=str(row),
-                                 operation=operation, user=user,
-                                 timestamp=datetime.datetime.today()))
-        connection.execute(stmt)
-
-    def after_update(self, mapper, connection, instance):
-        self._add('update', mapper, connection, instance)
-
-    def after_insert(self, mapper, connection, instance):
-        self._add('insert', mapper, connection, instance)
-
-    def after_delete(self, mapper, connection, instance):
-        self._add('delete', mapper, connection, instance)
-
-
 class MapperBase(DeclarativeMeta):
     """
     MapperBase adds the id, _created and _last_updated columns to all
@@ -161,7 +126,6 @@ class MapperBase(DeclarativeMeta):
                                           types.DateTime(timezone=True),
                                           default=sa.func.now(),
                                           onupdate=sa.func.now())
-            cls.__mapper_args__ = {'extension': HistoryExtension()}
         if 'top_level_count' not in dict_:
             cls.top_level_count = lambda x: {classname: 1}
         if 'search_view_markup_pair' not in dict_:
@@ -200,6 +164,38 @@ plugin for declaring tables and mappers should derive from this class.
 
 An instance of :class:`sqlalchemy.ext.declarative.Base`
 """
+
+from sqlalchemy import event
+
+def add_history_entry(operation, instance):
+    """Helper function to add history entry."""
+    session = orm.object_session(instance)
+    user = current_user()
+    row = {c.name: utils.utf8(getattr(instance, c.name)) for c in instance.__table__.columns}
+
+    table = History.__table__
+    stmt = table.insert().values(
+        table_name=instance.__tablename__,
+        table_id=instance.id,
+        values=str(row),
+        operation=operation,
+        user=user,
+        timestamp=datetime.datetime.now()
+    )
+    session.execute(stmt)
+
+# Define event listeners
+@event.listens_for(Base, 'after_insert')
+def after_insert(mapper, connection, target):
+    add_history_entry('insert', target)
+
+@event.listens_for(Base, 'after_update')
+def after_update(mapper, connection, target):
+    add_history_entry('update', target)
+
+@event.listens_for(Base, 'after_delete')
+def after_delete(mapper, connection, target):
+    add_history_entry('delete', target)
 
 
 metadata = Base.metadata

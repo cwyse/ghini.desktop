@@ -661,10 +661,10 @@ class PropagationChooserPresenter(editor.ChildPresenter):
             from bauble.plugins.garden.accession import Accession
             from bauble.plugins.garden.plant import Plant
             query = self.session.query(Plant).\
-                    filter(Plant.propagations.any()).\
-                    join('accession').\
-                    filter(Accession.id != self.model.accession.id).\
-                    order_by(Accession.code, Plant.code)
+                filter(Plant.propagations.any()).\
+                join(Accession, Plant.accession_id == Accession.id).\
+                filter(Accession.id != self.model.accession.id).\
+                order_by(Accession.code, Plant.code)
             result = self.view.widgets.source_prop_plant_liststore
             for plant in query:
                 has_accessible = False

@@ -44,8 +44,7 @@ from gi.repository import Pango
 from sqlalchemy import and_, or_, func
 from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
     UnicodeText
-from sqlalchemy.orm import EXT_CONTINUE, MapperExtension, \
-    relationship, reconstructor, validates
+from sqlalchemy.orm import relationship, reconstructor, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 
@@ -365,12 +364,10 @@ class Voucher(db.Base):
     accession = relationship('Accession', back_populates='vouchers')
 
 # invalidate an accessions string cache after it has been updated
-class AccessionMapperExtension(MapperExtension):
-
-    def after_update(self, mapper, conn, instance):
-        instance.invalidate_str_cache()
-        return EXT_CONTINUE
-
+# Register the after_update event
+@event.listens_for(Accession, "after_update")
+def receive_after_update(mapper, connection, target):
+    target.invalidate_str_cache()
 
 # ITF2 - E.1; Provenance Type Flag; Transfer code: prot
 prov_type_values = [
@@ -582,8 +579,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
 
     """
     __tablename__ = 'accession'
-    __mapper_args__ = {'order_by': 'accession.code',
-                       'extension': AccessionMapperExtension()}
+    __mapper_args__ = {'order_by': 'accession.code'}
 
     # columns
     #: the accession code
@@ -1236,8 +1232,9 @@ class VerificationPresenter(editor.GenericEditorPresenter):
 
             # species entries
             def sp_get_completions(text):
-                query = self.presenter().session.query(Species).join('genus').\
-                    filter(utils.ilike(Genus.genus, '%s%%' % text)).\
+                from utils import ilike
+                query = self.presenter().session.query(Species).join(Species.genus).\
+                    filter(ilike(Genus.genus, f'{text}%')).\
                     filter(Species.id != self.model.id).\
                     order_by(Species.sp)
                 return query
@@ -1864,19 +1861,15 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
         # connect signals
         def sp_get_completions(text):
-            query = self.session.query(Species)
-            genus = ''
-            try:
-                genus = text.split(' ')[0]
-            except Exception:
-                pass
             from utils import ilike
-            return query.filter(
-                and_(Species.genus_id == Genus.id,
-                     or_(ilike(Genus.genus, '%s%%' % text),
-                         ilike(Genus.genus, '%s%%' % genus)))).\
-                order_by(Species.sp)
-
+            genus_name = text.split(' ')[0] if ' ' in text else text
+            query = self.session.query(Species).join(Species.genus).\
+                filter(or_(
+                    ilike(Genus.genus, f'{text}%'),
+                    ilike(Genus.genus, f'{genus_name}%')
+                )).order_by(Species.sp)
+            return query
+            
         def on_select(self, value):
             logger.debug('on select: %s', value)
             if isinstance(value, str):

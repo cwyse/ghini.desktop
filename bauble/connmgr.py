@@ -318,8 +318,9 @@ class ConnMgrPresenter(GenericEditorPresenter):
     def replace_leading_appdata(self, entry):
         value = self.view.widget_get_value(entry).replace('\\', '/')
         if value.startswith(paths.appdata_dir().replace('\\', '/')):
-            value = os.path.join('.', value[len(paths.appdata_dir()) + 1:])
-            value = os.path.join(*value.split('/'))
+            value = os.path.relpath(value, start=paths.appdata_dir())
+            from pathlib import Path
+            value = Path(value)
             self.view.widget_set_value(entry, value)
 
     def refresh_view(self):
@@ -630,8 +631,9 @@ class ConnMgrPresenter(GenericEditorPresenter):
         if self.dbtype == 'SQLite':
             if self.use_defaults is True:
                 name = new or self.connection_name
-                self.filename = os.path.join('.', name + '.db')
-                self.pictureroot = os.path.join('.', name)
+                from pathlib import Path
+                self.filename = Path('.') / f"{name}.db"
+                self.pictureroot = Path('.') / name
             result = {'file': self.filename,
                       'default': self.use_defaults,
                       'pictures': self.pictureroot}

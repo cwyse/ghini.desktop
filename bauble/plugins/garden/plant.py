@@ -144,7 +144,7 @@ def get_next_code(acc):
     # auto generate/increment the accession code
     session = db.Session()
     from bauble.plugins.garden import Accession
-    codes = session.query(Plant.code).join(Accession).\
+    codes = session.query(Plant.code).join(Accession, Plant.accession_id == Accession.id).\
         filter(Accession.id == acc.id).all()
     next = 1
     if codes:
@@ -175,9 +175,8 @@ def is_code_unique(plant, code):
     # accession_id until the session is flushed
     session = db.Session()
     from bauble.plugins.garden import Accession
-    count = session.query(Plant).join('accession').\
-        filter(and_(Accession.id == plant.accession.id,
-                    Plant.code.in_(codes))).count()
+    count = session.query(Plant).join(Accession, Plant.accession_id == Accession.id).\
+        filter(and_(Accession.id == plant.accession.id, Plant.code.in_(codes))).count()
     session.close()
     return count == 0
 
@@ -208,9 +207,8 @@ class PlantSearch(SearchStrategy):
 
         try:
             from bauble.plugins.garden import Accession
-            query = session.query(Plant).filter(
-                Plant.code == str(plant_code)).join(Accession).filter(
-                utils.ilike(Accession.code, '%%%s' % str(acc_code)))
+            query = session.query(Plant).join(Accession, Plant.accession_id == Accession.id).\
+                filter(Plant.code == str(plant_code), utils.ilike(Accession.code, f"%{acc_code}%"))
             return query.all()
         except Exception as e:
             logger.debug("%s %s" % (e.__class__.name, e))
@@ -411,8 +409,8 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                                  cascade='all, delete-orphan',
                                  single_parent=True)
 
-    changes = relationship('PlantChange',
-                           back_populates='plant',
+    changes = relationship('PlantChange', back_populates='plant',
+                           primaryjoin='PlantChange.plant_id == Plant.id',
                            cascade='all, delete-orphan', single_parent=True)
 
     branches = relationship('PlantChange',
@@ -529,9 +527,8 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.query(cls).filter(
-                cls.code == keys['code']).join(Accession).filter(
-                Accession.code == keys['accession']).one()
+            return session.query(cls).join(Accession, cls.accession_id == Accession.id).\
+                filter(cls.code == keys['code'], Accession.code == keys['accession']).one()
         except:
             return None
 
