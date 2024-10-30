@@ -84,6 +84,8 @@ class JSONExporter(editor.GenericEditorPresenter):
         super().__init__(
             model=self, view=view, refresh_view=True)
 
+    from sqlalchemy import bindparam
+
     def get_objects(self):
         '''return the list of objects to be exported
 
@@ -98,21 +100,33 @@ class JSONExporter(editor.GenericEditorPresenter):
             result = self.view.get_selection()
             if result is None:
                 return result
+            
             vernacular = speciesnotes = plantnotes = accessionnotes = []
+            
+            # Handle species
             species = [j.id for j in result if isinstance(j, Species)]
             if species:
                 vernacular = self.session.query(VernacularName).filter(
-                    VernacularName.species_id.in_(species)).all()
+                    VernacularName.species_id.in_(bindparam('species_ids', expanding=True))
+                ).params(species_ids=species).all()
                 speciesnotes = self.session.query(SpeciesNote).filter(
-                    SpeciesNote.species_id.in_(species)).all()
+                    SpeciesNote.species_id.in_(bindparam('species_ids', expanding=True))
+                ).params(species_ids=species).all()
+            
+            # Handle plants
             plants = [j.id for j in result if isinstance(j, Plant)]
             if plants:
                 plantnotes = self.session.query(PlantNote).filter(
-                    PlantNote.plant_id.in_(plants)).all()
+                    PlantNote.plant_id.in_(bindparam('plant_ids', expanding=True))
+                ).params(plant_ids=plants).all()
+            
+            # Handle accessions
             accessions = [j.id for j in result if isinstance(j, Accession)]
             if accessions:
                 accessionnotes = self.session.query(AccessionNote).filter(
-                    AccessionNote.accession_id.in_(accessions)).all()
+                    AccessionNote.accession_id.in_(bindparam('accession_ids', expanding=True))
+                ).params(accession_ids=accessions).all()
+            
             return result + vernacular + plantnotes + accessionnotes + speciesnotes
 
         ## export disregarding selection
@@ -121,37 +135,55 @@ class JSONExporter(editor.GenericEditorPresenter):
             plant_query = self.session.query(
                 Plant).order_by(Plant.code).join(
                 Accession).order_by(Accession.code)
+            
             if self.include_private is False:
                 plant_query = plant_query.filter(
                     Accession.private == False)  # `is` does not work
+            
             plants = plant_query.all()
+            
+            # Plant notes with bindparam for dynamic expansion
             plantnotes = self.session.query(PlantNote).filter(
-                PlantNote.plant_id.in_([j.id for j in plants])).all()
-            ## only used locations and accessions
+                PlantNote.plant_id.in_(bindparam('plant_ids', expanding=True))
+            ).params(plant_ids=[j.id for j in plants]).all()
+            
+            # Locations with bindparam for dynamic expansion
             locations = self.session.query(Location).filter(
-                Location.id.in_([j.location_id for j in plants])).all()
+                Location.id.in_(bindparam('location_ids', expanding=True))
+            ).params(location_ids=[j.location_id for j in plants]).all()
+            
+            # Accessions with bindparam for dynamic expansion
             accessions = self.session.query(Accession).filter(
-                Accession.id.in_([j.accession_id for j in plants])).order_by(
+                Accession.id.in_(bindparam('accession_ids', expanding=True))
+            ).params(accession_ids=[j.accession_id for j in plants]).order_by(
                 Accession.code).all()
-            ## notes are linked in opposite direction
+            
+            # Accession notes with bindparam for dynamic expansion
             accessionnotes = self.session.query(AccessionNote).filter(
-                AccessionNote.accession_id.in_(
-                    [j.id for j in accessions])).all()
-            ## all used contacts, but please don't repeat them.
+                AccessionNote.accession_id.in_(bindparam('acc_note_ids', expanding=True))
+            ).params(acc_note_ids=[j.id for j in accessions]).all()
+            
+            # All unique contacts, no bindparam needed as it's a set operation
             contacts = list(set(a.source.source_detail for a in accessions if a.source))
-            # extend results with things not further used
+            
+            # Extend results with non-further-used objects
             result.extend(locations)
             result.extend(plants)
             result.extend(plantnotes)
+
         elif self.selection_based_on == 'sbo_accessions':
             accessions = self.session.query(Accession).order_by(
                 Accession.code).all()
+            
             if self.include_private is False:
                 accessions = [j for j in accessions if j.private is False]
+            
+            # Accession notes with bindparam for dynamic expansion
             accessionnotes = self.session.query(AccessionNote).filter(
-                AccessionNote.accession_id.in_(
-                    [j.id for j in accessions])).all()
-            ## all used contacts, but please don't repeat them.
+                AccessionNote.accession_id.in_(bindparam('acc_note_ids', expanding=True))
+            ).params(acc_note_ids=[j.id for j in accessions]).all()
+            
+            # Unique contacts without repetition
             contacts = list(set(a.source.source_detail for a in accessions if a.source))
         else:
             contacts = []
@@ -161,28 +193,36 @@ class JSONExporter(editor.GenericEditorPresenter):
             species = self.session.query(Species).order_by(
                 Species.sp).all()
         else:
-            # prepend results with accession data
+            # Prepend results with accession data
             result = accessions + accessionnotes + result
 
+            # Species query with dynamic expansion for the list of species IDs
             species = self.session.query(Species).filter(
-                Species.id.in_([j.species_id for j in accessions])).order_by(
+                Species.id.in_(bindparam('species_ids', expanding=True))
+            ).params(species_ids=[j.species_id for j in accessions]).order_by(
                 Species.sp).all()
 
+        # Vernacular names with dynamic list expansion
         vernacular = self.session.query(VernacularName).filter(
-            VernacularName.species_id.in_([j.id for j in species])).all()
+            VernacularName.species_id.in_(bindparam('vernacular_species_ids', expanding=True))
+        ).params(vernacular_species_ids=[j.id for j in species]).all()
 
-        ## and all used genera and families
+        ## All used genera with dynamic list expansion
         genera = self.session.query(Genus).filter(
-            Genus.id.in_([j.genus_id for j in species])).order_by(
+            Genus.id.in_(bindparam('genus_ids', expanding=True))
+        ).params(genus_ids=[j.genus_id for j in species]).order_by(
             Genus.genus).all()
+
+        # Families with dynamic list expansion
         families = self.session.query(Familia).filter(
-            Familia.id.in_([j.family_id for j in genera])).order_by(
+            Familia.id.in_(bindparam('family_ids', expanding=True))
+        ).params(family_ids=[j.family_id for j in genera]).order_by(
             Familia.family).all()
 
-        # this should really be generalized, but while in 1.0 there's no point.
+        # Species notes with dynamic list expansion
         speciesnotes = self.session.query(SpeciesNote).filter(
-            SpeciesNote.species_id.in_(
-                [j.id for j in species])).all()
+            SpeciesNote.species_id.in_(bindparam('species_note_ids', expanding=True))
+        ).params(species_note_ids=[j.id for j in species]).all()
 
         ## prepend the result with the taxonomic information
         result = families + genera + species + speciesnotes + vernacular + contacts + result

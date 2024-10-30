@@ -111,10 +111,10 @@ class ExportToPocketThread(threading.Thread):
                            .filter(Accession.private == False))  # `is` does not work
         plants = plant_query.all()
         accessions = (session.query(Accession)
-                      .filter(Accession.id.in_([j.accession_id for j in plants]))
+                      .filter(Accession.id.in_(bindparam('accession_ids', expanding=True))).params(accession_ids=[j.accession_id for j in plants])
                       .order_by(Accession.id).all())
-        species = (session.query(Species).
-                   filter(Species.id.in_([j.species_id for j in accessions]))
+        species = (session.query(Species)
+                   .filter(Species.id.in_(bindparam('species_ids', expanding=True))).params(species_ids=[j.species_id for j in accessions])
                    .order_by(Species.id).all())
         import sqlite3
         cn = sqlite3.connect(self.filename)

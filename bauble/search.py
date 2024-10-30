@@ -304,7 +304,10 @@ class ElementSetExpression(IdentExpression):
 
     def evaluate(self, env):
         q, a = self.operands[0].evaluate(env)
-        return q.filter(a.in_(self.operands[1].express()))
+        from sqlalchemy import bindparam
+
+        return q.filter(a.in_(bindparam('operand_values', expanding=True))).params(operand_values=self.operands[1].express())
+
 
 
 class AggregatedExpression(IdentExpression):
