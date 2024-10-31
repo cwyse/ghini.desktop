@@ -12,6 +12,7 @@ FROM debian:bullseye AS build
 #
 ENV DOCKER_BUILD_CMD="\
           docker buildx build --ssh default                                                \
+                              --progress=plain                                             \
                               --build-arg REPO_COMMIT=$(git rev-parse migrate_to_1.3)      \
                               --build-arg USER_ID=$(id -u)                                 \
                               --build-arg GROUP_ID=$(id -g)                                \
@@ -20,6 +21,8 @@ ENV DOCKER_BUILD_CMD="\
 
 ENV DOCKER_RUN_CMD="\
           docker run --rm -it                                          \
+                     -p 5678:5678                                      \
+                     -e DEBUG=true                                     \
                      -e USER=ghini                                     \
                      -e DISPLAY=$DISPLAY                               \
                      -e DB_HOST=postgres.wysechoice.net                \
@@ -36,7 +39,7 @@ ENV DOCKER_RUN_CMD="\
                      -v /usr/lib/dri:/usr/lib/dri                      \
                      --device /dev/dri:/dev/dri                        \
                      --user $(id -u):$(id -g)                          \
-                     ghini-desktop:latest bash -c ghini                "
+                     ghini-desktop:latest                              "
 
 
 ## Set environment variables to suppress debconf warnings
@@ -110,6 +113,7 @@ RUN python3 -m venv $VIRTUAL_ENV \
     && pip install 'setuptools<58.0.0' \
     && pip install PyGObject \
     && pip install psycopg2 \
+    && pip install debugpy \
     && pip install . \
     && pip install SQLAlchemy==1.3 alembic==1.0.11 sqlalchemy-utils==0.32.4 \
     && pip install 'sqlalchemy-diff==0.1.3' || echo "sqlalchemy-diff version incompatible, skipping" \
@@ -176,6 +180,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     krb5-user \
     libkrb5-3 \
     postgresql-client \
+    procps \
+    vim \
     libcanberra-gtk-module \
     libcanberra-gtk3-module \
     gdk-pixbuf2.0-0 \
@@ -212,11 +218,21 @@ RUN mkdir -p /app
 # Copy application code from build stage with correct ownership
 COPY --from=build --chown=ghini:ghini /root/Local/github/Ghini/ghini-desktop /app
 
+# Expose debug port for debugpy
+EXPOSE 5678
+
 # Switch to the ghini user
 USER ghini
 
 # Set the working directory
 WORKDIR /app
 
-# Set entrypoint
-CMD ["ghini"]
+# Add the DEBUG environment variable with a default value of "false"
+ENV DEBUG=false
+
+# Modify CMD to run debugpy if DEBUG=true
+CMD if [ "$DEBUG" = "true" ]; then \
+        python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client $(which ghini); \
+    else \
+        ghini; \
+    fi

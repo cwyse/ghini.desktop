@@ -26,12 +26,13 @@ The top level module for Ghini.
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
+import debugpy
 
-
+debugpy.breakpoint()
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-consoleLevel = logging.INFO
+logger.setLevel(logging.DEBUG)
+consoleLevel = logging.DEBUG
 
 import imp
 import os
@@ -103,7 +104,7 @@ sys.path.append(paths.lib_dir())
 
 # set SQLAlchemy logging level
 import logging
-logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
+logging.getLogger('sqlalchemy').setLevel(logging.DEBUG)
 
 gui = None
 """bauble.gui is the instance :class:`bauble.ui.GUI`
