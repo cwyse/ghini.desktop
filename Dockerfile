@@ -196,6 +196,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgdk-pixbuf2.0-common \
     shared-mime-info \
     librsvg2-common \
+    net-tools \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
