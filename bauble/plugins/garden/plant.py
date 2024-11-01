@@ -41,6 +41,7 @@ from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
 from sqlalchemy.orm import relationship, object_mapper, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError, OperationalError
+from sqlalchemy import text
 
 import bauble.db as db
 from bauble.error import CheckConditionError
@@ -279,12 +280,11 @@ change_reasons = {
     None: ''
     }
 
-
 class PlantChange(db.Base):
     """
     """
     __tablename__ = 'plant_change'
-    __mapper_args__ = {'order_by': 'plant_change.date'}
+    __mapper_args__ = {'order_by': text('plant_change.date')}
 
     plant_id = Column(Integer, ForeignKey('plant.id'), nullable=False)
     parent_plant_id = Column(Integer, ForeignKey('plant.id'))
@@ -317,6 +317,7 @@ class PlantChange(db.Base):
     parent_plant = relationship('Plant',
                                  back_populates='branches',
                                  primaryjoin='PlantChange.parent_plant_id == Plant.id',
+                                 foreign_keys='PlantChange.parent_plant_id', 
                                  uselist=False, 
                                  cascade='delete, delete-orphan', single_parent=True)
 
@@ -381,7 +382,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     """
     __tablename__ = 'plant'
     __table_args__ = (UniqueConstraint('code', 'accession_id'), {})
-    __mapper_args__ = {'order_by': ['plant.accession_id', 'plant.code']}
+    __mapper_args__ = {'order_by': [text('plant.accession_id'), text('plant.code')]}
 
     # columns
     code = Column(Unicode(6), nullable=False)
@@ -416,6 +417,8 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     branches = relationship('PlantChange',
                             back_populates='parent_plant',
+                            primaryjoin='PlantChange.parent_plant_id == Plant.id',  
+                            foreign_keys='PlantChange.parent_plant_id',
                             cascade='delete, delete-orphan', single_parent=True)
     
     location = relationship('Location', back_populates='plants', uselist=False)
@@ -546,6 +549,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                 }
 
 PlantNote = db.make_note_class('Plant', Plant, compute_serializable_fields, as_dict, retrieve)
+Plant.notes = relationship('PlantNote', back_populates='plant', cascade='all, delete-orphan', single_parent=True)
 
 from bauble.plugins.garden.accession import Accession
 

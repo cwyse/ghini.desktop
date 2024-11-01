@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from sqlalchemy.orm import class_mapper
+from sqlalchemy import text
 
 import datetime
 import os
@@ -548,7 +549,7 @@ def make_note_class(name, related_class, compute_serializable_fields=None, as_di
 
     bases = (Base, )
     fields = {'__tablename__': table_name,
-              '__mapper_args__': {'order_by': table_name + '.date'},
+              '__mapper_args__': {'order_by': text(table_name + '.date')},
 
               'date': sa.Column(types.Date, default=sa.func.now()),
               'user': sa.Column(sa.Unicode(64), default=''),

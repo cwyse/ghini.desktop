@@ -36,7 +36,7 @@ import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
 import bauble.btypes as types
-
+from sqlalchemy import text
 
 
 def _remove_zws(s):
@@ -163,11 +163,11 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     epithet = Column(Unicode(64), nullable=False, index=True)
     genus_id = Column(Integer, ForeignKey('genus.id'), nullable=False)
     __table_args__ = (UniqueConstraint('genus_id', 'epithet', name='_genus_epithet_uc'),)
-    __mapper_args__ = {'order_by': ['epithet', 'author']}
+    __mapper_args__ = {'order_by': [text('species.epithet'), text('species.author')]}
 
     # Define relationship to Genus
-    genus = relationship('Genus', back_populates='species', lazy='dynamic')
-    accessions = relationship('Accession', back_populates='species')
+    genus = relationship('Genus', back_populates='species', lazy='joined')
+    accessions = relationship('Accession', back_populates='species') or []
 
     rank = 'species'
     link_keys = ['accepted']
@@ -405,13 +405,13 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     ## VernacularName.species gets defined here too.
     vernacular_names = relationship('VernacularName', cascade='all, delete-orphan',
                                 collection_class=VNList,
-                                back_populates='species', uselist=False, single_parent=True)
+                                back_populates='species', single_parent=True) or []
     _default_vernacular_name = relationship('DefaultVernacularName', uselist=False,
                                         cascade='all, delete-orphan',
                                         back_populates='species', single_parent=True)
     distribution = relationship('SpeciesDistribution',
                             cascade='all, delete-orphan',
-                            back_populates='species', uselist=False, single_parent=True)
+                            back_populates='species', single_parent=True) or []
 
     habit_id = Column(Integer, ForeignKey('habit.id'), default=None)
     habit = relationship('Habit', uselist=False, back_populates='species')
@@ -738,7 +738,7 @@ def retrieve(cls, session, keys):
         return None
 
 SpeciesNote = db.make_note_class('Species', Species, compute_serializable_fields, as_dict, retrieve)
-
+Species.notes = relationship('SpeciesNote', back_populates='species', cascade='all, delete-orphan', single_parent=True)
 
 class SpeciesSynonym(db.Base):
     """
@@ -752,8 +752,15 @@ class SpeciesSynonym(db.Base):
     synonym_id = Column(Integer, ForeignKey('species.id'),
                         nullable=False, unique=True)
 
+    # Relationship to the main Species entity
+    species = relationship(
+        'Species',
+        primaryjoin='SpeciesSynonym.species_id == Species.id',
+        back_populates='_synonyms',
+    ) or []
+
     # relations
-    synonym = relationship('Species', uselist=False,
+    synonym = relationship('Species', 
                        primaryjoin='SpeciesSynonym.synonym_id==Species.id')
 
     def __init__(self, synonym=None, **kwargs):
@@ -793,7 +800,7 @@ class VernacularName(db.Base, db.Serializable):
                                        'species_id', name='vn_index'), {})
     species = relationship('Species', cascade='all, delete-orphan',
                                 collection_class=VNList,
-                                back_populates='VernacularName', uselist=False, single_parent=True)
+                                back_populates='vernacular_names', uselist=False, single_parent=True)
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row.
@@ -940,6 +947,11 @@ class Color(db.Base):
 
     name = Column(Unicode(32))
     code = Column(Unicode(8), unique=True)
+    species = relationship(
+        'Species',
+        back_populates='flower_color',
+        uselist=False  # If Habit is associated with only one Species
+    )
 
     def __str__(self):
         if self.name:

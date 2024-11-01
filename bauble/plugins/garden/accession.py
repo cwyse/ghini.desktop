@@ -47,6 +47,7 @@ from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
 from sqlalchemy.orm import relationship, reconstructor, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy import text
 
 import bauble
 import bauble.db as db
@@ -289,7 +290,7 @@ class Verification(db.Base):
 
     """
     __tablename__ = 'verification'
-    __mapper_args__ = {'order_by': 'verification.date'}
+    __mapper_args__ = {'order_by': text('verification.date')}
 
     # columns
     verifier = Column(Unicode(64), nullable=False)
@@ -364,12 +365,6 @@ class Voucher(db.Base):
     parent_material = Column(Boolean, default=False)
     accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
     accession = relationship('Accession', back_populates='vouchers')
-
-# invalidate an accessions string cache after it has been updated
-# Register the after_update event
-@event.listens_for(Accession, "after_update")
-def receive_after_update(mapper, connection, target):
-    target.invalidate_str_cache()
 
 # ITF2 - E.1; Provenance Type Flag; Transfer code: prot
 prov_type_values = [
@@ -581,7 +576,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
 
     """
     __tablename__ = 'accession'
-    __mapper_args__ = {'order_by': 'accession.code'}
+    __mapper_args__ = {'order_by': text('accession.code')}
 
     # columns
     #: the accession code
@@ -644,7 +639,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
                       back_populates='accession', uselist=False, single_parent=True)
     verifications = relationship('Verification',  # order_by='date',
                              cascade='all, delete-orphan',
-                             back_populates ='accession', uselist=False, single_parent=True)
+                             back_populates ='accession', single_parent=True) or []
     vouchers = relationship('Voucher', cascade='all, delete-orphan',
                         back_populates='accession', uselist=False, single_parent=True)
     intended_location = relationship(
@@ -860,8 +855,15 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
                 (8, 'Sources'): set(sd and [sd.id] or [])}
 
 
+
+# invalidate an accessions string cache after it has been updated
+# Register the after_update event
+@event.listens_for(Accession, "after_update")
+def receive_after_update(mapper, connection, target):
+    target.invalidate_str_cache()
+
 AccessionNote = db.make_note_class('Accession', Accession, compute_serializable_fields)
-AccessionNote.notes = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan', single_parent=True)
+Accession.notes = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan', single_parent=True)
 
 from bauble.plugins.garden.plant import Plant, PlantEditor
 
@@ -1143,7 +1145,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
         list(map(box.remove, box.get_children()))
 
         # order by date of the existing verifications
-        for ver in model.verifications:
+        for ver in model.verifications or []:
             expander = self.add_verification_box(model=ver)
             expander.set_expanded(False)  # all are collapsed to start
 
@@ -2254,7 +2256,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         if not self.model.code or not self.model.species:
             return False
 
-        for ver in self.model.verifications:
+        for ver in self.model.verifications or []:
             ignore = ('id', 'accession_id', 'species_id', 'prev_species_id')
             if utils.get_invalid_columns(ver, ignore_columns=ignore) or \
                     not ver.species or not ver.prev_species:

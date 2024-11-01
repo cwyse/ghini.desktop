@@ -711,7 +711,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
 
     def refresh_view(self):
         label = self.view.widgets.sp_dist_label
-        s = ', '.join([str(d) for d in self.model.distribution])
+        s = ', '.join([str(d) for d in self.model.distribution or []])
         safe_set_text(label, s)
 
     def on_add_button_pressed(self, button, event):
@@ -1306,7 +1306,7 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
         #     self.model.cv_group = None
 
         # remove incomplete vernacular names
-        for vn in self.model.vernacular_names:
+        for vn in self.model.vernacular_names or []:
             if vn.name in (None, ''):
                 self.model.vernacular_names.remove(vn)
                 utils.delete_or_expunge(vn)
