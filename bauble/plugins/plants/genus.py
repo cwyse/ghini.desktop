@@ -40,7 +40,7 @@ from sqlalchemy.orm import relationship, validates, synonym
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
-
+from sqlalchemy import text
 
 import bauble
 import bauble.db as db
@@ -175,13 +175,13 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     __table_args__ = (UniqueConstraint('epithet', 'author',
                                        'qualifier', 'family_id'),
                       {})
-    __mapper_args__ = {'order_by': ['epithet', 'author']}
+    __mapper_args__ = {'order_by': [text('genus.epithet'), text('genus.author')]}
 
     rank = 'genus'
     link_keys = ['accepted']
 
     # Define relationship to Species using string-based reference to avoid circular imports
-    species = relationship('Species', back_populates='genus', lazy='joined')
+    species = relationship('Species', back_populates='genus', lazy='joined') or []
     # Define a relationship to notes with back_populates
     notes = relationship('GenusNote', back_populates='genus', cascade='all, delete-orphan', single_parent=True)
     family = relationship('Family', back_populates='genera')
@@ -380,6 +380,7 @@ def compute_serializable_fields(cls, session, keys):
     return result
 
 GenusNote = db.make_note_class('Genus', Genus, compute_serializable_fields)
+Genus.notes = relationship('GenusNote', back_populates='genus', cascade='all, delete-orphan', single_parent=True)
 
 
 class GenusSynonym(db.Base):

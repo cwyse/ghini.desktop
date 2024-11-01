@@ -41,7 +41,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import and_
 from sqlalchemy.exc import DBAPIError, InvalidRequestError
 from sqlalchemy.orm.session import object_session
-
+from sqlalchemy import text
 
 import bauble
 from bauble import ui
@@ -467,7 +467,7 @@ class Tag(db.Base, db.WithNotes):
         A description of this tag.
     """
     __tablename__ = 'tag'
-    __mapper_args__ = {'order_by': 'tag'}
+    __mapper_args__ = {'order_by': text('tag.tag')}
 
     # columns
     tag = Column(Unicode(64), unique=True, nullable=False)
@@ -591,6 +591,7 @@ class Tag(db.Base, db.WithNotes):
         return first, second
 
 TagNote = db.make_note_class('Tag', Tag)
+Tag.notes = relationship('TagNote', back_populates='tag', cascade='all,delete-orphan', single_parent=True)
 
 class TaggedObj(db.Base):
     """

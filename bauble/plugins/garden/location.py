@@ -32,7 +32,7 @@ from sqlalchemy import Column, Unicode, UnicodeText
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
-
+from sqlalchemy import text
 
 import bauble
 import bauble.db as db
@@ -119,7 +119,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
 
     """
     __tablename__ = 'location'
-    __mapper_args__ = {'order_by': 'name'}
+    __mapper_args__ = {'order_by': text('location.name')}
 
     # columns
     # refers to beds by unique codes
@@ -182,7 +182,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
 
 
 LocationNote = db.make_note_class('Location', Location, compute_serializable_fields)
-LocationNote.notes = relationship('LocationNote', back_populates='description', cascade='all, delete-orphan', single_parent=True)
+Location.notes = relationship('LocationNote', back_populates='location', cascade='all, delete-orphan', single_parent=True)
 
 def mergevalues(value1, value2, formatter):
     """return the common value

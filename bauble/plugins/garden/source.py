@@ -37,7 +37,7 @@ from sqlalchemy import Column, Unicode, Integer, ForeignKey,\
     Float, UnicodeText, select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship
-
+from sqlalchemy import text
 
 import bauble.db as db
 import bauble.editor as editor
@@ -111,16 +111,19 @@ class Source(db.Base):
                                              cascade='all, delete-orphan', single_parent=True)
 
     collection = relationship('Collection', uselist=False,
-                          cascade='all, delete-orphan',
                           back_populates='source', single_parent=True)
 
     # relation to a propagation that is specific to this Source and
     # not attached to a Plant. 2017-06-04 : WHAT IS THIS ?
     propagation_id = Column(Integer, ForeignKey('propagation.id'))
-    propagation = relationship('Propagation', uselist=False, single_parent=True,
-                           primaryjoin='Source.propagation_id==Propagation.id',
-                           cascade='all, delete-orphan',
-                           back_populates='source')
+    propagation = relationship(
+        'Propagation',
+        uselist=False,
+        back_populates='source',
+        cascade='all, delete-orphan',
+        single_parent=True,
+        foreign_keys=[propagation_id]  
+    )
 
     # an Accession of known Source (what we are describing here) may be in
     # relation to a successful Plant Propagation trial. In this case, the
@@ -130,9 +133,12 @@ class Source(db.Base):
     plant_propagation = relationship(
         'Propagation', 
         primaryjoin='Source.plant_propagation_id==Propagation.id',
-        back_populates='used_source', uselist=True)
+        back_populates='used_source',
+        uselist=True,
+        foreign_keys=[plant_propagation_id]
+    )
 
-
+ 
 source_type_values = [('Expedition', _('Expedition')),
                       ('GeneBank', _('Gene Bank')),
                       ('BG', _('Botanic Garden or Arboretum')),
@@ -240,6 +246,7 @@ class Collection(db.Base):
     region = relationship(GeographicArea, uselist=False)
 
     source_id = Column(Integer, ForeignKey('source.id'), unique=True)
+    source = relationship('Source', back_populates='collection')
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.
@@ -813,7 +820,7 @@ def compute_serializable_fields(cls, session, keys):
 
 class Contact(db.Base, db.Serializable, db.WithNotes):
     __tablename__ = 'contact'
-    __mapper_args__ = {'order_by': 'name'}
+    __mapper_args__ = {'order_by': text('contact.name')}
 
     # ITF2 - E6 - Donor
     name = Column(Unicode(75), unique=True)
@@ -823,8 +830,8 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     source_type = Column(types.Enum(values=[i[0] for i in source_type_values],
                                     translations=dict(source_type_values)),
                          default=None)
-    sources = relationship('Sources', uselist=False,
-                             back_populates='Contact',
+    sources = relationship('Source', uselist=False,
+                             back_populates='source_detail',
                                              cascade='all, delete-orphan', single_parent=True)
 
     def __str__(self):
@@ -848,6 +855,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
 
 
 ContactNote = db.make_note_class('Contact', Contact, compute_serializable_fields)
+Contact.notes = relationship('ContactNote', back_populates='contact', cascade='all, delete-orphan', single_parent=True)
 
 class ContactPresenter(editor.GenericEditorPresenter):
 

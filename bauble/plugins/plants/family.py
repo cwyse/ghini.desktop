@@ -36,6 +36,9 @@ from sqlalchemy.orm import relationship, validates, synonym
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy import text
+from sqlalchemy.orm import joinedload
+from sqlalchemy import text
 
 import bauble
 import bauble.db as db
@@ -152,7 +155,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     """
     __tablename__ = 'family'
     __table_args__ = (UniqueConstraint('epithet'), {})
-    __mapper_args__ = {'order_by': ['Family.epithet', 'Family.qualifier']}
+    __mapper_args__ = {'order_by': [text('Family.epithet'), text('Family.qualifier')]}
 
     rank = 'familia'
     link_keys = ['accepted']
@@ -197,9 +200,9 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this family
     # get deleted if this family gets deleted
-    synonyms_relationship = relationship('FamilySynonym',
-                     primaryjoin='Family.id==FamilySynonym.synonym_id',
-                     cascade='all, delete-orphan', uselist=True, single_parent=True)
+    #synonyms_relationship = relationship('FamilySynonym',
+    #                 primaryjoin='Family.id==FamilySynonym.synonym_id',
+    #                 cascade='all, delete-orphan', uselist=True, single_parent=True)
 
     def __repr__(self):
         return Family.str(self)
@@ -291,7 +294,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
 Familia = Family
 
 FamilyNote = db.make_note_class('Family', Family, compute_serializable_fields)
-FamilyNote.notes = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan', single_parent=True)
+Family.notes = relationship('FamilyNote', back_populates='family', cascade='all, delete-orphan', single_parent=True)
 
 
 class FamilySynonym(db.Base):
@@ -317,8 +320,8 @@ class FamilySynonym(db.Base):
 
     # Relationships
     synonym = relationship('Family', uselist=False,
-                           primaryjoin='FamilySynonym.synonym_id==Family.id',
-                           back_populates='synonyms_relationship')  # Renamed for clarity
+                           primaryjoin='FamilySynonym.synonym_id==Family.id')
+    #                       back_populates='synonyms_relationship')  # Renamed for clarity
 
     family = relationship('Family',
                           back_populates='_synonyms',
@@ -343,7 +346,7 @@ from bauble.plugins.plants.genus import Genus, GenusEditor
 # `Family` class.
 Family.genera = relationship('Genus',
                          order_by=[Genus.genus],
-                         back_populates='family', cascade='all, delete-orphan', single_parent=True)
+                         back_populates='family', cascade='all, delete-orphan', single_parent=True) or []
 
 class FamilyEditorView(editor.GenericEditorView):
 
@@ -430,10 +433,35 @@ class FamilyEditorPresenter(editor.GenericEditorPresenter):
         if self.model not in self.session.new:
             self.view.widgets.fam_ok_and_add_button.set_sensitive(True)
 
+        self.view.widgets.fam_family_entry.connect("focus-out-event", self.on_family_name_focus_out)
+
         # for each widget register a signal handler to be notified when the
         # value in the widget changes, that way we can do things like sensitize
         # the ok button
         self._dirty = False
+
+    def on_family_name_focus_out(self, widget, event):
+        """Triggered when the family name text box loses focus."""
+        # Check if the entered family name exists in the database
+        family_name = widget.get_text().strip()
+        family = self.session.query(Family).filter(Family.epithet == family_name).first()
+
+        if family_name:     
+            # If family is found, update the model and refresh synonyms view
+            if family:
+                family._synonyms = (
+                    self.session.query(FamilySynonym)
+                    .join(Family, FamilySynonym.synonym_id == Family.id)
+                    .filter(FamilySynonym.family_id == family.id)
+                    .all()
+                )
+                # Set the model to the retrieved family
+                self.synonyms_presenter.model = family
+                # Refresh the synonyms view with the current list of synonyms
+                self.synonyms_presenter.refresh_view()
+            else:
+                # Clear the synonyms if no family is found
+                self.synonyms_presenter.clear_view()
 
     def refresh_sensitivity(self):
         # TODO: check widgets for problems
@@ -454,8 +482,9 @@ class FamilyEditorPresenter(editor.GenericEditorPresenter):
             or self.notes_presenter.dirty()
 
     def refresh_view(self):
+        # Refresh each widget associated with the Family model fields
         for widget, field in self.widget_to_field_map.items():
-            value = getattr(self.model, field)
+            value = getattr(self.model, field, None)
             self.view.widget_set_value(widget, value)
 
     def cleanup(self):
@@ -483,12 +512,17 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self.view.widgets.fam_syn_entry.props.text = ''
         self.init_treeview()
 
+        # List to track new synonyms for addition to the database
+        self.synonyms_to_add = []
+
         def fam_get_completions(text):
             query = self.session.query(Family)
             return query.filter(and_(Family.epithet.like('%s%%' % text),
                                      Family.id != self.model.id)).\
                 order_by(Family.epithet)
 
+        # Populate initial synonym list in the view
+        self.refresh_view()
         self._selected = None
 
         def on_select(value):
@@ -504,7 +538,36 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
                           self.on_add_button_clicked)
         self.view.connect('fam_syn_remove_button', 'clicked',
                           self.on_remove_button_clicked)
+        # Connect text entry box to the on_text_changed handler
+        self.view.widgets.fam_syn_entry.connect("changed", self.on_text_changed)
+  
         self._dirty = False
+
+    def on_text_changed(self, entry):
+        """Enable the 'Add' button if the entered text is unique and valid."""
+        text = entry.get_text().strip()
+        family = self.parent_ref().model
+
+        # Gather current family name, existing synonyms, and new synonyms to be added
+        family_name = family.epithet
+        existing_synonyms = [syn.synonym.epithet for syn in family._synonyms]
+        new_synonyms = [syn.epithet for syn in self.synonyms_to_add]
+
+        # Check if the text is unique and valid
+        is_not_family_name = text != family_name
+        is_not_existing_synonym = text not in existing_synonyms
+        is_not_new_synonym = text not in new_synonyms
+        is_not_empty = bool(text)
+
+        # Enable "Add" button only if all conditions are met
+        if is_not_empty and is_not_family_name and is_not_existing_synonym and is_not_new_synonym:
+            # No issues found; make sure the Add button is enabled
+            self.remove_problem(self.PROBLEM_DUPLICATE, entry)
+            self.view.widgets.fam_syn_add_button.set_sensitive(True)
+        else:
+            # If there's an issue, mark it as a problem and disable the Add button
+            self.add_problem(self.PROBLEM_DUPLICATE, entry)
+            self.view.widgets.fam_syn_add_button.set_sensitive(False)    
 
     def dirty(self):
         return self._dirty
@@ -547,38 +610,59 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         path, column = tree.get_cursor()
         self.view.widgets.fam_syn_remove_button.set_sensitive(True)
 
+    def clear_view(self):
+        """Clears the synonyms list in the tree view."""
+        tree_model = self.treeview.get_model()
+        tree_model.clear()
+        
     def refresh_view(self):
-        """
-        doesn't do anything
-        """
-        return
+        """Refresh the synonyms tree view with the current list of synonyms."""
+        # Clear the current contents of the treeview model
+        tree_model = self.treeview.get_model()
+        tree_model.clear()
+        
+        # Add each synonym of the family to the treeview
+        for synonym_entry in self.model._synonyms:
+            synonym_name = synonym_entry.synonym.epithet
+            tree_model.append([synonym_name])
 
     def on_add_button_clicked(self, button, data=None):
-        '''
-        adds the synonym from the synonym entry to the list of synonyms for
-            this species
-        '''
+        """
+        Adds the synonym from the synonym entry to the list of synonyms for this family.
+        """
+        if not self._selected or self._selected in [syn.synonym for syn in self.model._synonyms]:
+            utils.message_dialog("This synonym already exists or is invalid.", type=Gtk.MessageType.WARNING)
+            return
+
+        # Create new FamilySynonym association
         syn = FamilySynonym(family=self.model, synonym=self._selected)
+        self.model._synonyms.append(syn)
+
+        # Update the tree view with the new synonym
         tree_model = self.treeview.get_model()
-        tree_model.append([syn])
+        tree_model.append([self._selected.epithet])  # Display the epithet
+        #tree_model.append([syn])
+        
+        # Clear selection and entry field
         self._selected = None
         entry = self.view.widgets.fam_syn_entry
         entry.props.text = ''
         entry.set_position(-1)
         self.view.widgets.fam_syn_add_button.set_sensitive(False)
-        self.view.widgets.fam_syn_add_button.set_sensitive(False)
+
+        # Mark presenter as dirty to indicate unsaved changes
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 
     def on_remove_button_clicked(self, button, data=None):
-        '''
-        removes the currently selected synonym from the list of synonyms for
-        this species
-        '''
-        # TODO: maybe we should only ask 'are you sure' if the selected value
-        # is an instance, this means it will be deleted from the database
+        """
+        Removes the currently selected synonym from the list of synonyms for this family.
+        """
         tree = self.view.widgets.fam_syn_treeview
         path, col = tree.get_cursor()
+        if path is None:
+            return
+
         tree_model = tree.get_model()
         value = tree_model[tree_model.get_iter(path)][0]
 #        debug('%s: %s' % (value, type(value)))
@@ -587,8 +671,9 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
               'current family?\n\n<i>Note: This will not remove the family '\
               '%s from the database.</i>' % (s, s)
         if utils.yes_no_dialog(msg, parent=self.view.get_window()):
+            # Remove synonym from database and model
+            self.model._synonyms.remove(value)
             tree_model.remove(tree_model.get_iter(path))
-            self.model.synonyms.remove(value.synonym)
             utils.delete_or_expunge(value)
             self.session.flush([value])
             self._dirty = True
@@ -757,7 +842,7 @@ class GeneralFamilyExpander(InfoExpander):
         nsp = (session.query(Species).
                join(Genus, Species.genus_id == Genus.id).
                filter(Genus.family_id == row.id).count())
-                if nsp == 0:
+        if nsp == 0:
             self.widget_set_value('fam_nsp_data', 0)
         else:
             ngen_in_sp = (session.query(Species.genus_id).

@@ -37,6 +37,7 @@ from sqlalchemy import Column, Integer, ForeignKey, UnicodeText, Unicode
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy import text
 
 import bauble
 import bauble.db as db
@@ -115,8 +116,21 @@ class Propagation(db.Base, db.WithNotes):
         single_parent=True,
         back_populates='propagation'
     )
+    # One-to-one relationship with Source
+    source = relationship(
+        'Source',
+        uselist=False,
+        back_populates='propagation',
+        cascade='all, delete-orphan',
+        foreign_keys='Source.propagation_id'
+    )
 
-
+    # One-to-many relationship with Source for plant_propagation
+    used_source = relationship(
+        'Source',
+        back_populates='plant_propagation',
+        foreign_keys='Source.plant_propagation_id'
+    )
 
     @property
     def accessions(self):
@@ -274,19 +288,23 @@ class Propagation(db.Base, db.WithNotes):
             self._cutting = None
 
 PropagationNote = db.make_note_class('Propagation', Propagation)
-PropagationNote.notes = relationship('PropagationNote', back_populates='propagation')
+Propagation.notes = relationship('PropagationNote', back_populates='propagation', cascade='all,delete-orphan', single_parent=True)
 
 class PropCuttingRooted(db.Base):
     """
     Rooting dates for cutting
     """
     __tablename__ = 'prop_cutting_rooted'
-    __mapper_args__ = {'order_by': 'date'}
+    __mapper_args__ = {'order_by': text('prop_cutting_rooted.date')}
 
     date = Column(types.Date)
     quantity = Column(Integer, autoincrement=False, default=0, nullable=False)
     cutting_id = Column(Integer, ForeignKey('prop_cutting.id'), nullable=False)
-
+    # Add the missing relationship
+    cutting = relationship(
+        'PropCutting',
+        back_populates='rooted'
+    )
 
 cutting_type_values = {'Nodal': _('Nodal'),
                        'InterNodal': _('Internodal'),
