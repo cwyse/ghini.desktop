@@ -67,6 +67,8 @@ from bauble.view import (InfoBox, InfoExpander, PropertiesExpander,
 import bauble.view as view
 from bauble.search import SearchStrategy
 from bauble.utils import safe_int
+from sqlalchemy import event
+from sqlalchemy.orm import mapper
 
 # TODO: underneath the species entry create a label that shows information
 # about the family of the genus of the species selected as well as more
