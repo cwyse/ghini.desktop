@@ -1,19 +1,18 @@
-# syntax=docker/dockerfile:1.2
+# syntax=docker/dockerfile:1.4
 
-# Dockerfile
+# Dockerfile 
 
 # Stage 1: Build Stage
 FROM debian:bullseye AS build
 
 # Configuration is stored in $HOME/.bauble/3.1/config
 
-#
-# Cut and pastable comments
-#
+# Environment setup and commands for Docker build and run
 ENV DOCKER_BUILD_CMD="\
           docker buildx build --ssh default                                                \
                               --progress=plain                                             \
-                              --build-arg REPO_COMMIT=$(git rev-parse migrate_to_1.3)      \
+                              --build-arg COMMIT=$(git rev-parse HEAD)                     \
+                              --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')      \
                               --build-arg USER_ID=$(id -u)                                 \
                               --build-arg GROUP_ID=$(id -g)                                \
                               --load                                                       \
@@ -36,126 +35,95 @@ ENV DOCKER_RUN_CMD="\
                      -v /tmp/.X11-unix:/tmp/.X11-unix                  \
                      -v $HOME/krb5:/krb5:ro                            \
                      -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1      \
+                     -v $HOME/repositories/ghini-desktop:/app          \
                      -v /usr/lib/dri:/usr/lib/dri                      \
                      --device /dev/dri:/dev/dri                        \
                      --user $(id -u):$(id -g)                          \
+                     --name ghini_debug                                \
                      ghini-desktop:latest                              "
 
 
 ## Set environment variables to suppress debconf warnings
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Set up environment variables
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
 ENV HOME=/root
 ENV LINE=migrate_to_1.3
 ENV VIRTUAL_ENV=/opt/venv/$LINE
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV USER=root
 
-# Define build argument for cache busting
-ARG REPO_COMMIT
-
-# Install necessary system packages for building
+# Install system packages for building
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gettext \
     git \
+    gdk-pixbuf2.0-0 \
+    gir1.2-champlain-0.12 \
+    gir1.2-gtk-3.0 \
+    gir1.2-gtkchamplain-0.12 \
+    gir1.2-gtkclutter-1.0 \
+    krb5-user \
+    libcairo2 \
+    libcairo2-dev \
+    libcanberra-gtk-module \
+    libcanberra-gtk3-module \
+    libffi-dev \
+    libglib2.0-dev \
+    libgl1-mesa-dri \
+    libgl1-mesa-glx \
+    libgirepository1.0-dev \
+    libgdk-pixbuf2.0-dev \
+    libgtk2.0-dev \
+    libjpeg-dev \
+    libkrb5-dev \
+    libpq-dev \
+    libpython3-dev \
+    libxslt1-dev \
+    openssh-client \
     pkg-config \
     python3 \
     python3-dev \
+    python3-gi \
     python3-venv \
-    libpython3-dev \
-    libjpeg-dev \
-    libpq-dev \
-    libxslt1-dev \
     zlib1g-dev \
-    libcairo2 \
-    libcairo2-dev \
-    libgirepository1.0-dev \
-    gir1.2-gtk-3.0 \
-    gir1.2-gtkclutter-1.0 \
-    gir1.2-champlain-0.12 \
-    gir1.2-gtkchamplain-0.12 \
-    krb5-user \
-    libkrb5-dev \
-    openssh-client \
-    libcanberra-gtk-module \
-    libcanberra-gtk3-module \
-    gdk-pixbuf2.0-0 \
-    libgdk-pixbuf2.0-dev \
-    libglib2.0-dev \
-    libgtk2.0-dev \
-    libgl1-mesa-glx \
-    libgl1-mesa-dri \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure SSH for GitLab
-RUN mkdir -p $HOME/.ssh && chmod 700 $HOME/.ssh
+# SSH setup for GitLab
+RUN mkdir -p $HOME/.ssh && chmod 700 $HOME/.ssh \
+    && ssh-keyscan gitlab.com >> $HOME/.ssh/known_hosts
 
-# Add GitLab to known_hosts to prevent host key verification prompts
-RUN ssh-keyscan gitlab.com >> $HOME/.ssh/known_hosts
+# Working directory for the application
+WORKDIR /app
 
-# Clone ghini-desktop repository using SSH mount
-RUN --mount=type=ssh \
-    mkdir -p $HOME/Local/github/Ghini \
-    && cd $HOME/Local/github/Ghini \
-    && git clone -b $LINE git@gitlab.com:cwyse/ghini-desktop.git ghini-desktop && \
-    dummy=$REPO_COMMIT
-
-
-# Set the working directory to the cloned repository
-WORKDIR $HOME/Local/github/Ghini/ghini-desktop
-
-# Create and activate virtual environment, install dependencies
-RUN python3 -m venv $VIRTUAL_ENV \
+# Create virtual environment and install essential dependencies
+RUN python3 -m venv $VIRTUAL_ENV --system-site-packages \
     && . $VIRTUAL_ENV/bin/activate \
-    && pip install --upgrade pip wheel \
-    && pip install 'setuptools<58.0.0' \
-    && pip install PyGObject \
-    && pip install psycopg2 \
-    && pip install debugpy \
-    && pip install . \
-    && pip install SQLAlchemy==1.3 alembic==1.0.11 sqlalchemy-utils==0.32.4 \
-    && pip install 'sqlalchemy-diff==0.1.3' || echo "sqlalchemy-diff version incompatible, skipping" \
+    && pip install --upgrade pip wheel 'setuptools<58.0.0' debugpy toml PyGObject==3.50.0
+
+# Copy and install application dependencies
+COPY . /app
+RUN . $VIRTUAL_ENV/bin/activate \
+    && python setup.py build \
+    && python setup.py install
+
+# Initialize Alembic with a preconfigured database URL
+RUN . $VIRTUAL_ENV/bin/activate \
+    && pip install alembic \
     && alembic init alembic \
+    && sed -i 's|sqlalchemy.url = .*|sqlalchemy.url = postgresql://ghini:9yuzebes@192.168.40.32:5432/ghini_test3|' alembic.ini \
     && rm -rf $HOME/.cache/pip
-
-# Initialize Alembic configuration (optional: modify alembic.ini for project setup)
-#RUN alembic init alembic
-#        import os
-#        import sys
-#
-#        sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'bauble')))
-#
-#        from db import Base  # Import your models here
-#
-#        config = context.config
-#
-#        # Interpret the config file for Python logging.
-#        # This line sets up loggers basically.
-#        fileConfig(config.config_file_name)
-#
-#        # add your model's MetaData object here
-#        # for 'autogenerate' support
-#        # from myapp import mymodel
-#        # target_metadata = mymodel.Base.metadata
-#        target_metadata = Base.metadata
-
-# Example configuration: Update alembic.ini with the database URL (if required)
-RUN sed -i 's|sqlalchemy.url = .*|sqlalchemy.url = postgresql://ghini:9yuzebes@192.168.40.32:5432/ghini_test3|' alembic.ini
-# Note: Replace 'username:password@localhost:5432/your_database' with actual DB credentials
 
 # Stage 2: Runtime Stage
 FROM debian:bullseye
 
-# Add build arguments for user ID and group ID
+# User and group configuration
 ARG USER_ID
 ARG GROUP_ID
-
-# Set environment variables to suppress debconf warnings
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Set up environment variables
+ENV PYTHONUNBUFFERED=1
 ENV HOME=/home/ghini
 ENV LINE=migrate_to_1.3
 ENV VIRTUAL_ENV=/opt/venv/$LINE
@@ -163,77 +131,160 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV USER=ghini
 ENV NO_AT_BRIDGE=1
 
-# Install necessary system packages for runtime
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    libpython3.9 \
-    libjpeg62-turbo \
-    libpq5 \
-    libxslt1.1 \
-    zlib1g \
-    libcairo2 \
-    libgirepository-1.0-1 \
-    gir1.2-gtk-3.0 \
-    gir1.2-gtkclutter-1.0 \
+    at-spi2-core \
+    gdk-pixbuf2.0-0 \
     gir1.2-champlain-0.12 \
+    gir1.2-gtk-3.0 \
     gir1.2-gtkchamplain-0.12 \
+    gir1.2-gtkclutter-1.0 \
+    git \
     krb5-user \
-    libkrb5-3 \
-    postgresql-client \
-    procps \
-    vim \
+    libcairo2 \
     libcanberra-gtk-module \
     libcanberra-gtk3-module \
-    gdk-pixbuf2.0-0 \
-    libgdk-pixbuf2.0-dev \
-    libglib2.0-dev \
-    libgtk2.0-dev \
-    libgl1-mesa-glx \
-    libgl1-mesa-dri \
-    mesa-utils \
-    at-spi2-core \
     libgdk-pixbuf2.0-bin \
     libgdk-pixbuf2.0-common \
-    shared-mime-info \
+    libgl1-mesa-dri \
+    libgl1-mesa-glx \
+    libglib2.0-dev \
+    libgirepository-1.0-1 \
+    libgtk2.0-dev \
+    libjpeg62-turbo \
+    libkrb5-3 \
+    libpq5 \
+    libpython3.9 \
+    libxslt1.1 \
     librsvg2-common \
+    mesa-utils \
     net-tools \
+    postgresql-client \
+    procps \
+    python3 \
+    shared-mime-info \
+    vim \
+    zlib1g \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Update gdk-pixbuf loaders cache
+# GDK-pixbuf loaders cache
 RUN /usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders --update-cache
 
-# Create a group and user with the specified UID and GID
+# Create user and group
 RUN groupadd --gid $GROUP_ID ghini && \
     useradd --uid $USER_ID --gid ghini --create-home ghini
 
-# Create virtualenv directory
-RUN mkdir -p /opt/venv
-
-# Copy virtual environment from build stage with correct ownership
+# Copy virtual environment and application files from the build stage
 COPY --from=build --chown=ghini:ghini $VIRTUAL_ENV $VIRTUAL_ENV
-
-# Ensure /app directory exists
-RUN mkdir -p /app
-
-# Copy application code from build stage with correct ownership
-COPY --from=build --chown=ghini:ghini /root/Local/github/Ghini/ghini-desktop /app
+COPY --from=build --chown=ghini:ghini /app /app
 
 # Expose debug port for debugpy
 EXPOSE 5678
 
-# Switch to the ghini user
-USER ghini
+# Create the ghini script in /usr/local/bin
+COPY --chown=ghini:ghini <<EOF $VIRTUAL_ENV/bin/ghini
+#!/bin/bash
+GITHOME=/app
+source $VIRTUAL_ENV/bin/activate
 
-# Set the working directory
+while getopts us:mp f
+do
+case $f in
+ u)  cd $GITHOME
+     BUILD=1
+     END=1
+     ;;
+ s)  cd $GITHOME
+     git checkout ghini-$OPTARG || exit 1
+     BUILD=1
+     END=1
+     ;;
+ m)  pip install mysqlclient
+     END=1
+     ;;
+ p)  pip install psycopg2
+     END=1
+     ;;
+esac
+done
+
+if [ ! -z "$BUILD" ]
+then
+ git pull
+ python setup.py build
+ python setup.py install
+fi
+
+if [ ! -z "$END" ]
+then
+ exit 1
+fi
+
+ghini
+EOF
+
+RUN chmod +x $VIRTUAL_ENV/bin/ghini
+
+COPY --chown=ghini:ghini <<ghini.txt /usr/local/bin/ghini 
+#!/bin/bash
+source $VIRTUAL_ENV/bin/activate
+$VIRTUAL_ENV/bin/ghini
+ghini.txt
+
+RUN chmod +x /usr/local/bin/ghini
+
+# Retrieve the version from pyproject.toml and assign to VERSION
+ARG VERSION
+RUN . $VIRTUAL_ENV/bin/activate \
+    && VERSION=$(grep -Po '(?<=^version = ")[^"]*' /app/pyproject.toml) \
+    && echo "VERSION=$VERSION"
+
+# Set VERSION as an environment variable
+ENV VERSION=$VERSION
+
+COPY --chown=ghini:ghini <<ghini.desktop /usr/local/share/applications/ghini.desktop
+#!/bin/bash
+[Desktop Entry]
+Type=Application
+Name=Ghini Desktop
+Version=$VERSION
+GenericName=Biodiversity Manager
+Icon=$VIRTUAL_ENV/share/icons/hicolor/scalable/apps/ghini.svg
+TryExec=/usr/local/bin/ghini
+Exec=/usr/local/bin/ghini
+Terminal=false
+StartupNotify=false
+Categories=Qt;Education;Science;Geography;
+Keywords=botany;botanic;
+ghini.desktop
+
+
+# Set build arguments for dynamic metadata
+ARG COMMIT
+ARG BUILD_DATE
+
+# OCI-compliant labels
+LABEL org.opencontainers.image.title="Ghini Desktop Application" \
+      org.opencontainers.image.description="Ghini Desktop Application for managing biodiversity data." \
+      org.opencontainers.image.authors="Chris Wyse <chris.wyse@wysechoice.net>, Ross Demuth <rossdemuth123@gmail.com>, Mario Frasca <mario@anche.no>,  Brett Adams <brett@belizebotanic.org>" \
+      org.opencontainers.image.url="https://gitlab.com/cwyse/ghini-desktop" \
+      org.opencontainers.image.documentation="https://docs.ghini.io" \
+      org.opencontainers.image.source="https://gitlab.com/cwyse/ghini-desktop" \
+      org.opencontainers.image.licenses="GPLv2" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${COMMIT}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.base.name="debian:bullseye"
+
+
+# Set working directory and entry point
 WORKDIR /app
-
-# Add the DEBUG environment variable with a default value of "false"
 ENV DEBUG=false
 
-# Modify CMD to run debugpy if DEBUG=true
+# CMD to run debugpy if DEBUG=true, else launch ghini
 CMD if [ "$DEBUG" = "true" ]; then \
-        python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client $(which ghini); \
+        python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client /app/scripts/ghini; \
     else \
-        ghini; \
+        /app/scripts/ghini; \
     fi
