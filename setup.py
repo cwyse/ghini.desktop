@@ -466,41 +466,61 @@ if sys.platform == 'win32':
     scripts = ["scripts/ghini", "scripts/ghini.bat", "scripts/ghini.vbs",
                "scripts/ghini-update.bat"]
 
-with open("README.rst", "r") as fh:
-    long_description = fh.read()
+import toml
+import subprocess
+print("Executing generate_pyproject\n")
 
-setuptools.setup(name="ghini.desktop",
+# Run generate_pyproject.py if pyproject.toml needs to be generated
+subprocess.run(["python", "generate_pyproject.py"])
+print("Executing generate_pyproject complete\n")
+
+# Load data from pyproject.toml
+
+with open("pyproject.toml", "r") as f:
+    pyproject = toml.load(f)
+project_info = pyproject.get("project", {})
+project_urls = pyproject.get("project.urls", {})
+
+# Extract homepage and remove it from project_urls if it exists
+homepage = project_info.get("homepage")
+if homepage in project_urls.values():
+    # Remove any duplicate entry of homepage in project_urls
+    project_urls = {k: v for k, v in project_urls.items() if v != homepage}
+
+# Load long_description directly from pyproject.toml
+readme_file = project_info.get("readme", {}).get("file", "")
+if readme_file and os.path.exists(readme_file):
+    with open(readme_file, "r") as fh:
+        long_description_content = fh.read()
+else:
+    long_description_content = ""
+
+# Convert authors to setup format
+authors = ", ".join(f"{author['name']} <{author['email']}>" for author in project_info["authors"])
+
+# Setup function using pyproject.toml values
+setuptools.setup(
+                 name=project_info["name"],
                  cmdclass={'build': build, 'install': install,
                            'py2exe': py2exe_cmd, 'nsis': NsisCmd,
-                           'docs': docs, 'clean': clean, 'run': run},
-                 version=version,
-                 scripts=scripts,
+                           'docs': docs, 'clean': clean, 'run': run},    
+                 version=project_info["version"],
                  packages=all_packages,
                  package_dir=all_package_dirs,
                  package_data=package_data,
                  data_files=data_files,
-                 install_requires=["SQLAlchemy",
-                                   "raven==6.7.0",
-                                   "Pillow==2.3.0",
-                                   "lxml",
-                                   "pyqrcode==1.2.1",
-                                   "mako==1.0.7",
-                                   "jinja2==2.10",
-                                   "gdata-python3==3.0.1",
-                                   "requests==2.25.1",
-                                   "fibra==0.0.20",
-                                   "pyparsing==2.2.0",
-                                   'python-dateutil==2.7.3'] + needs_sqlite,
-                 extras_require={'docs': ['sphinx==1.7.9']},
+                 install_requires=project_info["dependencies"],
+                 extras_require=project_info.get("optional-dependencies", {}),
                  test_suite="nose.collector",
-                 author="Mario Frasca",
-                 author_email="mario@anche.no",
-                 description="Ghini: a biodiversity collection manager",
-                 long_description=long_description,
-                 license="GPLv2+",
-                 keywords="database biodiversity botanic collection "
-                 "botany herbarium arboretum",
-                 url="http://ghini.github.io/",
+                 author=authors,
+                 description=project_info["description"],
+                 long_description=long_description_content,
+                 long_description_content_type=project_info.get("readme", {}).get("content-type", ""),
+                 license=project_info["license"]["text"],
+                 keywords=project_info["keywords"],
+                 platforms=project_info["platforms"],
+                 url=homepage,
+                 project_urls=project_urls,
                  options=py2exe_options,
                  **py2exe_setup_args
                  )
