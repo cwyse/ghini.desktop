@@ -1,0 +1,250 @@
+# syntax=docker/dockerfile:1.4
+
+# Dockerfile 
+
+# Stage 1: Build Stage
+FROM debian:bullseye AS build
+
+# Configuration is stored in $HOME/.bauble/3.1/config
+
+# Environment setup and commands for Docker build and run
+ENV DOCKER_BUILD_CMD="\
+          docker buildx build --ssh default                                                \
+                              --progress=plain                                             \
+                              --build-arg COMMIT=$(git rev-parse HEAD)                     \
+                              --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')      \
+                              --build-arg USER_ID=$(id -u)                                 \
+                              --build-arg GROUP_ID=$(id -g)                                \
+                              --load                                                       \
+                              -t ghini-desktop-test:latest .                               "
+
+ENV DOCKER_RUN_CMD="\
+          docker run --rm -it                                          \
+                     -p 5678:5678                                      \
+                     -e DEBUG=true                                     \
+                     -e USER=ghini                                     \
+                     -e DISPLAY=$DISPLAY                               \
+                     -e DB_HOST=postgres.wysechoice.net                \
+                     -e DB_PORT=5432                                   \
+                     -e DB_NAME=ghini_test3                            \
+                     -e DB_USER=ghini                                  \
+                     -e DB_SSLMODE=prefer                              \
+                     -e KRB5_CONFIG=/krb5/krb5.conf                    \
+                     -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab           \
+                     -e NO_AT_BRIDGE=1                                 \
+                     -v /tmp/.X11-unix:/tmp/.X11-unix                  \
+                     -v $HOME/krb5:/krb5:ro                            \
+                     -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1      \
+                     -v $HOME/repositories/ghini.desktop:/app          \
+                     -v /usr/lib/dri:/usr/lib/dri                      \
+                     --device /dev/dri:/dev/dri                        \
+                     --user $(id -u):$(id -g)                          \
+                     --name ghini_test                                 \
+                     ghini-desktop-test:latest                         "
+
+
+## Set environment variables to suppress debconf warnings
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV HOME=/root
+ENV LINE=migrate_to_1.3
+ENV VIRTUAL_ENV=/opt/venv/$LINE
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV USER=root
+
+# Install system packages for building
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gettext \
+    git \
+    gdk-pixbuf2.0-0 \
+    gir1.2-champlain-0.12 \
+    gir1.2-gtk-3.0 \
+    gir1.2-gtkchamplain-0.12 \
+    gir1.2-gtkclutter-1.0 \
+    krb5-user \
+    libcairo2 \
+    libcairo2-dev \
+    libcanberra-gtk-module \
+    libcanberra-gtk3-module \
+    libffi-dev \
+    libglib2.0-dev \
+    libgl1-mesa-dri \
+    libgl1-mesa-glx \
+    libgirepository1.0-dev \
+    libgdk-pixbuf2.0-dev \
+    libgtk2.0-dev \
+    libjpeg-dev \
+    libkrb5-dev \
+    libpq-dev \
+    libpython3-dev \
+    libxslt1-dev \
+    openssh-client \
+    pkg-config \
+    python3 \
+    python3-dev \
+    python3-gi \
+    python3-pip \
+    python3-venv \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# SSH setup for GitLab
+RUN mkdir -p $HOME/.ssh && chmod 700 $HOME/.ssh \
+    && ssh-keyscan gitlab.com >> $HOME/.ssh/known_hosts
+
+# Working directory for the application
+WORKDIR /app
+
+# Create virtual environment and install essential dependencies
+RUN python3 -m venv $VIRTUAL_ENV --system-site-packages \
+    && . $VIRTUAL_ENV/bin/activate \
+    && pip install --upgrade pip wheel 'setuptools<58.0.0' debugpy toml PyGObject==3.50.0
+
+# Copy and install application dependencies
+COPY . /app
+RUN . $VIRTUAL_ENV/bin/activate \
+    && python setup.py build \
+    && python setup.py install
+
+# Initialize Alembic with a preconfigured database URL
+RUN . $VIRTUAL_ENV/bin/activate \
+    && pip install alembic \
+    && alembic init alembic \
+    && sed -i 's|sqlalchemy.url = .*|sqlalchemy.url = postgresql://ghini:9yuzebes@192.168.40.32:5432/ghini_test3|' alembic.ini \
+    && rm -rf $HOME/.cache/pip
+
+# Stage 2: Runtime Stage
+FROM debian:bullseye
+
+# User and group configuration
+ARG USER_ID
+ARG GROUP_ID
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV HOME=/home/ghini
+ENV LINE=migrate_to_1.3
+ENV VIRTUAL_ENV=/opt/venv/$LINE
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV USER=ghini
+ENV NO_AT_BRIDGE=1
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    at-spi2-core \
+    build-essential \
+    gdk-pixbuf2.0-0 \
+    gettext \
+    gir1.2-champlain-0.12 \
+    gir1.2-gtk-3.0 \
+    gir1.2-gtkchamplain-0.12 \
+    gir1.2-gtkclutter-1.0 \
+    git \
+    krb5-user \
+    libcairo2 \
+    libcanberra-gtk-module \
+    libcanberra-gtk3-module \
+    libgdk-pixbuf2.0-bin \
+    libgdk-pixbuf2.0-common \
+    libgl1-mesa-dri \
+    libgl1-mesa-glx \
+    libglib2.0-dev \
+    libgirepository-1.0-1 \
+    libgtk2.0-dev \
+    libjpeg62-turbo \
+    libjpeg-dev \
+    libkrb5-3 \
+    libpq5 \
+    libpython3.9 \
+    libxslt1.1 \
+    libxslt1-dev \
+    librsvg2-common \
+    mesa-utils \
+    net-tools \
+    pkg-config \
+    postgresql-client \
+    procps \
+    python3 \
+    python3-gi \
+    python3-dev \
+    python3-lxml \
+    python3-nose \
+    python3-pip \
+    python3-venv \
+    shared-mime-info \
+    vim \
+    zlib1g \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# GDK-pixbuf loaders cache
+RUN /usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders --update-cache
+
+# Install testing tools
+RUN /usr/bin/python3.9 -m venv $VIRTUAL_ENV \
+    && . $VIRTUAL_ENV/bin/activate \
+    && pip install --upgrade pip wheel --no-cache-dir \
+    && pip install pytest pytest-cov gevent coveralls babel debugpy nose --no-cache-dir
+
+# Create user and group
+RUN groupadd --gid $GROUP_ID ghini && \
+    useradd --uid $USER_ID --gid ghini --create-home ghini
+
+# Copy virtual environment and application files from the build stage
+COPY --from=build --chown=ghini:ghini $VIRTUAL_ENV $VIRTUAL_ENV
+COPY --from=build --chown=ghini:ghini /app /app
+
+# Expose debug port for debugpy
+EXPOSE 5678
+
+
+
+
+
+
+
+
+
+
+# Retrieve the version from pyproject.toml and assign to VERSION
+ARG VERSION
+RUN . $VIRTUAL_ENV/bin/activate \
+    && VERSION=$(grep -Po '(?<=^version = ")[^"]*' /app/pyproject.toml) \
+    && echo "VERSION=$VERSION"
+
+# Set VERSION as an environment variable
+ENV VERSION=$VERSION
+
+# Set build arguments for dynamic metadata
+ARG COMMIT
+ARG BUILD_DATE
+
+# OCI-compliant labels
+LABEL org.opencontainers.image.title="Ghini Desktop Test Application" \
+      org.opencontainers.image.description="Ghini Desktop Application for managing biodiversity data." \
+      org.opencontainers.image.authors="Chris Wyse <chris.wyse@wysechoice.net>, Ross Demuth <rossdemuth123@gmail.com>, Mario Frasca <mario@anche.no>,  Brett Adams <brett@belizebotanic.org>" \
+      org.opencontainers.image.url="https://gitlab.com/cwyse/ghini-desktop" \
+      org.opencontainers.image.documentation="https://docs.ghini.io" \
+      org.opencontainers.image.source="https://gitlab.com/cwyse/ghini-desktop" \
+      org.opencontainers.image.licenses="GPLv2" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${COMMIT}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.base.name="debian:bullseye"
+
+
+# Set working directory and entry point
+WORKDIR /app
+ENV DEBUG=false
+
+# Run tests with coverage
+#CMD ["/bin/bash", "-c", "/opt/venv/migrate_to_1.3/bin/python -m coverage run --source=bauble -m pytest && coverage report && coverage html"]
+CMD bash -c ". $VIRTUAL_ENV/bin/activate && \
+    if [ \"$DEBUG\" = \"true\" ]; then \
+        python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client /app/scripts/ghini;; \
+    else \
+        python3 -m pytest; \
+    fi"
