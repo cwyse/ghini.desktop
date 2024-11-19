@@ -35,7 +35,7 @@ ENV DOCKER_RUN_CMD="\
                      -v /tmp/.X11-unix:/tmp/.X11-unix                  \
                      -v $HOME/krb5:/krb5:ro                            \
                      -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1      \
-                     -v $HOME/repositories/ghini-desktop:/app          \
+                     -v $HOME/repositories/ghini.desktop:/app          \
                      -v /usr/lib/dri:/usr/lib/dri                      \
                      --device /dev/dri:/dev/dri                        \
                      --user $(id -u):$(id -g)                          \
@@ -87,6 +87,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-dev \
     python3-gi \
+    python3-pip \
     python3-venv \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -101,7 +102,7 @@ WORKDIR /app
 # Create virtual environment and install essential dependencies
 RUN python3 -m venv $VIRTUAL_ENV --system-site-packages \
     && . $VIRTUAL_ENV/bin/activate \
-    && pip install --upgrade pip wheel 'setuptools<58.0.0' debugpy toml PyGObject==3.50.0
+    && pip install --upgrade pip wheel 'setuptools<58.0.0' importlib-metadata debugpy toml PyGObject==3.50.0
 
 # Copy and install application dependencies
 COPY . /app
@@ -284,7 +285,7 @@ ENV DEBUG=false
 
 # CMD to run debugpy if DEBUG=true, else launch ghini
 CMD if [ "$DEBUG" = "true" ]; then \
-        python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client /app/scripts/ghini; \
+        python3 -m debugpy --log-to debugpy.log --listen 0.0.0.0:5678 --wait-for-client /app/scripts/ghini; \
     else \
         /app/scripts/ghini; \
     fi
