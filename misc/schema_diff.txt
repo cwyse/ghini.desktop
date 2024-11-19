@@ -1,0 +1,732 @@
+80a81,121
+> -- Name: accession_note; Type: TABLE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE TABLE public.accession_note (
+>     date date,
+>     "user" character varying(64),
+>     category character varying(32),
+>     type character varying(32),
+>     note text NOT NULL,
+>     accession_id integer NOT NULL,
+>     id integer NOT NULL,
+>     _created timestamp with time zone,
+>     _last_updated timestamp with time zone
+> );
+> 
+> 
+> ALTER TABLE public.accession_note OWNER TO ghini;
+> 
+> --
+> -- Name: accession_note_id_seq; Type: SEQUENCE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE SEQUENCE public.accession_note_id_seq
+>     AS integer
+>     START WITH 1
+>     INCREMENT BY 1
+>     NO MINVALUE
+>     NO MAXVALUE
+>     CACHE 1;
+> 
+> 
+> ALTER SEQUENCE public.accession_note_id_seq OWNER TO ghini;
+> 
+> --
+> -- Name: accession_note_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ghini
+> --
+> 
+> ALTER SEQUENCE public.accession_note_id_seq OWNED BY public.accession_note.id;
+> 
+> 
+> --
+117a159,207
+> -- Name: collection; Type: TABLE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE TABLE public.collection (
+>     collector character varying(64),
+>     collectors_code character varying(50),
+>     date date,
+>     locale text NOT NULL,
+>     latitude character varying(15),
+>     longitude character varying(15),
+>     gps_datum character varying(32),
+>     geo_accy double precision,
+>     elevation double precision,
+>     elevation_accy double precision,
+>     habitat text,
+>     notes text,
+>     geographic_area_id integer,
+>     source_id integer,
+>     id integer NOT NULL,
+>     _created timestamp with time zone,
+>     _last_updated timestamp with time zone
+> );
+> 
+> 
+> ALTER TABLE public.collection OWNER TO ghini;
+> 
+> --
+> -- Name: collection_id_seq; Type: SEQUENCE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE SEQUENCE public.collection_id_seq
+>     AS integer
+>     START WITH 1
+>     INCREMENT BY 1
+>     NO MINVALUE
+>     NO MAXVALUE
+>     CACHE 1;
+> 
+> 
+> ALTER SEQUENCE public.collection_id_seq OWNER TO ghini;
+> 
+> --
+> -- Name: collection_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ghini
+> --
+> 
+> ALTER SEQUENCE public.collection_id_seq OWNED BY public.collection.id;
+> 
+> 
+> --
+697a788,950
+> -- Name: plant; Type: TABLE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE TABLE public.plant (
+>     code character varying(6) NOT NULL,
+>     acc_type character varying(10),
+>     memorial boolean,
+>     quantity integer NOT NULL,
+>     accession_id integer NOT NULL,
+>     location_id integer NOT NULL,
+>     id integer NOT NULL,
+>     _created timestamp with time zone,
+>     _last_updated timestamp with time zone
+> );
+> 
+> 
+> ALTER TABLE public.plant OWNER TO ghini;
+> 
+> --
+> -- Name: plant_change; Type: TABLE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE TABLE public.plant_change (
+>     plant_id integer NOT NULL,
+>     parent_plant_id integer,
+>     from_location_id integer,
+>     to_location_id integer,
+>     person character varying(64),
+>     quantity integer NOT NULL,
+>     note_id integer,
+>     reason character varying(4),
+>     date timestamp without time zone,
+>     id integer NOT NULL,
+>     _created timestamp with time zone,
+>     _last_updated timestamp with time zone
+> );
+> 
+> 
+> ALTER TABLE public.plant_change OWNER TO ghini;
+> 
+> --
+> -- Name: plant_change_id_seq; Type: SEQUENCE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE SEQUENCE public.plant_change_id_seq
+>     AS integer
+>     START WITH 1
+>     INCREMENT BY 1
+>     NO MINVALUE
+>     NO MAXVALUE
+>     CACHE 1;
+> 
+> 
+> ALTER SEQUENCE public.plant_change_id_seq OWNER TO ghini;
+> 
+> --
+> -- Name: plant_change_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ghini
+> --
+> 
+> ALTER SEQUENCE public.plant_change_id_seq OWNED BY public.plant_change.id;
+> 
+> 
+> --
+> -- Name: plant_id_seq; Type: SEQUENCE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE SEQUENCE public.plant_id_seq
+>     AS integer
+>     START WITH 1
+>     INCREMENT BY 1
+>     NO MINVALUE
+>     NO MAXVALUE
+>     CACHE 1;
+> 
+> 
+> ALTER SEQUENCE public.plant_id_seq OWNER TO ghini;
+> 
+> --
+> -- Name: plant_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ghini
+> --
+> 
+> ALTER SEQUENCE public.plant_id_seq OWNED BY public.plant.id;
+> 
+> 
+> --
+> -- Name: plant_note; Type: TABLE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE TABLE public.plant_note (
+>     date date,
+>     "user" character varying(64),
+>     category character varying(32),
+>     type character varying(32),
+>     note text NOT NULL,
+>     plant_id integer NOT NULL,
+>     id integer NOT NULL,
+>     _created timestamp with time zone,
+>     _last_updated timestamp with time zone
+> );
+> 
+> 
+> ALTER TABLE public.plant_note OWNER TO ghini;
+> 
+> --
+> -- Name: plant_note_id_seq; Type: SEQUENCE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE SEQUENCE public.plant_note_id_seq
+>     AS integer
+>     START WITH 1
+>     INCREMENT BY 1
+>     NO MINVALUE
+>     NO MAXVALUE
+>     CACHE 1;
+> 
+> 
+> ALTER SEQUENCE public.plant_note_id_seq OWNER TO ghini;
+> 
+> --
+> -- Name: plant_note_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ghini
+> --
+> 
+> ALTER SEQUENCE public.plant_note_id_seq OWNED BY public.plant_note.id;
+> 
+> 
+> --
+> -- Name: plant_prop; Type: TABLE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE TABLE public.plant_prop (
+>     plant_id integer NOT NULL,
+>     propagation_id integer NOT NULL,
+>     id integer NOT NULL,
+>     _created timestamp with time zone,
+>     _last_updated timestamp with time zone
+> );
+> 
+> 
+> ALTER TABLE public.plant_prop OWNER TO ghini;
+> 
+> --
+> -- Name: plant_prop_id_seq; Type: SEQUENCE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE SEQUENCE public.plant_prop_id_seq
+>     AS integer
+>     START WITH 1
+>     INCREMENT BY 1
+>     NO MINVALUE
+>     NO MAXVALUE
+>     CACHE 1;
+> 
+> 
+> ALTER SEQUENCE public.plant_prop_id_seq OWNER TO ghini;
+> 
+> --
+> -- Name: plant_prop_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ghini
+> --
+> 
+> ALTER SEQUENCE public.plant_prop_id_seq OWNED BY public.plant_prop.id;
+> 
+> 
+> --
+717d969
+<     AS integer
+721c973
+<     NO MAXVALUE
+---
+>     MAXVALUE 2147483647
+953a1206,1245
+> -- Name: source; Type: TABLE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE TABLE public.source (
+>     sources_code character varying(32),
+>     accession_id integer,
+>     source_detail_id integer,
+>     propagation_id integer,
+>     plant_propagation_id integer,
+>     id integer NOT NULL,
+>     _created timestamp with time zone,
+>     _last_updated timestamp with time zone
+> );
+> 
+> 
+> ALTER TABLE public.source OWNER TO ghini;
+> 
+> --
+> -- Name: source_id_seq; Type: SEQUENCE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE SEQUENCE public.source_id_seq
+>     AS integer
+>     START WITH 1
+>     INCREMENT BY 1
+>     NO MINVALUE
+>     NO MAXVALUE
+>     CACHE 1;
+> 
+> 
+> ALTER SEQUENCE public.source_id_seq OWNER TO ghini;
+> 
+> --
+> -- Name: source_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ghini
+> --
+> 
+> ALTER SEQUENCE public.source_id_seq OWNED BY public.source.id;
+> 
+> 
+> --
+1244a1537,1579
+> -- Name: verification; Type: TABLE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE TABLE public.verification (
+>     verifier character varying(64) NOT NULL,
+>     date date NOT NULL,
+>     reference text,
+>     accession_id integer NOT NULL,
+>     level integer NOT NULL,
+>     species_id integer NOT NULL,
+>     prev_species_id integer NOT NULL,
+>     notes text,
+>     id integer NOT NULL,
+>     _created timestamp with time zone,
+>     _last_updated timestamp with time zone
+> );
+> 
+> 
+> ALTER TABLE public.verification OWNER TO ghini;
+> 
+> --
+> -- Name: verification_id_seq; Type: SEQUENCE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE SEQUENCE public.verification_id_seq
+>     AS integer
+>     START WITH 1
+>     INCREMENT BY 1
+>     NO MINVALUE
+>     NO MAXVALUE
+>     CACHE 1;
+> 
+> 
+> ALTER SEQUENCE public.verification_id_seq OWNER TO ghini;
+> 
+> --
+> -- Name: verification_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ghini
+> --
+> 
+> ALTER SEQUENCE public.verification_id_seq OWNED BY public.verification.id;
+> 
+> 
+> --
+1282a1618,1656
+> -- Name: voucher; Type: TABLE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE TABLE public.voucher (
+>     herbarium character varying(5) NOT NULL,
+>     code character varying(32) NOT NULL,
+>     parent_material boolean,
+>     accession_id integer NOT NULL,
+>     id integer NOT NULL,
+>     _created timestamp with time zone,
+>     _last_updated timestamp with time zone
+> );
+> 
+> 
+> ALTER TABLE public.voucher OWNER TO ghini;
+> 
+> --
+> -- Name: voucher_id_seq; Type: SEQUENCE; Schema: public; Owner: ghini
+> --
+> 
+> CREATE SEQUENCE public.voucher_id_seq
+>     AS integer
+>     START WITH 1
+>     INCREMENT BY 1
+>     NO MINVALUE
+>     NO MAXVALUE
+>     CACHE 1;
+> 
+> 
+> ALTER SEQUENCE public.voucher_id_seq OWNER TO ghini;
+> 
+> --
+> -- Name: voucher_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ghini
+> --
+> 
+> ALTER SEQUENCE public.voucher_id_seq OWNED BY public.voucher.id;
+> 
+> 
+> --
+1289a1664,1670
+> -- Name: accession_note id; Type: DEFAULT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.accession_note ALTER COLUMN id SET DEFAULT nextval('public.accession_note_id_seq'::regclass);
+> 
+> 
+> --
+1296a1678,1684
+> -- Name: collection id; Type: DEFAULT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.collection ALTER COLUMN id SET DEFAULT nextval('public.collection_id_seq'::regclass);
+> 
+> 
+> --
+1401a1790,1817
+> -- Name: plant id; Type: DEFAULT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant ALTER COLUMN id SET DEFAULT nextval('public.plant_id_seq'::regclass);
+> 
+> 
+> --
+> -- Name: plant_change id; Type: DEFAULT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_change ALTER COLUMN id SET DEFAULT nextval('public.plant_change_id_seq'::regclass);
+> 
+> 
+> --
+> -- Name: plant_note id; Type: DEFAULT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_note ALTER COLUMN id SET DEFAULT nextval('public.plant_note_id_seq'::regclass);
+> 
+> 
+> --
+> -- Name: plant_prop id; Type: DEFAULT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_prop ALTER COLUMN id SET DEFAULT nextval('public.plant_prop_id_seq'::regclass);
+> 
+> 
+> --
+1443a1860,1866
+> -- Name: source id; Type: DEFAULT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.source ALTER COLUMN id SET DEFAULT nextval('public.source_id_seq'::regclass);
+> 
+> 
+> --
+1492a1916,1922
+> -- Name: verification id; Type: DEFAULT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.verification ALTER COLUMN id SET DEFAULT nextval('public.verification_id_seq'::regclass);
+> 
+> 
+> --
+1499a1930,1936
+> -- Name: voucher id; Type: DEFAULT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.voucher ALTER COLUMN id SET DEFAULT nextval('public.voucher_id_seq'::regclass);
+> 
+> 
+> --
+1507a1945,1952
+> -- Name: accession_note accession_note_pkey; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.accession_note
+>     ADD CONSTRAINT accession_note_pkey PRIMARY KEY (id);
+> 
+> 
+> --
+1531a1977,1992
+> -- Name: collection collection_pkey; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.collection
+>     ADD CONSTRAINT collection_pkey PRIMARY KEY (id);
+> 
+> 
+> --
+> -- Name: collection collection_source_id_key; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.collection
+>     ADD CONSTRAINT collection_source_id_key UNIQUE (source_id);
+> 
+> 
+> --
+1723a2185,2224
+> -- Name: plant_change plant_change_pkey; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_change
+>     ADD CONSTRAINT plant_change_pkey PRIMARY KEY (id);
+> 
+> 
+> --
+> -- Name: plant plant_code_accession_id_key; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant
+>     ADD CONSTRAINT plant_code_accession_id_key UNIQUE (code, accession_id);
+> 
+> 
+> --
+> -- Name: plant_note plant_note_pkey; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_note
+>     ADD CONSTRAINT plant_note_pkey PRIMARY KEY (id);
+> 
+> 
+> --
+> -- Name: plant plant_pkey; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant
+>     ADD CONSTRAINT plant_pkey PRIMARY KEY (id);
+> 
+> 
+> --
+> -- Name: plant_prop plant_prop_pkey; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_prop
+>     ADD CONSTRAINT plant_prop_pkey PRIMARY KEY (id);
+> 
+> 
+> --
+1779a2281,2296
+> -- Name: source source_accession_id_key; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.source
+>     ADD CONSTRAINT source_accession_id_key UNIQUE (accession_id);
+> 
+> 
+> --
+> -- Name: source source_pkey; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.source
+>     ADD CONSTRAINT source_pkey PRIMARY KEY (id);
+> 
+> 
+> --
+1851a2369,2376
+> -- Name: verification verification_pkey; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.verification
+>     ADD CONSTRAINT verification_pkey PRIMARY KEY (id);
+> 
+> 
+> --
+1867a2393,2400
+> -- Name: voucher voucher_pkey; Type: CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.voucher
+>     ADD CONSTRAINT voucher_pkey PRIMARY KEY (id);
+> 
+> 
+> --
+1911a2445,2452
+> -- Name: accession_note accession_note_accession_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.accession_note
+>     ADD CONSTRAINT accession_note_accession_id_fkey FOREIGN KEY (accession_id) REFERENCES public.accession(id);
+> 
+> 
+> --
+1919a2461,2476
+> -- Name: collection collection_geographic_area_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.collection
+>     ADD CONSTRAINT collection_geographic_area_id_fkey FOREIGN KEY (geographic_area_id) REFERENCES public.geographic_area(id);
+> 
+> 
+> --
+> -- Name: collection collection_source_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.collection
+>     ADD CONSTRAINT collection_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.source(id);
+> 
+> 
+> --
+2015a2573,2652
+> -- Name: plant plant_accession_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant
+>     ADD CONSTRAINT plant_accession_id_fkey FOREIGN KEY (accession_id) REFERENCES public.accession(id);
+> 
+> 
+> --
+> -- Name: plant_change plant_change_from_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_change
+>     ADD CONSTRAINT plant_change_from_location_id_fkey FOREIGN KEY (from_location_id) REFERENCES public.location(id);
+> 
+> 
+> --
+> -- Name: plant_change plant_change_note_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_change
+>     ADD CONSTRAINT plant_change_note_id_fkey FOREIGN KEY (note_id) REFERENCES public.plant_note(id);
+> 
+> 
+> --
+> -- Name: plant_change plant_change_parent_plant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_change
+>     ADD CONSTRAINT plant_change_parent_plant_id_fkey FOREIGN KEY (parent_plant_id) REFERENCES public.plant(id);
+> 
+> 
+> --
+> -- Name: plant_change plant_change_plant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_change
+>     ADD CONSTRAINT plant_change_plant_id_fkey FOREIGN KEY (plant_id) REFERENCES public.plant(id);
+> 
+> 
+> --
+> -- Name: plant_change plant_change_to_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_change
+>     ADD CONSTRAINT plant_change_to_location_id_fkey FOREIGN KEY (to_location_id) REFERENCES public.location(id);
+> 
+> 
+> --
+> -- Name: plant plant_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant
+>     ADD CONSTRAINT plant_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.location(id);
+> 
+> 
+> --
+> -- Name: plant_note plant_note_plant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_note
+>     ADD CONSTRAINT plant_note_plant_id_fkey FOREIGN KEY (plant_id) REFERENCES public.plant(id);
+> 
+> 
+> --
+> -- Name: plant_prop plant_prop_plant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_prop
+>     ADD CONSTRAINT plant_prop_plant_id_fkey FOREIGN KEY (plant_id) REFERENCES public.plant(id);
+> 
+> 
+> --
+> -- Name: plant_prop plant_prop_propagation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.plant_prop
+>     ADD CONSTRAINT plant_prop_propagation_id_fkey FOREIGN KEY (propagation_id) REFERENCES public.propagation(id);
+> 
+> 
+> --
+2047a2685,2716
+> -- Name: source source_accession_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.source
+>     ADD CONSTRAINT source_accession_id_fkey FOREIGN KEY (accession_id) REFERENCES public.accession(id);
+> 
+> 
+> --
+> -- Name: source source_plant_propagation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.source
+>     ADD CONSTRAINT source_plant_propagation_id_fkey FOREIGN KEY (plant_propagation_id) REFERENCES public.propagation(id);
+> 
+> 
+> --
+> -- Name: source source_propagation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.source
+>     ADD CONSTRAINT source_propagation_id_fkey FOREIGN KEY (propagation_id) REFERENCES public.propagation(id);
+> 
+> 
+> --
+> -- Name: source source_source_detail_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.source
+>     ADD CONSTRAINT source_source_detail_id_fkey FOREIGN KEY (source_detail_id) REFERENCES public.contact(id);
+> 
+> 
+> --
+2127a2797,2820
+> -- Name: verification verification_accession_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.verification
+>     ADD CONSTRAINT verification_accession_id_fkey FOREIGN KEY (accession_id) REFERENCES public.accession(id);
+> 
+> 
+> --
+> -- Name: verification verification_prev_species_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.verification
+>     ADD CONSTRAINT verification_prev_species_id_fkey FOREIGN KEY (prev_species_id) REFERENCES public.species(id);
+> 
+> 
+> --
+> -- Name: verification verification_species_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.verification
+>     ADD CONSTRAINT verification_species_id_fkey FOREIGN KEY (species_id) REFERENCES public.species(id);
+> 
+> 
+> --
+2132a2826,2833
+> 
+> 
+> --
+> -- Name: voucher voucher_accession_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ghini
+> --
+> 
+> ALTER TABLE ONLY public.voucher
+>     ADD CONSTRAINT voucher_accession_id_fkey FOREIGN KEY (accession_id) REFERENCES public.accession(id);
