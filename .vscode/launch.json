@@ -1,0 +1,62 @@
+{
+    "version": "0.2.0",
+    "debugOptions": ["DebugStdLib"],
+    "configurations": [
+        {
+            "name": "Python: Attach to Container",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "/home/chris/repositories/ghini.desktop",  // Path to your code on your local machine
+                    "remoteRoot": "/app"  // Path to your code in the container
+                }
+            ],
+            "preLaunchTask": "Wait for Container",
+            "justMyCode": true,
+            "logToFile": true,
+            "subProcess": false
+        },
+        {
+            "name": "Python: Attach to Test Container",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "/home/chris/repositories/ghini.desktop",  // Path to your code on your local machine
+                    "remoteRoot": "/app"  // Path to your code in the container
+                }
+            ],
+            "preLaunchTask": "Wait for Test Container",
+            "justMyCode": false,
+            "logToFile": true,
+            "consoleName": "Python Debug Console"
+        },
+        {
+            "name": "Python: Attach to Test2 Container",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "/home/chris/repositories/ghini.desktop",  // Path to your code on your local machine
+                    "remoteRoot": "/app"  // Path to your code in the container
+                }
+            ],
+            "justMyCode": false,
+            "logToFile": true,
+            "consoleName": "Python Debug Console"
+        }        
+    ]
+}
