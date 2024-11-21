@@ -55,10 +55,8 @@ from sqlalchemy.orm.exc import NoResultFound
 from editor import GenericModelViewPresenterEditor
 from editor import MockView
 
-pass
 
 
-pass
 
 logging.basicConfig()
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
@@ -695,7 +693,6 @@ class GenusTests(PlantTestCase):
         """
         Test that the Genus string functions works as expected
         """
-        pass
 
     def test_editor(self):
         """

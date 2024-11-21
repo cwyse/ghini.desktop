@@ -36,7 +36,6 @@ from pyparsing import WordEnd
 from pyparsing import WordStart
 from pyparsing import ZeroOrMore
 
-pass
 
 
 class BuiltQuery:

@@ -21,7 +21,6 @@ from bauble.plugins.plants.stored_queries import StoredQueriesModel
 from bauble.plugins.plants.stored_queries import StoredQueriesPresenter
 from bauble.test import BaubleTestCase
 
-pass
 
 
 bauble.prefs.testing = True

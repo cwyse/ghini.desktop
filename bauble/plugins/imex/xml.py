@@ -21,22 +21,22 @@
 #
 # Description: handle import and exporting from a simple XML format
 #
-
-
 import logging
 import os
 import traceback
+from gettext import gettext as _
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-from gi.repository import Gdk, Gtk
-
-import bauble
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
 import bauble.task
 import bauble.utils as utils
+from gi.repository import Gtk
+
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 # TODO: single file or one file per table
 

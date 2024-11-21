@@ -18,41 +18,52 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import logging
+import os
+import traceback
+from gettext import gettext as _
+from threading import Thread
+
+import bauble
+import bauble.paths as bpaths
+import bauble.pluginmgr as pluginmgr
+import bauble.utils as butils
+import gi
+from bauble.editor import GenericEditorPresenter
+from bauble.editor import GenericEditorView
+from bauble.error import BaubleError
+from bauble.plugins.garden import Accession
+from bauble.plugins.garden import Contact
+from bauble.plugins.garden import Location
+from bauble.plugins.garden import Plant
+from bauble.plugins.garden import Source
+from bauble.plugins.plants import Family
+from bauble.plugins.plants import Genus
+from bauble.plugins.plants import Species
+from bauble.plugins.plants import VernacularName
+from bauble.plugins.tag import Tag
+from bauble.prefs import prefs
+from gi.repository import Gdk
+from gi.repository import GObject
+from gi.repository import Gtk
+from sqlalchemy import union
+
+from .flat_export import FlatFileExportTool
+from .utils import PS
+from .utils import SVG
 
 #
 # __init__.py
 #
 # Description : report plugin
 #
-import os
-import traceback
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-import gi
 
 gi.require_version("Gtk", "3.0")
-from threading import Thread
 
-from gi.repository import Gdk, GObject, Gtk
-from sqlalchemy import union
-
-import bauble
-import bauble.paths as bpaths
-import bauble.pluginmgr as pluginmgr
-import bauble.utils as butils
-from bauble.editor import GenericEditorPresenter, GenericEditorView
-from bauble.error import BaubleError
-from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
-from bauble.plugins.plants import Family, Genus, Species, VernacularName
-from bauble.plugins.tag import Tag
-from bauble.prefs import prefs
-
-from .flat_export import FlatFileExportTool
-from .utils import PS, SVG
 
 # name: formatter_kwargs
 config_list_pref = "report.options"
@@ -470,7 +481,7 @@ class FormatterPlugin(pluginmgr.Plugin):
                 ]
                 try:
                     domain = domains[0]
-                except IndexError as e:
+                except IndexError:
                     logger.debug(
                         "template {}({}) contains no {} DOMAIN declaration".format(
                             template, filename, cls.title
@@ -567,12 +578,14 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
 
         # set the names combo to the default. this activates
         # on_names_combo_changes, which does the rest of the work
-        combo = self.view.widgets.names_combo
+        self.view.widgets.names_combo
         default = prefs[default_config_pref]
         self.view.widget_set_value("names_combo", default)
         # hard_coded_options are part of the glade interface, we do not
         # remove them when selecting a different template.
-        self.hard_coded_options = set(self.view.widgets.options_box.get_children())
+        self.hard_coded_options = set(
+            self.view.widgets.options_box.get_children()
+        )
 
     def set_prefs_for(self, name, settings):
         """
@@ -683,7 +696,9 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         if index != -1:
             row = self.view.widgets.names_ls[index]
             name = row[0] + row[3]
-            prefs[default_config_pref] = name  # set the default to the new name
+            prefs[default_config_pref] = (
+                name  # set the default to the new name
+            )
         GObject.idle_add(self._names_combo_changed_idle, combo)
 
     def _names_combo_changed_idle(self, combo):
@@ -781,7 +796,9 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
     def set_bool_option(self, widget, fname):
         self.options[fname] = widget.get_active()
 
-    def add_name_to_combo_and_select_it(self, name, plugin, is_package_template):
+    def add_name_to_combo_and_select_it(
+        self, name, plugin, is_package_template
+    ):
         """the names tells it all
 
         scan through the names_ls, first compare with column:1, which holds
@@ -839,7 +856,9 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             ]
         )
         self.view.widgets.names_ls.clear()
-        for title in sorted(self.formatter_class_map):  # sort templates by plugin
+        for title in sorted(
+            self.formatter_class_map
+        ):  # sort templates by plugin
             plugin = self.formatter_class_map[title]
             logger.debug("scanning {} templates for {}".format(title, plugin))
             for candidate, index, path in basenames_fullnames:  # then by name
@@ -905,10 +924,14 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
     def start(self):
         """collect user choices, invokes formatter, repeat."""
         results_model = bauble.gui.get_results_model()  # guaranteed not empty
-        self.selection = [row[0] for row in results_model]  # only top level selected
+        self.selection = [
+            row[0] for row in results_model
+        ]  # only top level selected
         from sqlalchemy.orm import object_session
 
-        self.session = object_session(self.selection[0])  # reuse the same session
+        self.session = object_session(
+            self.selection[0]
+        )  # reuse the same session
 
         formatter = None
         settings = None
@@ -1004,7 +1027,6 @@ class ReportTool(pluginmgr.Tool):
             return
 
         bauble.gui.set_busy(True)
-        ok = False
         try:
             filename = os.path.join(
                 bpaths.lib_dir(), "plugins", "report", "report.glade"

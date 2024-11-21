@@ -58,11 +58,7 @@ from sqlalchemy.orm import synonym
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
 
-pass
-pass
-pass
 
-pass
 
 logger = logging.getLogger(__name__)
 

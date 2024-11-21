@@ -750,7 +750,6 @@ class Serializable:
 
         exchange format may use different keys than class attributes
         """
-        pass
 
     @classmethod
     def compute_serializable_fields(cls, session, keys):

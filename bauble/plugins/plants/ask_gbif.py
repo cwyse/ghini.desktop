@@ -21,7 +21,6 @@ import threading
 
 import requests
 
-pass
 
 
 logger = logging.getLogger(__name__)

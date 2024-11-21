@@ -40,7 +40,6 @@ from sqlalchemy import Boolean
 from sqlalchemy import ColumnDefault
 from sqlalchemy.orm import configure_mappers
 
-pass
 
 logger = logging.getLogger(__name__)
 
@@ -308,7 +307,6 @@ class CSVImporter(Importer):
                 created_tables.append(table.name)
 
         steps_so_far = 0
-        pass
         insert = None
         depends = set()  # the type will be changed to a [] later
         try:

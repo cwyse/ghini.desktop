@@ -62,8 +62,6 @@ from sqlalchemy.orm import synonym
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
 
-pass
-pass
 
 
 logger = logging.getLogger(__name__)
@@ -577,7 +575,6 @@ class GenusEditorView(editor.GenericEditorView):
         """
         # for expander, pref in self.expanders_pref_map.iteritems():
         #     prefs[pref] = self.widgets[expander].get_expanded()
-        pass
 
     def restore_state(self):
         """
@@ -586,7 +583,6 @@ class GenusEditorView(editor.GenericEditorView):
         # for expander, pref in self.expanders_pref_map.iteritems():
         #     expanded = prefs.get(pref, True)
         #     self.widgets[expander].set_expanded(expanded)
-        pass
 
     def set_accept_buttons_sensitive(self, sensitive):
         self.widgets.gen_ok_button.set_sensitive(sensitive)

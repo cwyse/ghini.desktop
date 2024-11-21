@@ -36,9 +36,7 @@ from bauble.plugins.report import get_pertinent_objects
 from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
 from bauble.test import BaubleTestCase
 
-pass
 
-pass
 
 logger = logging.getLogger(__name__)
 

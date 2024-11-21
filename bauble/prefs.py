@@ -300,7 +300,6 @@ class PrefsView(pluginmgr.View):
         for name, version in plugins:
             self.plugins_ls.append((name, version))
         session.close()
-        pass
 
 
 class PrefsCommandHandler(pluginmgr.CommandHandler):

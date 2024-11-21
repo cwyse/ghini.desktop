@@ -47,7 +47,6 @@ from gi.repository import Pango
 from sqlalchemy.orm import object_mapper
 from sqlalchemy.orm import object_session
 
-pass
 
 
 logger = logging.getLogger(__name__)
@@ -790,14 +789,12 @@ class GenericEditorView:
         that will be called restored in restore_state
         e.g. prefs[pref_string] = pref_value
         """
-        pass
 
     def restore_state(self):
         """
         Restore the state of the view, this is usually done by getting a value
         by the preferences and setting the equivalent in the interface
         """
-        pass
 
     def start(self):
         # while being ran, the view will invoke callbacks in the presenter
@@ -862,7 +859,6 @@ class MockView:
     def init_translatable_combo(self, *args):
         self.invoked.append("init_translatable_combo")
         self.invoked_detailed.append((self.invoked[-1], args))
-        pass
 
     def get_selection(self):
         "fakes main UI search result - selection"
@@ -871,7 +867,6 @@ class MockView:
     def image_set_from_file(self, *args):
         self.invoked.append("image_set_from_file")
         self.invoked_detailed.append((self.invoked[-1], args))
-        pass
 
     def run_file_chooser_dialog(
         self, text, parent, action, buttons, last_folder, target
@@ -916,12 +911,10 @@ class MockView:
     def set_title(self, *args):
         self.invoked.append("set_title")
         self.invoked_detailed.append((self.invoked[-1], args))
-        pass
 
     def set_icon(self, *args):
         self.invoked.append("set_icon")
         self.invoked_detailed.append((self.invoked[-1], args))
-        pass
 
     def combobox_init(self, name, values=None, *args):
         self.invoked.append("combobox_init")
@@ -933,17 +926,14 @@ class MockView:
     def connect_signals(self, *args):
         self.invoked.append("connect_signals")
         self.invoked_detailed.append((self.invoked[-1], args))
-        pass
 
     def set_label(self, *args):
         self.invoked.append("set_label")
         self.invoked_detailed.append((self.invoked[-1], args))
-        pass
 
     def connect_after(self, *args):
         self.invoked.append("connect_after")
         self.invoked_detailed.append((self.invoked[-1], args))
-        pass
 
     def widget_get_value(self, widget, *args):
         self.invoked.append("widget_get_value")
@@ -963,7 +953,6 @@ class MockView:
     def connect(self, *args):
         self.invoked.append("connect")
         self.invoked_detailed.append((self.invoked[-1], args))
-        pass
 
     def widget_get_visible(self, name):
         self.invoked.append("widget_get_visible")
@@ -993,7 +982,6 @@ class MockView:
     def widget_set_inconsistent(self, *args):
         self.invoked.append("widget_set_inconsistent")
         self.invoked_detailed.append((self.invoked[-1], args))
-        pass
 
     def widget_get_text(self, widget, *args):
         self.invoked.append("widget_get_text")
@@ -1097,7 +1085,6 @@ class MockView:
                 ],
             )
         )
-        pass
 
     def mark_problem(self, widget):
         pass
@@ -1147,7 +1134,6 @@ class DontCommitException(Exception):
     values and would like to redisplay
     """
 
-    pass
 
 
 class GenericEditorPresenter:

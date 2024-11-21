@@ -38,9 +38,6 @@ from bauble.plugins.plants import SpeciesNote
 from bauble.plugins.plants import VernacularName
 from gi.repository import Gtk
 
-pass
-pass
-pass
 
 logger = logging.getLogger(__name__)
 

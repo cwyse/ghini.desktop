@@ -31,7 +31,6 @@ from gi.repository import GLib
 from gi.repository import GObject
 from gi.repository import Gtk
 
-pass
 
 
 logger = logging.getLogger(__name__)
