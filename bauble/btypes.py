@@ -127,6 +127,13 @@ class Enum(types.TypeDecorator):
         return Enum(self.values, self.empty_to_none, self.strict)
 
 
+def get_dayfirst_yearfirst():
+    """
+    Retrieve preferences for dayfirst and yearfirst parsing.
+    """
+    from bauble.prefs import prefs, parse_dayfirst_pref, parse_yearfirst_pref
+    return prefs[parse_dayfirst_pref], prefs[parse_yearfirst_pref]
+
 class DateTime(types.TypeDecorator):
     """
     A DateTime type that allows strings
@@ -146,10 +153,12 @@ class DateTime(types.TypeDecorator):
             DateTime._dayfirst
             DateTime._yearfirst
         except AttributeError:
-            import bauble.prefs as prefs
-
-            DateTime._dayfirst = prefs.prefs[prefs.parse_dayfirst_pref]
-            DateTime._yearfirst = prefs.prefs[prefs.parse_yearfirst_pref]
+            #import bauble.prefs as prefs
+            #DateTime._dayfirst = prefs.prefs[prefs.parse_dayfirst_pref]
+            #DateTime._yearfirst = prefs.prefs[prefs.parse_yearfirst_pref]
+            from bauble.prefs import prefs, parse_dayfirst_pref, parse_yearfirst_pref
+            DateTime._dayfirst = prefs.prefs[parse_dayfirst_pref]
+            DateTime._yearfirst = prefs.prefs[parse_yearfirst_pref]
         result = parse_date(
             value, dayfirst=DateTime._dayfirst, yearfirst=DateTime._yearfirst
         )
