@@ -49,6 +49,16 @@ from bauble.error import CheckConditionError, check
 
 # TODO: create a generic date entry that can take a mask for the date format
 # see the date entries for the accession and accession source presenters
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ""
+    gtk_widget.set_text(text)
 
 
 class ValidatorError(Exception):
@@ -76,6 +86,7 @@ class DateValidator(Validator):
     """
     Validate that string is parseable with dateutil
     """
+
     def to_python(self, value):
         if not value:
             return None
@@ -84,8 +95,9 @@ class DateValidator(Validator):
         default_year = 1999
         default = datetime.date(default_year, 1, 1)
         try:
-            value = parse_date(value, dayfirst=dayfirst,
-                              yearfirst=yearfirst, default=default)
+            value = parse_date(
+                value, dayfirst=dayfirst, yearfirst=yearfirst, default=default
+            )
             if value.year == default_year:
                 raise ValueError
         except Exception as e:
@@ -104,7 +116,7 @@ class StringOrNoneValidator(Validator):
     """
 
     def to_python(self, value):
-        if value in ('', '', None):
+        if value in ("", "", None):
             return None
         return str(value)
 
@@ -115,11 +127,12 @@ class UnicodeOrNoneValidator(Validator):
     return the unicode() of the value. The default encoding is
     'utf-8'.
     """
-    def __init__(self, encoding='utf-8'):
+
+    def __init__(self, encoding="utf-8"):
         self.encoding = encoding
 
     def to_python(self, value):
-        if value in ('', '', None):
+        if value in ("", "", None):
             return None
         return utils.to_unicode(value, self.encoding)
 
@@ -130,12 +143,13 @@ class UnicodeOrEmptyValidator(Validator):
     return the unicode() of the value. The default encoding is
     'utf-8'.
     """
-    def __init__(self, encoding='utf-8'):
+
+    def __init__(self, encoding="utf-8"):
         self.encoding = encoding
 
     def to_python(self, value):
         if not value.strip():
-            return ''
+            return ""
         return utils.to_unicode(value, self.encoding)
 
 
@@ -146,15 +160,16 @@ class IntOrNoneStringValidator(Validator):
     """
 
     def to_python(self, value):
-        if value is None or (isinstance(value, str) and value == ''):
+        if value is None or (isinstance(value, str) and value == ""):
             return None
         elif isinstance(value, int):
             return value
         try:
             return int(value)
         except Exception:
-            raise ValidatorError('Could not convert value to int: %s (%s)'
-                                 % (value, type(value)))
+            raise ValidatorError(
+                "Could not convert value to int: %s (%s)" % (value, type(value))
+            )
 
 
 class FloatOrNoneStringValidator(Validator):
@@ -164,32 +179,33 @@ class FloatOrNoneStringValidator(Validator):
     """
 
     def to_python(self, value):
-        if value is None or (isinstance(value, str) and value == ''):
+        if value is None or (isinstance(value, str) and value == ""):
             return None
         elif isinstance(value, (int, float)):
             return value
         try:
             return float(value)
         except Exception:
-            raise ValidatorError('Could not convert value to float: %s (%s)'
-                                 % (value, type(value)))
+            raise ValidatorError(
+                "Could not convert value to float: %s (%s)" % (value, type(value))
+            )
 
 
 def default_completion_cell_data_func(column, renderer, model, treeiter, data=None):
-    '''
+    """
     the default completion cell data function for
     GenericEditorView.attach_completions
-    '''
+    """
     v = model[treeiter][0]
-    renderer.set_property('markup', utils.to_unicode(v))
+    renderer.set_property("markup", utils.to_unicode(v))
 
 
 def default_completion_match_func(completion, key_string, treeiter):
-    '''
+    """
     the default completion match function for
     GenericEditorView.attach_completions, does a case-insensitive string
     comparison of the the completions model[iter][0]
-    '''
+    """
     value = completion.get_model()[treeiter][0]
     return str(value).lower().startswith(key_string.lower())
 
@@ -210,6 +226,7 @@ class GenericEditorView:
     :param parent: a Gtk.Window or subclass to use as the parent
      window, if parent=None then bauble.gui.window is used
     """
+
     _tooltips = {}
 
     def __init__(self, filename, parent=None, root_widget_name=None):
@@ -232,18 +249,23 @@ class GenericEditorView:
                 self.widgets[widget_name].set_tooltip_markup(markup)
             except Exception as e:
                 values = dict(widget_name=widget_name, exception=e)
-                logger.debug(_('Couldn\'t set the tooltip on widget '
-                               '%(widget_name)s\n\n%(exception)s') % values)
+                logger.debug(
+                    _(
+                        "Couldn't set the tooltip on widget "
+                        "%(widget_name)s\n\n%(exception)s"
+                    )
+                    % values
+                )
 
         try:
             window = self.get_window()
         except:
             window = None
         if window is not None:
-            self.connect(window, 'delete-event', self.on_window_delete)
+            self.connect(window, "delete-event", self.on_window_delete)
             if isinstance(window, Gtk.Dialog):
-                self.connect(window, 'close', self.on_dialog_close)
-                self.connect(window, 'response', self.on_dialog_response)
+                self.connect(window, "close", self.on_dialog_close)
+                self.connect(window, "response", self.on_dialog_response)
         self.box = set()  # the top level, meant for warnings.
 
     def cancel_threads(self):
@@ -253,7 +275,8 @@ class GenericEditorView:
         pass
 
     def run_file_chooser_dialog(
-            self, text, parent, action, buttons, last_folder, target):
+        self, text, parent, action, buttons, last_folder, target
+    ):
         """create and run FileChooserDialog, then write result in target
 
         this is just a bit more than a wrapper. it adds 'last_folder', a
@@ -265,8 +288,8 @@ class GenericEditorView:
         """
         chooser = Gtk.FileChooserDialog(text, parent, action)
         chooser.add_buttons(buttons)
-        #chooser.set_do_overwrite_confirmation(True)
-        #chooser.connect("confirm-overwrite", confirm_overwrite_callback)
+        # chooser.set_do_overwrite_confirmation(True)
+        # chooser.connect("confirm-overwrite", confirm_overwrite_callback)
         try:
             if last_folder:
                 chooser.set_current_folder(last_folder)
@@ -275,8 +298,7 @@ class GenericEditorView:
                 if filename:
                     self.widget_set_value(target, filename)
         except Exception as e:
-            logger.warning("unhandled %s exception in editor.py: %s" %
-                           (type(e), e))
+            logger.warning("unhandled %s exception in editor.py: %s" % (type(e), e))
         chooser.destroy()
 
     def run_entry_dialog(self, title, parent, flags, buttons, visible=True):
@@ -286,8 +308,7 @@ class GenericEditorView:
         entry = Gtk.Entry()
         if visible is not True:
             entry.set_visibility(False)
-        entry.connect("activate",
-                      lambda entry: d.response(Gtk.ResponseType.ACCEPT))
+        entry.connect("activate", lambda entry: d.response(Gtk.ResponseType.ACCEPT))
         d.vbox.pack_start(entry, True, True, 0)
         d.show_all()
         d.run()
@@ -295,25 +316,29 @@ class GenericEditorView:
         d.destroy()
         return user_reply
 
-    def run_message_dialog(self, msg, type=Gtk.MessageType.INFO,
-                           buttons=Gtk.ButtonsType.OK, parent=None):
+    def run_message_dialog(
+        self, msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+    ):
         utils.message_dialog(msg, type, buttons, parent)
 
     def run_yes_no_dialog(self, msg, parent=None, yes_delay=-1):
         return utils.yes_no_dialog(msg, parent, yes_delay)
 
     def get_selection(self):
-        '''return the selection in the graphic interface'''
+        """return the selection in the graphic interface"""
+
         class EmptySelectionException(Exception):
             pass
+
         from bauble.view import SearchView
+
         view = bauble.gui.get_view()
         try:
             check(isinstance(view, SearchView))
             tree_view = view.results_view.get_model()
             check(tree_view is not None)
         except CheckConditionError:
-            self.run_message_dialog(_('Search for something first.'))
+            self.run_message_dialog(_("Search for something first."))
             return
 
         return [row[0] for row in tree_view]
@@ -325,9 +350,7 @@ class GenericEditorView:
         self.get_window().set_icon(icon)
 
     def image_set_from_file(self, widget, value):
-        widget = (isinstance(widget, Gtk.Widget)
-                  and widget
-                  or self.widgets[widget])
+        widget = isinstance(widget, Gtk.Widget) and widget or self.widgets[widget]
         widget.set_from_file(value)
 
     def set_label(self, widget_name, value):
@@ -335,23 +358,23 @@ class GenericEditorView:
 
     def close_boxes(self):
         while self.boxes:
-            logger.debug('box is being forcibly removed')
+            logger.debug("box is being forcibly removed")
             box = self.boxes.pop()
             self.widgets.remove_parent(box)
             box.destroy()
 
     def add_box(self, box):
-        logger.debug('box is being added')
+        logger.debug("box is being added")
         self.boxes.add(box)
 
     def remove_box(self, box):
-        logger.debug('box is being removed')
+        logger.debug("box is being removed")
         if box in self.boxes:
             self.boxes.remove(box)
             self.widgets.remove_parent(box)
             box.destroy()
         else:
-            logger.debug('box to be removed is not there')
+            logger.debug("box to be removed is not there")
 
     def add_message_box(self, message_box_type=utils.MESSAGE_BOX_INFO):
         """add a message box to the message_box_parent container
@@ -359,29 +382,27 @@ class GenericEditorView:
         :param type: one of MESSAGE_BOX_INFO, MESSAGE_BOX_ERROR or
           MESSAGE_BOX_YESNO
         """
-        return utils.add_message_box(self.widgets.message_box_parent,
-                                     message_box_type)
+        return utils.add_message_box(self.widgets.message_box_parent, message_box_type)
 
     def connect_signals(self, target):
-        'connect all signals declared in the glade file'
-        if not hasattr(self, 'signals'):
+        "connect all signals declared in the glade file"
+        if not hasattr(self, "signals"):
             from lxml import etree
+
             doc = etree.parse(self.filename)
-            self.signals = doc.xpath('//signal')
+            self.signals = doc.xpath("//signal")
         for s in self.signals:
             try:
-                handler = getattr(target, s.get('handler'))
+                handler = getattr(target, s.get("handler"))
             except AttributeError as text:
                 logger.debug("AttributeError: %s" % text)
                 continue
-            signaller = getattr(self.widgets, s.getparent().get('id'))
-            handler_id = signaller.connect(s.get('name'), handler)
+            signaller = getattr(self.widgets, s.getparent().get("id"))
+            handler_id = signaller.connect(s.get("name"), handler)
             self.__attached_signals.append((signaller, handler_id))
 
     def set_accept_buttons_sensitive(self, sensitive):
-        '''set the sensitivity of all the accept/ok buttons
-
-        '''
+        """set the sensitivity of all the accept/ok buttons"""
         for wname in self.accept_buttons:
             getattr(self.widgets, wname).set_sensitive(sensitive)
 
@@ -437,7 +458,7 @@ class GenericEditorView:
         :meth:`GenericEditorView.connect` or
         :meth:`GenericEditorView.connect_after`
         """
-        logger.debug('GenericEditorView:disconnect_all')
+        logger.debug("GenericEditorView:disconnect_all")
         for obj, sid in self.__attached_signals:
             obj.disconnect(sid)
         del self.__attached_signals[:]
@@ -477,7 +498,7 @@ class GenericEditorView:
                     return c
         else:
             return self.widgets[widget]
-        logger.warning('cannot solve widget reference %s' % str(p))
+        logger.warning("cannot solve widget reference %s" % str(p))
         return None
 
     def widget_append_page(self, widget, page, label):
@@ -519,7 +540,7 @@ class GenericEditorView:
         combo.set_model(model)
         renderer = Gtk.CellRendererText()
         combo.pack_start(renderer, True)
-        combo.add_attribute(renderer, 'text', 0)
+        combo.add_attribute(renderer, "text", 0)
         self.combobox_setup(combo, values, cell_data_func)
 
     def combobox_setup(self, combo, values, cell_data_func):
@@ -541,8 +562,9 @@ class GenericEditorView:
             # remove at position
             widget.remove(item)
         else:
-            logger.warning('invoked combobox_remove with item=(%s)%s' %
-                           (type(item), item))
+            logger.warning(
+                "invoked combobox_remove with item=(%s)%s" % (type(item), item)
+            )
 
     def combobox_append_text(self, widget, value):
         widget = self.__get_widget(widget)
@@ -565,7 +587,7 @@ class GenericEditorView:
         widget.set_active(index)
 
     def combobox_get_model(self, widget):
-        'get the list of values in the combo'
+        "get the list of values in the combo"
         widget = self.__get_widget(widget)
         return widget.get_model()
 
@@ -601,9 +623,8 @@ class GenericEditorView:
         widget = self.__get_widget(widget)
         return utils.get_widget_value(widget, index)
 
-    def widget_set_value(self, widget, value, markup=False, default=None,
-                         index=0):
-        '''
+    def widget_set_value(self, widget, value, markup=False, default=None, index=0):
+        """
         :param widget: a widget or name of a widget in self.widgets
         :param value: the value to put in the widgets
         :param markup: whether the data in value uses pango markup
@@ -611,19 +632,18 @@ class GenericEditorView:
         :param index: the row index to use for those widgets who use a model
 
         This method calls bauble.utils.set_widget_value()
-        '''
+        """
         if isinstance(widget, Gtk.Widget):
             utils.set_widget_value(widget, value, markup, default, index)
         else:
-            utils.set_widget_value(self.widgets[widget], value, markup,
-                                   default, index)
+            utils.set_widget_value(self.widgets[widget], value, markup, default, index)
 
     def on_dialog_response(self, dialog, response, *args):
-        '''
+        """
         Called if self.get_window() is a Gtk.Dialog and it receives
         the response signal.
-        '''
-        logger.debug('on_dialog_response')
+        """
+        logger.debug("on_dialog_response")
         dialog.hide()
         self.response = response
         return response
@@ -633,7 +653,7 @@ class GenericEditorView:
         Called if self.get_window() is a Gtk.Dialog and it receives
         the close signal.
         """
-        logger.debug('on_dialog_close')
+        logger.debug("on_dialog_close")
         dialog.hide()
         return False
 
@@ -642,15 +662,18 @@ class GenericEditorView:
         Called when the window return by get_window() receives the
         delete event.
         """
-        logger.debug('on_window_delete')
+        logger.debug("on_window_delete")
         window.hide()
         return False
 
-    def attach_completion(self, entry,
-                          cell_data_func=default_completion_cell_data_func,
-                          match_func=default_completion_match_func,
-                          minimum_key_length=2,
-                          text_column=-1):
+    def attach_completion(
+        self,
+        entry,
+        cell_data_func=default_completion_cell_data_func,
+        match_func=default_completion_match_func,
+        minimum_key_length=2,
+        text_column=-1,
+    ):
         """
         Attach an entry completion to a Gtk.Entry.  The defaults
         values for this attach_completion assumes the completion popup
@@ -686,7 +709,7 @@ class GenericEditorView:
         completion.pack_start(cell, True)
         completion.set_cell_data_func(cell, cell_data_func)
         completion.set_match_func(match_func)
-        completion.set_property('text-column', text_column)
+        completion.set_property("text-column", text_column)
         completion.set_minimum_key_length(minimum_key_length)
         completion.set_popup_completion(True)
         completion.props.popup_set_width = False
@@ -701,8 +724,7 @@ class GenericEditorView:
         return completion
 
     # TODO: add a default value to set in the combo
-    def init_translatable_combo(self, combo, translations, default=None,
-                                cmp=None):
+    def init_translatable_combo(self, combo, translations, default=None, cmp=None):
         """
         Initialize a Gtk.ComboBox with translations values where
         model[row][0] is the value that will be stored in the database
@@ -722,31 +744,31 @@ class GenericEditorView:
         # using 'object' avoids SA unicode warning
         model = Gtk.ListStore(object, str)
         if isinstance(translations, dict):
-            translations = sorted(list(translations.items()),
-                                  key=lambda x: (x[1] != None, x[1]))
+            translations = sorted(
+                list(translations.items()), key=lambda x: (x[1] != None, x[1])
+            )
         if cmp is not None:
-            translations = sorted(translations,
-                                  key=lambda a: (a[0] != None, a[0]))
+            translations = sorted(translations, key=lambda a: (a[0] != None, a[0]))
         for key, value in translations:
             model.append([key, value])
         combo.set_model(model)
         cell = Gtk.CellRendererText()
         combo.pack_start(cell, True)
-        combo.add_attribute(cell, 'text', 1)
+        combo.add_attribute(cell, "text", 1)
 
     def save_state(self):
-        '''
+        """
         Save the state of the view by setting a value in the preferences
         that will be called restored in restore_state
         e.g. prefs[pref_string] = pref_value
-        '''
+        """
         pass
 
     def restore_state(self):
-        '''
+        """
         Restore the state of the view, this is usually done by getting a value
         by the preferences and setting the equivalent in the interface
-        '''
+        """
         pass
 
     def start(self):
@@ -788,10 +810,10 @@ class MockDialog:
 
 
 class MockView:
-    '''mocking the view, but so generic that we share it among clients
-    '''
+    """mocking the view, but so generic that we share it among clients"""
+
     def __init__(self, **kwargs):
-        self.widgets = type('MockWidgets', (object, ), {})()
+        self.widgets = type("MockWidgets", (object,), {})()
         self.models = {}  # dictionary of list of tuples
         self.invoked = []
         self.invoked_detailed = []
@@ -810,46 +832,48 @@ class MockView:
         self.boxes = set()
 
     def init_translatable_combo(self, *args):
-        self.invoked.append('init_translatable_combo')
+        self.invoked.append("init_translatable_combo")
         self.invoked_detailed.append((self.invoked[-1], args))
         pass
 
     def get_selection(self):
-        'fakes main UI search result - selection'
+        "fakes main UI search result - selection"
         return self.selection
 
     def image_set_from_file(self, *args):
-        self.invoked.append('image_set_from_file')
+        self.invoked.append("image_set_from_file")
         self.invoked_detailed.append((self.invoked[-1], args))
         pass
 
     def run_file_chooser_dialog(
-            self, text, parent, action, buttons, last_folder, target):
+        self, text, parent, action, buttons, last_folder, target
+    ):
         args = [text, parent, action, buttons, last_folder, target]
-        self.invoked.append('run_file_chooser_dialog')
+        self.invoked.append("run_file_chooser_dialog")
         self.invoked_detailed.append((self.invoked[-1], args))
         try:
             reply = self.reply_file_chooser_dialog.pop()
         except:
-            reply = ''
+            reply = ""
         self.widget_set_value(target, reply)
 
     def run_entry_dialog(self, *args, **kwargs):
-        self.invoked.append('run_entry_dialog')
+        self.invoked.append("run_entry_dialog")
         self.invoked_detailed.append((self.invoked[-1], args))
         try:
             return self.reply_entry_dialog.pop()
         except:
-            return ''
+            return ""
 
-    def run_message_dialog(self, msg, type=Gtk.MessageType.INFO,
-                           buttons=Gtk.ButtonsType.OK, parent=None):
-        self.invoked.append('run_message_dialog')
+    def run_message_dialog(
+        self, msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+    ):
+        self.invoked.append("run_message_dialog")
         args = [msg, type, buttons, parent]
         self.invoked_detailed.append((self.invoked[-1], args))
 
     def run_yes_no_dialog(self, msg, parent=None, yes_delay=-1):
-        self.invoked.append('run_yes_no_dialog')
+        self.invoked.append("run_yes_no_dialog")
         args = [msg, parent, yes_delay]
         self.invoked_detailed.append((self.invoked[-1], args))
         try:
@@ -858,179 +882,228 @@ class MockView:
             return True
 
     def set_title(self, *args):
-        self.invoked.append('set_title')
+        self.invoked.append("set_title")
         self.invoked_detailed.append((self.invoked[-1], args))
         pass
 
     def set_icon(self, *args):
-        self.invoked.append('set_icon')
+        self.invoked.append("set_icon")
         self.invoked_detailed.append((self.invoked[-1], args))
         pass
 
     def combobox_init(self, name, values=None, *args):
-        self.invoked.append('combobox_init')
+        self.invoked.append("combobox_init")
         self.invoked_detailed.append((self.invoked[-1], [name, values, args]))
         self.models[name] = []
         for i in values or []:
-            self.models[name].append((i, ))
+            self.models[name].append((i,))
 
     def connect_signals(self, *args):
-        self.invoked.append('connect_signals')
+        self.invoked.append("connect_signals")
         self.invoked_detailed.append((self.invoked[-1], args))
         pass
 
     def set_label(self, *args):
-        self.invoked.append('set_label')
+        self.invoked.append("set_label")
         self.invoked_detailed.append((self.invoked[-1], args))
         pass
 
     def connect_after(self, *args):
-        self.invoked.append('connect_after')
+        self.invoked.append("connect_after")
         self.invoked_detailed.append((self.invoked[-1], args))
         pass
 
     def widget_get_value(self, widget, *args):
-        self.invoked.append('widget_get_value')
+        self.invoked.append("widget_get_value")
         self.invoked_detailed.append((self.invoked[-1], [widget, args]))
         return self.values.get(widget)
 
     def widget_set_value(self, widget, value, *args):
-        self.invoked.append('widget_set_value')
+        self.invoked.append("widget_set_value")
         self.invoked_detailed.append((self.invoked[-1], [widget, value, args]))
         self.values[widget] = value
         if widget in self.models:
-            if (value, ) in self.models[widget]:
-                self.index[widget] = self.models[widget].index((value, ))
+            if (value,) in self.models[widget]:
+                self.index[widget] = self.models[widget].index((value,))
             else:
                 self.index[widget] = -1
 
     def connect(self, *args):
-        self.invoked.append('connect')
+        self.invoked.append("connect")
         self.invoked_detailed.append((self.invoked[-1], args))
         pass
 
     def widget_get_visible(self, name):
-        self.invoked.append('widget_get_visible')
+        self.invoked.append("widget_get_visible")
         self.invoked_detailed.append((self.invoked[-1], [name]))
         return self.visible.get(name)
 
     def widget_set_visible(self, name, value=True):
-        self.invoked.append('widget_set_visible')
+        self.invoked.append("widget_set_visible")
         self.invoked_detailed.append((self.invoked[-1], [name, value]))
         self.visible[name] = value
 
     def widget_set_expanded(self, widget, value):
-        self.invoked.append('widget_set_expanded')
+        self.invoked.append("widget_set_expanded")
         self.invoked_detailed.append((self.invoked[-1], [widget, value]))
         self.expanded[widget] = value
 
     def widget_set_sensitive(self, name, value=True):
-        self.invoked.append('widget_set_sensitive')
+        self.invoked.append("widget_set_sensitive")
         self.invoked_detailed.append((self.invoked[-1], [name, value]))
         self.sensitive[name] = value and True or False
 
     def widget_get_sensitive(self, name):
-        self.invoked.append('widget_get_sensitive')
+        self.invoked.append("widget_get_sensitive")
         self.invoked_detailed.append((self.invoked[-1], [name]))
         return self.sensitive[name]
 
     def widget_set_inconsistent(self, *args):
-        self.invoked.append('widget_set_inconsistent')
+        self.invoked.append("widget_set_inconsistent")
         self.invoked_detailed.append((self.invoked[-1], args))
         pass
 
     def widget_get_text(self, widget, *args):
-        self.invoked.append('widget_get_text')
+        self.invoked.append("widget_get_text")
         self.invoked_detailed.append((self.invoked[-1], [widget, args]))
         return self.values[widget]
 
     def widget_set_text(self, *args):
-        self.invoked.append('widget_set_text')
+        self.invoked.append("widget_set_text")
         self.invoked_detailed.append((self.invoked[-1], args))
         self.values[args[0]] = args[1]
 
     def widget_grab_focus(self, *args):
-        self.invoked.append('widget_grab_focus')
+        self.invoked.append("widget_grab_focus")
         self.invoked_detailed.append((self.invoked[-1], args))
 
     def widget_set_active(self, *args):
-        self.invoked.append('widget_set_active')
+        self.invoked.append("widget_set_active")
         self.invoked_detailed.append((self.invoked[-1], args))
 
     def widget_set_attributes(self, *args):
-        self.invoked.append('widget_set_attributes')
+        self.invoked.append("widget_set_attributes")
         self.invoked_detailed.append((self.invoked[-1], args))
 
     def get_window(self):
-        self.invoked.append('get_window')
+        self.invoked.append("get_window")
         self.invoked_detailed.append((self.invoked[-1], []))
         return self.__window
 
     widget_get_active = widget_get_value
 
     def combobox_remove(self, name, item):
-        self.invoked.append('combobox_remove')
+        self.invoked.append("combobox_remove")
         self.invoked_detailed.append((self.invoked[-1], [name, item]))
         model = self.models.setdefault(name, [])
         if isinstance(item, int):
             del model[item]
         else:
-            model.remove((item, ))
+            model.remove((item,))
 
     def combobox_append_text(self, name, value):
-        self.invoked.append('combobox_append_text')
+        self.invoked.append("combobox_append_text")
         self.invoked_detailed.append((self.invoked[-1], [name, value]))
         model = self.models.setdefault(name, [])
-        model.append((value, ))
+        model.append((value,))
 
     def combobox_prepend_text(self, name, value):
-        self.invoked.append('combobox_prepend_text')
+        self.invoked.append("combobox_prepend_text")
         self.invoked_detailed.append((self.invoked[-1], [name, value]))
         model = self.models.setdefault(name, [])
-        model.insert(0, (value, ))
+        model.insert(0, (value,))
 
     def combobox_set_active(self, widget, index):
-        self.invoked.append('combobox_set_active')
+        self.invoked.append("combobox_set_active")
         self.invoked_detailed.append((self.invoked[-1], [widget, index]))
         self.index[widget] = index
         self.values[widget] = self.models[widget][index][0]
 
     def combobox_get_active_text(self, widget):
-        self.invoked.append('combobox_get_active_text')
-        self.invoked_detailed.append((self.invoked[-1], [widget, ]))
+        self.invoked.append("combobox_get_active_text")
+        self.invoked_detailed.append(
+            (
+                self.invoked[-1],
+                [
+                    widget,
+                ],
+            )
+        )
         return self.values[widget]
 
     def combobox_get_active(self, widget):
-        self.invoked.append('combobox_get_active')
-        self.invoked_detailed.append((self.invoked[-1], [widget, ]))
+        self.invoked.append("combobox_get_active")
+        self.invoked_detailed.append(
+            (
+                self.invoked[-1],
+                [
+                    widget,
+                ],
+            )
+        )
         return self.index.setdefault(widget, 0)
 
     def combobox_get_model(self, widget):
-        self.invoked.append('combobox_get_model')
-        self.invoked_detailed.append((self.invoked[-1], [widget, ]))
+        self.invoked.append("combobox_get_model")
+        self.invoked_detailed.append(
+            (
+                self.invoked[-1],
+                [
+                    widget,
+                ],
+            )
+        )
         return self.models[widget]
 
     def set_accept_buttons_sensitive(self, sensitive=True):
-        self.invoked.append('set_accept_buttons_sensitive')
-        self.invoked_detailed.append((self.invoked[-1], [sensitive, ]))
+        self.invoked.append("set_accept_buttons_sensitive")
+        self.invoked_detailed.append(
+            (
+                self.invoked[-1],
+                [
+                    sensitive,
+                ],
+            )
+        )
         pass
 
     def mark_problem(self, widget):
         pass
 
     def add_message_box(self, message_box_type=utils.MESSAGE_BOX_INFO):
-        self.invoked.append('set_accept_buttons_sensitive')
-        self.invoked_detailed.append((self.invoked[-1], [message_box_type, ]))
+        self.invoked.append("set_accept_buttons_sensitive")
+        self.invoked_detailed.append(
+            (
+                self.invoked[-1],
+                [
+                    message_box_type,
+                ],
+            )
+        )
         return MockDialog()
 
     def add_box(self, box):
-        self.invoked.append('add_box')
-        self.invoked_detailed.append((self.invoked[-1], [box, ]))
+        self.invoked.append("add_box")
+        self.invoked_detailed.append(
+            (
+                self.invoked[-1],
+                [
+                    box,
+                ],
+            )
+        )
         self.boxes.add(box)
 
     def remove_box(self, box):
-        self.invoked.append('remove_box')
-        self.invoked_detailed.append((self.invoked[-1], [box, ]))
+        self.invoked.append("remove_box")
+        self.invoked_detailed.append(
+            (
+                self.invoked[-1],
+                [
+                    box,
+                ],
+            )
+        )
         if box in self.boxes:
             self.boxes.remove(box)
 
@@ -1041,6 +1114,7 @@ class DontCommitException(Exception):
     signal that for some reason the editor doesn't want to commit the current
     values and would like to redisplay
     """
+
     pass
 
 
@@ -1056,15 +1130,23 @@ class GenericEditorPresenter:
     2. refresh the view, put values from the model into the widgets
     3. connect the signal handlers
     """
-    problem_color = Gdk.Color.parse('#FFDCDF')
+
+    problem_color = Gdk.Color.parse("#FFDCDF")
     widget_to_field_map = {}
     view_accept_buttons = []
 
     PROBLEM_DUPLICATE = random()
     PROBLEM_EMPTY = random()
 
-    def __init__(self, model, view, refresh_view=False, session=None,
-                 do_commit=False, committing_results=[Gtk.ResponseType.OK]):
+    def __init__(
+        self,
+        model,
+        view,
+        refresh_view=False,
+        session=None,
+        do_commit=False,
+        committing_results=[Gtk.ResponseType.OK],
+    ):
         self.model = model
         self.view = view
         self.problems = set()
@@ -1075,15 +1157,19 @@ class GenericEditorPresenter:
         self.owns_session = False
         self.session = session
         self.clipboard_presenters = []
-        if not hasattr(self.__class__, 'clipboard'):
-            logging.debug('creating clipboard in presenter class %s' % self.__class__.__name__)
+        if not hasattr(self.__class__, "clipboard"):
+            logging.debug(
+                "creating clipboard in presenter class %s" % self.__class__.__name__
+            )
             self.__class__.clipboard = {}
 
         if session is None:
             try:
                 self.session = object_session(model)
             except Exception as e:
-                logger.debug("GenericEditorPresenter::__init__ - {}, {}".format(type(e), e))
+                logger.debug(
+                    "GenericEditorPresenter::__init__ - {}, {}".format(type(e), e)
+                )
 
             if self.session is None:  # object_session gave None without error
                 if db.Session is not None:
@@ -1092,7 +1178,7 @@ class GenericEditorPresenter:
                     if isinstance(model, db.Base):
                         self.model = model = self.session.merge(model)
                 else:
-                    logger.debug('db.Session was None, I cannot get a session.')
+                    logger.debug("db.Session was None, I cannot get a session.")
                     self.session = None
 
         if view:
@@ -1103,16 +1189,20 @@ class GenericEditorPresenter:
 
     def create_toolbar(self, *args, **kwargs):
         view, model = self.view, self.model
-        logging.debug('creating toolbar in content_area presenter %s' % self.__class__.__name__)
-        actiongroup = Gtk.ActionGroup('window-clip-actions')
+        logging.debug(
+            "creating toolbar in content_area presenter %s" % self.__class__.__name__
+        )
+        actiongroup = Gtk.ActionGroup("window-clip-actions")
         accelgroup = Gtk.AccelGroup()
         fake_toolbar = Gtk.Toolbar()
-        fake_toolbar.set_name('toolbar')
+        fake_toolbar.set_name("toolbar")
         view.get_window().add_accel_group(accelgroup)
         view.get_window().get_content_area().pack_start(fake_toolbar, True, True, 0)
-        for shortcut, cb in (('<ctrl><shift>c', self.on_window_clip_copy),
-                             ('<ctrl><shift>v', self.on_window_clip_paste)):
-            action = Gtk.Action(shortcut, shortcut, 'clip-action', None)
+        for shortcut, cb in (
+            ("<ctrl><shift>c", self.on_window_clip_copy),
+            ("<ctrl><shift>v", self.on_window_clip_paste),
+        ):
+            action = Gtk.Action(shortcut, shortcut, "clip-action", None)
             actiongroup.add_action_with_accel(action, shortcut)
             action.connect("activate", cb)
             action.set_accel_group(accelgroup)
@@ -1128,7 +1218,7 @@ class GenericEditorPresenter:
 
     def on_window_clip_copy(self, widget, *args, **kwargs):
         try:
-            notebook = self.view.widgets['notebook']
+            notebook = self.view.widgets["notebook"]
             current_page_no = notebook.get_current_page()
             current_page_widget = notebook.get_nth_page(current_page_no)
         except:
@@ -1143,12 +1233,16 @@ class GenericEditorPresenter:
                     container = container.get_parent()
                 if current_page_widget == container:
                     value = presenter.view.widget_get_value(name)
-                    logger.debug('writing »{}« in clipboard {} for {}'.format(value, presenter.__class__.__name__, name))
+                    logger.debug(
+                        "writing »{}« in clipboard {} for {}".format(
+                            value, presenter.__class__.__name__, name
+                        )
+                    )
                     presenter.clipboard[name] = value
 
     def on_window_clip_paste(self, widget, *args, **kwargs):
         try:
-            notebook = self.view.widgets['notebook']
+            notebook = self.view.widgets["notebook"]
             current_page_no = notebook.get_current_page()
             current_page_widget = notebook.get_nth_page(current_page_no)
         except:
@@ -1163,28 +1257,40 @@ class GenericEditorPresenter:
                     container = container.get_parent()
                 if current_page_widget == container:
                     if presenter.view.widget_get_value(name):
-                        logger.debug('skipping {} in clipboard {} because widget has value'.format(name, presenter.__class__.__name__))
+                        logger.debug(
+                            "skipping {} in clipboard {} because widget has value".format(
+                                name, presenter.__class__.__name__
+                            )
+                        )
                         continue
                     clipboard_value = presenter.clipboard.get(name)
                     if not clipboard_value:
-                        logger.debug('skipping {} because clipboard {} has no value'.format(name, presenter.__class__.__name__))
+                        logger.debug(
+                            "skipping {} because clipboard {} has no value".format(
+                                name, presenter.__class__.__name__
+                            )
+                        )
                         continue
-                    logger.debug('setting »{}« from clipboard {} for {}'.format(clipboard_value, presenter.__class__.__name__, name))
+                    logger.debug(
+                        "setting »{}« from clipboard {} for {}".format(
+                            clipboard_value, presenter.__class__.__name__, name
+                        )
+                    )
                     presenter.view.widget_set_value(name, clipboard_value)
 
     def refresh_sensitivity(self):
-        logger.debug('you should implement this in your subclass')
+        logger.debug("you should implement this in your subclass")
 
     def refresh_view(self):
-        '''fill the values in the widgets as the field values in the model
+        """fill the values in the widgets as the field values in the model
 
         for radio button groups, we have several widgets all referring
         to the same model attribute.
 
-         '''
+        """
         for widget, attr in list(self.widget_to_field_map.items()):
             value = getattr(self.model, attr)
-            value = (value is not None) and value or ''
+            value = (value is not None) and value or ""
             self.view.widget_set_value(widget, value)
 
     def cancel_threads(self):
@@ -1207,12 +1313,13 @@ class GenericEditorPresenter:
             thread = cls(*args, **kwargs)
             self.running_threads.append(thread)
             thread.start()
+
         GObject.idle_add(create_and_start, cls, args, kwargs)
 
     def commit_changes(self):
-        '''
+        """
         Commit the changes to self.session()
-        '''
+        """
         objs = list(self.session)
         try:
             self.session.commit()
@@ -1237,9 +1344,7 @@ class GenericEditorPresenter:
             self.view.set_accept_buttons_sensitive(not self.has_problems())
 
     def __get_widget_name(self, widget):
-        return (isinstance(widget, str)
-                and widget
-                or Gtk.Buildable.get_name(widget))
+        return isinstance(widget, str) and widget or Gtk.Buildable.get_name(widget)
 
     widget_get_name = __get_widget_name
 
@@ -1262,8 +1367,10 @@ class GenericEditorPresenter:
         if value is None:
             value = widget.props.text
             value = value and utils.utf8(value) or None
-        logger.debug("on_text_entry_changed(%s, %s) - %s → %s"
-                     % (widget, attr, getattr(self.model, attr), value))
+        logger.debug(
+            "on_text_entry_changed(%s, %s) - %s → %s"
+            % (widget, attr, getattr(self.model, attr), value)
+        )
         self.__set_model_attr(attr, value)
 
     def on_text_entry_changed(self, widget, value=None):
@@ -1273,8 +1380,10 @@ class GenericEditorPresenter:
         if attr is None:
             return
         value = self.view.widget_get_value(widget)
-        logger.debug("on_text_entry_changed(%s, %s) - %s → %s"
-                     % (widget, attr, getattr(self.model, attr), value))
+        logger.debug(
+            "on_text_entry_changed(%s, %s) - %s → %s"
+            % (widget, attr, getattr(self.model, attr), value)
+        )
         self.__set_model_attr(attr, value)
         return value
 
@@ -1290,7 +1399,7 @@ class GenericEditorPresenter:
         if attr is None:
             return
         value = self.view.widget_get_value(widget)
-        if value == '':
+        if value == "":
             value = 0
         try:
             value = int(value)
@@ -1311,7 +1420,7 @@ class GenericEditorPresenter:
         return value
 
     def on_unique_text_entry_changed(self, widget, value=None):
-        "handle 'changed' signal on text entry widgets with an uniqueness "
+        "handle 'changed' signal on text entry widgets with an uniqueness"
         "constraint."
 
         attr = self.__get_widget_attr(widget)
@@ -1326,8 +1435,10 @@ class GenericEditorPresenter:
             self.remove_problem(self.PROBLEM_EMPTY, widget)
         if getattr(self.model, attr) == value:
             return
-        logger.debug("on_unique_text_entry_changed(%s, %s) - %s → %s"
-                     % (widget, attr, getattr(self.model, attr), value))
+        logger.debug(
+            "on_unique_text_entry_changed(%s, %s) - %s → %s"
+            % (widget, attr, getattr(self.model, attr), value)
+        )
         ## check uniqueness
         klass = self.model.__class__
         k_attr = getattr(klass, attr)
@@ -1360,22 +1471,25 @@ class GenericEditorPresenter:
         if attr is not None:
             self.__set_model_attr(attr, value)
         else:
-            logging.debug("presenter {} does not know widget {}".format(
-                self.__class__.__name__, self.__get_widget_name(widget)))
+            logging.debug(
+                "presenter {} does not know widget {}".format(
+                    self.__class__.__name__, self.__get_widget_name(widget)
+                )
+            )
 
     on_chkbx_toggled = on_check_toggled
 
     def on_relation_entry_changed(self, widget, value=None):
         attr = self.__get_widget_attr(widget)
         logger.debug(
-            'calling unimplemented on_relation_entry_changed(%s, %s, %s(%s))'
-            % (widget, attr, type(value), value))
+            "calling unimplemented on_relation_entry_changed(%s, %s, %s(%s))"
+            % (widget, attr, type(value), value)
+        )
 
     def on_group_changed(self, widget, *args):
         "handle group-changed signal on radio-button"
         if args:
-            logger.warning("on_group_changed received extra arguments" +
-                           str(args))
+            logger.warning("on_group_changed received extra arguments" + str(args))
         attr = self.__get_widget_attr(widget)
         value = self.__get_widget_name(widget)
         self.__set_model_attr(attr, value)
@@ -1441,10 +1555,9 @@ class GenericEditorPresenter:
          from, if None then remove all occurrences of problem_id regardless
          of the widget
         """
-        logger.debug('remove_problem(%s, %s, %s)' %
-                     (self, problem_id, widget))
+        logger.debug("remove_problem(%s, %s, %s)" % (self, problem_id, widget))
         if problem_id is None and widget is None:
-            logger.warning('invoke remove_problem with None, None')
+            logger.warning("invoke remove_problem with None, None")
             # if no problem id and not problem widgets then don't do anything
             return
 
@@ -1456,15 +1569,17 @@ class GenericEditorPresenter:
 
         tmp = self.problems.copy()
         for p, w in tmp:
-            if (w == widget and p == problem_id) or \
-                    (widget is None and p == problem_id) or \
-                    (w == widget and problem_id is None):
+            if (
+                (w == widget and p == problem_id)
+                or (widget is None and p == problem_id)
+                or (w == widget and problem_id is None)
+            ):
                 if w and not prefs.testing:
                     w.modify_bg(Gtk.StateType.NORMAL, None)
                     w.modify_base(Gtk.StateType.NORMAL, None)
                     w.queue_draw()
                 self.problems.remove((p, w))
-        logger.debug('problems now: %s' % self.problems)
+        logger.debug("problems now: %s" % self.problems)
 
     def add_problem(self, problem_id, problem_widgets=None):
         """
@@ -1478,8 +1593,7 @@ class GenericEditorPresenter:
           (default=None)
         """
         ## map case list of widget to list of cases single widget.
-        logger.debug('add_problem(%s, %s, %s)' %
-                     (self, problem_id, problem_widgets))
+        logger.debug("add_problem(%s, %s, %s)" % (self, problem_id, problem_widgets))
         if isinstance(problem_widgets, (tuple, list)):
             list([self.add_problem(problem_id, w) for w in problem_widgets])
             return
@@ -1498,7 +1612,7 @@ class GenericEditorPresenter:
             widget.modify_bg(Gtk.StateType.NORMAL, self.problem_color.color)
             widget.modify_base(Gtk.StateType.NORMAL, self.problem_color.color)
             widget.queue_draw()
-        logger.debug('problems now: %s' % self.problems)
+        logger.debug("problems now: %s" % self.problems)
 
     def init_enum_combo(self, widget_name, field):
         """
@@ -1513,9 +1627,11 @@ class GenericEditorPresenter:
         mapper = object_mapper(self.model)
         values = mapper.c[field].type.values
         if None in values:
-            logger.debug("None value found in column %s, that is not in the Enum" % field)
+            logger.debug(
+                "None value found in column %s, that is not in the Enum" % field
+            )
             values.remove(None)
-            values.insert(0, '')
+            values.insert(0, "")
         values = sorted(values)
         utils.setup_text_combobox(combo, values)
 
@@ -1529,31 +1645,37 @@ class GenericEditorPresenter:
         :param value: the value the attribute will be set to
         :param validator: validates the value before setting it
         """
-        logger.debug('editor.set_model_attr({}, {})'.format(attr, value))
+        logger.debug("editor.set_model_attr({}, {})".format(attr, value))
         if validator:
             try:
                 # Safely retrieve the 'wrapped' attribute if it exists
-                wrapped_validator = getattr(validator, 'wrapped', validator)
+                wrapped_validator = getattr(validator, "wrapped", validator)
 
                 if wrapped_validator:
                     log_validator = wrapped_validator
                 else:
                     log_validator = validator
 
-                logger.debug("validating {}({}) for {} using {}".format(type(value).__name__, value, attr, log_validator))
+                logger.debug(
+                    "validating {}({}) for {} using {}".format(
+                        type(value).__name__, value, attr, log_validator
+                    )
+                )
                 value = validator.to_python(value)
-                self.remove_problem('BAD_VALUE_%s' % attr)
+                self.remove_problem("BAD_VALUE_%s" % attr)
             except ValidatorError as e:
                 logger.debug("GenericEditorPresenter.set_model_attr %s" % e)
-                self.add_problem('BAD_VALUE_%s' % attr)
+                self.add_problem("BAD_VALUE_%s" % attr)
             else:
-                logger.debug("validated {}({}) for {}".format(type(value).__name__, value, attr))
+                logger.debug(
+                    "validated {}({}) for {}".format(type(value).__name__, value, attr)
+                )
                 setattr(self.model, attr, value)
         else:
             setattr(self.model, attr, value)
 
     def assign_simple_handler(self, widget_name, model_attr, validator=None):
-        '''
+        """
         Assign handlers to widgets to change fields in the model.
 
         :param widget_name:
@@ -1564,9 +1686,9 @@ class GenericEditorPresenter:
 
         Note: Where widget is a Gtk.ComboBox or Gtk.ComboBoxEntry then
         the value is assumed to be stored in model[row][0]
-        '''
+        """
         widget = self.view.widgets[widget_name]
-        check(widget is not None, _('no widget with name %s') % widget_name)
+        check(widget is not None, _("no widget with name %s") % widget_name)
 
         class ProblemValidator(Validator):
 
@@ -1577,13 +1699,12 @@ class GenericEditorPresenter:
             def to_python(self, value):
                 try:
                     value = self.wrapped.to_python(value)
-                    self.presenter.remove_problem('BAD_VALUE_%s'
-                                                  % model_attr, widget)
+                    self.presenter.remove_problem("BAD_VALUE_%s" % model_attr, widget)
                 except Exception as e:
-                    logger.debug("GenericEditorPresenter.ProblemValidator"
-                                 ".to_python %s" % e)
-                    self.presenter.add_problem('BAD_VALUE_%s'
-                                               % model_attr, widget)
+                    logger.debug(
+                        "GenericEditorPresenter.ProblemValidator" ".to_python %s" % e
+                    )
+                    self.presenter.add_problem("BAD_VALUE_%s" % model_attr, widget)
                     raise
                 return value
 
@@ -1591,14 +1712,18 @@ class GenericEditorPresenter:
             validator = ProblemValidator(presenter=self, wrapped=validator)
 
         if isinstance(widget, Gtk.Entry):
+
             def on_changed(entry):
                 self.set_model_attr(model_attr, entry.props.text, validator)
-            self.view.connect(widget, 'changed', on_changed)
+
+            self.view.connect(widget, "changed", on_changed)
         elif isinstance(widget, Gtk.TextView):
+
             def on_changed(textbuff):
                 self.set_model_attr(model_attr, textbuff.props.text, validator)
+
             buff = widget.get_buffer()
-            self.view.connect(buff, 'changed', on_changed)
+            self.view.connect(buff, "changed", on_changed)
         elif isinstance(widget, Gtk.ComboBox):
             # this also handles Gtk.ComboBoxEntry since it extends
             # Gtk.ComboBox
@@ -1611,30 +1736,38 @@ class GenericEditorPresenter:
                     return
                 value = model[combo.get_active_iter()][0]
                 value = combo.get_model()[combo.get_active_iter()][0]
-                if isinstance(widget, Gtk.ComboBox) and isinstance(widget.get_child(), Gtk.Entry):
-                    safe_set_text(widget.get_child(), utils.utf8(value) or '')
+                if isinstance(widget, Gtk.ComboBox) and isinstance(
+                    widget.get_child(), Gtk.Entry
+                ):
+                    safe_set_text(widget.get_child(), utils.utf8(value) or "")
                 self.set_model_attr(model_attr, value, validator)
 
             def entry_changed(entry, data=None):
                 self.set_model_attr(model_attr, entry.props.text, validator)
 
-            self.view.connect(widget, 'changed', combo_changed)
-            if isinstance(widget, Gtk.ComboBox) and isinstance(widget.get_child(), Gtk.Entry):
-                self.view.connect(widget.get_child(), 'changed', entry_changed)
-        elif isinstance(widget, (Gtk.ToggleButton, Gtk.CheckButton,
-                                 Gtk.RadioButton)):
+            self.view.connect(widget, "changed", combo_changed)
+            if isinstance(widget, Gtk.ComboBox) and isinstance(
+                widget.get_child(), Gtk.Entry
+            ):
+                self.view.connect(widget.get_child(), "changed", entry_changed)
+        elif isinstance(widget, (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)):
+
             def toggled(button, data=None):
                 active = button.get_active()
-                logger.debug('toggled {}: {}'.format(widget_name, active))
+                logger.debug("toggled {}: {}".format(widget_name, active))
                 button.set_inconsistent(False)
                 self.set_model_attr(model_attr, active, validator)
-            self.view.connect(widget, 'toggled', toggled)
-        else:
-            raise ValueError('assign_simple_handler() -- '
-                             'widget type not supported: %s' % type(widget))
 
-    def assign_completions_handler(self, widget, get_completions,
-                                   on_select=lambda v: v):
+            self.view.connect(widget, "toggled", toggled)
+        else:
+            raise ValueError(
+                "assign_simple_handler() -- "
+                "widget type not supported: %s" % type(widget)
+            )
+
+    def assign_completions_handler(
+        self, widget, get_completions, on_select=lambda v: v
+    ):
         """Dynamically handle completions on a Gtk.Entry.
 
         :param widget: a Gtk.Entry instance or widget name
@@ -1648,7 +1781,7 @@ class GenericEditorPresenter:
 
         """
 
-        logger.debug('assign_completions_handler %s' % widget)
+        logger.debug("assign_completions_handler %s" % widget)
         if isinstance(widget, str):
             widget = self.view.widgets[widget]
         PROBLEM = hash(Gtk.Buildable.get_name(widget))
@@ -1673,66 +1806,76 @@ class GenericEditorPresenter:
 
             key_length = widget.get_completion().props.minimum_key_length
             values = get_completions(text[:key_length])
-            logger.debug('completions to add: %s' % str([i for i in values]))
+            logger.debug("completions to add: %s" % str([i for i in values]))
             GObject.idle_add(idle_callback, values)
 
         def on_changed(entry, *args):
-            logger.debug('assign_completions_handler::on_changed %s %s'
-                         % (entry, args))
+            logger.debug("assign_completions_handler::on_changed %s %s" % (entry, args))
             text = entry.get_text()
 
             key_length = widget.get_completion().props.minimum_key_length
             if len(text) > key_length:
-                logger.debug('recomputing completions matching %s' % text)
+                logger.debug("recomputing completions matching %s" % text)
                 add_completions(text)
 
             def idle_callback(text):
-                logger.debug('on_changed - part two')
+                logger.debug("on_changed - part two")
                 comp = entry.get_completion()
                 comp_model = comp.get_model()
                 found = []
                 if comp_model:
-                    comp_model.foreach(lambda m, p, i, ud: logger.debug("item({}) of comp_model: {}".format(p, m[p][0])), None)
+                    comp_model.foreach(
+                        lambda m, p, i, ud: logger.debug(
+                            "item({}) of comp_model: {}".format(p, m[p][0])
+                        ),
+                        None,
+                    )
+
                     # search the tree model to see if the text in the
                     # entry matches one of the completions, if so then
                     # emit the match-selected signal, this allows us to
                     # type a match in the entry without having to select
                     # it from the popup
                     def _cmp(row, data):
-                        return utils.utf8(row[0])[:len(text)].lower() == data.lower()
+                        return utils.utf8(row[0])[: len(text)].lower() == data.lower()
+
                     found = utils.search_tree_model(comp_model, text, _cmp)
                     logger.debug("matches found in ListStore: %s" % str(found))
                     if not found:
-                        logger.debug('nothing found, nothing to select from')
+                        logger.debug("nothing found, nothing to select from")
                     elif len(found) == 1:
-                        logger.debug('one match, decide whether to select it - %s' % found[0])
+                        logger.debug(
+                            "one match, decide whether to select it - %s" % found[0]
+                        )
                         v = comp.get_model()[found[0]][0]
                         # only auto select if the full string has been entered
                         if text.lower() == utils.utf8(v).lower():
-                            comp.emit('match-selected', comp.get_model(), found[0])
+                            comp.emit("match-selected", comp.get_model(), found[0])
                         else:
                             found = None
                     else:
-                        logger.debug('multiple matches, we cannot select any - %s' % str(found))
+                        logger.debug(
+                            "multiple matches, we cannot select any - %s" % str(found)
+                        )
 
-                if text != '' and not found and PROBLEM not in self.problems:
+                if text != "" and not found and PROBLEM not in self.problems:
                     self.add_problem(PROBLEM, widget)
                     on_select(None)
 
                 # if entry is empty select nothing and remove all problem
-                if text == '':
+                if text == "":
                     on_select(None)
                     self.remove_problem(PROBLEM, widget)
                 elif not comp_model:
                     ## completion model is not in place when object is forced
                     ## programmatically.
                     on_select(text)  # `on_select` will know how to convert the
-                                     # text into a properly typed value.
+                    # text into a properly typed value.
                     self.remove_problem(PROBLEM, widget)
-                logger.debug('on_changed - part two - returning')
+                logger.debug("on_changed - part two - returning")
 
             GObject.idle_add(idle_callback, text)
-            logger.debug('on_changed - part one - returning')
+            logger.debug("on_changed - part one - returning")
             return True
 
         def on_match_select(completion, compl_model, treeiter):
@@ -1747,20 +1890,23 @@ class GenericEditorPresenter:
             return True  # return True or on_changed() will be called with ''
 
         completion = widget.get_completion()
-        check(completion is not None, 'the Gtk.Entry %s doesn\'t have a '
-              'completion attached to it' % Gtk.Buildable.get_name(widget))
+        check(
+            completion is not None,
+            "the Gtk.Entry %s doesn't have a "
+            "completion attached to it" % Gtk.Buildable.get_name(widget),
+        )
 
-        _changed_sid = self.view.connect(widget, 'changed', on_changed)
-        self.view.connect(completion, 'match-selected', on_match_select)
+        _changed_sid = self.view.connect(widget, "changed", on_changed)
+        self.view.connect(completion, "match-selected", on_match_select)
 
     def start(self):
-        """run the dialog associated to the view
-
-        """
+        """run the dialog associated to the view"""
         result = self.view.get_window().run()
-        if (self.is_committing_presenter
+        if (
+            self.is_committing_presenter
             and result in self.committing_results
-            and self._dirty):
+            and self._dirty
+        ):
             self.commit_changes()
         self.cleanup()
         return result
@@ -1792,7 +1938,7 @@ class ChildPresenter(GenericEditorPresenter):
 
     def __init__(self, model, view):
         super().__init__(model, view)
-        #self._view_ref = weakref.ref(view)
+        # self._view_ref = weakref.ref(view)
 
     def _get_view(self):
         return self._view_ref()
@@ -1801,13 +1947,13 @@ class ChildPresenter(GenericEditorPresenter):
         if isinstance(view, GenericEditorView):
             self._view_ref = weakref.ref(view)
         else:
-            raise ValueError('view must be an instance of GenericEditorView')
+            raise ValueError("view must be an instance of GenericEditorView")
 
     view = property(_get_view, _set_view)
 
 
 class GenericModelViewPresenterEditor:
-    '''
+    """
     GenericModelViewPresenterEditor assume that model is an instance
     of object mapped to a SQLAlchemy table
 
@@ -1823,7 +1969,8 @@ class GenericModelViewPresenterEditor:
       that the original model will not be changed
 
     :param parent: the parent windows for the view or None
-    '''
+    """
+
     ok_responses = ()
 
     def __init__(self, model, parent=None):
@@ -1831,9 +1978,9 @@ class GenericModelViewPresenterEditor:
         self.model = self.session.merge(model)
 
     def commit_changes(self):
-        '''
+        """
         Commit the changes to self.session()
-        '''
+        """
         objs = list(self.session)
         try:
             self.session.commit()
@@ -1849,23 +1996,24 @@ class GenericModelViewPresenterEditor:
         return True
 
     def __del__(self):
-        if hasattr(self, 'session'):
+        if hasattr(self, "session"):
             # in case one of the check()'s fail in __init__
             self.session.commit()
             self.session.close()
 
 
 class NoteBox(Gtk.HBox):
-    glade_ui = 'notes.glade'
+    glade_ui = "notes.glade"
 
     def set_content(self, text):
         buff = Gtk.TextBuffer()
         self.widgets.note_textview.set_buffer(buff)
-        utils.set_widget_value(self.widgets.note_textview,
-                               text or '')
+        utils.set_widget_value(self.widgets.note_textview, text or "")
         if not text:
-            self.presenter.add_problem(self.presenter.PROBLEM_EMPTY, self.widgets.note_textview)
-        buff.connect('changed', self.on_note_buffer_changed, self.widgets.note_textview)
+            self.presenter.add_problem(
+                self.presenter.PROBLEM_EMPTY, self.widgets.note_textview
+            )
+        buff.connect("changed", self.on_note_buffer_changed, self.widgets.note_textview)
 
     def __init__(self, presenter, model=None):
         super().__init__()
@@ -1876,8 +2024,8 @@ class NoteBox(Gtk.HBox):
         xml = etree.parse(filename)
         el = xml.find(".//object[@id='notes_box']")
         builder = Gtk.Builder()
-        s = '<interface>%s</interface>' % etree.tostring(el)
-        if sys.platform == 'win32':
+        s = "<interface>%s</interface>" % etree.tostring(el)
+        if sys.platform == "win32":
             # NOTE: PyGTK for Win32 is broken so we have to include
             # this little hack
             #
@@ -1900,40 +2048,38 @@ class NoteBox(Gtk.HBox):
             self.model = presenter.note_cls()
 
         self.widgets.notes_expander.props.use_markup = True
-        self.widgets.notes_expander.props.label = ''
-        self.widgets.notes_expander.props.label_widget.\
-            ellipsize = Pango.EllipsizeMode.END
+        self.widgets.notes_expander.props.label = ""
+        self.widgets.notes_expander.props.label_widget.ellipsize = (
+            Pango.EllipsizeMode.END
+        )
 
         # set the model values on the widgets
         mapper = object_mapper(self.model)
-        values = utils.get_distinct_values(mapper.c['category'],
-                                           self.session)
+        values = utils.get_distinct_values(mapper.c["category"], self.session)
         utils.setup_text_combobox(self.widgets.category_comboentry, values)
-        utils.set_widget_value(self.widgets.category_comboentry,
-                               self.model.category or '')
-        utils.setup_date_button(None, self.widgets.date_entry,
-                                self.widgets.date_button)
+        utils.set_widget_value(
+            self.widgets.category_comboentry, self.model.category or ""
+        )
+        utils.setup_date_button(None, self.widgets.date_entry, self.widgets.date_button)
         date_str = utils.today_str()
         if self.model.date:
             format = prefs.prefs[prefs.date_format_pref]
             date_str = self.model.date.strftime(format)
         utils.set_widget_value(self.widgets.date_entry, date_str)
-        utils.set_widget_value(self.widgets.user_entry,
-                               self.model.user or '')
+        utils.set_widget_value(self.widgets.user_entry, self.model.user or "")
         self.set_content(self.model.note)
 
         # connect the signal handlers
-        self.widgets.date_entry.connect(
-            'changed', self.on_date_entry_changed)
-        self.widgets.user_entry.connect(
-            'changed', self.on_user_entry_changed)
+        self.widgets.date_entry.connect("changed", self.on_date_entry_changed)
+        self.widgets.user_entry.connect("changed", self.on_user_entry_changed)
         # connect category comboentry widget and child entry
         self.widgets.category_comboentry.connect(
-            'changed', self.on_category_combo_changed)
+            "changed", self.on_category_combo_changed
+        )
         self.widgets.category_comboentry.get_child().connect(
-            'changed', self.on_category_entry_changed)
-        self.widgets.notes_remove_button.connect(
-            'clicked', self.on_notes_remove_button)
+            "changed", self.on_category_entry_changed
+        )
+        self.widgets.notes_remove_button.connect("clicked", self.on_notes_remove_button)
 
         self.update_label()
         self.show_all()
@@ -1942,8 +2088,7 @@ class NoteBox(Gtk.HBox):
         self.widgets.notes_expander.props.expanded = expand
 
     def on_notes_remove_button(self, button, *args):
-        """
-        """
+        """ """
         if self.model in self.presenter.notes:
             self.presenter.notes.remove(self.model)
         self.widgets.remove_parent(self.widgets.notes_box)
@@ -1951,7 +2096,7 @@ class NoteBox(Gtk.HBox):
         self.presenter.parent_ref().refresh_sensitivity()
 
     def on_date_entry_changed(self, entry, *args):
-        PROBLEM = 'BAD_DATE'
+        PROBLEM = "BAD_DATE"
         text = entry.props.text
         try:
             text = DateValidator().to_python(text)
@@ -1979,8 +2124,7 @@ class NoteBox(Gtk.HBox):
             text = utils.utf8(combo.get_model()[treeiter][0])
         else:
             return
-        self.widgets.category_comboentry.get_child().props.text = \
-            utils.utf8(text)
+        self.widgets.category_comboentry.get_child().set_text = utils.utf8(text)
 
     def on_category_entry_changed(self, entry, *args):
         """ """

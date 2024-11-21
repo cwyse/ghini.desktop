@@ -549,9 +549,9 @@ class UsersEditor(editor.GenericEditorView):
         stmt = "select rolname from pg_roles where rolsuper is true and rolname = '%s'" % current_user()
         r = db.engine.execute(stmt).fetchone()
         if r:
-            self.widgets.admin_button.props.sensitive = True
+            self.widgets.admin_button.set_sensitive = True
         else:
-            self.widgets.admin_button.props.sensitive = False
+            self.widgets.admin_button.set_sensitive = False
 
         self.builder.connect_signals(self)
 
