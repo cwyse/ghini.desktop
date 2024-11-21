@@ -23,20 +23,20 @@
 #
 # ABCD import/exporter
 #
-
 import os
-
-import gi
-
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gettext import gettext as _
 
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
+import gi
 from bauble.error import check
 from bauble.plugins.garden.plant import Plant
+from gi.repository import Gtk
+
+gi.require_version("Gtk", "3.0")
+
 
 # NOTE: see biocase provider software for reading and writing ABCD data
 # files, already downloaded software to desktop
@@ -65,7 +65,9 @@ def validate_xml(root):
     :param root: root of an XML tree to validate against
     :returns: True or False depending if root validates correctly
     """
-    schema_file = os.path.join(paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd")
+    schema_file = os.path.join(
+        paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd"
+    )
     xmlschema_doc = etree.parse(schema_file)
     abcd_schema = etree.XMLSchema(xmlschema_doc)
     return abcd_schema.validate(root)
@@ -79,7 +81,9 @@ def validate_xml(root):
 
 
 def verify_institution(institution):
-    test = lambda x: x != "" and x is not None
+    def test(x):
+        return x != "" and x is not None
+
     return (
         test(institution.name)
         and test(institution.technical_contact)
@@ -287,7 +291,9 @@ def create_abcd(decorated_objects, authors=True, validate=True):
         higher_taxon_name = ABCDElement(
             higher_taxon, "HigherTaxonName", text=obj.get_family()
         )
-        higher_taxon_rank = ABCDElement(higher_taxon, "HigherTaxonRank", text="familia")
+        higher_taxon_rank = ABCDElement(
+            higher_taxon, "HigherTaxonRank", text="familia"
+        )
 
         scientific_name = ABCDElement(taxon_identified, "ScientificName")
         ABCDElement(
@@ -298,11 +304,15 @@ def create_abcd(decorated_objects, authors=True, validate=True):
 
         name_atomised = ABCDElement(scientific_name, "NameAtomised")
         botanical = ABCDElement(name_atomised, "Botanical")
-        ABCDElement(botanical, "GenusOrMonomial", text=obj.get_GenusOrMonomial())
+        ABCDElement(
+            botanical, "GenusOrMonomial", text=obj.get_GenusOrMonomial()
+        )
         ABCDElement(botanical, "FirstEpithet", text=obj.get_FirstEpithet())
         if obj.get_InfraspecificEpithet():
             ABCDElement(
-                botanical, "InfraspecificEpithet", text=obj.get_InfraspecificEpithet()
+                botanical,
+                "InfraspecificEpithet",
+                text=obj.get_InfraspecificEpithet(),
             )
             ABCDElement(botanical, "Rank", text=obj.get_InfraspecificRank())
         if obj.get_HybridFlag():
@@ -322,13 +332,17 @@ def create_abcd(decorated_objects, authors=True, validate=True):
             identification = ABCDElement(identifications, "Identification")
             result = ABCDElement(identification, "Result")
             taxon_identified = ABCDElement(result, "TaxonIdentified")
-            ABCDElement(taxon_identified, "InformalNameString", text=vernacular_name)
+            ABCDElement(
+                taxon_identified, "InformalNameString", text=vernacular_name
+            )
         if obj.get_IdentificationQualifier():
             ABCDElement(
                 scientific_name,
                 "IdentificationQualifier",
                 text=obj.get_IdentificationQualifier(),
-                attrib={"insertionpoint": obj.get_IdentificationQualifierRank()},
+                attrib={
+                    "insertionpoint": obj.get_IdentificationQualifierRank()
+                },
             )
         # add all the extra non standard elements
         obj.extra_elements(unit)
@@ -401,7 +415,9 @@ class ABCDExporter:
             raise ValueError("filename can not be None")
 
         if os.path.exists(filename) and not os.path.isfile(filename):
-            raise ValueError("%s exists and is not a a regular file" % filename)
+            raise ValueError(
+                "%s exists and is not a a regular file" % filename
+            )
 
         # if plants is None then export all plants, this could be huge
         # TODO: do something about this, like list the number of plants

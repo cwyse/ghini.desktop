@@ -16,30 +16,27 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 # help parsing the language produced by the Query Builder, so that we can
 # offer the current active query back to the Query Builder, and the
 # QueryBuilder will be able to start from there
 #
 # if the query does not follow the grammar, start from scratch.
+from pyparsing import alphanums
+from pyparsing import alphas
+from pyparsing import alphas8bit
+from pyparsing import CaselessLiteral
+from pyparsing import delimitedList
+from pyparsing import Group
+from pyparsing import oneOf
+from pyparsing import quotedString
+from pyparsing import Regex
+from pyparsing import removeQuotes
+from pyparsing import Word
+from pyparsing import WordEnd
+from pyparsing import WordStart
+from pyparsing import ZeroOrMore
 
-from pyparsing import (
-    CaselessLiteral,
-    Forward,
-    Group,
-    Regex,
-    Word,
-    WordEnd,
-    WordStart,
-    ZeroOrMore,
-    alphanums,
-    alphas,
-    alphas8bit,
-    delimitedList,
-    oneOf,
-    quotedString,
-    removeQuotes,
-)
+pass
 
 
 class BuiltQuery:

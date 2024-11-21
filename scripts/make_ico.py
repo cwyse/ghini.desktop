@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 import sys
 
@@ -19,5 +18,6 @@ for size in sizes:
     convert(size)
 
 os.system(
-    "icotool -c %s -o %s" % (" ".join([out_template % s for s in sizes]), icon_filename)
+    "icotool -c %s -o %s"
+    % (" ".join([out_template % s for s in sizes]), icon_filename)
 )

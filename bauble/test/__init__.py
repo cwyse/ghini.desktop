@@ -17,14 +17,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
 import logging
 import sys
 import unittest
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 import bauble
 import bauble.db as db
@@ -32,7 +27,11 @@ import bauble.pluginmgr as pluginmgr
 from bauble.error import BaubleError
 from bauble.prefs import prefs
 
-## for sake of testing, just use sqlite3.
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
+# for sake of testing, just use sqlite3.
 uri = "sqlite:///:memory:"
 
 

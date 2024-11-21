@@ -18,14 +18,22 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import os
 
-from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
-from bauble.plugins.plants import Family, Genus, Species, VernacularName
+from bauble.plugins.garden import Accession
+from bauble.plugins.garden import Contact
+from bauble.plugins.garden import Location
+from bauble.plugins.garden import Plant
+from bauble.plugins.garden import Source
+from bauble.plugins.plants import Family
+from bauble.plugins.plants import Genus
+from bauble.plugins.plants import Species
+from bauble.plugins.plants import VernacularName
 from bauble.plugins.report import get_pertinent_objects
-from bauble.plugins.tag import Tag, tag_objects
-from bauble.test import BaubleTestCase, check_dupids
+from bauble.plugins.tag import Tag
+from bauble.plugins.tag import tag_objects
+from bauble.test import BaubleTestCase
+from bauble.test import check_dupids
 
 
 def setUp_test_data():
@@ -81,13 +89,17 @@ class ReportTests(ReportTestCase):
                 for s in range(2):
                     sctr += 1
                     sp = Species(id=sctr, genus=genus, sp="sp%s" % sctr)
-                    vn = VernacularName(id=sctr, species=sp, name="name%s" % sctr)
+                    vn = VernacularName(
+                        id=sctr, species=sp, name="name%s" % sctr
+                    )
                     self.session.add_all([sp, vn])
                     for a in range(2):
                         actr += 1
                         acc = Accession(id=actr, species=sp, code="%s" % actr)
                         contact = Contact(id=actr, name="contact%s" % actr)
-                        source = Source(id=actr, source_detail=contact, accession=acc)
+                        source = Source(
+                            id=actr, source_detail=contact, accession=acc
+                        )
                         self.session.add_all([acc, source, contact])
                         for p in range(2):
                             pctr += 1
@@ -129,7 +141,8 @@ class ReportTests(ReportTestCase):
         self.assertRaises(BaubleError, get_pertinent_objects, Location, fn)
 
     def test_get_species_pertinent_objects_sessionless(self):
-        get_ids = lambda objs: sorted([o.id for o in objs])
+        def get_ids(objs):
+            return sorted([o.id for o in objs])
 
         family = self.session.query(Family).get(1)
         ids = get_ids(get_pertinent_objects(Species, [family]))
@@ -139,7 +152,9 @@ class ReportTests(ReportTestCase):
         """
         Test getting the species from different types
         """
-        get_ids = lambda objs: sorted([o.id for o in objs])
+
+        def get_ids(objs):
+            return sorted([o.id for o in objs])
 
         family = self.session.query(Family).get(1)
         ids = get_ids(get_pertinent_objects(Species, family))
@@ -149,7 +164,9 @@ class ReportTests(ReportTestCase):
         """
         Test getting the species from different types
         """
-        get_ids = lambda objs: sorted([o.id for o in objs])
+
+        def get_ids(objs):
+            return sorted([o.id for o in objs])
 
         family = self.session.query(Family).get(1)
         ids = get_ids(get_pertinent_objects(Species, [family]))
@@ -205,7 +222,9 @@ class ReportTests(ReportTestCase):
         """
         Test getting the accessions from different types
         """
-        get_ids = lambda objs: sorted([o.id for o in objs])
+
+        def get_ids(objs):
+            return sorted([o.id for o in objs])
 
         family = self.session.query(Family).get(1)
         ids = get_ids(get_pertinent_objects(Accession, [family]))
@@ -261,7 +280,9 @@ class ReportTests(ReportTestCase):
         """
         Test getting the plants from different types
         """
-        get_ids = lambda objs: sorted([o.id for o in objs])
+
+        def get_ids(objs):
+            return sorted([o.id for o in objs])
 
         # get plants from one family
         family = self.session.query(Family).get(1)
@@ -319,7 +340,9 @@ class ReportTests(ReportTestCase):
         """
         Test getting the locations from different types
         """
-        get_ids = lambda objs: sorted([o.id for o in objs])
+
+        def get_ids(objs):
+            return sorted([o.id for o in objs])
 
         # get locations from one family
         family = self.session.query(Family).get(1)

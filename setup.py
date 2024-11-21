@@ -256,7 +256,8 @@ if sys.platform == "win32" and sys.argv[1] in ("nsis", "py2exe"):
 
             # copy LICENSE to dist\share\LICENSE.ghini (for help>about)
             file_util.copy_file(
-                "LICENSE", os.path.join(self.dist_dir, "share", "ghini", "LICENSE")
+                "LICENSE",
+                os.path.join(self.dist_dir, "share", "ghini", "LICENSE"),
             )
 
     class NsisCmd(Command):
@@ -285,7 +286,9 @@ if sys.platform == "win32" and sys.argv[1] in ("nsis", "py2exe"):
                 exe_name = os.path.split(self.makensis)[-1]
                 is_makensis = exe_name in ("makensis", "makensis.exe")
                 if not is_exe or not is_makensis:
-                    raise Exception("makensis not found at: %s" % self.makensis)
+                    raise Exception(
+                        "makensis not found at: %s" % self.makensis
+                    )
             else:
                 raise Exception(
                     "can not find makensis, NSIS needs to be "
@@ -299,7 +302,9 @@ if sys.platform == "win32" and sys.argv[1] in ("nsis", "py2exe"):
                 )
 
         def run(self):
-            print("using {} to build {}".format(self.makensis, self.nsis_script))
+            print(
+                "using {} to build {}".format(self.makensis, self.nsis_script)
+            )
             os.system('"{}" {}'.format(self.makensis, self.nsis_script))
 
 else:
@@ -351,7 +356,9 @@ class build(_build):
 
         _build.run(self)
 
-        dest_tmpl = os.path.join(self.build_base, locale_path, "%s", "LC_MESSAGES")
+        dest_tmpl = os.path.join(
+            self.build_base, locale_path, "%s", "LC_MESSAGES"
+        )
         matches = glob.glob("po/*.po")
         from bauble.i18n import TEXT_DOMAIN
 
@@ -373,7 +380,9 @@ class build(_build):
             file_util.copy_file("data/ghini.desktop", app_dir)
 
             icon_sizes = [16, 22, 24, 32, 48, 64]
-            icon_root = os.path.join(self.build_base, "share", "icons", "hicolor")
+            icon_root = os.path.join(
+                self.build_base, "share", "icons", "hicolor"
+            )
 
             # copy scalable icon
             scalable_dir = os.path.join(icon_root, "scalable", "apps")
@@ -388,7 +397,9 @@ class build(_build):
             dimension = lambda s: "{}x{}".format(s, s)
             for size in icon_sizes:
                 img = "data/ghini-%s.png" % size
-                dest = os.path.join(icon_root, "%s/apps/ghini.png" % dimension(size))
+                dest = os.path.join(
+                    icon_root, "%s/apps/ghini.png" % dimension(size)
+                )
                 dir_util.mkpath(os.path.split(dest)[0])
                 file_util.copy_file(img, dest)
 
@@ -448,7 +459,8 @@ class install(_install):
             dir_util.copy_tree(src, os.path.join(self.install_data, locales))
 
         file_util.copy_file(
-            "LICENSE", os.path.join(self.install_data, "share", "ghini", "LICENSE")
+            "LICENSE",
+            os.path.join(self.install_data, "share", "ghini", "LICENSE"),
         )
 
 
@@ -595,7 +607,8 @@ else:
 
 # Convert authors to setup format
 authors = ", ".join(
-    f"{author['name']} <{author['email']}>" for author in project_info["authors"]
+    f"{author['name']} <{author['email']}>"
+    for author in project_info["authors"]
 )
 
 # Setup function using pyproject.toml values

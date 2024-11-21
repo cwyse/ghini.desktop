@@ -18,65 +18,56 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
-
 import logging
+import re
+from gettext import gettext as _
+
+import bauble
+import bauble.db as db
+import bauble.pluginmgr as pluginmgr
+import bauble.search as search
+import bauble.utils as utils
+from bauble.plugins.garden.accession import acc_context_menu
+from bauble.plugins.garden.accession import Accession
+from bauble.plugins.garden.accession import AccessionEditor
+from bauble.plugins.garden.accession import AccessionInfoBox
+from bauble.plugins.garden.accession import AccessionNote
+from bauble.plugins.garden.accession import Verification
+from bauble.plugins.garden.institution import Institution
+from bauble.plugins.garden.institution import InstitutionCommand
+from bauble.plugins.garden.institution import InstitutionTool
+from bauble.plugins.garden.institution import start_institution_editor
+from bauble.plugins.garden.location import loc_context_menu
+from bauble.plugins.garden.location import Location
+from bauble.plugins.garden.location import LocationEditor
+from bauble.plugins.garden.location import LocationInfoBox
+from bauble.plugins.garden.picture_importer import PictureImporterTool
+from bauble.plugins.garden.plant import default_plant_delimiter
+from bauble.plugins.garden.plant import Plant
+from bauble.plugins.garden.plant import plant_context_menu
+from bauble.plugins.garden.plant import plant_delimiter_key
+from bauble.plugins.garden.plant import PlantEditor
+from bauble.plugins.garden.plant import PlantInfoBox
+from bauble.plugins.garden.plant import PlantNote
+from bauble.plugins.garden.plant import PlantSearch
+from bauble.plugins.garden.pocket_server import PocketServerTool
+from bauble.plugins.garden.source import Collection
+from bauble.plugins.garden.source import collection_context_menu
+from bauble.plugins.garden.source import Contact
+from bauble.plugins.garden.source import ContactInfoBox
+from bauble.plugins.garden.source import ContactPresenter
+from bauble.plugins.garden.source import create_contact
+from bauble.plugins.garden.source import Source
+from bauble.plugins.garden.source import source_detail_context_menu
+from bauble.view import SearchView
+from sqlalchemy.orm import eagerload
+from sqlalchemy.orm import object_session
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-import re
-
-from sqlalchemy.orm import eagerload, object_session
-
-import bauble
-import bauble.pluginmgr as pluginmgr
 
 # from bauble.plugins.garden.propagation import *
-import bauble.search as search
-import bauble.utils as utils
-from bauble.plugins.garden.accession import (
-    Accession,
-    AccessionEditor,
-    AccessionInfoBox,
-    AccessionNote,
-    Verification,
-    acc_context_menu,
-)
-from bauble.plugins.garden.institution import (
-    Institution,
-    InstitutionCommand,
-    InstitutionTool,
-    start_institution_editor,
-)
-from bauble.plugins.garden.location import (
-    Location,
-    LocationEditor,
-    LocationInfoBox,
-    loc_context_menu,
-)
-from bauble.plugins.garden.picture_importer import PictureImporterTool
-from bauble.plugins.garden.plant import (
-    Plant,
-    PlantEditor,
-    PlantInfoBox,
-    PlantNote,
-    PlantSearch,
-    default_plant_delimiter,
-    plant_context_menu,
-    plant_delimiter_key,
-)
-from bauble.plugins.garden.pocket_server import PocketServerTool
-from bauble.plugins.garden.source import (
-    Collection,
-    Contact,
-    ContactInfoBox,
-    ContactPresenter,
-    Source,
-    collection_context_menu,
-    create_contact,
-    source_detail_context_menu,
-)
-from bauble.view import SearchView
 
 # other ideas:
 # - cultivation table
@@ -134,7 +125,9 @@ class GardenPlugin(pluginmgr.Plugin):
         )
 
         mapper_search.add_meta(
-            ("contact", "contacts", "person", "org", "source"), Contact, ["name"]
+            ("contact", "contacts", "person", "org", "source"),
+            Contact,
+            ["name"],
         )
 
         def sd_kids(detail):
@@ -155,10 +148,13 @@ class GardenPlugin(pluginmgr.Plugin):
             context_menu=source_detail_context_menu,
         )
 
-        mapper_search.add_meta(("collection", "col", "coll"), Collection, ["locale"])
-        coll_kids = lambda coll: sorted(
-            coll.source.accession.plants, key=utils.natsort_key
+        mapper_search.add_meta(
+            ("collection", "col", "coll"), Collection, ["locale"]
         )
+
+        def coll_kids(coll):
+            return sorted(coll.source.accession.plants, key=utils.natsort_key)
+
         SearchView.row_meta[Collection].set(
             children=coll_kids,
             infobox=AccessionInfoBox,
@@ -328,11 +324,9 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
     presenter.view.connect(combo, "changed", on_combo_changed)
 
 
-import bauble.db as db
-
 plugin = GardenPlugin
 
-## make names visible to db module
+# make names visible to db module
 db.Accession = Accession
 db.AccessionNote = AccessionNote
 db.Plant = Plant

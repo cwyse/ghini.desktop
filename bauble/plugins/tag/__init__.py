@@ -21,30 +21,59 @@
 #
 # Description:
 #
+import logging
 import os
 import traceback
+from gettext import gettext as _
 
+import bauble
 import gi
-
-gi.require_version('Gtk', '3.0')
-import logging
-
-from gi.repository import Gdk, Gtk
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-from sqlalchemy import (Column, ForeignKey, Integer, String, Unicode,
-                        UnicodeText, and_, text)
-from sqlalchemy.exc import DBAPIError, InvalidRequestError
+from bauble import db
+from bauble import editor
+from bauble import paths
+from bauble import pluginmgr
+from bauble import search
+from bauble import ui
+from bauble import utils
+from bauble.editor import GenericEditorPresenter
+from bauble.editor import GenericEditorView
+from bauble.view import Action
+from bauble.view import InfoBox
+from bauble.view import InfoExpander
+from bauble.view import SearchView
+from gi.repository import Gdk
+from gi.repository import Gtk
+from sqlalchemy import and_
+from sqlalchemy import Column
+from sqlalchemy import ForeignKey
+from sqlalchemy import Integer
+from sqlalchemy import String
+from sqlalchemy import text
+from sqlalchemy import Unicode
+from sqlalchemy import UnicodeText
+from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy.orm.session import object_session
 
-import bauble
-from bauble import db, editor, paths, pluginmgr, search, ui, utils
-from bauble.editor import GenericEditorPresenter, GenericEditorView
-from bauble.view import Action, InfoBox, InfoExpander, SearchView
+gi.require_version("Gtk", "3.0")
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ""
+    gtk_widget.set_text(text)
 
 
 class TagsMenuManager:
@@ -53,8 +82,7 @@ class TagsMenuManager:
         self.active_tag_name = None
 
     def reset(self, make_active_tag=None):
-        """initialize or replace Tags menu in main menu
-        """
+        """initialize or replace Tags menu in main menu"""
         self.active_tag_name = make_active_tag and make_active_tag.tag
         tags_menu = self.build_menu()
         if self.menu_item is None:
@@ -83,32 +111,53 @@ class TagsMenuManager:
         self.show_active_tag()
         bauble.gui.send_command('tag="%s"' % tag_name)
         from bauble.view import SearchView
+
         view = bauble.gui.get_view()
         if isinstance(view, SearchView):
             view.results_view.expand_to_path(Gtk.TreePath.new_first())
 
     def build_menu(self):
-        """build tags Gtk.Menu based on current data
-        """
+        """build tags Gtk.Menu based on current data"""
         self.item_list = {}
         tags_menu = Gtk.Menu()
-        tag_dir = os.path.join(paths.lib_dir(), 'plugins', 'tag')
-        add_tag_menu_item = ui.create_menu_item_with_image(_('Tag Selection'), 'tag.png', tag_dir)
-        add_tag_menu_item.connect('activate', _on_add_tag_activated)
-        self.apply_active_tag_menu_item = ui.create_menu_item_with_image(_('Apply active tag'), 'tag_apply.png', tag_dir)
-        self.apply_active_tag_menu_item.connect('activate', self.on_apply_active_tag_activated)
-        self.remove_active_tag_menu_item = ui.create_menu_item_with_image(_('Remove active tag'), 'tag_remove.png', tag_dir)
-        self.remove_active_tag_menu_item.connect('activate', self.on_remove_active_tag_activated)
+        tag_dir = os.path.join(paths.lib_dir(), "plugins", "tag")
+        add_tag_menu_item = ui.create_menu_item_with_image(
+            _("Tag Selection"), "tag.png", tag_dir
+        )
+        add_tag_menu_item.connect("activate", _on_add_tag_activated)
+        self.apply_active_tag_menu_item = ui.create_menu_item_with_image(
+            _("Apply active tag"), "tag_apply.png", tag_dir
+        )
+        self.apply_active_tag_menu_item.connect(
+            "activate", self.on_apply_active_tag_activated
+        )
+        self.remove_active_tag_menu_item = ui.create_menu_item_with_image(
+            _("Remove active tag"), "tag_remove.png", tag_dir
+        )
+        self.remove_active_tag_menu_item.connect(
+            "activate", self.on_remove_active_tag_activated
+        )
         if bauble.gui:
             accel_group = Gtk.AccelGroup()
             bauble.gui.window.add_accel_group(accel_group)
-            add_tag_menu_item.add_accelerator('activate', accel_group, ord('T'),
-                                              Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE)
-            self.apply_active_tag_menu_item.add_accelerator('activate', accel_group, ord('Y'),
-                                                            Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE)
-            key, mask = Gtk.accelerator_parse('<Control><Shift>y')
-            self.remove_active_tag_menu_item.add_accelerator('activate', accel_group,
-                                                             key, mask, Gtk.AccelFlags.VISIBLE)
+            add_tag_menu_item.add_accelerator(
+                "activate",
+                accel_group,
+                ord("T"),
+                Gdk.ModifierType.CONTROL_MASK,
+                Gtk.AccelFlags.VISIBLE,
+            )
+            self.apply_active_tag_menu_item.add_accelerator(
+                "activate",
+                accel_group,
+                ord("Y"),
+                Gdk.ModifierType.CONTROL_MASK,
+                Gtk.AccelFlags.VISIBLE,
+            )
+            key, mask = Gtk.accelerator_parse("<Control><Shift>y")
+            self.remove_active_tag_menu_item.add_accelerator(
+                "activate", accel_group, key, mask, Gtk.AccelFlags.VISIBLE
+            )
         tags_menu.append(add_tag_menu_item)
 
         session = db.Session()
@@ -116,12 +165,13 @@ class TagsMenuManager:
         has_tags = query.first()
         if has_tags:
             tags_menu.append(Gtk.SeparatorMenuItem())
-        submenu = {'': [None, tags_menu]}  # menuitem and submenu
-                                           # corresponding to full item
-                                           # path; it is a list because it
-                                           # needs to be mutable
+        submenu = {"": [None, tags_menu]}  # menuitem and submenu
+
+        # corresponding to full item
+        # path; it is a list because it
+        # needs to be mutable
         def confirm_attach_path(parts):
-            full_path = ''
+            full_path = ""
             parent = tags_menu
             while parts:
                 name = parts.pop()
@@ -135,11 +185,12 @@ class TagsMenuManager:
                     submenu[full_path] = [item, take_this]
                     item.set_submenu(take_this)
                 parent = submenu[full_path]
-                full_path += '/'
+                full_path += "/"
+
         try:
             for tag in query:
-                *path, tail = tag.tag.split('/')
-                head = '/'.join(path)
+                *path, tail = tag.tag.split("/")
+                head = "/".join(path)
                 item = Gtk.ImageMenuItem(tail)
                 submenu[tag.tag] = [item, None]
                 item.set_image(None)
@@ -150,9 +201,10 @@ class TagsMenuManager:
                 submenu[head][1].append(item)
         except Exception:
             logger.debug(traceback.format_exc())
-            msg = _('Could not create the tags menus')
-            utils.message_details_dialog(msg, traceback.format_exc(),
-                                         Gtk.MessageType.ERROR)
+            msg = _("Could not create the tags menus")
+            utils.message_details_dialog(
+                msg, traceback.format_exc(), Gtk.MessageType.ERROR
+            )
         session.close()
 
         if has_tags:
@@ -168,21 +220,23 @@ class TagsMenuManager:
         try:
             values = view.get_selected_values()
         except AttributeError:
-            msg = _('In order to tag or untag an item you must first search for '
-                    'something and select one of the results.')
+            msg = _(
+                "In order to tag or untag an item you must first search for "
+                "something and select one of the results."
+            )
             bauble.gui.show_message_box(msg)
             return
         if len(values) == 0:
-            msg = _('Please select something in the search results.')
+            msg = _("Please select something in the search results.")
             utils.message_dialog(msg)
             return
         if self.active_tag_name is None:
-            msg = _('Please make sure a tag is active.')
+            msg = _("Please make sure a tag is active.")
             utils.message_dialog(msg)
             return
         applying(self.active_tag_name, values)
         view.update_bottom_notebook()
-    
+
     def on_apply_active_tag_activated(self, *args, **kwargs):
         logger.debug("you're applying %s to the selection", self.active_tag_name)
         self.toggle_tag(applying=tag_objects)
@@ -200,11 +254,14 @@ def edit_callback(tags):
     if tag is None:
         tag = Tag()
     view = GenericEditorView(
-        os.path.join(paths.lib_dir(), 'plugins', 'tag', 'tag.glade'),
+        os.path.join(paths.lib_dir(), "plugins", "tag", "tag.glade"),
         parent=None,
-        root_widget_name='tag_dialog')
+        root_widget_name="tag_dialog",
+    )
     for note in tag.notes:
-        view.widgets.notes_list.append((note.category, "str", note.note, "gtk-apply", note.id, True))
+        view.widgets.notes_list.append(
+            (note.category, "str", note.note, "gtk-apply", note.id, True)
+        )
     presenter = TagEditorPresenter(tag, view, refresh_view=True)
     error_state = presenter.start()
     if error_state:
@@ -221,7 +278,7 @@ def remove_callback(tags):
     :param tags: a list of :class:`Tag` objects.
     """
     tag = tags[0]
-    s = '{}: {}'.format(tag.__class__.__name__, utils.xml_safe(tag))
+    s = "{}: {}".format(tag.__class__.__name__, utils.xml_safe(tag))
     msg = _("Are you sure you want to remove %s?") % s
     if not utils.yes_no_dialog(msg):
         return
@@ -231,21 +288,26 @@ def remove_callback(tags):
         session.delete(obj)
         session.commit()
     except Exception as e:
-        msg = _('Could not delete.\n\n%s') % utils.xml_safe(e)
-        utils.message_details_dialog(msg, traceback.format_exc(),
-                                     type=Gtk.MessageType.ERROR)
+        msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
+        utils.message_details_dialog(
+            msg, traceback.format_exc(), type=Gtk.MessageType.ERROR
+        )
 
     # reinitialize the tag menu
     tags_menu_manager.reset()
     return True
 
 
-edit_action = Action('acc_edit', _('_Edit'),
-                     callback=edit_callback,
-                     accelerator='<ctrl>e')
-remove_action = Action('tag_remove', _('_Delete'),
-                       callback=remove_callback,
-                       accelerator='<ctrl>Delete', multiselect=True)
+edit_action = Action(
+    "acc_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
+)
+remove_action = Action(
+    "tag_remove",
+    _("_Delete"),
+    callback=remove_callback,
+    accelerator="<ctrl>Delete",
+    multiselect=True,
+)
 
 tag_context_menu = [edit_action, remove_action]
 
@@ -253,10 +315,14 @@ tag_context_menu = [edit_action, remove_action]
 class TagEditorPresenter(GenericEditorPresenter):
 
     widget_to_field_map = {
-        'tag_name_entry': 'tag',
-        'tag_desc_textbuffer': 'description'}
+        "tag_name_entry": "tag",
+        "tag_desc_textbuffer": "description",
+    }
 
-    view_accept_buttons = ['tag_ok_button', 'tag_cancel_button', ]
+    view_accept_buttons = [
+        "tag_ok_button",
+        "tag_cancel_button",
+    ]
 
     def on_cell_edited(self, widget, path, text):
         self.view.widgets.notes_list[path][self.column] = text
@@ -277,16 +343,21 @@ class TagEditorPresenter(GenericEditorPresenter):
     def on_toggle_row(self, tree, path, column):
         store = self.view.widgets.notes_list
         store[path][5] = not store[path][5]
-        store[path][3] = {True: 'gtk-apply', False: 'gtk-cancel'}[store[path][5]]
+        store[path][3] = {True: "gtk-apply", False: "gtk-cancel"}[
+            store[path][5]
+        ]
 
     def on_add_a_note_clicked(self, *args):
         #            name --> type --> content --> icon-name --> id --> keep
         #               0        1           2             3      4        5
-        self.view.widgets.notes_list.append(("","str","","gtk-apply", -1, True))
-    
+        self.view.widgets.notes_list.append(
+            ("", "str", "", "gtk-apply", -1, True)
+        )
+
     def on_tag_desc_textbuffer_changed(self, widget, value=None):
         return GenericEditorPresenter.on_textbuffer_changed(
-            self, widget, value, attr='description')
+            self, widget, value, attr="description"
+        )
 
     def commit_changes(self):
         for row in self.view.widgets.notes_list:
@@ -294,8 +365,13 @@ class TagEditorPresenter(GenericEditorPresenter):
             if note_id == -1:
                 if keep is True:
                     # create a new note and add it to the session
-                    note = TagNote(tag=self.model, category=category,
-                                   note=value, type=value_type, user=db.current_user())
+                    note = TagNote(
+                        tag=self.model,
+                        category=category,
+                        note=value,
+                        type=value_type,
+                        user=db.current_user(),
+                    )
                     self.session.add(note)
             else:
                 # retrieve and update existing note
@@ -310,28 +386,31 @@ class TagEditorPresenter(GenericEditorPresenter):
 
 
 class TagItemGUI(editor.GenericEditorView):
-    '''
+    """
     Interface for tagging individual items in the results of the SearchView
-    '''
+    """
+
     def __init__(self, values):
-        filename = os.path.join(paths.lib_dir(), 'plugins', 'tag',
-                                'tag.glade')
+        filename = os.path.join(paths.lib_dir(), "plugins", "tag", "tag.glade")
         super().__init__(filename)
         self.item_data_label = self.widgets.items_data
         self.values = values
-        safe_set_text(self.item_data_label, ', '.join([str(s) for s in self.values]))
-        self.connect(self.widgets.new_button,
-                     'clicked', self.on_new_button_clicked)
+        safe_set_text(
+            self.item_data_label, ", ".join([str(s) for s in self.values])
+        )
+        self.connect(
+            self.widgets.new_button, "clicked", self.on_new_button_clicked
+        )
 
     def get_window(self):
         return self.widgets.tag_item_dialog
 
     def on_new_button_clicked(self, *args):
-        '''
+        """
         create a new tag
-        '''
+        """
         session = db.Session()
-        tag = Tag(description='')
+        tag = Tag(description="")
         session.add(tag)
         error_state = edit_callback([tag])
         if not error_state:
@@ -341,9 +420,9 @@ class TagItemGUI(editor.GenericEditorView):
         session.close()
 
     def on_toggled(self, renderer, path, data=None):
-        '''
+        """
         tag or untag the objs in self.values
-        '''
+        """
         active = not renderer.get_active()
         model = self.tag_tree.get_model()
         iter = model.get_iter(path)
@@ -360,8 +439,8 @@ class TagItemGUI(editor.GenericEditorView):
         Build the tag tree columns.
         """
         renderer = Gtk.CellRendererToggle()
-        self.connect(renderer, 'toggled', self.on_toggled)
-        renderer.set_property('activatable', True)
+        self.connect(renderer, "toggled", self.on_toggled)
+        renderer.set_property("activatable", True)
         toggle_column = Gtk.TreeViewColumn(None, renderer)
         toggle_column.add_attribute(renderer, "active", 0)
         toggle_column.add_attribute(renderer, "inconsistent", 2)
@@ -372,10 +451,10 @@ class TagItemGUI(editor.GenericEditorView):
         return [toggle_column, tag_column]
 
     def on_key_released(self, widget, event):
-        '''
+        """
         if the user hits the delete key on a selected tag in the tag editor
         then delete the tag
-        '''
+        """
         keyname = Gdk.keyval_name(event.keyval)
         if keyname != "Delete":
             return
@@ -393,12 +472,14 @@ class TagItemGUI(editor.GenericEditorView):
             model.remove(row_iter)
             tags_menu_manager.reset()
             view = bauble.gui.get_view()
-            if hasattr(view, 'update'):
+            if hasattr(view, "update"):
                 view.update()
         except Exception as e:
-            utils.message_details_dialog(utils.xml_safe(str(e)),
-                                         traceback.format_exc(),
-                                         Gtk.MessageType.ERROR)
+            utils.message_details_dialog(
+                utils.xml_safe(str(e)),
+                traceback.format_exc(),
+                Gtk.MessageType.ERROR,
+            )
         finally:
             session.close()
 
@@ -428,8 +509,10 @@ class TagItemGUI(editor.GenericEditorView):
         self.connect(self.tag_tree, "key-release-event", self.on_key_released)
 
         response = self.get_window().run()
-        while response != Gtk.ResponseType.OK \
-                and response != Gtk.ResponseType.DELETE_EVENT:
+        while (
+            response != Gtk.ResponseType.OK
+            and response != Gtk.ResponseType.DELETE_EVENT
+        ):
             response = self.get_window().run()
 
         self.get_window().hide()
@@ -446,16 +529,21 @@ class Tag(db.Base, db.WithNotes):
       description: :class:`sqlalchemy.types.Unicode`
         A description of this tag.
     """
-    __tablename__ = 'tag'
-    __mapper_args__ = {'order_by': text('tag.tag')}
+
+    __tablename__ = "tag"
+    __mapper_args__ = {"order_by": text("tag.tag")}
 
     # columns
     tag = Column(Unicode(64), unique=True, nullable=False)
     description = Column(UnicodeText)
 
     # relations
-    _objects = relationship('TaggedObj', cascade='all, delete-orphan',
-                        back_populates='tag', single_parent=True)
+    _objects = relationship(
+        "TaggedObj",
+        cascade="all, delete-orphan",
+        back_populates="tag",
+        single_parent=True,
+    )
 
     __my_own_timestamp = None
     __last_objects = None
@@ -467,18 +555,21 @@ class Tag(db.Base, db.WithNotes):
             return db.Base.__str__(self)
 
     def markup(self):
-        return '%s Tag' % self.tag
+        return "%s Tag" % self.tag
 
     def tag_objects(self, objects):
         session = object_session(self)
         for obj in objects:
-            cls = and_(TaggedObj.obj_class == _classname(obj),
-                       TaggedObj.obj_id == obj.id,
-                       TaggedObj.tag_id == self.id)
+            cls = and_(
+                TaggedObj.obj_class == _classname(obj),
+                TaggedObj.obj_id == obj.id,
+                TaggedObj.tag_id == self.id,
+            )
             ntagged = session.query(TaggedObj).filter(cls).count()
             if ntagged == 0:
-                tagged_obj = TaggedObj(obj_class=_classname(obj), obj_id=obj.id,
-                                       tag=self)
+                tagged_obj = TaggedObj(
+                    obj_class=_classname(obj), obj_id=obj.id, tag=self
+                )
                 session.add(tagged_obj)
 
     @property
@@ -491,23 +582,25 @@ class Tag(db.Base, db.WithNotes):
         if self.__my_own_timestamp is not None:
             # should I update my list?
             session = object_session(self)
-            last_history = session.query(db.History)\
-                .order_by(db.History.timestamp.desc())\
-                .limit(1).one()
+            last_history = (
+                session.query(db.History)
+                .order_by(db.History.timestamp.desc())
+                .limit(1)
+                .one()
+            )
             if last_history.timestamp > self.__my_own_timestamp:
                 self.__last_objects = None
         if self.__last_objects is None:
             # here I update my list
             from datetime import datetime
+
             self.__my_own_timestamp = datetime.now()
             self.__last_objects = self.get_tagged_objects()
         # here I return my list
         return self.__last_objects
 
     def is_tagging(self, obj):
-        """tell whether self tags obj
-
-        """
+        """tell whether self tags obj"""
         return obj in self.objects
 
     def get_tagged_objects(self):
@@ -517,8 +610,10 @@ class Tag(db.Base, db.WithNotes):
         """
         session = object_session(self)
 
-        r = [session.query(mapper).filter_by(id=obj_id).first()
-             for mapper, obj_id in _get_tagged_object_pairs(self)]
+        r = [
+            session.query(mapper).filter_by(id=obj_id).first()
+            for mapper, obj_id in _get_tagged_object_pairs(self)
+        ]
 
         # if `self` was tagging objects that have been later removed from
         # the database, those reference here become `None`. we filter them
@@ -536,42 +631,57 @@ class Tag(db.Base, db.WithNotes):
             return []
         modname = type(obj).__module__
         clsname = type(obj).__name__
-        full_cls_name = '{}.{}'.format(modname, clsname)
+        full_cls_name = "{}.{}".format(modname, clsname)
         qto = session.query(TaggedObj).filter(
-            TaggedObj.obj_class == full_cls_name,
-            TaggedObj.obj_id == obj.id)
+            TaggedObj.obj_class == full_cls_name, TaggedObj.obj_id == obj.id
+        )
         return [i.tag for i in qto.all()]
 
     def search_view_markup_pair(self):
-        '''provide the two lines describing object for SearchView row.
-        '''
+        """provide the two lines describing object for SearchView row."""
         import inspect
-        logging.debug('entering search_view_markup_pair {}, {}'.format(
-            self, str(inspect.stack()[1])))
+
+        logging.debug(
+            "entering search_view_markup_pair {}, {}".format(
+                self, str(inspect.stack()[1])
+            )
+        )
         objects = self.objects
         classes = {type(o) for o in objects}
         if len(classes) == 1:
             fine_prints = _("tagging %(1)s objects of type %(2)s") % {
-                '1': len(objects),
-                '2': classes.pop().__name__}
+                "1": len(objects),
+                "2": classes.pop().__name__,
+            }
         elif len(classes) == 0:
             fine_prints = _("tagging nothing")
         else:
             fine_prints = _("tagging %(1)s objects of %(2)s different types") % {
-                '1': len(objects),
-                '2': len(classes)}
+                "1": len(objects),
+                "2": len(classes),
+            }
             if len(classes) < 4:
-                fine_prints += ': ' + (', '.join(
-                    sorted(t.__name__ for t in classes)))
+                fine_prints += ": " + (
+                    ", ".join(sorted(t.__name__ for t in classes))
+                )
         first = '{} - <span weight="light">{}</span>'.format(
-            utils.xml_safe(self), fine_prints)
+            utils.xml_safe(self), fine_prints
+        )
         second = '({}) - <span weight="light">{}</span>'.format(
             type(self).__name__,
-            (self.description or '').replace('\n', ' ')[:256])
+            (self.description or "").replace("\n", " ")[:256],
+        )
         return first, second
 
-TagNote = db.make_note_class('Tag', Tag)
-Tag.notes = relationship('TagNote', back_populates='tag', cascade='all,delete-orphan', single_parent=True)
+
+TagNote = db.make_note_class("Tag", Tag)
+Tag.notes = relationship(
+    "TagNote",
+    back_populates="tag",
+    cascade="all,delete-orphan",
+    single_parent=True,
+)
+
 
 class TaggedObj(db.Base):
     """
@@ -585,16 +695,22 @@ class TaggedObj(db.Base):
         A ForeignKey to :class:`Tag`.
 
     """
-    __tablename__ = 'tagged_obj'
+
+    __tablename__ = "tagged_obj"
 
     # columns
     obj_id = Column(Integer, autoincrement=False)
     obj_class = Column(String(128))
-    tag_id = Column(Integer, ForeignKey('tag.id'))
-    tag = relationship('Tag', cascade='all, delete-orphan',
-                        back_populates='_objects', single_parent=True)
+    tag_id = Column(Integer, ForeignKey("tag.id"))
+    tag = relationship(
+        "Tag",
+        cascade="all, delete-orphan",
+        back_populates="_objects",
+        single_parent=True,
+    )
+
     def __str__(self):
-        return '{}: {}'.format(self.obj_class, self.obj_id)
+        return "{}: {}".format(self.obj_class, self.obj_id)
 
 
 def _get_tagged_object_pairs(tag):
@@ -606,32 +722,37 @@ def _get_tagged_object_pairs(tag):
     for obj in tag._objects:
         try:
             # __import__ "from_list" parameters has to be a list of strings
-            module_name, part, cls_name = str(obj.obj_class).rpartition('.')
-            module = __import__(module_name, globals(), locals(),
-                                module_name.split('.')[1:])
+            module_name, part, cls_name = str(obj.obj_class).rpartition(".")
+            module = __import__(
+                module_name, globals(), locals(), module_name.split(".")[1:]
+            )
             cls = getattr(module, cls_name)
             kids.append((cls, obj.obj_id))
         except KeyError as e:
-            logger.warning('KeyError -- tag.get_tagged_objects(%s): %s'
-                           % (tag, e))
+            logger.warning(
+                "KeyError -- tag.get_tagged_objects(%s): %s" % (tag, e)
+            )
             continue
         except DBAPIError as e:
-            logger.warning('DBAPIError -- tag.get_tagged_objects(%s): %s'
-                           % (tag, e))
+            logger.warning(
+                "DBAPIError -- tag.get_tagged_objects(%s): %s" % (tag, e)
+            )
             continue
         except AttributeError as e:
-            logger.warning('AttributeError -- tag.get_tagged_objects(%s): %s'
-                           % (tag, e))
-            logger.warning('Could not get the object for %s.%s(%s)'
-                           % (module_name, cls_name, obj.obj_id))
+            logger.warning(
+                "AttributeError -- tag.get_tagged_objects(%s): %s" % (tag, e)
+            )
+            logger.warning(
+                "Could not get the object for %s.%s(%s)"
+                % (module_name, cls_name, obj.obj_id)
+            )
             continue
 
     return kids
 
 
 def create_named_empty_tag(name):
-    """make sure the named tag exists
-    """
+    """make sure the named tag exists"""
     session = db.Session()
     try:
         tag = session.query(Tag).filter_by(tag=name).one()
@@ -661,8 +782,10 @@ def untag_objects(name, objs):
     try:
         tag = session.query(Tag).filter_by(tag=name).one()
     except Exception as e:
-        logger.info("Can't remove non existing tag from non-empty list of objects"
-                    "%s - %s" % (type(e), e))
+        logger.info(
+            "Can't remove non existing tag from non-empty list of objects"
+            "%s - %s" % (type(e), e)
+        )
         return
     # same = lambda item, y: item.obj_class == _classname(y) and item.obj_id == y.id
     objs = {(_classname(y), y.id) for y in objs}
@@ -675,7 +798,8 @@ def untag_objects(name, objs):
 
 
 # create the classname stored in the tagged_obj table
-_classname = lambda x: '{}.{}'.format(type(x).__module__, type(x).__name__)
+def _classname(x):
+    return "{}.{}".format(type(x).__module__, type(x).__name__)
 
 
 def tag_objects(name, objects):
@@ -721,8 +845,9 @@ def get_tag_ids(objs):
     s_some = set()
     s_none = {i[0] for i in tag_id_query}  # per default none apply
     for obj in objs:
-        clause = and_(TaggedObj.obj_class == _classname(obj),
-                      TaggedObj.obj_id == obj.id)
+        clause = and_(
+            TaggedObj.obj_class == _classname(obj), TaggedObj.obj_id == obj.id
+        )
         applied_tag_ids = [r[0] for r in tag_id_query.filter(clause)]
         if starting_now:
             s_all = set(applied_tag_ids)
@@ -742,12 +867,14 @@ def _on_add_tag_activated(*args, **kwargs):
     try:
         values = view.get_selected_values()
     except AttributeError:
-        msg = _('In order to tag an item you must first search for '
-                'something and select one of the results.')
+        msg = _(
+            "In order to tag an item you must first search for "
+            "something and select one of the results."
+        )
         bauble.gui.show_message_box(msg)
         return
     if len(values) == 0:
-        msg = _('Nothing selected')
+        msg = _("Nothing selected")
         utils.message_dialog(msg)
         return
     tagitem = TagItemGUI(values)
@@ -762,8 +889,7 @@ class GeneralTagExpander(InfoExpander):
     """
 
     def __init__(self, widgets):
-        '''
-        '''
+        """ """
         super().__init__(_("General"), widgets)
         general_box = self.widgets.general_box
         self.widgets.general_window.remove(general_box)
@@ -773,8 +899,8 @@ class GeneralTagExpander(InfoExpander):
     def update(self, row):
         on_label_clicked = lambda l, e, x: bauble.gui.send_command(x)
         self.current_obj = row
-        self.widget_set_value('ib_name_label', row.tag)
-        self.widget_set_value('ib_description_label', row.description)
+        self.widget_set_value("ib_name_label", row.tag)
+        self.widget_set_value("ib_description_label", row.description)
         objects = row.objects
         classes = {type(o) for o in objects}
         row_no = 1
@@ -785,21 +911,25 @@ class GeneralTagExpander(InfoExpander):
         for c in classes:
             obj_ids = [str(o.id) for o in objects if isinstance(o, c)]
             lab = Gtk.Label()
-            lab.set_alignment(0, .5)
+            lab.set_alignment(0, 0.5)
             safe_set_text(lab, c.__name__)
             lab.set_hexpand(False)
             table.attach(lab, 0, row_no, 1, 1)
 
             eb = Gtk.EventBox()
             leb = Gtk.Label()
-            leb.set_alignment(0, .5)
+            leb.set_alignment(0, 0.5)
             eb.add(leb)
             eb.set_hexpand(False)
             table.attach(eb, 1, row_no, 1, 1)
             safe_set_text(leb, " %s " % len(obj_ids))
             utils.make_label_clickable(
-                leb, on_label_clicked,
-                '{} where id in {}'.format(c.__name__.lower(), ', '.join(obj_ids)))
+                leb,
+                on_label_clicked,
+                "{} where id in {}".format(
+                    c.__name__.lower(), ", ".join(obj_ids)
+                ),
+            )
 
             self.table_cells.append(lab)
             self.table_cells.append(eb)
@@ -813,10 +943,10 @@ class TagInfoBox(InfoBox):
     - general info
     - source
     """
+
     def __init__(self):
         super().__init__()
-        filename = os.path.join(paths.lib_dir(), "plugins", "tag",
-                                "tag.glade")
+        filename = os.path.join(paths.lib_dir(), "plugins", "tag", "tag.glade")
         self.widgets = utils.BuilderWidgets(filename)
         self.general = GeneralTagExpander(self.widgets)
         self.add_expander(self.general)
@@ -824,8 +954,9 @@ class TagInfoBox(InfoBox):
     def update(self, row):
         self.general.update(row)
 
+
 class TagPlugin(pluginmgr.Plugin):
-    provides = {'Tag': Tag}
+    provides = {"Tag": Tag}
 
     @classmethod
     def init(cls):
@@ -833,19 +964,22 @@ class TagPlugin(pluginmgr.Plugin):
         from functools import partial
 
         from bauble.view import SearchView
-        mapper_search = search.get_strategy('MapperSearch')
-        mapper_search.add_meta(('tag', 'tags'), Tag, ['tag'])
+
+        mapper_search = search.get_strategy("MapperSearch")
+        mapper_search.add_meta(("tag", "tags"), Tag, ["tag"])
         SearchView.row_meta[Tag].set(
-            children=partial(db.natsort, 'objects'),
+            children=partial(db.natsort, "objects"),
             infobox=TagInfoBox,
-            context_menu=tag_context_menu)
+            context_menu=tag_context_menu,
+        )
         SearchView.bottom_info[Tag] = {
-            'page_widget': 'taginfo_scrolledwindow',
-            'fields_used': ['tag', 'description'],
-            'glade_name': os.path.join(paths.lib_dir(),
-                                       'plugins/tag/tag.glade'),
-            'name': _('Tags'),
-            }
+            "page_widget": "taginfo_scrolledwindow",
+            "fields_used": ["tag", "description"],
+            "glade_name": os.path.join(
+                paths.lib_dir(), "plugins/tag/tag.glade"
+            ),
+            "name": _("Tags"),
+        }
         if bauble.gui is not None:
             tags_menu_manager.reset()
         else:

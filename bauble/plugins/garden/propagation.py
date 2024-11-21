@@ -19,23 +19,12 @@
 #
 # propagation module
 #
-
-
 import datetime
 import logging
 import os
 import traceback
 import weakref
-
-from gi.repository import Gtk
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-from sqlalchemy import Column, ForeignKey, Integer, Unicode, UnicodeText, text
-from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm.session import object_session
+from gettext import gettext as _
 
 import bauble
 import bauble.btypes as types
@@ -45,6 +34,23 @@ import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 from bauble.utils import parse_date
+from gi.repository import Gtk
+from sqlalchemy import Column
+from sqlalchemy import ForeignKey
+from sqlalchemy import Integer
+from sqlalchemy import Table
+from sqlalchemy import text
+from sqlalchemy import UnicodeText
+from sqlalchemy.exc import DBAPIError
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm.session import object_session
+
+pass
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 prop_type_values = {
     "Seed": _("Seed"),
@@ -56,13 +62,17 @@ prop_type_results = {
     "UnrootedCutting": "RCUT",
 }
 
-from sqlalchemy import Column, ForeignKey, Integer, Table
 
 PlantPropagation = Table(
     "plant_prop",
     db.Base.metadata,
     Column("plant_id", Integer, ForeignKey("plant.id"), primary_key=True),
-    Column("propagation_id", Integer, ForeignKey("propagation.id"), primary_key=True),
+    Column(
+        "propagation_id",
+        Integer,
+        ForeignKey("propagation.id"),
+        primary_key=True,
+    ),
 )
 
 # class PlantPropagation(db.Base):
@@ -86,7 +96,9 @@ class Propagation(db.Base, db.WithNotes):
 
     __tablename__ = "propagation"
     prop_type = Column(
-        types.Enum(values=list(prop_type_values.keys()), translations=prop_type_values),
+        types.Enum(
+            values=list(prop_type_values.keys()), translations=prop_type_values
+        ),
         nullable=False,
     )
     date = Column(types.Date)
@@ -154,7 +166,9 @@ class Propagation(db.Base, db.WithNotes):
         if self.prop_type == "UnrootedCutting":
             incomplete = self._cutting is None  # cutting without fields
             if not incomplete:
-                quantity = sum([item.quantity for item in self._cutting.rooted])
+                quantity = sum(
+                    [item.quantity for item in self._cutting.rooted]
+                )
         elif self.prop_type == "Seed":
             incomplete = self._seed is None  # seed without fields
             if not incomplete:
@@ -190,7 +204,9 @@ class Propagation(db.Base, db.WithNotes):
         accession_codes = []
 
         if self.used_source and partial != 2:
-            values = [_("used in") + ": %s" % acc.code for acc in self.accessions]
+            values = [
+                _("used in") + ": %s" % acc.code for acc in self.accessions
+            ]
             accession_codes = [acc.code for acc in self.accessions]
 
         if partial == 1:
@@ -201,12 +217,15 @@ class Propagation(db.Base, db.WithNotes):
             values.append(_("Cutting"))
             if c.cutting_type is not None:
                 values.append(
-                    _("Cutting type") + ": %s" % cutting_type_values[c.cutting_type]
+                    _("Cutting type")
+                    + ": %s" % cutting_type_values[c.cutting_type]
                 )
             if c.length:
                 values.append(
                     _("Length: %(length)s%(unit)s")
-                    % dict(length=c.length, unit=length_unit_values[c.length_unit])
+                    % dict(
+                        length=c.length, unit=length_unit_values[c.length_unit]
+                    )
                 )
             if c.tip:
                 values.append(_("Tip") + ": %s" % tip_values[c.tip])
@@ -217,7 +236,8 @@ class Propagation(db.Base, db.WithNotes):
                 values.append(s)
             if c.flower_buds:
                 values.append(
-                    _("Flower buds") + ": %s" % flower_buds_values[c.flower_buds]
+                    _("Flower buds")
+                    + ": %s" % flower_buds_values[c.flower_buds]
                 )
             if c.wound is not None:
                 values.append(_("Wounded") + ": %s" % wound_values[c.wound])
@@ -246,7 +266,9 @@ class Propagation(db.Base, db.WithNotes):
                 values.append(_("Rooted: %s%%") % c.rooted_pct)
 
             if c.rooted:
-                values.append(_("Rooted: %s") % sum(i.quantity for i in c.rooted))
+                values.append(
+                    _("Rooted: %s") % sum(i.quantity for i in c.rooted)
+                )
         elif self.prop_type == "Seed":
             seed = self._seed
             values.append(_("Seed"))
@@ -362,19 +384,25 @@ class PropCutting(db.Base):
     __tablename__ = "prop_cutting"
     cutting_type = Column(
         types.Enum(
-            values=list(cutting_type_values.keys()), translations=cutting_type_values
+            values=list(cutting_type_values.keys()),
+            translations=cutting_type_values,
         ),
         default="Other",
     )
-    tip = Column(types.Enum(values=list(tip_values.keys()), translations=tip_values))
+    tip = Column(
+        types.Enum(values=list(tip_values.keys()), translations=tip_values)
+    )
     leaves = Column(
-        types.Enum(values=list(leaves_values.keys()), translations=leaves_values)
+        types.Enum(
+            values=list(leaves_values.keys()), translations=leaves_values
+        )
     )
     leaves_reduced_pct = Column(Integer, autoincrement=False)
     length = Column(Integer, autoincrement=False)
     length_unit = Column(
         types.Enum(
-            values=list(length_unit_values.keys()), translations=length_unit_values
+            values=list(length_unit_values.keys()),
+            translations=length_unit_values,
         )
     )
 
@@ -386,7 +414,8 @@ class PropCutting(db.Base):
     # removed/None
     flower_buds = Column(
         types.Enum(
-            values=list(flower_buds_values.keys()), translations=flower_buds_values
+            values=list(flower_buds_values.keys()),
+            translations=flower_buds_values,
         )
     )
 
@@ -414,7 +443,9 @@ class PropCutting(db.Base):
     )
     rooted_pct = Column(Integer, autoincrement=False)
 
-    propagation_id = Column(Integer, ForeignKey("propagation.id"), nullable=False)
+    propagation_id = Column(
+        Integer, ForeignKey("propagation.id"), nullable=False
+    )
 
     rooted = relationship(
         "PropCuttingRooted",
@@ -423,7 +454,9 @@ class PropCutting(db.Base):
         back_populates="cutting",
     )
 
-    propagation = relationship("Propagation", back_populates="_cutting", uselist=False)
+    propagation = relationship(
+        "Propagation", back_populates="_cutting", uselist=False
+    )
 
 
 class PropSeed(db.Base):
@@ -454,9 +487,13 @@ class PropSeed(db.Base):
     germ_pct = Column(Integer, autoincrement=False)  # % of germination
     date_planted = Column(types.Date)
 
-    propagation_id = Column(Integer, ForeignKey("propagation.id"), nullable=False)
+    propagation_id = Column(
+        Integer, ForeignKey("propagation.id"), nullable=False
+    )
 
-    propagation = relationship("Propagation", back_populates="_seed", uselist=False)
+    propagation = relationship(
+        "Propagation", back_populates="_seed", uselist=False
+    )
 
     def __str__(self):
         # what would the string be...???
@@ -477,7 +514,9 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
         self.session = session
-        self.view.connect("prop_add_button", "clicked", self.on_add_button_clicked)
+        self.view.connect(
+            "prop_add_button", "clicked", self.on_add_button_clicked
+        )
         tab_box = self.view.widgets.prop_tab_box
         for kid in tab_box:
             if isinstance(kid, Gtk.Box):
@@ -526,7 +565,9 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
         expander.add(label)
 
         def on_edit_clicked(button, prop, label):
-            editor = PropagationEditor(model=prop, parent=self.view.get_window())
+            editor = PropagationEditor(
+                model=prop, parent=self.view.get_window()
+            )
             if editor.start(commit=False) is not None:
                 label.set_label(prop.get_summary())
                 self._dirty = True
@@ -537,7 +578,9 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
         button_box = Gtk.HBox(spacing=5)
         alignment.add(button_box)
         button = Gtk.Button(stock=Gtk.STOCK_EDIT)
-        self.view.connect(button, "clicked", on_edit_clicked, propagation, label)
+        self.view.connect(
+            button, "clicked", on_edit_clicked, propagation, label
+        )
         button_box.pack_start(button, False, False, 0)
 
         def on_remove_clicked(button, propagation, box):
@@ -555,7 +598,8 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
                     )
                 else:
                     msg = _(
-                        "Are you sure you want to remove\n" "this propagation trial?"
+                        "Are you sure you want to remove\n"
+                        "this propagation trial?"
                     )
                 if not utils.yes_no_dialog(msg):
                     return False
@@ -624,7 +668,9 @@ class PropagationEditorView(editor.GenericEditorView):
     def __init__(self, parent=None):
         """ """
         super().__init__(
-            os.path.join(paths.lib_dir(), "plugins", "garden", "prop_editor.glade"),
+            os.path.join(
+                paths.lib_dir(), "plugins", "garden", "prop_editor.glade"
+            ),
             parent=parent,
         )
         self.init_translatable_combo("prop_type_combo", prop_type_values)
@@ -679,7 +725,9 @@ class CuttingPresenter(editor.GenericEditorPresenter):
 
         init_combo = self.view.init_translatable_combo
         init_combo(
-            "cutting_type_combo", cutting_type_values, editor.UnicodeOrNoneValidator()
+            "cutting_type_combo",
+            cutting_type_values,
+            editor.UnicodeOrNoneValidator(),
         )
         init_combo("cutting_length_unit_combo", length_unit_values)
         init_combo("cutting_tip_combo", tip_values)
@@ -690,7 +738,9 @@ class CuttingPresenter(editor.GenericEditorPresenter):
 
         widgets = self.view.widgets
 
-        distinct = lambda c: utils.get_distinct_values(c, self.session)
+        def distinct(c):
+            return utils.get_distinct_values(c, self.session)
+
         utils.setup_text_combobox(
             widgets.cutting_hormone_comboentry, distinct(PropCutting.hormone)
         )
@@ -704,7 +754,8 @@ class CuttingPresenter(editor.GenericEditorPresenter):
             widgets.cutting_location_comboentry, distinct(PropCutting.location)
         )
         utils.setup_text_combobox(
-            widgets.cutting_container_comboentry, distinct(PropCutting.container)
+            widgets.cutting_container_comboentry,
+            distinct(PropCutting.container),
         )
         utils.setup_text_combobox(
             widgets.cutting_media_comboentry, distinct(PropCutting.media)
@@ -758,8 +809,12 @@ class CuttingPresenter(editor.GenericEditorPresenter):
             (sfw.rooted_quantity_cell, sfw.rooted_quantity_column, "quantity"),
         ]:
             cell.props.editable = True
-            self.view.connect(cell, "edited", partial(on_rooted_cell_edited, attr_name))
-            column.set_cell_data_func(cell, partial(rooted_cell_data_func, attr_name))
+            self.view.connect(
+                cell, "edited", partial(on_rooted_cell_edited, attr_name)
+            )
+            column.set_cell_data_func(
+                cell, partial(rooted_cell_data_func, attr_name)
+            )
 
         self.refresh_view()
 
@@ -768,34 +823,52 @@ class CuttingPresenter(editor.GenericEditorPresenter):
         self.assign_simple_handler("cutting_length_unit_combo", "length_unit")
         self.assign_simple_handler("cutting_tip_combo", "tip")
         self.assign_simple_handler("cutting_leaves_combo", "leaves")
-        self.assign_simple_handler("cutting_lvs_reduced_entry", "leaves_reduced_pct")
+        self.assign_simple_handler(
+            "cutting_lvs_reduced_entry", "leaves_reduced_pct"
+        )
 
         self.assign_simple_handler(
-            "cutting_media_comboentry", "media", editor.UnicodeOrNoneValidator()
+            "cutting_media_comboentry",
+            "media",
+            editor.UnicodeOrNoneValidator(),
         )
         self.assign_simple_handler(
-            "cutting_container_comboentry", "container", editor.UnicodeOrNoneValidator()
+            "cutting_container_comboentry",
+            "container",
+            editor.UnicodeOrNoneValidator(),
         )
 
         self.assign_simple_handler("cutting_buds_combo", "flower_buds")
         self.assign_simple_handler("cutting_wound_combo", "wound")
         self.assign_simple_handler(
-            "cutting_fungal_comboentry", "fungicide", editor.UnicodeOrNoneValidator()
+            "cutting_fungal_comboentry",
+            "fungicide",
+            editor.UnicodeOrNoneValidator(),
         )
         self.assign_simple_handler(
-            "cutting_hormone_comboentry", "hormone", editor.UnicodeOrNoneValidator()
+            "cutting_hormone_comboentry",
+            "hormone",
+            editor.UnicodeOrNoneValidator(),
         )
         self.assign_simple_handler(
-            "cutting_location_comboentry", "location", editor.UnicodeOrNoneValidator()
+            "cutting_location_comboentry",
+            "location",
+            editor.UnicodeOrNoneValidator(),
         )
         self.assign_simple_handler(
-            "cutting_cover_comboentry", "cover", editor.UnicodeOrNoneValidator()
+            "cutting_cover_comboentry",
+            "cover",
+            editor.UnicodeOrNoneValidator(),
         )
         self.assign_simple_handler("cutting_heat_entry", "bottom_heat_temp")
-        self.assign_simple_handler("cutting_heat_unit_combo", "bottom_heat_unit")
+        self.assign_simple_handler(
+            "cutting_heat_unit_combo", "bottom_heat_unit"
+        )
         self.assign_simple_handler("cutting_rooted_pct_entry", "rooted_pct")
 
-        self.view.connect("rooted_add_button", "clicked", self.on_rooted_add_clicked)
+        self.view.connect(
+            "rooted_add_button", "clicked", self.on_rooted_add_clicked
+        )
         self.view.connect(
             "rooted_remove_button", "clicked", self.on_rooted_remove_clicked
         )
@@ -879,17 +952,22 @@ class SeedPresenter(editor.GenericEditorPresenter):
         # TODO: if % germinated is not entered and nseeds and #
         # germinated are then automatically calculate the % germinated
 
-        widgets = self.view.widgets
-        distinct = lambda c: utils.get_distinct_values(c, self.session)
+        self.view.widgets
+
+        def distinct(c):
+            return utils.get_distinct_values(c, self.session)
+
         # TODO: should also setup a completion on the entry
         utils.setup_text_combobox(
             self.view.widgets.seed_media_comboentry, distinct(PropSeed.media)
         )
         utils.setup_text_combobox(
-            self.view.widgets.seed_container_comboentry, distinct(PropSeed.container)
+            self.view.widgets.seed_container_comboentry,
+            distinct(PropSeed.container),
         )
         utils.setup_text_combobox(
-            self.view.widgets.seed_location_comboentry, distinct(PropSeed.location)
+            self.view.widgets.seed_location_comboentry,
+            distinct(PropSeed.location),
         )
 
         self.refresh_view()
@@ -906,15 +984,21 @@ class SeedPresenter(editor.GenericEditorPresenter):
         self.assign_simple_handler(
             "seed_sown_entry", "date_sown", editor.DateValidator()
         )
-        utils.setup_date_button(self.view, "seed_sown_entry", "seed_sown_button")
+        utils.setup_date_button(
+            self.view, "seed_sown_entry", "seed_sown_button"
+        )
         self.assign_simple_handler(
-            "seed_container_comboentry", "container", editor.UnicodeOrNoneValidator()
+            "seed_container_comboentry",
+            "container",
+            editor.UnicodeOrNoneValidator(),
         )
         self.assign_simple_handler(
             "seed_media_comboentry", "media", editor.UnicodeOrNoneValidator()
         )
         self.assign_simple_handler(
-            "seed_location_comboentry", "location", editor.UnicodeOrNoneValidator()
+            "seed_location_comboentry",
+            "location",
+            editor.UnicodeOrNoneValidator(),
         )
         self.assign_simple_handler(
             "seed_mvdfrom_entry", "moved_from", editor.UnicodeOrNoneValidator()
@@ -978,16 +1062,22 @@ class PropagationPresenter(editor.ChildPresenter):
             view.widgets.prop_details_box.set_visible(False)
 
         # initialize the propagation type combo and set the initial value
-        self.view.connect("prop_type_combo", "changed", self.on_prop_type_changed)
+        self.view.connect(
+            "prop_type_combo", "changed", self.on_prop_type_changed
+        )
         if self.model.prop_type:
             self.view.widget_set_value("prop_type_combo", self.model.prop_type)
 
         self._cutting_presenter = CuttingPresenter(
             self, self.model, self.view, self.session
         )
-        self._seed_presenter = SeedPresenter(self, self.model, self.view, self.session)
+        self._seed_presenter = SeedPresenter(
+            self, self.model, self.view, self.session
+        )
 
-        self.assign_simple_handler("prop_date_entry", "date", editor.DateValidator())
+        self.assign_simple_handler(
+            "prop_date_entry", "date", editor.DateValidator()
+        )
         if self.model.date is None:
             date_str = utils.today_str()
         else:
@@ -996,7 +1086,9 @@ class PropagationPresenter(editor.ChildPresenter):
         self.view.widget_set_value(self.view.widgets.prop_date_entry, date_str)
 
         self._dirty = False
-        utils.setup_date_button(self.view, "prop_date_entry", "prop_date_button")
+        utils.setup_date_button(
+            self.view, "prop_date_entry", "prop_date_button"
+        )
 
     def on_prop_type_changed(self, combo, *args):
         it = combo.get_active_iter()
@@ -1125,7 +1217,9 @@ class PropagationEditorPresenter(PropagationPresenter):
         super().__init__(model, view)
         # don't allow changing the propagation type if we are editing
         # an existing propagation
-        self.view.widgets.prop_type_box.set_sensitive(model in self.session.new)
+        self.view.widgets.prop_type_box.set_sensitive(
+            model in self.session.new
+        )
         self.view.widgets.prop_details_box.set_visible(True)
         self.view.widgets.prop_ok_button.set_sensitive(False)
 
@@ -1148,7 +1242,9 @@ class PropagationEditorPresenter(PropagationPresenter):
                 model = self.model._seed
 
         if model:
-            invalid = utils.get_invalid_columns(model, ["id", "propagation_id"])
+            invalid = utils.get_invalid_columns(
+                model, ["id", "propagation_id"]
+            )
             # TODO: highlight the widget with are associated with the
             # columns that have bad values
             if invalid:
@@ -1205,8 +1301,12 @@ class PropagationEditor(editor.GenericModelViewPresenterEditor):
                 if self.presenter.is_dirty() and commit:
                     self.commit_changes()
             except DBAPIError as e:
-                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(str(e.orig))
-                utils.message_details_dialog(msg, str(e), Gtk.MessageType.ERROR)
+                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(
+                    str(e.orig)
+                )
+                utils.message_details_dialog(
+                    msg, str(e), Gtk.MessageType.ERROR
+                )
                 self.session.rollback()
                 return False
             except Exception as e:

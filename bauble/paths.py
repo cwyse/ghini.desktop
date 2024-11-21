@@ -135,7 +135,9 @@ def appdata_dir():
         # return the path of the user that used sudo instead of ~root
         try:
             d = os.path.join(
-                os.path.expanduser("~%s" % os.environ["USER"]), ".bauble", "3.1"
+                os.path.expanduser("~%s" % os.environ["USER"]),
+                ".bauble",
+                "3.1",
             )
         except Exception:
             raise Exception(
@@ -144,7 +146,9 @@ def appdata_dir():
                 % dict(username=os.environ["USER"])
             )
     else:
-        raise Exception("Could not get path for user settings: " "unsupported platform")
+        raise Exception(
+            "Could not get path for user settings: " "unsupported platform"
+        )
     return os.path.abspath(d)
 
 

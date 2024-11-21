@@ -17,7 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -65,13 +64,17 @@ with open("/tmp/plant-pictures.txt") as f:
         except:
             try:
                 accession = (
-                    session.query(Accession).filter(Accession.code == acc_no).one()
+                    session.query(Accession)
+                    .filter(Accession.code == acc_no)
+                    .one()
                 )
             except:
                 accession = Accession(species=zzz, code=acc_no)
                 session.add(accession)
                 sys.stdout.write("a")
-            plant = Plant(accession=accession, location=loc, quantity=1, code="1")
+            plant = Plant(
+                accession=accession, location=loc, quantity=1, code="1"
+            )
             session.add(plant)
             sys.stdout.write("p")
             session.flush()

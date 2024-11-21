@@ -11,7 +11,6 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
 import os
 import sys
 
@@ -23,7 +22,9 @@ import sys
 p = os.path.abspath("..")
 sys.path.insert(0, p)
 if "VIRTUAL_ENV" in os.environ:
-    q = os.sep.join([os.environ["VIRTUAL_ENV"], "lib", "python2.7", "site-packages"])
+    q = os.sep.join(
+        [os.environ["VIRTUAL_ENV"], "lib", "python2.7", "site-packages"]
+    )
     sys.path.insert(0, q)
     p = p + ":" + q
 
@@ -232,7 +233,13 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "Bauble.tex", "Bauble Documentation", "Brett Adams", "manual"),
+    (
+        master_doc,
+        "Bauble.tex",
+        "Bauble Documentation",
+        "Brett Adams",
+        "manual",
+    ),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

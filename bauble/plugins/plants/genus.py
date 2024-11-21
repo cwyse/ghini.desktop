@@ -20,34 +20,12 @@
 #
 # Genera table module
 #
-
-
 import logging
 import os
 import traceback
 import weakref
 import xml
-
-from gi.repository import Gtk
-
-logger = logging.getLogger(__name__)
-
-from sqlalchemy import (
-    Column,
-    ForeignKey,
-    Integer,
-    String,
-    Unicode,
-    UnicodeText,
-    UniqueConstraint,
-    and_,
-    func,
-    text,
-)
-from sqlalchemy.exc import DBAPIError
-from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.orm import relationship, synonym, validates
-from sqlalchemy.orm.session import object_session
+from gettext import gettext as _
 
 import bauble
 import bauble.btypes as types
@@ -58,14 +36,38 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.view as view
+from bauble.plugins.plants.family import Family
+from bauble.plugins.plants.family import FamilySynonym
+from bauble.plugins.plants.species_editor import edit_species
+from bauble.plugins.plants.species_model import Species
 from bauble.prefs import prefs
-from bauble.view import (
-    Action,
-    InfoBox,
-    InfoExpander,
-    PropertiesExpander,
-    select_in_search_results,
-)
+from bauble.view import Action
+from bauble.view import InfoBox
+from bauble.view import InfoExpander
+from bauble.view import PropertiesExpander
+from bauble.view import select_in_search_results
+from gi.repository import Gtk
+from sqlalchemy import and_
+from sqlalchemy import Column
+from sqlalchemy import ForeignKey
+from sqlalchemy import Integer
+from sqlalchemy import String
+from sqlalchemy import text
+from sqlalchemy import Unicode
+from sqlalchemy import UniqueConstraint
+from sqlalchemy.exc import DBAPIError
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm import synonym
+from sqlalchemy.orm import validates
+from sqlalchemy.orm.session import object_session
+
+pass
+pass
+
+
+logger = logging.getLogger(__name__)
+
 
 # TODO: warn the user that a duplicate genus name is being entered
 # even if only the author or qualifier is different
@@ -124,7 +126,10 @@ def remove_callback(genera):
         utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
         return
     else:
-        msg = _("Are you sure you want to remove the genus <i>%s</i>?") % safe_str
+        msg = (
+            _("Are you sure you want to remove the genus <i>%s</i>?")
+            % safe_str
+        )
     if not utils.yes_no_dialog(msg):
         return
     try:
@@ -201,13 +206,17 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         UniqueConstraint("epithet", "author", "qualifier", "family_id"),
         {},
     )
-    __mapper_args__ = {"order_by": [text("genus.epithet"), text("genus.author")]}
+    __mapper_args__ = {
+        "order_by": [text("genus.epithet"), text("genus.author")]
+    }
 
     rank = "genus"
     link_keys = ["accepted"]
 
     # Define relationship to Species using string-based reference to avoid circular imports
-    species = relationship("Species", back_populates="genus", lazy="joined") or []
+    species = (
+        relationship("Species", back_populates="genus", lazy="joined") or []
+    )
     # Define a relationship to notes with back_populates
     notes = relationship(
         "GenusNote",
@@ -226,7 +235,9 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         """the cites status of this taxon, or None"""
 
         cites_notes = [
-            i.note for i in self.notes if i.category and i.category.upper() == "CITES"
+            i.note
+            for i in self.notes
+            if i.category and i.category.upper() == "CITES"
         ]
         if not cites_notes:
             return self.family.cites
@@ -265,7 +276,9 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             return None
         return value.strip()
 
-    qualifier = Column(types.Enum(values=["s. lat.", "s. str", ""]), default="")
+    qualifier = Column(
+        types.Enum(values=["s. lat.", "s. str", ""]), default=""
+    )
 
     family_id = Column(Integer, ForeignKey("family.id"), nullable=False)
 
@@ -317,7 +330,9 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         if not session:
             logger.warning("genus:accepted.setter - object not in session")
             return
-        session.query(GenusSynonym).filter(GenusSynonym.synonym_id == self.id).delete()
+        session.query(GenusSynonym).filter(
+            GenusSynonym.synonym_id == self.id
+        ).delete()
         session.commit()
         value.synonyms.append(self)
 
@@ -331,7 +346,11 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             return repr(genus)
         elif not author or genus.author is None:
             return " ".join(
-                [s for s in [genus.epithet, genus.qualifier] if s not in ("", None)]
+                [
+                    s
+                    for s in [genus.epithet, genus.qualifier]
+                    if s not in ("", None)
+                ]
             )
         else:
             return " ".join(
@@ -367,14 +386,19 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.query(cls).filter(cls.epithet == keys["epithet"]).one()
+            return (
+                session.query(cls).filter(cls.epithet == keys["epithet"]).one()
+            )
         except:
             if "author" not in keys:
                 return None
         try:
             return (
                 session.query(cls)
-                .filter(cls.epithet == keys["epithet"], cls.author == keys["author"])
+                .filter(
+                    cls.epithet == keys["epithet"],
+                    cls.author == keys["author"],
+                )
                 .one()
             )
         except:
@@ -392,7 +416,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         from .family import Family
 
         result = {"family": None}
-        ## retrieve family object
+        # retrieve family object
         if keys.get("ht-epithet"):
             result["family"] = Family.retrieve_or_create(
                 session, {"epithet": keys["ht-epithet"]}, create=True
@@ -424,7 +448,9 @@ def compute_serializable_fields(cls, session, keys):
     result = {"genus": None}
 
     genus_dict = {"epithet": keys["genus"]}
-    result["genus"] = Genus.retrieve_or_create(session, genus_keys, create=False)
+    result["genus"] = Genus.retrieve_or_create(
+        session, genus_keys, create=False
+    )
 
     return result
 
@@ -449,10 +475,14 @@ class GenusSynonym(db.Base):
     genus_id = Column(Integer, ForeignKey("genus.id"), nullable=False)
 
     # a genus can only be a synonum of one other genus
-    synonym_id = Column(Integer, ForeignKey("genus.id"), nullable=False, unique=True)
+    synonym_id = Column(
+        Integer, ForeignKey("genus.id"), nullable=False, unique=True
+    )
 
     # Primary relationship to Genus via genus_id
-    genus = relationship("Genus", back_populates="_synonyms", foreign_keys=[genus_id])
+    genus = relationship(
+        "Genus", back_populates="_synonyms", foreign_keys=[genus_id]
+    )
 
     # Secondary relationship to Genus via synonym_id (if applicable)
     synonym = relationship(
@@ -473,9 +503,6 @@ class GenusSynonym(db.Base):
 
 
 # late bindings
-from bauble.plugins.plants.family import Family, FamilySynonym
-from bauble.plugins.plants.species_editor import edit_species
-from bauble.plugins.plants.species_model import Species
 
 # only now that we have `Species` can we define the sorted `species` in
 # the `Genus` class.
@@ -497,7 +524,8 @@ class GenusEditorView(editor.GenericEditorView):
         "gen_family_entry": _("The family name"),
         "gen_genus_entry": _("The genus name"),
         "gen_author_entry": _(
-            "The name or abbreviation of the author that " "published this genus"
+            "The name or abbreviation of the author that "
+            "published this genus"
         ),
         "gen_syn_frame": _(
             "A list of synonyms for this genus.\n\nTo add a "
@@ -625,13 +653,16 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
                     # populate the completions model on the entry so
                     # when we set the text it will match the
                     # completion and set the value
-                    completion = self.view.widgets.gen_family_entry.get_completion()
+                    completion = (
+                        self.view.widgets.gen_family_entry.get_completion()
+                    )
                     utils.clear_model(completion)
                     model = Gtk.ListStore(object)
                     model.append([syn.family])
                     completion.set_model(model)
                     safe_set_text(
-                        self.view.widgets.gen_family_entry, utils.utf8(syn.family)
+                        self.view.widgets.gen_family_entry,
+                        utils.utf8(syn.family),
                     )
                     # the family value should be set properly when the
                     # text is set on the entry but it doesn't hurt to
@@ -655,7 +686,9 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
 
         notes_parent = self.view.widgets.notes_parent_box
         notes_parent.foreach(notes_parent.remove)
-        self.notes_presenter = editor.NotesPresenter(self, "notes", notes_parent)
+        self.notes_presenter = editor.NotesPresenter(
+            self, "notes", notes_parent
+        )
 
         if self.model not in self.session.new:
             self.view.widgets.gen_ok_and_add_button.set_sensitive(True)
@@ -716,7 +749,10 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         def gen_get_completions(text):
             query = self.session.query(Genus)
             return query.filter(
-                and_(Genus.epithet.like("%s%%" % text), Genus.id != self.model.id)
+                and_(
+                    Genus.epithet.like("%s%%" % text),
+                    Genus.id != self.model.id,
+                )
             ).order_by(Genus.epithet)
 
         self._selected = None
@@ -733,7 +769,9 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
             "gen_syn_entry", gen_get_completions, on_select=on_select
         )
 
-        self.view.connect("gen_syn_add_button", "clicked", self.on_add_button_clicked)
+        self.view.connect(
+            "gen_syn_add_button", "clicked", self.on_add_button_clicked
+        )
         self.view.connect(
             "gen_syn_remove_button", "clicked", self.on_remove_button_clicked
         )
@@ -784,7 +822,9 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         for syn in self.model._synonyms:
             tree_model.append([syn])
         self.treeview.set_model(tree_model)
-        self.view.connect(self.treeview, "cursor-changed", self.on_tree_cursor_changed)
+        self.view.connect(
+            self.treeview, "cursor-changed", self.on_tree_cursor_changed
+        )
 
     def on_tree_cursor_changed(self, tree, data=None):
         """ """
@@ -884,8 +924,12 @@ class GenusEditor(editor.GenericModelViewPresenterEditor):
                     self.commit_changes()
                     self._committed.append(self.model)
             except DBAPIError as e:
-                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(e.orig)
-                utils.message_details_dialog(msg, str(e), Gtk.MessageType.ERROR)
+                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(
+                    e.orig
+                )
+                utils.message_details_dialog(
+                    msg, str(e), Gtk.MessageType.ERROR
+                )
                 return False
             except Exception as e:
                 msg = _(
@@ -945,8 +989,6 @@ class GenusEditor(editor.GenericModelViewPresenterEditor):
         return self._committed
 
 
-from bauble.plugins.plants.species_model import Species
-
 #
 # InfoBox and InfoExpander
 #
@@ -971,13 +1013,18 @@ class GeneralGenusExpander(InfoExpander):
         def on_family_clicked(*args):
             select_in_search_results(self.current_obj.family)
 
-        utils.make_label_clickable(self.widgets.gen_fam_data, on_family_clicked)
+        utils.make_label_clickable(
+            self.widgets.gen_fam_data, on_family_clicked
+        )
 
         def on_nsp_clicked(*args):
             g = self.current_obj
-            cmd = 'species where genus.epithet="%s" and genus.qualifier="%s"' % (
-                g.epithet,
-                g.qualifier,
+            cmd = (
+                'species where genus.epithet="%s" and genus.qualifier="%s"'
+                % (
+                    g.epithet,
+                    g.qualifier,
+                )
             )
             bauble.gui.send_command(cmd)
 
@@ -997,11 +1044,14 @@ class GeneralGenusExpander(InfoExpander):
             g = self.current_obj
             cmd = (
                 'plant where accession.species.genus.epithet="%s" and '
-                'accession.species.genus.qualifier="%s"' % (g.epithet, g.qualifier)
+                'accession.species.genus.qualifier="%s"'
+                % (g.epithet, g.qualifier)
             )
             bauble.gui.send_command(cmd)
 
-        utils.make_label_clickable(self.widgets.gen_nplants_data, on_nplants_clicked)
+        utils.make_label_clickable(
+            self.widgets.gen_nplants_data, on_nplants_clicked
+        )
 
     def update(self, row):
         """
@@ -1016,7 +1066,9 @@ class GeneralGenusExpander(InfoExpander):
             "<big>%s</big> %s" % (row, utils.xml_safe(str(row.author))),
             markup=True,
         )
-        self.widget_set_value("gen_fam_data", (utils.xml_safe(str(row.family))))
+        self.widget_set_value(
+            "gen_fam_data", (utils.xml_safe(str(row.family)))
+        )
 
         # get the number of species
         nsp = (
@@ -1079,7 +1131,8 @@ class GeneralGenusExpander(InfoExpander):
                 .count()
             )
             self.widget_set_value(
-                "gen_nplants_data", "%s in %s accessions" % (nplants, nacc_in_plants)
+                "gen_nplants_data",
+                "%s in %s accessions" % (nplants, nacc_in_plants),
             )
 
 
@@ -1111,7 +1164,10 @@ class SynonymsExpander(InfoExpander):
         self.set_label(_("Synonyms"))  # reset default value
         if row.accepted is not None:
             self.set_label(_("Accepted name"))
-            on_clicked = lambda l, e, syn: select_in_search_results(syn)
+
+            def on_clicked(l, e, syn):
+                return select_in_search_results(syn)
+
             # create clickable label that will select the synonym
             # in the search results
             box = Gtk.EventBox()
@@ -1126,7 +1182,10 @@ class SynonymsExpander(InfoExpander):
         elif len(row.synonyms) == 0:
             self.set_sensitive(False)
         else:
-            on_clicked = lambda l, e, syn: select_in_search_results(syn)
+
+            def on_clicked(l, e, syn):
+                return select_in_search_results(syn)
+
             for syn in row.synonyms:
                 # create clickable label that will select the synonym
                 # in the search results
@@ -1158,14 +1217,18 @@ class GenusInfoBox(InfoBox):
                 "_base_uri": "http://www.gbif.org/species/search?q=%s",
                 "_space": "+",
                 "title": _("Search GBIF"),
-                "tooltip": _("Search the Global Biodiversity Information Facility"),
+                "tooltip": _(
+                    "Search the Global Biodiversity Information Facility"
+                ),
             },
             {
                 "name": "ITISButton",
                 "_base_uri": "http://www.itis.gov/servlet/SingleRpt/SingleRpt?search_topic=Scientific_Name&search_value=%s&search_kingdom=Plant&search_span=containing&categories=All&source=html&search_credRating=All",
                 "_space": "%20",
                 "title": _("Search ITIS"),
-                "tooltip": _("Search the Intergrated Taxonomic Information System"),
+                "tooltip": _(
+                    "Search the Intergrated Taxonomic Information System"
+                ),
             },
             {
                 "name": "GRINButton",
@@ -1193,7 +1256,9 @@ class GenusInfoBox(InfoBox):
                 "_base_uri": "http://www.bgci.org/plant_search.php?action=Find&ftrGenus=%(genus)s&ftrRedList=&ftrRedList1997=&ftrEpithet=&ftrCWR=&x=0&y=0#results",
                 "_space": " ",
                 "title": _("Search BGCI"),
-                "tooltip": _("Search Botanic Gardens Conservation International"),
+                "tooltip": _(
+                    "Search Botanic Gardens Conservation International"
+                ),
             },
             {
                 "name": "TPLButton",
@@ -1211,7 +1276,9 @@ class GenusInfoBox(InfoBox):
             },
         ]
         super().__init__()
-        filename = os.path.join(paths.lib_dir(), "plugins", "plants", "infoboxes.glade")
+        filename = os.path.join(
+            paths.lib_dir(), "plugins", "plants", "infoboxes.glade"
+        )
         self.widgets = utils.BuilderWidgets(filename)
         self.general = GeneralGenusExpander(self.widgets)
         self.add_expander(self.general)

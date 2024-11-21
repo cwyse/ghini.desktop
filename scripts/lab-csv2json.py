@@ -17,7 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import csv
 import json
 
@@ -35,9 +34,7 @@ header = ["número", "ubicación", "fecha", "species"]
 
 # list of formats once data lines are read
 sp_format = ',\n{"object": "taxon", "rank": "species", "epithet": "%(sp_epit)s", "ht-rank": "genus", "ht-epithet": "%(gn_epit)s"}'
-acc_format = (
-    ',\n{"object": "accession", "code": "%(acc_code)s", "species": "%(binomial)s"}'
-)
+acc_format = ',\n{"object": "accession", "code": "%(acc_code)s", "species": "%(binomial)s"}'
 plt_format = ',\n{"object": "plant", "accession": "%(acc_code)s", "code": "%(plt_code)s", "quantity": "%(plt_qty)s", "location": "%(loc)s"}'
 
 # correspondence header → fields

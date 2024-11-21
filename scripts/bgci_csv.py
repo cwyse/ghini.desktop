@@ -5,11 +5,8 @@
 # print a CSV formatted string to stdout that conforms to the BGCI CSV
 # importer
 #
-
 # TODO: this shares alot of code with createdb, we could probably
 # create file to hold all the common db code
-
-
 import os
 import sys
 from getpass import getpass
@@ -18,7 +15,11 @@ from optparse import OptionParser
 usage = "usage: %prog [options] dbname"
 parser = OptionParser(usage)
 parser.add_option(
-    "-H", "--host", dest="hostname", metavar="HOST", help="the host to connect to"
+    "-H",
+    "--host",
+    dest="hostname",
+    metavar="HOST",
+    help="the host to connect to",
 )
 parser.add_option(
     "-u",
@@ -37,7 +38,11 @@ parser.add_option(
 # TODO: should be able to pass in a password as well, maybe if
 # options.password is None then we can ask
 parser.add_option(
-    "-p", action="store_true", default=False, dest="password", help="ask for a password"
+    "-p",
+    action="store_true",
+    default=False,
+    dest="password",
+    help="ask for a password",
 )
 parser.add_option(
     "-d", "--dbtype", dest="dbtype", metavar="TYPE", help="the database type"

@@ -16,23 +16,26 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
-import os
 import os.path
-from os.path import dirname, isdir
-
-from gi.repository import Gdk, Gtk
-from sqlalchemy.orm import class_mapper
-from sqlalchemy.orm.properties import ColumnProperty
-from sqlalchemy.types import Boolean, Float, Integer
+from gettext import gettext as _
+from os.path import dirname
+from os.path import isdir
 
 import bauble
-from bauble import paths, pluginmgr
+from bauble import paths
+from bauble import pluginmgr
 from bauble import utils as butils
-from bauble.editor import GenericEditorPresenter, GenericEditorView
+from bauble.editor import GenericEditorPresenter
+from bauble.editor import GenericEditorView
 from bauble.querybuilder import SchemaMenu
 from bauble.search import MapperSearch
+from gi.repository import Gdk
+from gi.repository import Gtk
+from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm.properties import ColumnProperty
+from sqlalchemy.types import Boolean
+from sqlalchemy.types import Float
+from sqlalchemy.types import Integer
 
 
 class FlatFileExporter(GenericEditorPresenter):
@@ -66,14 +69,18 @@ class FlatFileExporter(GenericEditorPresenter):
         return {
             "output_file": self.view.widget_get_value("output_file"),
             "domain": self.view.widget_get_value("domain_combo"),
-            "exported_fields": [r[0] for r in self.view.widgets.exported_fields_ls],
+            "exported_fields": [
+                r[0] for r in self.view.widgets.exported_fields_ls
+            ],
         }
 
     def set_model_fields(
         self, output_file=None, domain=None, exported_fields=[], **kwargs
     ):
         if kwargs:
-            logger.warning("set_model_fields received extra parameters %s" % kwargs)
+            logger.warning(
+                "set_model_fields received extra parameters %s" % kwargs
+            )
 
         self.view.widget_set_value("output_file", output_file)
 
@@ -239,7 +246,10 @@ class FlatFileExporter(GenericEditorPresenter):
         rows_count = 0
         with open(filename, "w") as csvfile:
             spamwriter = csv.writer(
-                csvfile, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
+                csvfile,
+                delimiter=",",
+                quotechar='"',
+                quoting=csv.QUOTE_MINIMAL,
             )
             session = db.Session()
             if self.active_ls == self.view.widgets.searchable_ls:
@@ -247,7 +257,9 @@ class FlatFileExporter(GenericEditorPresenter):
                 objs = [row[0] for row in model]
                 from . import get_pertinent_objects
 
-                todo = get_pertinent_objects(self.domain_map[self.domain], objs)
+                todo = get_pertinent_objects(
+                    self.domain_map[self.domain], objs
+                )
             else:
                 todo = session.query(self.mapper).all()
             for obj in todo:
@@ -260,7 +272,9 @@ class FlatFileExporter(GenericEditorPresenter):
                     for step in steps:
                         values = [getattr(value, step) for value in values]
                         if values and isinstance(values[0], InstrumentedList):
-                            values = [item for sublist in values for item in sublist]
+                            values = [
+                                item for sublist in values for item in sublist
+                            ]
                             single_valued = False
                     if field == "<str>":
                         value = str(values[0]).replace("\u200b", "")
@@ -308,7 +322,9 @@ class FlatFileExportTool(pluginmgr.Tool):
                 )
                 % report
             )
-            msg_dialog = butils.create_message_dialog(msg, buttons=Gtk.ButtonsType.NONE)
+            msg_dialog = butils.create_message_dialog(
+                msg, buttons=Gtk.ButtonsType.NONE
+            )
             msg_dialog.add_buttons(Gtk.STOCK_OPEN, 42, Gtk.STOCK_STOP, 40)
             msg_dialog.set_default_response(40)
             should_we_open = msg_dialog.run()

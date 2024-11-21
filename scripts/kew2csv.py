@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import csv
 import glob
 import os
@@ -15,7 +14,9 @@ import zipfile
 # TODO: should create synonym for the family replacements
 
 # src = os.path.join(os.environ['HOME'], 'tmp', 'kew')
-src = os.path.join(os.environ["HOME"], "devel", "bauble", "data", "kew-families.zip")
+src = os.path.join(
+    os.environ["HOME"], "devel", "bauble", "data", "kew-families.zip"
+)
 dst = os.path.join(os.environ["HOME"], "devel", "bauble", "data")
 family_rename_map = {
     "COMPOSITAE": "ASTERACEAE",

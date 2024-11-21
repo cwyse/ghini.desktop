@@ -19,15 +19,15 @@
 #
 # types.py
 #
-
 import logging
+from gettext import gettext as _
 
+import bauble.error as error
 import sqlalchemy.types as types
+from bauble.utils import parse_date
 
 logger = logging.getLogger(__name__)
 
-
-import bauble.error as error
 
 # TODO: store all times as UTC or support timezones
 
@@ -45,7 +45,12 @@ class Enum(types.TypeDecorator):
     cache_ok = True
 
     def __init__(
-        self, values, empty_to_none=False, strict=True, translations={}, **kwargs
+        self,
+        values,
+        empty_to_none=False,
+        strict=True,
+        translations={},
+        **kwargs
     ):
         """
         : param values: A list of valid values for column.
@@ -58,7 +63,9 @@ class Enum(types.TypeDecorator):
         # the translations argument, this way if some translations are
         # missing then the translation will be the same as value
         logger.debug(
-            "Enum::init {} {} {}".format(type(self).__name__, values, empty_to_none)
+            "Enum::init {} {} {}".format(
+                type(self).__name__, values, empty_to_none
+            )
         )
         if values is None or len(values) == 0:
             raise EnumError(_("Enum requires a list of values"))
@@ -97,7 +104,9 @@ class Enum(types.TypeDecorator):
             value = ""
         if value not in self.values:
             raise EnumError(
-                _("%(type_name)s(%(value)s) not in Enum.values: %(all_values)s")
+                _(
+                    "%(type_name)s(%(value)s) not in Enum.values: %(all_values)s"
+                )
                 % {
                     "value": value,
                     "type_name": type(value).__name__,
@@ -116,9 +125,6 @@ class Enum(types.TypeDecorator):
 
     def copy(self):
         return Enum(self.values, self.empty_to_none, self.strict)
-
-
-from bauble.utils import parse_date
 
 
 class DateTime(types.TypeDecorator):

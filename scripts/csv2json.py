@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import csv
 import json
 
@@ -125,7 +124,9 @@ for r in csv.reader(open(input_file_name)):
                 utm_slice, float(obj[easting_key]), float(obj[northing_key])
             )
         else:
-            obj["lat"], obj["lon"] = float(obj[northing_key]), float(obj[easting_key])
+            obj["lat"], obj["lon"] = float(obj[northing_key]), float(
+                obj[easting_key]
+            )
     k.append(obj)
 
 print((count, skipped))
@@ -177,12 +178,19 @@ for sp_id in sorted(species.keys()):
                 }
             )
     result.extend(
-        species_notes[(orig["genus"], orig["species-epithet"], orig["authorship"])]
+        species_notes[
+            (orig["genus"], orig["species-epithet"], orig["authorship"])
+        ]
     )
 
 # now just a single fake location
 
-location = {"code": "000", "description": "", "name": "lot 1", "object": "location"}
+location = {
+    "code": "000",
+    "description": "",
+    "name": "lot 1",
+    "object": "location",
+}
 result.append(location)
 
 

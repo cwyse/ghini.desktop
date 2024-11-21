@@ -19,18 +19,18 @@
 #
 # test_bauble.py
 #
-
-
+import datetime
 import os
+import unittest
 
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 from bauble.editor import GenericEditorView
+from bauble.test import BaubleTestCase
+from bauble.utils import parse_date
 
 prefs.testing = True
-
-from bauble.test import BaubleTestCase
 
 
 class BaubleTests(BaubleTestCase):
@@ -77,7 +77,9 @@ class PleaseIgnoreMe:
         "it is a task of the presenter to indicate the accept buttons"
         filename = os.path.join(paths.lib_dir(), "connmgr.glade")
         view = GenericEditorView(filename, root_widget_name="main_dialog")
-        self.assertRaises(AttributeError, view.set_accept_buttons_sensitive, True)
+        self.assertRaises(
+            AttributeError, view.set_accept_buttons_sensitive, True
+        )
 
     def test_set_sensitive(self):
         filename = os.path.join(paths.lib_dir(), "connmgr.glade")
@@ -98,17 +100,16 @@ class PleaseIgnoreMe:
         self.assertFalse(view.widgets.noconnectionlabel.get_visible())
 
 
-import datetime
-import unittest
-
-from bauble.utils import parse_date
-
-
 class TimeStampParserTests(unittest.TestCase):
 
     def test_date_parser_generic(self):
         target = datetime.datetime(
-            2019, 1, 18, 18, 20, tzinfo=datetime.timezone(datetime.timedelta(hours=5))
+            2019,
+            1,
+            18,
+            18,
+            20,
+            tzinfo=datetime.timezone(datetime.timedelta(hours=5)),
         )
         result = parse_date("18 January 2019 18:20 +0500")
         self.assertEqual(result, target)

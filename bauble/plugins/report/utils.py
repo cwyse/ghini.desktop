@@ -17,15 +17,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
 import math
 import os.path
 import re
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class SVG:
@@ -200,7 +198,9 @@ class SVG:
     }
 
     @classmethod
-    def add_text(cls, x, y, s, size, align=0, italic=False, strokes=1, rotate=0):
+    def add_text(
+        cls, x, y, s, size, align=0, italic=False, strokes=1, rotate=0
+    ):
         """compute the `use` elements to be added and the width of the result
 
         align 0: left; align 1: right; align 0.5: centre
@@ -263,7 +263,9 @@ class SVG:
             if i not in list(Code39.MAP.keys()):
                 i = " "
             result_list.append(
-                Code39.letter(i, height, translate=(cumulative_x, 0), colour=colour)
+                Code39.letter(
+                    i, height, translate=(cumulative_x, 0), colour=colour
+                )
             )
             cumulative_x += 16
         cumulative_x -= 1
@@ -620,7 +622,7 @@ class PS:
     def add_text(
         cls, x, y, s, style="sans", size=12, align=0, stretch=1, maxwidth=None
     ):
-        import sys
+        pass
 
         s = (s or "").replace("\u200b", "")
         glyphs = ["<"]
@@ -675,7 +677,9 @@ class PS:
         """
         import PIL.Image
 
-        image = PIL.Image.open(os.path.join(get_caller_template_location(), name))
+        image = PIL.Image.open(
+            os.path.join(get_caller_template_location(), name)
+        )
         import itertools
 
         width0, height0 = image.size
@@ -686,7 +690,9 @@ class PS:
         channels = len(image.mode.strip("A"))
         try:
             chain = list(
-                itertools.chain.from_iterable(k[:channels] for k in image.getdata())
+                itertools.chain.from_iterable(
+                    k[:channels] for k in image.getdata()
+                )
             )
         except:
             chain = image.getdata()
@@ -842,7 +848,9 @@ class add_qr_functor:
     def __init__(self):
         self.pattern = {
             "svg": re.compile('<svg.*height="([0-9]*)".*>(<path.*>)</svg>'),
-            "ps": re.compile(".* ([0-9]*).*(^/M.*)%%EOF.*", re.MULTILINE | re.DOTALL),
+            "ps": re.compile(
+                ".* ([0-9]*).*(^/M.*)%%EOF.*", re.MULTILINE | re.DOTALL
+            ),
         }
 
     def __call__(self, x, y, text, scale=1, side=None, format="svg"):
@@ -876,7 +884,9 @@ class add_qr_functor:
             if format == "ps":
                 result_list = transform + result_list
             else:
-                result_list.insert(0, '<g transform="%s">' % ("".join(transform)))
+                result_list.insert(
+                    0, '<g transform="%s">' % ("".join(transform))
+                )
                 result_list.append("</g>")
         if format == "ps":
             result_list = ["gsave"] + result_list + ["grestore"]

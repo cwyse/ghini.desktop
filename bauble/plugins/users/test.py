@@ -21,14 +21,14 @@
 #
 import os
 
+import bauble.db as db
+import bauble.plugins.users as users
+from bauble.test import BaubleTestCase
+from bauble.test import check_dupids
 from nose import SkipTest
 from sqlalchemy import *
 from sqlalchemy.exc import *
 from sqlalchemy.orm import *
-
-import bauble.db as db
-import bauble.plugins.users as users
-from bauble.test import BaubleTestCase, check_dupids
 
 
 def test_duplicate_ids():

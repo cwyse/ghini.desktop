@@ -17,23 +17,23 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
 import logging
 import re
+from gettext import gettext as _
 
+import bauble.utils.desktop as desktop
 from gi.repository import Gtk
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-import bauble.utils.desktop as desktop
-
 
 def _open_link(data=None, *args, **kwargs):
     """Open a web link"""
     logger.debug(
-        "_open_link received data={}, args={}, kwargs={}".format(data, args, kwargs)
+        "_open_link received data={}, args={}, kwargs={}".format(
+            data, args, kwargs
+        )
     )
     desktop.open(data)
 

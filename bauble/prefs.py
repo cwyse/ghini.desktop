@@ -16,19 +16,20 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import logging
 import os
-
-from gi.repository import Gtk
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+from configparser import RawConfigParser
+from gettext import gettext as _
 
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
+from gi.repository import Gtk
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 testing = False  # set this to True when testing
 
@@ -124,9 +125,6 @@ Values: True, False (Default: False)
 """
 
 
-from configparser import RawConfigParser
-
-
 class _prefs(dict):
 
     def __init__(self, filename=default_prefs_file):
@@ -155,7 +153,9 @@ class _prefs(dict):
         version = self[config_version_pref]
         if version is None:
             logger.warning("%s has no config version pref" % self._filename)
-            logger.warning("setting the config version to %s.%s" % (config_version))
+            logger.warning(
+                "setting the config version to %s.%s" % (config_version)
+            )
             self[config_version_pref] = config_version
 
         # set some defaults if they don't exist
@@ -180,7 +180,7 @@ class _prefs(dict):
     @staticmethod
     def _parse_key(name):
         index = name.rfind(".")
-        return name[:index], name[index + 1 :]
+        return name[:index], name[index + 1:]
 
     def get(self, key, default):
         """
@@ -229,7 +229,9 @@ class _prefs(dict):
 
     def __contains__(self, key):
         section, option = _prefs._parse_key(key)
-        if self.config.has_section(section) and self.config.has_option(section, option):
+        if self.config.has_section(section) and self.config.has_option(
+            section, option
+        ):
             return True
         return False
 

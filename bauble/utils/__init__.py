@@ -22,28 +22,31 @@
 #
 # A common set of utility functions used throughout Ghini.
 #
-
-import gi
-
-gi.require_version("Gtk", "3.0")
-
 import datetime
 import logging
 import os
 import re
 import textwrap
+import threading
 import xml.sax.saxutils as saxutils
+from gettext import gettext as _
 
-from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk
+import bauble
+import dateutil.parser
+import gi
+from bauble import paths
+from bauble.error import check
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
+from gi.repository import GLib
+from gi.repository import GObject
+from gi.repository import Gtk
+
+gi.require_version("Gtk", "3.0")
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-import threading
-
-import bauble
-from bauble import paths
-from bauble.error import check
 
 
 def safe_set_text(gtk_widget, text):
@@ -98,7 +101,12 @@ class Cache:
             if len(self.storage) == self.size:
                 # remove the oldest entry
                 k = min(
-                    list(zip(list(self.storage.values()), list(self.storage.keys())))
+                    list(
+                        zip(
+                            list(self.storage.values()),
+                            list(self.storage.keys()),
+                        )
+                    )
                 )[1]
                 del self.storage[k]
         import time
@@ -125,7 +133,7 @@ def copy_picture_with_thumbnail(path, basename=None):
         import shutil
 
         shutil.copy(filename, prefs.prefs[prefs.picture_root_pref])
-    ## make thumbnail in thumbs subdirectory
+    # make thumbnail in thumbs subdirectory
     from PIL import Image
 
     full_dest_path = os.path.join(
@@ -143,7 +151,7 @@ def copy_picture_with_thumbnail(path, basename=None):
         im.save(output, format="JPEG")
         im_data = output.getvalue()
         result = base64.b64encode(im_data)
-    except OSError as e:
+    except OSError:
         logger.warning("can't make thumbnail")
     except Exception as e:
         logger.warning(
@@ -182,7 +190,9 @@ class ImageLoader(threading.Thread):
             scale = max(scale_x, scale_y, 1)
             x = int(pixbuf.get_width() / scale)
             y = int(pixbuf.get_height() / scale)
-            scaled_buf = pixbuf.scale_simple(x, y, GdkPixbuf.InterpType.BILINEAR)
+            scaled_buf = pixbuf.scale_simple(
+                x, y, GdkPixbuf.InterpType.BILINEAR
+            )
             if self.box.get_children():
                 image = self.box.get_children()[0]
             else:
@@ -190,13 +200,17 @@ class ImageLoader(threading.Thread):
                 self.box.add(image)
             image.set_from_pixbuf(scaled_buf)
         except (GLib.GError, AttributeError) as e:
-            logger.debug("picture %s caused %s %s" % (self.url, type(e).__name__, e))
+            logger.debug(
+                "picture %s caused %s %s" % (self.url, type(e).__name__, e)
+            )
             text = _("picture file %s not found.") % self.url
             label = Gtk.Label()
             safe_set_text(label, text)
             self.box.add(label)
         except Exception as e:
-            logger.warning("picture %s caused Exception %s:%s" % (self.url, type(e), e))
+            logger.warning(
+                "picture %s caused Exception %s:%s" % (self.url, type(e), e)
+            )
             label = Gtk.Label()
             safe_set_text(label, "%s" % e)
             self.box.add(label)
@@ -207,7 +221,9 @@ class ImageLoader(threading.Thread):
 
     def run(self):
         self.loader.connect("closed", self.loader_notified)
-        self.cache.get(self.url, self.reader_function, on_hit=self.loader.write)
+        self.cache.get(
+            self.url, self.reader_function, on_hit=self.loader.write
+        )
         try:
             self.loader.close()
         except GLib.GError as e:
@@ -244,7 +260,9 @@ class ImageLoader(threading.Thread):
                     self.loader.write(piece)
                     pieces.append(piece)
         except FileNotFoundError as e:
-            logger.debug("picture %s caused FileNotFoundError %s" % (self.url, e))
+            logger.debug(
+                "picture %s caused FileNotFoundError %s" % (self.url, e)
+            )
         return b"".join(pieces)
 
 
@@ -275,7 +293,11 @@ def find_dependent_tables(table, metadata=None):
     def _impl(t2):
         for tbl in metadata.sorted_tables:
             for fk in tbl.foreign_keys:
-                if fk.column.table == t2 and tbl not in tables and tbl is not table:
+                if (
+                    fk.column.table == t2
+                    and tbl not in tables
+                    and tbl is not table
+                ):
                     tables.append(tbl)
                     _impl(tbl)
 
@@ -410,7 +432,8 @@ def set_combo_from_value(combo, value, cmp=lambda row, value: row[0] == value):
     matches = search_tree_model(model, value, cmp)
     if len(matches) == 0:
         raise ValueError(
-            "set_combo_from_value() - could not find value in " "combo: %s" % value
+            "set_combo_from_value() - could not find value in "
+            "combo: %s" % value
         )
     combo.set_active_iter(matches[0])
     combo.emit("changed")
@@ -492,7 +515,10 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
     )
 
     if value is None:  # set the value from the default
-        if isinstance(widget, (Gtk.Label, Gtk.TextView, Gtk.Entry)) and default is None:
+        if (
+            isinstance(widget, (Gtk.Label, Gtk.TextView, Gtk.Entry))
+            and default is None
+        ):
             value = ""
         else:
             value = default
@@ -543,7 +569,9 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
                 widget.set_active(-1)
         if widget.get_child():
             widget.get_child().text = value or ""
-    elif isinstance(widget, (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)):
+    elif isinstance(
+        widget, (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)
+    ):
         if isinstance(widget, Gtk.CheckButton) and isinstance(value, str):
             value = value == Gtk.Buildable.get_name(widget)
         if value is True:
@@ -711,7 +739,11 @@ def yes_no_dialog(msg, parent=None, yes_delay=-1):
 
 
 def create_message_details_dialog(
-    msg, details, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+    msg,
+    details,
+    type=Gtk.MessageType.INFO,
+    buttons=Gtk.ButtonsType.OK,
+    parent=None,
 ):
     """
     Create a message dialog with a details expander.
@@ -772,7 +804,11 @@ def create_message_details_dialog(
 
 
 def message_details_dialog(
-    msg, details, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+    msg,
+    details,
+    type=Gtk.MessageType.INFO,
+    buttons=Gtk.ButtonsType.OK,
+    parent=None,
 ):
     """
     Create and run a message dialog with a details expander.
@@ -1064,13 +1100,18 @@ def reset_sequence(column):
         return
 
     sequence_name = None
-    if hasattr(column, "default") and isinstance(column.default, schema.Sequence):
+    if hasattr(column, "default") and isinstance(
+        column.default, schema.Sequence
+    ):
         sequence_name = column.default.name
     elif (
         (isinstance(column.type, Integer) and column.autoincrement)
         and (
             column.default is None
-            or (isinstance(column.default, schema.Sequence) and column.default.optional)
+            or (
+                isinstance(column.default, schema.Sequence)
+                and column.default.optional
+            )
         )
         and len(column.foreign_keys) == 0
     ):
@@ -1081,7 +1122,9 @@ def reset_sequence(column):
     trans = conn.begin()
     try:
         # the FOR UPDATE locks the table for the transaction
-        stmt = "SELECT {} from {} FOR UPDATE;".format(column.name, column.table.name)
+        stmt = "SELECT {} from {} FOR UPDATE;".format(
+            column.name, column.table.name
+        )
         result = conn.execute(stmt)
         maxid = None
         vals = list(result)
@@ -1217,7 +1260,7 @@ def range_builder(text):
     rng = Group(Word(nums) + Suppress("-") + Word(nums))
     range_list = delimitedList(rng | Word(nums))
 
-    token = None
+    pass
     try:
         tokens = range_list.parseString(text)
     except (AttributeError, ParseException) as e:
@@ -1256,7 +1299,9 @@ def mem(size="rss"):
     """Generalization; memory sizes: rss, rsz, vsz."""
     import os
 
-    return int(os.popen("ps -p %d -o %s | tail -1" % (os.getpid(), size)).read())
+    return int(
+        os.popen("ps -p %d -o %s | tail -1" % (os.getpid(), size)).read()
+    )
 
 
 def topological_sort(items, partial_order):
@@ -1314,7 +1359,9 @@ def topological_sort(items, partial_order):
 
     # Step 2 - find all roots (nodes with zero incoming arcs).
 
-    roots = [node for (node, nodeinfo) in list(graph.items()) if nodeinfo[0] == 0]
+    roots = [
+        node for (node, nodeinfo) in list(graph.items()) if nodeinfo[0] == 0
+    ]
 
     # step 3 - repeatedly emit a root and remove it from the graph. Removing
     # a node may convert some of the node's direct children into roots.
@@ -1592,10 +1639,7 @@ def get_urls(text):
     return matches
 
 
-import re
-
 sloppy_iso8601 = re.compile("^[12][0-9][0-9][0-9]-[0-9][0-9]?-[0-9][0-9]?.*$")
-import dateutil.parser
 
 
 def parse_date(value, dayfirst=True, yearfirst=False, **kwargs):

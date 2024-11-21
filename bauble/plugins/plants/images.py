@@ -19,7 +19,6 @@
 #
 # Images table definition
 #
-
 # from bauble.plugins import BaubleTable, tables
 # from bauble.treevieweditor import TreeViewEditorDialog
 #
@@ -44,7 +43,7 @@
 #    def __str__(self): return self.label
 #
 ##
-## Image editor
+# Image editor
 ##
 # class ImageEditor(TreeViewEditorDialog):
 #

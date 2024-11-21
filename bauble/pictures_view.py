@@ -16,15 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
-
 import logging
 
+import bauble.utils as utils
 from gi.repository import Gtk
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-import bauble.utils as utils
 
 
 class PicturesView(Gtk.HBox):
@@ -45,7 +43,8 @@ class PicturesView(Gtk.HBox):
 
     def __init__(self, parent=None, fake=False):
         logger.debug(
-            "entering PicturesView.__init__(parent=%s, fake=%s)" % (parent, fake)
+            "entering PicturesView.__init__(parent=%s, fake=%s)"
+            % (parent, fake)
         )
         super().__init__()
         if fake:

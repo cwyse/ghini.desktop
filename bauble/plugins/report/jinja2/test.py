@@ -18,35 +18,35 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import logging
-
-logger = logging.getLogger(__name__)
-
 import os
 
-# TURN OFF desktop.open for this module so that the test doesn't open
-# the report
 import bauble.utils.desktop as desktop
-
-desktop.open = lambda x: x
-
-from unittest import TestCase
-
-import bauble
 from bauble import utils as butils
-from bauble.plugins.garden import Accession, Location, Plant
-from bauble.plugins.plants import (
-    Family,
-    Genus,
-    GeographicArea,
-    Species,
-    SpeciesDistribution,
-    VernacularName,
-)
+from bauble.plugins.garden import Accession
+from bauble.plugins.garden import Location
+from bauble.plugins.garden import Plant
+from bauble.plugins.plants import Family
+from bauble.plugins.plants import Genus
+from bauble.plugins.plants import GeographicArea
+from bauble.plugins.plants import Species
+from bauble.plugins.plants import SpeciesDistribution
+from bauble.plugins.plants import VernacularName
 from bauble.plugins.report import get_pertinent_objects
 from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
 from bauble.test import BaubleTestCase
+
+pass
+
+pass
+
+logger = logging.getLogger(__name__)
+
+
+# TURN OFF desktop.open for this module so that the test doesn't open
+# the report
+
+desktop.open = lambda x: x
 
 
 class Jinja2FormatterTests(BaubleTestCase):
@@ -73,7 +73,9 @@ class Jinja2FormatterTests(BaubleTestCase):
                     geo = GeographicArea(id=sctr, name="Mexico%s" % sctr)
                     dist = SpeciesDistribution(geographic_area_id=sctr)
                     sp.distribution.append(dist)
-                    vn = VernacularName(id=sctr, species=sp, name="name%s" % sctr)
+                    vn = VernacularName(
+                        id=sctr, species=sp, name="name%s" % sctr
+                    )
                     self.session.add_all([sp, geo, dist, vn])
                     for a in range(2):
                         actr += 1
@@ -102,7 +104,9 @@ class Jinja2FormatterTests(BaubleTestCase):
     def test_format_all_templates(self):
         selection = self.session.query(Plant).all()
         # td is this module name, minus mako/test, plus templates
-        td = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+        td = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "templates"
+        )
         for i, tn in enumerate(os.listdir(td)):
             if not tn.endswith(".jj2"):
                 continue
@@ -119,7 +123,8 @@ class Jinja2FormatterTests(BaubleTestCase):
                     "location": Location,
                 }[domain]
                 todo = sorted(
-                    get_pertinent_objects(cls, selection), key=butils.natsort_key
+                    get_pertinent_objects(cls, selection),
+                    key=butils.natsort_key,
                 )
             except KeyError:
                 todo = selection

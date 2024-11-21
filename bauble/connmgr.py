@@ -21,7 +21,6 @@
 #
 # connmgr.py
 #
-
 """
 The connection manager provides a GUI for creating and opening
 connections. This is the first thing displayed when Ghini starts.
@@ -29,15 +28,20 @@ connections. This is the first thing displayed when Ghini starts.
 import copy
 import logging
 import os
+from gettext import gettext as _
+
+import bauble
+from bauble import paths
+from bauble import prefs
+from bauble.editor import GenericEditorPresenter
+from bauble.editor import GenericEditorView
+from gi.repository import GdkPixbuf
+from gi.repository import Gtk
+
+pass
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-from gi.repository import GdkPixbuf, Gtk
-
-import bauble
-from bauble import paths, prefs, utils
-from bauble.editor import GenericEditorPresenter, GenericEditorView
 
 
 def is_package_name(name):
@@ -100,7 +104,9 @@ def newer_version_on_github(input_stream, force=False):
 
     try:
         version_lines = input_stream.read().decode().split("\n")
-        valid_lines = [i for i in version_lines if not i.startswith("#") and i.strip()]
+        valid_lines = [
+            i for i in version_lines if not i.startswith("#") and i.strip()
+        ]
         if len(valid_lines) == 1:
             try:
                 github_version = eval('"' + valid_lines[0].split('"')[1] + '"')
@@ -122,12 +128,14 @@ def newer_version_on_github(input_stream, force=False):
 
 
 def retrieve_latest_release_date():
-    ## retrieve remote information from github regarding the latest release.
-    ## this is executed in a different thread, and it will overwrite the
-    ## bauble.release_date text.
+    # retrieve remote information from github regarding the latest release.
+    # this is executed in a different thread, and it will overwrite the
+    # bauble.release_date text.
 
     response = {
-        "commit": {"commit": {"committer": {"date": _("not available when offline")}}}
+        "commit": {
+            "commit": {"committer": {"date": _("not available when offline")}}
+        }
     }
     version_on_github = (
         "https://raw.githubusercontent.com/Ghini/ghini.desktop"
@@ -141,7 +149,7 @@ def retrieve_latest_release_date():
         import urllib.parse
         import urllib.request
 
-        ## from github retrieve the date of the latest release
+        # from github retrieve the date of the latest release
         stream = urllib.request.urlopen(
             "https://api.github.com/repos/Ghini/ghini.desktop/branches/ghini-%s.%s"
             % bauble.version_tuple[:2],
@@ -151,22 +159,24 @@ def retrieve_latest_release_date():
         response = json.loads(text)
         bauble.release_date = response["commit"]["commit"]["committer"]["date"]
 
-        ## from github retrieve the version number
-        github_version_stream = urllib.request.urlopen(version_on_github, timeout=5)
+        # from github retrieve the version number
+        github_version_stream = urllib.request.urlopen(
+            version_on_github, timeout=5
+        )
         bauble.release_version = newer_version_on_github(
             github_version_stream, force=True
         )
 
-        ## locally, read the installation timestamp
+        # locally, read the installation timestamp
         main_init_path = bauble.__file__
         import os
 
         last_modified_seconds = os.stat(main_init_path).st_mtime
         import datetime
 
-        last_modified_date = datetime.datetime(1970, 1, 1) + datetime.timedelta(
-            0, int(last_modified_seconds)
-        )
+        last_modified_date = datetime.datetime(
+            1970, 1, 1
+        ) + datetime.timedelta(0, int(last_modified_seconds))
         bauble.installation_date = last_modified_date.isoformat() + "Z"
     except urllib.error.URLError:
         logger.info("connection is slow or down")
@@ -181,8 +191,8 @@ def retrieve_latest_release_date():
 
 
 def check_and_notify_new_version(view):
-    ## check whether there's a newer version on github.  this is executed in
-    ## a different thread, which does nothing or terminates the program.
+    # check whether there's a newer version on github.  this is executed in
+    # a different thread, which does nothing or terminates the program.
     version_on_github = (
         "https://raw.githubusercontent.com/Ghini/ghini"
         + ".desktop/ghini-%s.%s/bauble/version.py"
@@ -193,7 +203,9 @@ def check_and_notify_new_version(view):
         import urllib.parse
         import urllib.request
 
-        github_version_stream = urllib.request.urlopen(version_on_github, timeout=5)
+        github_version_stream = urllib.request.urlopen(
+            version_on_github, timeout=5
+        )
         remote = newer_version_on_github(github_version_stream)
         if remote:
 
@@ -224,7 +236,8 @@ def check_and_notify_new_version(view):
         logger.info("HTTPError while checking for newer version")
     except Exception as e:
         logger.warning(
-            "unhandled %s(%s) while checking for newer version" % (type(e).__name__, e)
+            "unhandled %s(%s) while checking for newer version"
+            % (type(e).__name__, e)
         )
 
 
@@ -264,13 +277,13 @@ class ConnMgrPresenter(GenericEditorPresenter):
         ) = self.connection_name = self.prev_connection_name = None
         self.use_defaults = True
         self.passwd = False
-        ## following two look like overkill, since they will be initialized
-        ## in the parent class constructor. but we need these attributes in
-        ## place before we can invoke get_params
+        # following two look like overkill, since they will be initialized
+        # in the parent class constructor. but we need these attributes in
+        # place before we can invoke get_params
         self.model = self
         self.view = view
 
-        ## initialize comboboxes, so we can fill them in
+        # initialize comboboxes, so we can fill them in
         view.combobox_init("name_combo")
         view.combobox_init("type_combo", dbtypes, type_combo_cell_data_func)
         self.connection_names = []
@@ -289,7 +302,9 @@ class ConnMgrPresenter(GenericEditorPresenter):
         else:
             self.dbtype = ""
             self.connection_name = None
-        GenericEditorPresenter.__init__(self, model=self, view=view, refresh_view=True)
+        GenericEditorPresenter.__init__(
+            self, model=self, view=view, refresh_view=True
+        )
         logo_path = os.path.join(paths.lib_dir(), "images", "bauble_logo.png")
         view.image_set_from_file("logo_image", logo_path)
         view.set_title("{} {}".format("Ghini", bauble.version))
@@ -414,7 +429,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             if not valid:
                 self.view.run_message_dialog(msg, Gtk.MessageType.ERROR)
             if valid:
-                ## picture root is also made available in global setting
+                # picture root is also made available in global setting
                 prefs.prefs[prefs.picture_root_pref] = make_absolute(
                     settings["pictures"]
                 )
@@ -531,7 +546,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             self.prev_connection_name is not None
             and self.prev_connection_name in self.connection_names
         ):
-            ## we are leaving some valid settings
+            # we are leaving some valid settings
             if self.prev_connection_name not in conn_dict:
                 msg = _("Do you want to save %s?") % self.prev_connection_name
                 if self.view.run_yes_no_dialog(msg):
@@ -555,7 +570,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         )
 
         if self.connection_name in conn_dict:
-            ## we are retrieving connection info from the global settings
+            # we are retrieving connection info from the global settings
             if conn_dict[self.connection_name]["type"] not in dbtypes:
                 # in case the connection type has changed or isn't supported
                 # on this computer
@@ -632,7 +647,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             return False, _("Please choose a name for this connection")
         valid = True
         msg = None
-        ## first check connection parameters, then pictures path
+        # first check connection parameters, then pictures path
         if params["type"] == "SQLite":
             filename = make_absolute(params["file"])
             if not os.path.exists(filename):
@@ -692,7 +707,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
                 ) % "\n".join(missing_fields)
         if not valid:
             return valid, msg
-        ## now check the params['pictures']
+        # now check the params['pictures']
         # if it's a file, things are not OK
         root = make_absolute(params["pictures"])
         thumbs = os.path.join(root, "thumbs")
@@ -761,7 +776,9 @@ class ConnMgrPresenter(GenericEditorPresenter):
 def start_connection_manager(default_conn=None):
     """activate connection manager and return connection name and uri"""
     glade_path = os.path.join(paths.lib_dir(), "connmgr.glade")
-    view = GenericEditorView(glade_path, parent=None, root_widget_name="main_dialog")
+    view = GenericEditorView(
+        glade_path, parent=None, root_widget_name="main_dialog"
+    )
 
     cm = ConnMgrPresenter(view)
     result = cm.start()

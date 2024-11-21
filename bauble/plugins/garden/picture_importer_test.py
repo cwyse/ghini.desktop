@@ -15,16 +15,17 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
 import logging
 from unittest import TestCase
 
-logger = logging.getLogger(__name__)
-from nose import SkipTest
-
 from bauble import prefs
 from bauble.plugins.garden.picture_importer import decode_parts
+
+pass
+
+
+logger = logging.getLogger(__name__)
+
 
 prefs.testing = True
 
@@ -71,24 +72,44 @@ class DecodePartsTest(TestCase):
         result = decode_parts("2018.0020 (4) Dracula.jpg")
         self.assertEqual(
             result,
-            {"accession": "2018.0020", "plant": "1", "seq": "4", "species": "Dracula"},
+            {
+                "accession": "2018.0020",
+                "plant": "1",
+                "seq": "4",
+                "species": "Dracula",
+            },
         )
         result = decode_parts("2018.0020.2 (4).jpg")
         self.assertEqual(
             result,
-            {"accession": "2018.0020", "plant": "2", "seq": "4", "species": "Zzz"},
+            {
+                "accession": "2018.0020",
+                "plant": "2",
+                "seq": "4",
+                "species": "Zzz",
+            },
         )
         result = decode_parts("2018.0020 (4).jpg")
         self.assertEqual(
             result,
-            {"accession": "2018.0020", "plant": "1", "seq": "4", "species": "Zzz"},
+            {
+                "accession": "2018.0020",
+                "plant": "1",
+                "seq": "4",
+                "species": "Zzz",
+            },
         )
 
     def test_decode_parts_seq_from_original(self):
         result = decode_parts("DSCN0123-2018.0020.JPG")
         self.assertEqual(
             result,
-            {"accession": "2018.0020", "plant": "1", "seq": "123", "species": "Zzz"},
+            {
+                "accession": "2018.0020",
+                "plant": "1",
+                "seq": "123",
+                "species": "Zzz",
+            },
         )
         result = decode_parts("P1220810-2018.0020.JPG")
         self.assertEqual(
@@ -115,7 +136,12 @@ class DecodePartsTest(TestCase):
         result = decode_parts("DSCN0123-2018.0020.JPG")
         self.assertEqual(
             result,
-            {"accession": "2018.0020", "plant": "1", "seq": "123", "species": "Zzz"},
+            {
+                "accession": "2018.0020",
+                "plant": "1",
+                "seq": "123",
+                "species": "Zzz",
+            },
         )
         result = decode_parts("P1220810-2018.0020.JPG")
         self.assertEqual(
@@ -159,7 +185,9 @@ class DecodePartsTest(TestCase):
                 "species": "Annona sp",
             },
         )
-        result = decode_parts("2009.01.21.2 Opuntia ficus-indica.jpg", "####.##.##")
+        result = decode_parts(
+            "2009.01.21.2 Opuntia ficus-indica.jpg", "####.##.##"
+        )
         self.assertEqual(
             result,
             {

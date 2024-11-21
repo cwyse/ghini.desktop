@@ -441,7 +441,7 @@ class PlantTests(GardenTestCase):
 
         widgets = self.editor.presenter.view.widgets
         new_quantity = 2
-        widgets.plant_quantity_entry.props.text = "%s" % new_quantity
+        widgets.plant_quantity_entry.set_text = "%s" % new_quantity
         update_gui()
         self.editor.handle_response(Gtk.ResponseType.OK)
 
@@ -890,7 +890,7 @@ class PropagationTests(GardenTestCase):
         for widget, attr in list(seed_presenter.widget_to_field_map.items()):
             w = widgets[widget]
             if isinstance(w, Gtk.ComboBox) and w.get_child() and not w.get_model():
-                widgets[widget].get_child().props.text = default_seed_values[attr]
+                safe_set_props(widgets[widget].get_child(), 'text', default_seed_values[attr])
             view.widget_set_value(widget, default_seed_values[attr])
 
         # update the editor, send the RESPONSE_OK signal and commit the changes
@@ -944,9 +944,9 @@ class PropagationTests(GardenTestCase):
         # editor widget
         def get_widget_text(w):
             if isinstance(w, Gtk.TextView):
-                return w.get_buffer().props.text
+                return w.get_buffer().set_text
             elif isinstance(w, Gtk.Entry):
-                return w.props.text
+                return w.set_text
             elif (
                 isinstance(w, Gtk.ComboBox)
                 and w.get_child()
@@ -1428,10 +1428,12 @@ class AccessionTests(GardenTestCase):
         update_gui()
 
         # set the date so the presenter will be "dirty"
-        widgets.acc_date_recvd_entry.props.text = utils.today_str()
+        widgets.acc_date_recvd_entry.set_text = utils.today_str()
 
         # set the source type as "Garden Propagation"
-        safe_set_props(widgets.acc_source_comboentry.get_child(), 'text', SourcePresenter.garden_prop_str)
+        widgets.acc_source_comboentry.get_child().set_text = (
+            SourcePresenter.garden_prop_str
+        )
         self.assertTrue(not self.editor.presenter.problems)
 
         # set the source plant
@@ -1735,32 +1737,32 @@ class LocationTests(GardenTestCase):
         # has changed and that the text entries and model are the same
         self.assertEqual(widgets.loc_name_entry.get_text(), loc.name)
         self.assertEqual(widgets.loc_code_entry.get_text(), loc.code)
-        self.assertFalse(widgets.loc_ok_button.props.sensitive)
-        self.assertFalse(widgets.loc_next_button.props.sensitive)
+        self.assertFalse(widgets.loc_ok_button.set_sensitive)
+        self.assertFalse(widgets.loc_next_button.set_sensitive)
 
         # test the accept buttons become sensitive when the name entry
         # is changed
         widgets.loc_name_entry.set_text("something")
         update_gui()
-        self.assertTrue(widgets.loc_ok_button.props.sensitive)
-        self.assertTrue(widgets.loc_ok_and_add_button.props.sensitive)
-        self.assertTrue(widgets.loc_next_button.props.sensitive)
+        self.assertTrue(widgets.loc_ok_button.set_sensitive)
+        self.assertTrue(widgets.loc_ok_and_add_button.set_sensitive)
+        self.assertTrue(widgets.loc_next_button.set_sensitive)
 
         # test the accept buttons become NOT sensitive when the code
         # entry is empty since this is a required field
         widgets.loc_code_entry.set_text("")
         update_gui()
-        self.assertFalse(widgets.loc_ok_button.props.sensitive)
-        self.assertFalse(widgets.loc_ok_and_add_button.props.sensitive)
-        self.assertFalse(widgets.loc_next_button.props.sensitive)
+        self.assertFalse(widgets.loc_ok_button.set_sensitive)
+        self.assertFalse(widgets.loc_ok_and_add_button.set_sensitive)
+        self.assertFalse(widgets.loc_next_button.set_sensitive)
 
         # test the accept buttons aren't sensitive from setting the textview
         buff = Gtk.TextBuffer()
         buff.set_text("saasodmadomad")
         widgets.loc_desc_textview.set_buffer(buff)
-        self.assertFalse(widgets.loc_ok_button.props.sensitive)
-        self.assertFalse(widgets.loc_ok_and_add_button.props.sensitive)
-        self.assertFalse(widgets.loc_next_button.props.sensitive)
+        self.assertFalse(widgets.loc_ok_button.set_sensitive)
+        self.assertFalse(widgets.loc_ok_and_add_button.set_sensitive)
+        self.assertFalse(widgets.loc_next_button.set_sensitive)
 
         # commit the changes and cleanup
         editor.model.name = editor.model.code = "asda"

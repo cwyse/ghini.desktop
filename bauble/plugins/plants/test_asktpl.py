@@ -19,12 +19,14 @@
 #
 # Description: test for the Plant plugin
 #
-
 import logging
 
+import bauble.plugins.plants.ask_tpl
 import requests
-
 from bauble.test import BaubleTestCase
+
+from .ask_tpl import AskTPL
+from .ask_tpl import what_to_do_with_it
 
 
 def requests_get(x, timeout=None):
@@ -45,10 +47,6 @@ def requests_get(x, timeout=None):
 
 requests.get = requests_get
 
-import bauble.plugins.plants.ask_tpl
-
-from .ask_tpl import AskTPL, what_to_do_with_it
-
 
 class TestOne(BaubleTestCase):
 
@@ -57,7 +55,9 @@ class TestOne(BaubleTestCase):
         self.handler.reset()
         binomial = "Mangifera indica"
         AskTPL(binomial, what_to_do_with_it, timeout=2).run()
-        infolog = self.handler.messages["bauble.plugins.plants.ask_tpl"]["info"]
+        infolog = self.handler.messages["bauble.plugins.plants.ask_tpl"][
+            "info"
+        ]
         self.assertEqual(len(infolog), 1)
         self.assertEqual(infolog[0], "Mangifera indica L. (Anacardiaceae)")
 
@@ -66,7 +66,9 @@ class TestOne(BaubleTestCase):
         self.handler.reset()
         binomial = "Iris florentina"
         AskTPL(binomial, what_to_do_with_it, timeout=2).run()
-        infolog = self.handler.messages["bauble.plugins.plants.ask_tpl"]["info"]
+        infolog = self.handler.messages["bauble.plugins.plants.ask_tpl"][
+            "info"
+        ]
         self.assertEqual(len(infolog), 2)
         self.assertEqual(infolog[0], "Iris ×florentina L. (Iridaceae)")
         self.assertEqual(
@@ -78,7 +80,9 @@ class TestOne(BaubleTestCase):
         self.handler.reset()
         binomial = "Manducaria italica"
         AskTPL(binomial, what_to_do_with_it, timeout=2).run()
-        infolog = self.handler.messages["bauble.plugins.plants.ask_tpl"]["info"]
+        infolog = self.handler.messages["bauble.plugins.plants.ask_tpl"][
+            "info"
+        ]
         self.assertEqual(len(infolog), 1)
         self.assertEqual(infolog[0], "nothing matches")
 
@@ -90,7 +94,9 @@ class TestOne(BaubleTestCase):
         obj.start()
         AskTPL(binomial, what_to_do_with_it, timeout=2).run()
         obj.stop()
-        debuglog = self.handler.messages["bauble.plugins.plants.ask_tpl"]["debug"]
+        debuglog = self.handler.messages["bauble.plugins.plants.ask_tpl"][
+            "debug"
+        ]
         self.assertTrue(
             "already requesting Iris florentina, ignoring repeated request"
             in set(debuglog)
@@ -103,7 +109,9 @@ class TestOne(BaubleTestCase):
         obj.start()
         AskTPL("Iris germanica", what_to_do_with_it, timeout=2).run()
         obj.stop()
-        debuglog = self.handler.messages["bauble.plugins.plants.ask_tpl"]["debug"]
+        debuglog = self.handler.messages["bauble.plugins.plants.ask_tpl"][
+            "debug"
+        ]
         self.assertTrue(
             "running different request (Iris florentina), stopping it, starting Iris germanica"
             in set(debuglog)

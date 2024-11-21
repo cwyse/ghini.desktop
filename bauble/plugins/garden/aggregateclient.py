@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
-
 import re
 import xml.etree.ElementTree as ET
 
@@ -32,7 +31,8 @@ def get_submissions(user, pw, host, form_id, to_skip=[]):
     )
     auth = HTTPDigestAuth(user, pw)
     result = requests.get(
-        base_format % {"form_id": form_id, "api": "submissionList", "host": host},
+        base_format
+        % {"form_id": form_id, "api": "submissionList", "host": host},
         auth=auth,
     )
     if not result.ok:
@@ -47,8 +47,13 @@ def get_submissions(user, pw, host, form_id, to_skip=[]):
             reply = requests.get(
                 (
                     base_format
-                    % {"form_id": form_id, "api": "downloadSubmission", "host": host}
-                    + submission_format % {"group_name": "plant_form", "uuid": uuid}
+                    % {
+                        "form_id": form_id,
+                        "api": "downloadSubmission",
+                        "host": host,
+                    }
+                    + submission_format
+                    % {"group_name": "plant_form", "uuid": uuid}
                 ),
                 auth=auth,
             )

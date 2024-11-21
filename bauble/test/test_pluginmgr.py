@@ -24,15 +24,16 @@ import logging
 import os
 import unittest
 
-logger = logging.getLogger(__name__)
-
 import bauble
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 from bauble.error import BaubleError
 from bauble.pluginmgr import PluginRegistry
-from bauble.test import BaubleTestCase, uri
+from bauble.test import BaubleTestCase
+from bauble.test import uri
+
+logger = logging.getLogger(__name__)
 
 
 class A(pluginmgr.Plugin):
@@ -154,7 +155,9 @@ class PluginMgrTests(BaubleTestCase):
 
                 if not import_defaults:
                     return
-                path = os.path.join(paths.lib_dir(), "plugins", "plants", "default")
+                path = os.path.join(
+                    paths.lib_dir(), "plugins", "plants", "default"
+                )
                 filenames = os.path.join(path, "family.txt")
                 from bauble.plugins.imex.csv_ import CSVImporter
 
@@ -252,7 +255,9 @@ class StandalonePluginMgrTests(unittest.TestCase):
 
         db.open(uri, verify=False)
         db.create(False)
-        bauble.pluginmgr.plugins[FailingInitPlugin.__name__] = FailingInitPlugin()
+        bauble.pluginmgr.plugins[FailingInitPlugin.__name__] = (
+            FailingInitPlugin()
+        )
         bauble.pluginmgr.plugins[DependsOnFailingInitPlugin.__name__] = (
             DependsOnFailingInitPlugin()
         )
@@ -266,7 +271,9 @@ class StandalonePluginMgrTests(unittest.TestCase):
 
         db.open(uri, verify=False)
         db.create(False)
-        bauble.pluginmgr.plugins[FailingInstallPlugin.__name__] = FailingInstallPlugin()
+        bauble.pluginmgr.plugins[FailingInstallPlugin.__name__] = (
+            FailingInstallPlugin()
+        )
         bauble.pluginmgr.plugins[DependsOnFailingInstallPlugin.__name__] = (
             DependsOnFailingInstallPlugin()
         )
@@ -305,7 +312,7 @@ class StandalonePluginMgrTests(unittest.TestCase):
         # the creation of the database installed all plugins, so we manually
         # reset everything, just to make sure we really test the logic
         C.installed = B.installed = A.installed = False
-        ## should try to load the A plugin
+        # should try to load the A plugin
         bauble.pluginmgr.install((pB,), force=True)
         self.assertTrue(B.installed)
         self.assertTrue(A.installed)
@@ -328,7 +335,7 @@ class StandalonePluginMgrTests(unittest.TestCase):
         # the creation of the database installed all plugins, so we manually
         # reset everything, just to make sure we really test the logic
         C.installed = B.installed = A.installed = False
-        ## should try to load the A plugin
+        # should try to load the A plugin
         bauble.pluginmgr.install((pC,), force=True)
         self.assertTrue(C.installed)
         self.assertTrue(B.installed)
@@ -342,7 +349,7 @@ class PluginRegistryTests(BaubleTestCase):
         Test bauble.pluginmgr.PluginRegistry
         """
 
-        ## this is the plugin object
+        # this is the plugin object
         p = A()
 
         # test that adding works

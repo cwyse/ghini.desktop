@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
-
-
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
 from bauble.test import BaubleTestCase

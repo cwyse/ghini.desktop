@@ -16,18 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
-
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
 import glob
+import logging
 import os
 import re
 import unittest
 
 from babel.messages.pofile import read_po
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class PoTests(unittest.TestCase):

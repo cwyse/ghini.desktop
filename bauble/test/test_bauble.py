@@ -23,19 +23,21 @@ import datetime
 import logging
 import os
 import time
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
 import unittest
-
-from sqlalchemy import Column, Integer
 
 import bauble
 import bauble.db as db
 import bauble.meta as meta
-from bauble.btypes import Enum, EnumError
-from bauble.test import BaubleTestCase, check_dupids
+from bauble.btypes import Enum
+from bauble.btypes import EnumError
+from bauble.test import BaubleTestCase
+from bauble.test import check_dupids
+from sqlalchemy import Column
+from sqlalchemy import Integer
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 """Tests for the main bauble module.
 
@@ -155,7 +157,8 @@ class BaubleTests(BaubleTestCase):
         s = "12-30-2008"
         v = dt.process_bind_param(s, None)
         self.assertTrue(
-            v.month == 12 and v.day == 30 and v.year == 2008, "{} == {}".format(v, s)
+            v.month == 12 and v.day == 30 and v.year == 2008,
+            "{} == {}".format(v, s),
         )
 
         bauble.btypes.Date._dayfirst = True
@@ -163,7 +166,8 @@ class BaubleTests(BaubleTestCase):
         s = "30-12-2008"
         v = dt.process_bind_param(s, None)
         self.assertTrue(
-            v.month == 12 and v.day == 30 and v.year == 2008, "{} == {}".format(v, s)
+            v.month == 12 and v.day == 30 and v.year == 2008,
+            "{} == {}".format(v, s),
         )
 
         bauble.btypes.Date._dayfirst = False
@@ -171,7 +175,8 @@ class BaubleTests(BaubleTestCase):
         s = "2008-12-30"
         v = dt.process_bind_param(s, None)
         self.assertTrue(
-            v.month == 12 and v.day == 30 and v.year == 2008, "{} == {}".format(v, s)
+            v.month == 12 and v.day == 30 and v.year == 2008,
+            "{} == {}".format(v, s),
         )
 
     def test_datetime_type(self):
@@ -210,7 +215,8 @@ class BaubleTests(BaubleTestCase):
 
         # test that _created and _last_updated were created correctly
         self.assertTrue(
-            hasattr(m, "_created") and isinstance(m._created, datetime.datetime)
+            hasattr(m, "_created")
+            and isinstance(m._created, datetime.datetime)
         )
         self.assertTrue(
             hasattr(m, "_last_updated")
@@ -241,7 +247,9 @@ class BaubleTests(BaubleTestCase):
         files = glob.glob(os.path.join(head, "*.glade"))
         for f in files:
             ids = check_dupids(f)
-            self.assertTrue(ids == [], "{} has duplicate ids: {}".format(f, str(ids)))
+            self.assertTrue(
+                ids == [], "{} has duplicate ids: {}".format(f, str(ids))
+            )
 
 
 class HistoryTests(BaubleTestCase):
@@ -253,21 +261,27 @@ class HistoryTests(BaubleTestCase):
         self.session.add(f)
         self.session.commit()
         history = (
-            self.session.query(db.History).order_by(db.History.timestamp.desc()).first()
+            self.session.query(db.History)
+            .order_by(db.History.timestamp.desc())
+            .first()
         )
         assert history.table_name == "family" and history.operation == "insert"
 
         f.family = "Family2"
         self.session.commit()
         history = (
-            self.session.query(db.History).order_by(db.History.timestamp.desc()).first()
+            self.session.query(db.History)
+            .order_by(db.History.timestamp.desc())
+            .first()
         )
         assert history.table_name == "family" and history.operation == "update"
 
         self.session.delete(f)
         self.session.commit()
         history = (
-            self.session.query(db.History).order_by(db.History.timestamp.desc()).first()
+            self.session.query(db.History)
+            .order_by(db.History.timestamp.desc())
+            .first()
         )
         assert history.table_name == "family" and history.operation == "delete"
 

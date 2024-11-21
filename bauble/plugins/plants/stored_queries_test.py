@@ -15,17 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
-from nose import SkipTest
-
 import bauble.prefs
 from bauble.editor import MockView
-from bauble.plugins.plants.stored_queries import (
-    StoredQueriesModel,
-    StoredQueriesPresenter,
-)
+from bauble.plugins.plants.stored_queries import StoredQueriesModel
+from bauble.plugins.plants.stored_queries import StoredQueriesPresenter
 from bauble.test import BaubleTestCase
+
+pass
+
 
 bauble.prefs.testing = True
 
@@ -155,7 +152,10 @@ class StoredQueriesPresenterTests(BaubleTestCase):
             )
             lname = "stqr_%02d_label" % i
             self.assertTrue(
-                ("widget_set_attributes", (lname, presenter.weight[i == m.page]))
+                (
+                    "widget_set_attributes",
+                    (lname, presenter.weight[i == m.page]),
+                )
                 in presenter.view.invoked_detailed
             )
 
@@ -188,7 +188,8 @@ class StoredQueriesPresenterTests(BaubleTestCase):
         presenter.on_button_clicked(bname)
         self.assertEqual(m.page, 5)
         self.assertTrue(
-            ("widget_set_active", (bname, True)) in presenter.view.invoked_detailed
+            ("widget_set_active", (bname, True))
+            in presenter.view.invoked_detailed
         )
         self.assertTrue(
             ("widget_set_active", ("stqr_01_button", False))

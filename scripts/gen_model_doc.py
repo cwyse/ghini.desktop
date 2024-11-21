@@ -1,16 +1,12 @@
 #!/usr/bin/env python
-
 # TODO: use pydoc to get documentation from tables
-
 # TODO: the generated document provides alot of information but
 # doesn't really explain what it is
-
 # TODO: cross reference ColumnProperty properties from the mappers
 # back to the Table definitions, if for each of the tables or columns
 # we generate an anchor tag of the form <a name="tablename_colname">
 # then it should be easy enough to generate the links in the mapper
 # section
-
 import os
 import sys
 import xml.sax.saxutils as saxutils
@@ -142,7 +138,10 @@ for table in sorted(db.metadata.table_iterator(), key=lambda x: x.name):
     if columns_str != "":
         columns_markup = columns_template % columns_str
 
-    print(table_template % ({"table_name": table.name, "columns": columns_markup}))
+    print(
+        table_template
+        % ({"table_name": table.name, "columns": columns_markup})
+    )
 #                             'properties': properties_markup})
 # 			     'joins': joins_markup})
 

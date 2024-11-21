@@ -1,6 +1,5 @@
 # rename gtk dir
 # copy gtk to dist dir and run gdk-query-pixbuf-loaders
-
 import os
 import sys
 

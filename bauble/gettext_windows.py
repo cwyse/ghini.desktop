@@ -18,7 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-
 """Helper for standard gettext.py on Windows.
 
 Module obtains user language code on Windows to use with standard
@@ -44,7 +43,6 @@ lang = gettext_windows.get_language()
 translation = gettext.translation('myapp', languages=lang)
 _ = translation.gettext
 """
-
 import locale
 import os
 import sys
@@ -78,7 +76,9 @@ def get_language_windows(system_lang=True):
         lcids = [lcid_user, lcid_system]
     else:
         lcids = [lcid_user]
-    return [_f for _f in [locale.windows_locale.get(i) for i in lcids] if _f] or None
+    return [
+        _f for _f in [locale.windows_locale.get(i) for i in lcids] if _f
+    ] or None
 
 
 def setup_env_other(system_lang=True):

@@ -20,19 +20,17 @@
 #
 # report/mako/
 #
-
 import logging
-
-logger = logging.getLogger(__name__)
-
 import os
 import re
-
-from gi.repository import Gtk
+from gettext import gettext as _
 
 from bauble import paths as bpaths
 from bauble import utils as butils
 from bauble.plugins.report import TemplateFormatterPlugin
+from gi.repository import Gtk
+
+logger = logging.getLogger(__name__)
 
 
 class MakoFormatterPlugin(TemplateFormatterPlugin):

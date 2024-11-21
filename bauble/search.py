@@ -17,26 +17,54 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
 import logging
-import weakref
+from gettext import gettext as _
 
+import bauble.utils as utils
+from bauble.error import check
 from gi.repository import Gtk
+from pyparsing import alphanums
+from pyparsing import alphas
+from pyparsing import alphas8bit
+from pyparsing import CaselessLiteral
+from pyparsing import delimitedList
+from pyparsing import Forward
+from pyparsing import Group
+from pyparsing import infixNotation
+from pyparsing import Keyword
+from pyparsing import Literal
+from pyparsing import oneOf
+from pyparsing import OneOrMore
+from pyparsing import opAssoc
+from pyparsing import quotedString
+from pyparsing import Regex
+from pyparsing import removeQuotes
+from pyparsing import srange
+from pyparsing import stringEnd
+from pyparsing import Word
+from pyparsing import WordEnd
+from pyparsing import WordStart
+from pyparsing import ZeroOrMore
+from sqlalchemy import and_
+from sqlalchemy import or_
+from sqlalchemy import Unicode
+from sqlalchemy import UnicodeText
+from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm.properties import ColumnProperty
+from sqlalchemy.orm.properties import RelationshipProperty
+
+pass
+
+
+pass
+pass
+pass
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from sqlalchemy import Unicode, UnicodeText, and_, or_
-from sqlalchemy.orm import class_mapper
-from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
 
 RelationProperty = RelationshipProperty
-
-import bauble
-import bauble.utils as utils
-from bauble.editor import GenericEditorPresenter, GenericEditorView
-from bauble.error import check
 
 
 def search(text, session=None):
@@ -80,7 +108,7 @@ class EmptyToken:
 
 
 class ValueABC:
-    ## abstract base class.
+    # abstract base class.
 
     def express(self):
         return self.value
@@ -148,7 +176,7 @@ def smartboolean(*args):
 
 
 class TypedValueToken(ValueABC):
-    ## |<name>|<paramlist>|
+    # |<name>|<paramlist>|
     constructor = {
         "datetime": (smartdatetime, int),
         "bool": (smartboolean, str),
@@ -193,7 +221,8 @@ class IdentifierAction:
             cls = query._joinpoint["_joinpoint_entity"]
         attr = getattr(cls, self.leaf)
         logger.debug(
-            "IdentifierToken for %s, %s evaluates to %s" % (cls, self.leaf, attr)
+            "IdentifierToken for %s, %s evaluates to %s"
+            % (cls, self.leaf, attr)
         )
         return (query, attr)
 
@@ -247,12 +276,16 @@ class FilteredIdentifierAction:
         query = query.join(*self.steps, aliased=True)
         cls = query._joinpoint["_joinpoint_entity"]
         attr = getattr(cls, self.filter_attr)
-        clause = lambda x: self.operation(attr, x)
+
+        def clause(x):
+            return self.operation(attr, x)
+
         logger.debug("filtering on {}({})".format(type(attr), attr))
         query = query.filter(clause(self.filter_value.express()))
         attr = getattr(cls, self.leaf)
         logger.debug(
-            "IdentifierToken for %s, %s evaluates to %s" % (cls, self.leaf, attr)
+            "IdentifierToken for %s, %s evaluates to %s"
+            % (cls, self.leaf, attr)
         )
         return (query, attr)
 
@@ -298,7 +331,10 @@ class IdentExpression:
                 return q.filter(~a.any())
             elif self.op in ("not", "<>", "!="):
                 return q.filter(a.any())
-        clause = lambda x: self.operation(a, x)
+
+        def clause(x):
+            return self.operation(a, x)
+
         logger.debug("filtering on {}({})".format(type(a), a))
         return q.filter(clause(self.operands[1].express()))
 
@@ -313,9 +349,9 @@ class ElementSetExpression(IdentExpression):
         q, a = self.operands[0].evaluate(env)
         from sqlalchemy import bindparam
 
-        return q.filter(a.in_(bindparam("operand_values", expanding=True))).params(
-            operand_values=self.operands[1].express()
-        )
+        return q.filter(
+            a.in_(bindparam("operand_values", expanding=True))
+        ).params(operand_values=self.operands[1].express())
 
 
 class AggregatedExpression(IdentExpression):
@@ -338,7 +374,10 @@ class AggregatedExpression(IdentExpression):
         from sqlalchemy.sql import func
 
         f = getattr(func, self.operands[0].function)
-        clause = lambda x: self.operation(f(a), x)
+
+        def clause(x):
+            return self.operation(f(a), x)
+
         # group by main ID
         # apply having
         main_table = q.column_descriptions[0]["type"]
@@ -357,8 +396,13 @@ class BetweenExpressionAction:
 
     def evaluate(self, env):
         q, a = self.operands[0].evaluate(env)
-        clause_low = lambda low: low <= a
-        clause_high = lambda high: a <= high
+
+        def clause_low(low):
+            return low <= a
+
+        def clause_high(high):
+            return a <= high
+
         return q.filter(
             and_(
                 clause_low(self.operands[1].express()),
@@ -371,7 +415,7 @@ class BetweenExpressionAction:
 
 
 class UnaryLogical:
-    ## abstract base class. `name` is defined in derived classes
+    # abstract base class. `name` is defined in derived classes
     def __init__(self, t):
         self.op, self.operand = t[0]
 
@@ -383,16 +427,20 @@ class UnaryLogical:
 
 
 class BinaryLogical:
-    ## abstract base class. `name` is defined in derived classes
+    # abstract base class. `name` is defined in derived classes
     def __init__(self, t):
         self.op = t[0][1]
         self.operands = t[0][0::2]  # every second object is an operand
 
     def __repr__(self):
-        return "({} {} {})".format(self.operands[0], self.name, self.operands[1])
+        return "({} {} {})".format(
+            self.operands[0], self.name, self.operands[1]
+        )
 
     def needs_join(self, env):
-        return self.operands[0].needs_join(env) + self.operands[1].needs_join(env)
+        return self.operands[0].needs_join(env) + self.operands[1].needs_join(
+            env
+        )
 
 
 class SearchAndAction(BinaryLogical):
@@ -463,7 +511,8 @@ class QueryAction:
         )
         domain = self.domain
         check(
-            domain in search_strategy._domains or domain in search_strategy._shorthand,
+            domain in search_strategy._domains
+            or domain in search_strategy._shorthand,
             "Unknown search domain: %s" % domain,
         )
         self.domain = search_strategy._shorthand.get(domain, domain)
@@ -515,7 +564,9 @@ class BinomialNameAction:
             .filter(
                 or_(
                     Species.sp.startswith(self.species_epithet),
-                    and_(self.species_epithet == "sp", Species.infrasp1 == "sp"),
+                    and_(
+                        self.species_epithet == "sp", Species.infrasp1 == "sp"
+                    ),
                 )
             )
             .join(Genus)
@@ -558,9 +609,9 @@ class DomainExpressionAction:
 
         query = search_strategy._session.query(cls)
 
-        ## here is the place where to optionally filter out unrepresented
-        ## domain values. each domain class should define its own 'I have
-        ## accessions' filter. see issue #42
+        # here is the place where to optionally filter out unrepresented
+        # domain values. each domain class should define its own 'I have
+        # accessions' filter. see issue #42
 
         result = set()
 
@@ -572,15 +623,24 @@ class DomainExpressionAction:
         mapper = class_mapper(cls)
 
         if self.cond in ("like", "ilike"):
-            condition = lambda col: lambda val: utils.ilike(mapper.c[col], "%s" % val)
+
+            def condition(col):
+                return lambda val: utils.ilike(mapper.c[col], "%s" % val)
+
         elif self.cond in ("contains", "icontains", "has", "ihas"):
-            condition = lambda col: lambda val: utils.ilike(
-                mapper.c[col], "%%%s%%" % val
-            )
+
+            def condition(col):
+                return lambda val: utils.ilike(mapper.c[col], "%%%s%%" % val)
+
         elif self.cond == "=":
-            condition = lambda col: lambda val: mapper.c[col] == utils.utf8(val)
+
+            def condition(col):
+                return lambda val: mapper.c[col] == utils.utf8(val)
+
         else:
-            condition = lambda col: lambda val: mapper.c[col].op(self.cond)(val)
+
+            def condition(col):
+                return lambda val: mapper.c[col].op(self.cond)(val)
 
         for col in properties:
             ors = or_(*list(map(condition(col), self.values.express())))
@@ -642,11 +702,15 @@ class ValueListAction:
         logger.debug("ValueListAction:invoke")
         # make searches case-insensitive, in postgres use ilike,
         # in other use upper()
-        like = lambda table, col, val: utils.ilike(table.c[col], ("%%%s%%" % val))
+
+        def like(table, col, val):
+            return utils.ilike(table.c[col], ("%%%s%%" % val))
 
         result = set()
         for cls, columns in list(search_strategy._properties.items()):
-            column_cross_value = [(c, v) for c in columns for v in self.express()]
+            column_cross_value = [
+                (c, v) for c in columns for v in self.express()
+            ]
             # as of SQLAlchemy>=0.4.2 we convert the value to a unicode
             # object if the col is a Unicode or UnicodeText column in order
             # to avoid the "Unicode type received non-unicode bind param"
@@ -661,14 +725,21 @@ class ValueListAction:
             table = class_mapper(cls)
             q = search_strategy._session.query(cls)  # prepares SELECT
             q = q.filter(
-                or_(*[like(table, c, unicol(c, v)) for c, v in column_cross_value])
+                or_(
+                    *[
+                        like(table, c, unicol(c, v))
+                        for c, v in column_cross_value
+                    ]
+                )
             )
             result.update(q.all())
 
         def replace(i):
             try:
                 replacement = i.replacement()
-                logger.debug("replacing %s by %s in result set" % (i, replacement))
+                logger.debug(
+                    "replacing %s by %s in result set" % (i, replacement)
+                )
                 return replacement
             except:
                 return i
@@ -681,40 +752,15 @@ class ValueListAction:
         return result
 
 
-from pyparsing import (
-    CaselessLiteral,
-    Forward,
-    Group,
-    Keyword,
-    Literal,
-    OneOrMore,
-    Regex,
-    Word,
-    WordEnd,
-    WordStart,
-    ZeroOrMore,
-    alphanums,
-    alphas,
-    alphas8bit,
-    delimitedList,
-    infixNotation,
-    oneOf,
-    opAssoc,
-    quotedString,
-    removeQuotes,
-    srange,
-    stringEnd,
-)
-
 wordStart, wordEnd = WordStart(), WordEnd()
 
 
 class SearchParser:
     """The parser for bauble.search.MapperSearch"""
 
-    numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?").setParseAction(NumericToken)(
-        "number"
-    )
+    numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?").setParseAction(
+        NumericToken
+    )("number")
     unquoted_string = Word(alphanums + alphas8bit + "%.-_*;:")
     string_value = (
         quotedString.setParseAction(removeQuotes) | unquoted_string
@@ -725,7 +771,11 @@ class SearchParser:
 
     value_list = Forward()
     typed_value = (
-        Literal("|") + unquoted_string + Literal("|") + value_list + Literal("|")
+        Literal("|")
+        + unquoted_string
+        + Literal("|")
+        + value_list
+        + Literal("|")
     ).setParseAction(TypedValueToken)
 
     value = (
@@ -735,9 +785,9 @@ class SearchParser:
         | empty_token
         | string_value
     ).setParseAction(ValueToken)("value")
-    value_list <<= Group(OneOrMore(value) ^ delimitedList(value)).setParseAction(
-        ValueListAction
-    )("value_list")
+    value_list <<= Group(
+        OneOrMore(value) ^ delimitedList(value)
+    ).setParseAction(ValueListAction)("value_list")
 
     domain = Word(alphas, alphanums)
     binop = oneOf(
@@ -794,7 +844,9 @@ class SearchParser:
         | Group(identifier + binop_set + value_list).setParseAction(
             ElementSetExpression
         )
-        | Group(aggregated + binop + value).setParseAction(AggregatedExpression)
+        | Group(aggregated + binop + value).setParseAction(
+            AggregatedExpression
+        )
         | (Literal("(") + query_expression + Literal(")")).setParseAction(
             ParenthesisedQuery
         )
@@ -848,7 +900,9 @@ class SearchStrategy:
         Return an iterator that iterates over mapped classes retrieved
         from the search.
         """
-        logger.debug('SearchStrategy "{}"({})'.format(text, self.__class__.__name__))
+        logger.debug(
+            'SearchStrategy "{}"({})'.format(text, self.__class__.__name__)
+        )
         pass
 
 
@@ -888,15 +942,23 @@ class MapperSearch(SearchStrategy):
                            search by default
         """
 
-        logger.debug("%s.add_meta(%s, %s, %s)" % (self, domain, cls, properties))
+        logger.debug(
+            "%s.add_meta(%s, %s, %s)" % (self, domain, cls, properties)
+        )
 
         check(
             isinstance(properties, list),
-            _("MapperSearch.add_meta(): " "default_columns argument must be list"),
+            _(
+                "MapperSearch.add_meta(): "
+                "default_columns argument must be list"
+            ),
         )
         check(
             len(properties) > 0,
-            _("MapperSearch.add_meta(): " "default_columns argument cannot be empty"),
+            _(
+                "MapperSearch.add_meta(): "
+                "default_columns argument cannot be empty"
+            ),
         )
         if isinstance(domain, (list, tuple)):
             self._domains[domain[0]] = cls, properties
@@ -928,13 +990,15 @@ class MapperSearch(SearchStrategy):
         statement = self.parser.parse_string(text).statement
         logger.debug("statement : {}({})".format(type(statement), statement))
         self._results.update(statement.invoke(self))
-        logger.debug("search returns %s(%s)" % (type(self._results), self._results))
+        logger.debug(
+            "search returns %s(%s)" % (type(self._results), self._results)
+        )
 
         # these _results get filled in when the parse actions are called
         return self._results
 
 
-## list of search strategies to be tried on each search string
+# list of search strategies to be tried on each search string
 _search_strategies = {"MapperSearch": MapperSearch()}
 
 
@@ -998,7 +1062,8 @@ class SchemaBrowser(Gtk.VBox):
             [
                 x
                 for x in mapper.iterate_properties
-                if isinstance(x, RelationProperty) and not x.key.startswith("_")
+                if isinstance(x, RelationProperty)
+                and not x.key.startswith("_")
             ],
             key=lambda k: k.key,
         )

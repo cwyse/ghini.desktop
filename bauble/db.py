@@ -18,26 +18,32 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
+import datetime
+import json
+import logging
+import os
+import re
+from gettext import gettext as _
 
+import bauble.btypes as types
+import bauble.error as error
+import bauble.utils as utils
 import gi
+import sqlalchemy.orm as orm
+from bauble.utils import parse_date
+from gi.repository import Gtk
+from sqlalchemy import event
+from sqlalchemy import text
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy.orm import class_mapper
 
 gi.require_version("Gtk", "3.0")
 
-import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-import datetime
-import json
-import os
-import re
-
-from sqlalchemy import text
-from sqlalchemy.orm import class_mapper
-
-import bauble.error as error
-from bauble.utils import parse_date
 
 try:
     import sqlalchemy as sa
@@ -58,14 +64,6 @@ except ImportError:
         "http://www.sqlalchemy.org"
     )
     raise
-
-
-import sqlalchemy.orm as orm
-from gi.repository import Gtk
-from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
-
-import bauble.btypes as types
-import bauble.utils as utils
 
 
 def sqlalchemy_debug(verbose):
@@ -128,9 +126,13 @@ class MapperBase(DeclarativeMeta):
 
     def __init__(cls, classname, bases, dict_):
         if "__tablename__" in dict_:
-            cls.id = sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)
+            cls.id = sa.Column(
+                "id", sa.Integer, primary_key=True, autoincrement=True
+            )
             cls._created = sa.Column(
-                "_created", types.DateTime(timezone=True), default=sa.func.now()
+                "_created",
+                types.DateTime(timezone=True),
+                default=sa.func.now(),
             )
             cls._last_updated = sa.Column(
                 "_last_updated",
@@ -177,8 +179,6 @@ plugin for declaring tables and mappers should derive from this class.
 
 An instance of :class:`sqlalchemy.ext.declarative.Base`
 """
-
-from sqlalchemy import event
 
 
 def add_history_entry(operation, instance):
@@ -397,7 +397,9 @@ def create(import_defaults=True):
         ).close()
         import time
 
-        tzlocal = datetime.timezone(-datetime.timedelta(hours=time.timezone / 60 / 60))
+        tzlocal = datetime.timezone(
+            -datetime.timedelta(hours=time.timezone / 60 / 60)
+        )
         meta_table.insert(bind=connection).execute(
             name=meta.CREATED_KEY, value=str(datetime.datetime.now(tz=tzlocal))
         ).close()
@@ -540,7 +542,11 @@ def verify_connection(engine, show_error_dialogs=False):
 
 # def make_note_class(name, compute_serializable_fields=None, as_dict=None, retrieve=None):
 def make_note_class(
-    name, related_class, compute_serializable_fields=None, as_dict=None, retrieve=None
+    name,
+    related_class,
+    compute_serializable_fields=None,
+    as_dict=None,
+    retrieve=None,
 ):
     """
     Create a Note class with a relationship to the related_class using back_populates.
@@ -633,7 +639,9 @@ def make_note_class(
     }
     if compute_serializable_fields is not None:
         bases = (Base, Serializable)
-        fields["compute_serializable_fields"] = classmethod(compute_serializable_fields)
+        fields["compute_serializable_fields"] = classmethod(
+            compute_serializable_fields
+        )
 
     result = type(class_name, bases, fields)
     return result
@@ -649,7 +657,9 @@ class WithNotes:
         the result can be an atomic value, a list, or a dictionary.
         """
 
-        if name.startswith("_sa"):  # it's a SA field, don't even try to look it up
+        if name.startswith(
+            "_sa"
+        ):  # it's a SA field, don't even try to look it up
             raise AttributeError(name)
 
         result = []
@@ -659,7 +669,9 @@ class WithNotes:
                 pass
             elif n.category == ("[%s]" % name):
                 result.append(n.note)
-            elif n.category.startswith("{%s:" % name) and n.category.endswith("}"):
+            elif n.category.startswith("{%s:" % name) and n.category.endswith(
+                "}"
+            ):
                 is_dict = True
                 match = self.key_pattern.match(n.category)
                 key = match.group(1)
@@ -673,10 +685,12 @@ class WithNotes:
                             "{" + n.note.replace(";", ",") + "}",
                         )
                     )
-                except Exception as e:
+                except Exception:
                     pass
                 try:
-                    return json.loads(re.sub(r"(\w+)[ ]*(?=:)", r'"\g<1>"', n.note))
+                    return json.loads(
+                        re.sub(r"(\w+)[ ]*(?=:)", r'"\g<1>"', n.note)
+                    )
                 except Exception as e:
                     logger.debug(
                         "not parsed %s(%s), returning literal text »%s«",
@@ -748,12 +762,14 @@ class Serializable:
         """return database object corresponding to keys"""
 
         logger.debug("initial value of keys: %s" % keys)
-        ## first try retrieving
+        # first try retrieving
         is_in_session = cls.retrieve(session, keys)
         logger.debug("2 value of keys: %s" % keys)
 
         if not create and not is_in_session:
-            logger.debug("not creating from %s; returning None (1)" % str(keys))
+            logger.debug(
+                "not creating from %s; returning None (1)" % str(keys)
+            )
             return None
 
         if is_in_session and not update:
@@ -761,11 +777,11 @@ class Serializable:
             return is_in_session
 
         try:
-            ## some fields are given as text but actually correspond to
-            ## different fields and should be associated to objects
+            # some fields are given as text but actually correspond to
+            # different fields and should be associated to objects
             extradict = cls.compute_serializable_fields(session, keys)
 
-            ## what fields must be corrected
+            # what fields must be corrected
             cls.correct_field_names(keys)
         except error.NoResultException:
             if not is_in_session:
@@ -773,7 +789,7 @@ class Serializable:
                 return None
             else:
                 extradict = {}
-        except Exception as e:
+        except Exception:
             logger.debug("this was unexpected")
             raise
 
@@ -786,12 +802,12 @@ class Serializable:
 
         logger.debug("3½ value of keys: %s" % keys)
 
-        ## at this point, resulting object is either in database or not. in
-        ## either case, the database is going to be updated.
+        # at this point, resulting object is either in database or not. in
+        # either case, the database is going to be updated.
 
-        ## link_keys are python-side properties, not database associations
-        ## and have as value objects that are possibly in the database, or
-        ## not, but they cannot be used to construct the `self` object.
+        # link_keys are python-side properties, not database associations
+        # and have as value objects that are possibly in the database, or
+        # not, but they cannot be used to construct the `self` object.
         link_values = {}
         for k in cls.link_keys:
             if keys.get(k):
@@ -811,8 +827,10 @@ class Serializable:
 
         # early construct object before building links
         if not is_in_session and create:
-            ## completing the task of building the links
-            logger.debug("links? {}, {}".format(cls.link_keys, list(keys.keys())))
+            # completing the task of building the links
+            logger.debug(
+                "links? {}, {}".format(cls.link_keys, list(keys.keys()))
+            )
             for key in cls.link_keys:
                 d = link_values.get(key)
                 if d is None:
@@ -828,8 +846,10 @@ class Serializable:
         if is_in_session and update:
             result = is_in_session
 
-            ## completing the task of building the links
-            logger.debug("links? {}, {}".format(cls.link_keys, list(keys.keys())))
+            # completing the task of building the links
+            logger.debug(
+                "links? {}, {}".format(cls.link_keys, list(keys.keys()))
+            )
             for key in cls.link_keys:
                 d = link_values.get(key)
                 if d is None:
@@ -860,7 +880,7 @@ class Serializable:
 
 
 def construct_from_dict(session, obj, create=True, update=True):
-    ## get class and remove reference
+    # get class and remove reference
     logger.debug("construct_from_dict %s" % obj)
     klass = None
     if "object" in obj:

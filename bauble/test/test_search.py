@@ -22,16 +22,22 @@
 import logging
 import unittest
 
-from nose import SkipTest
+from bauble import db
+from bauble import paths
+from bauble import prefs
+from bauble import querybuilder
+from bauble import search
+from bauble.editor import GenericEditorView
+from bauble.test import BaubleTestCase
+from pyparsing import ParseException
+
+pass
+
+pass
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from pyparsing import ParseException
-
-from bauble import db, paths, prefs, querybuilder, search
-from bauble.editor import GenericEditorView, MockView
-from bauble.test import BaubleTestCase
 
 prefs.testing = True
 
@@ -40,7 +46,8 @@ parser = search.SearchParser()
 
 
 class SearchParserTests(unittest.TestCase):
-    error_msg = lambda me, s, v, e: "{}: {} == {}".format(s, v, e)
+    def error_msg(me, s, v, e):
+        return "{}: {} == {}".format(s, v, e)
 
     def test_query_expression_token_UPPER(self):
         s = "domain where col=value"
@@ -132,12 +139,28 @@ class SearchParserTests(unittest.TestCase):
         self.assertEqual(results.getName(), "value")
         self.assertEqual(results.value.express(), False)
 
-        for i in ["True", "true", "TRUE", '"anything not false"', '"1"', "1", "1.1"]:
+        for i in [
+            "True",
+            "true",
+            "TRUE",
+            '"anything not false"',
+            '"1"',
+            "1",
+            "1.1",
+        ]:
             results = parser.value.parseString("|bool|%s|" % i)
             self.assertEqual(results.getName(), "value")
             self.assertEqual(results.value.express(), True)
 
-        for i in ["True", "true", "TRUE", '"anything not false"', '"1"', "1", "1.1"]:
+        for i in [
+            "True",
+            "true",
+            "TRUE",
+            '"anything not false"',
+            '"1"',
+            "1",
+            "1.1",
+        ]:
             results = parser.value.parseString("|bool|abc, %s, 3|" % i)
             self.assertEqual(results.getName(), "value")
             self.assertEqual(results.value.express(), True)
@@ -156,7 +179,9 @@ class SearchParserTests(unittest.TestCase):
 
         from datetime import datetime, timedelta
 
-        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        today = datetime.today().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         yesterday = today - timedelta(1)
         results = parser.value.parseString("|datetime|0|")
         self.assertEqual(results.getName(), "value")
@@ -212,9 +237,12 @@ class SearchParserTests(unittest.TestCase):
         "check the join steps"
 
         env = None
-        results = parser.statement.parseString("plant where accession.species." "id=44")
+        results = parser.statement.parseString(
+            "plant where accession.species." "id=44"
+        )
         self.assertEqual(
-            results.statement.content.filter.needs_join(env), [["accession", "species"]]
+            results.statement.content.filter.needs_join(env),
+            [["accession", "species"]],
         )
         results = parser.statement.parseString("plant where accession.id=44")
         self.assertEqual(
@@ -420,7 +448,9 @@ class SearchTests(BaubleTestCase):
         self.assertTrue(isinstance(mapper_search, search.MapperSearch))
 
         # search cls.column
-        results = mapper_search.search("genus where genus=genus1", self.session)
+        results = mapper_search.search(
+            "genus where genus=genus1", self.session
+        )
         self.assertEqual(len(results), 1)
         f = list(results)[0]
         self.assertTrue(isinstance(f, Genus))
@@ -448,7 +478,8 @@ class SearchTests(BaubleTestCase):
         s = "genus where genus=genus2 OR genus=genus1"
         results = mapper_search.search(s, self.session)
         self.assertEqual(
-            sorted([r.id for r in results]), [g.id for g in (self.genus, g2, g3)]
+            sorted([r.id for r in results]),
+            [g.id for g in (self.genus, g2, g3)],
         )
 
     def test_search_by_query13(self):
@@ -503,7 +534,9 @@ class SearchTests(BaubleTestCase):
         self.assertEqual(g0.id, self.genus.id)
 
         # search cls.children.column
-        results = mapper_search.search("family where genera.genus=genus1", self.session)
+        results = mapper_search.search(
+            "family where genera.genus=genus1", self.session
+        )
         self.assertEqual(len(results), 1)
         f = list(results)[0]
         self.assertEqual(len(results), 1)
@@ -1079,12 +1112,16 @@ class BuildingSQLStatements(BaubleTestCase):
         )
         self.assertEqual(
             str(results.statement),
-            "SELECT * FROM species WHERE " "NOT (species.genus.family.family = 'name')",
+            "SELECT * FROM species WHERE "
+            "NOT (species.genus.family.family = 'name')",
         )
-        results = sp.parse_string("species where ! species.genus.family.family" "=name")
+        results = sp.parse_string(
+            "species where ! species.genus.family.family" "=name"
+        )
         self.assertEqual(
             str(results.statement),
-            "SELECT * FROM species WHERE " "NOT (species.genus.family.family = 'name')",
+            "SELECT * FROM species WHERE "
+            "NOT (species.genus.family.family = 'name')",
         )
         results = sp.parse_string(
             "species where family=1 OR family=2 AND NOT " "genus.id=3"
@@ -1105,12 +1142,16 @@ class BuildingSQLStatements(BaubleTestCase):
         )
         self.assertEqual(
             str(results.statement),
-            "SELECT * FROM species WHERE " "NOT (species.genus.family.family = 'name')",
+            "SELECT * FROM species WHERE "
+            "NOT (species.genus.family.family = 'name')",
         )
-        results = sp.parse_string("species where ! species.genus.family.family" "=name")
+        results = sp.parse_string(
+            "species where ! species.genus.family.family" "=name"
+        )
         self.assertEqual(
             str(results.statement),
-            "SELECT * FROM species WHERE " "NOT (species.genus.family.family = 'name')",
+            "SELECT * FROM species WHERE "
+            "NOT (species.genus.family.family = 'name')",
         )
         results = sp.parse_string(
             "species where family=1 or family=2 and not " "genus.id=3"
@@ -1128,7 +1169,8 @@ class BuildingSQLStatements(BaubleTestCase):
         sp = self.SearchParser()
         results = sp.parse_string("species where notes.id!=0")
         self.assertEqual(
-            str(results.statement), "SELECT * FROM species WHERE (notes.id != 0.0)"
+            str(results.statement),
+            "SELECT * FROM species WHERE (notes.id != 0.0)",
         )
 
     def test_between_just_parse_0(self):
@@ -1136,7 +1178,8 @@ class BuildingSQLStatements(BaubleTestCase):
         sp = self.SearchParser()
         results = sp.parse_string("species where id between 0 and 1")
         self.assertEqual(
-            str(results.statement), "SELECT * FROM species WHERE (BETWEEN id 0.0 1.0)"
+            str(results.statement),
+            "SELECT * FROM species WHERE (BETWEEN id 0.0 1.0)",
         )
 
     def test_between_just_parse_1(self):
@@ -1180,7 +1223,9 @@ class FilterThenMatchTests(BaubleTestCase):
         self.genus4 = Genus(family=self.family, genus="genus4")
         n1 = GenusNote(category="commentarii", note="olim", genus=self.genus1)
         n2 = GenusNote(category="commentarii", note="erat", genus=self.genus1)
-        n3 = GenusNote(category="commentarii", note="verbum", genus=self.genus2)
+        n3 = GenusNote(
+            category="commentarii", note="verbum", genus=self.genus2
+        )
         n4 = GenusNote(category="test", note="olim", genus=self.genus3)
         n5 = GenusNote(category="test", note="verbum", genus=self.genus3)
         self.session.add_all(
@@ -1339,7 +1384,9 @@ class AggregatingFunctions(BaubleTestCase):
 
         f3 = Family(family="Musaceae")
         g4 = Genus(family=f3, genus="Musa")
-        self.session.add_all([f1, f2, f3, g1, g2, g3, g4, sp1, sp2, sp3, sp4, sp5, sp6])
+        self.session.add_all(
+            [f1, f2, f3, g1, g2, g3, g4, sp1, sp2, sp3, sp4, sp5, sp6]
+        )
         self.session.commit()
 
     def tearDown(self):

@@ -15,23 +15,31 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
 import logging
-
-logger = logging.getLogger(__name__)
-
 import os.path
 import re
 import threading
+from gettext import gettext as _
 
-from gi.repository import GdkPixbuf, GLib, GObject, Gtk
-from sqlalchemy.orm.exc import NoResultFound
+from bauble import db
+from bauble import pluginmgr
+from bauble import utils
+from bauble.editor import GenericEditorPresenter
+from bauble.editor import GenericEditorView
+from gi.repository import GdkPixbuf
+from gi.repository import GLib
+from gi.repository import GObject
+from gi.repository import Gtk
 
-from bauble import db, pluginmgr, utils
-from bauble.editor import GenericEditorPresenter, GenericEditorView
+pass
 
-accno_re = re.compile(r"([12][0-9][0-9][0-9]\.[0-9][0-9][0-9][0-9])(?:\.([0-9]+))?")
+
+logger = logging.getLogger(__name__)
+
+
+accno_re = re.compile(
+    r"([12][0-9][0-9][0-9]\.[0-9][0-9][0-9][0-9])(?:\.([0-9]+))?"
+)
 species_re = re.compile(r"([A-Z][a-z]+(?: [a-z-]*)?)")
 picname_re = re.compile(r"([A-Z]+[0-9]+)")
 number_re = re.compile(r"([0-9]+)")
@@ -154,7 +162,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         self.view.widgets.binomial_tvc.set_sort_column_id(binomial_col)
         self.view.widgets.iseditable_tvc.set_sort_column_id(iseditable_col)
 
-        from bauble.plugins.garden import Location, init_location_comboentry
+        from bauble.plugins.garden import init_location_comboentry
 
         def on_location_select(location):
             self.model.location = location.code
@@ -166,7 +174,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
     def show_visible_pane(self):
         for n, i in enumerate(self.panes):
             i.set_visible(n == self.model.visible_pane)
-        self.view.widgets.button_prev.set_sensitive(self.model.visible_pane > 0)
+        self.view.widgets.button_prev.set_sensitive(
+            self.model.visible_pane > 0
+        )
         self.view.widgets.button_next.set_sensitive(
             self.model.visible_pane < len(self.panes) - 1
         )
@@ -194,13 +204,19 @@ class PictureImporterPresenter(GenericEditorPresenter):
                 scale = max(scale_x, scale_y, 1)
                 x = int(pixbuf.get_width() / scale)
                 y = int(pixbuf.get_height() / scale)
-                pixbuf = pixbuf.scale_simple(x, y, GdkPixbuf.InterpType.BILINEAR)
+                pixbuf = pixbuf.scale_simple(
+                    x, y, GdkPixbuf.InterpType.BILINEAR
+                )
 
                 def set_thumbnail(store, path, col, value):
                     store[path][col] = value
 
                 GObject.idle_add(
-                    set_thumbnail, self.review_liststore, path, thumbnail_col, pixbuf
+                    set_thumbnail,
+                    self.review_liststore,
+                    path,
+                    thumbnail_col,
+                    pixbuf,
                 )
             except GLib.GError as e:
                 logger.debug("picture %s caused GLib.GError %s" % (fname, e))
@@ -216,7 +232,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
                 continue
             from bauble.plugins.garden import Plant
 
-            complete_plant_code = d["accession"] + Plant.get_delimiter() + d["plant"]
+            complete_plant_code = (
+                d["accession"] + Plant.get_delimiter() + d["plant"]
+            )
             row = [
                 True,
                 name,
@@ -235,39 +253,43 @@ class PictureImporterPresenter(GenericEditorPresenter):
             )
             self.review_liststore.append(row)
 
-    def on_cellrenderertext_edited(self, widget, path, new_text, *args, **kwargs):
+    def on_cellrenderertext_edited(
+        self, widget, path, new_text, *args, **kwargs
+    ):
         if widget == self.view.widgets.accno_crtext:
-            self.review_liststore[path][accno_col] = self.review_liststore[path][
-                edited_accno_col
-            ] = new_text
+            self.review_liststore[path][accno_col] = self.review_liststore[
+                path
+            ][edited_accno_col] = new_text
         elif widget == self.view.widgets.binomial_crtext:
-            self.review_liststore[path][binomial_col] = self.review_liststore[path][
-                edited_binomial_col
-            ] = new_text
+            self.review_liststore[path][binomial_col] = self.review_liststore[
+                path
+            ][edited_binomial_col] = new_text
 
     def on_use_crtoggle_toggled(self, column_widget, path):
-        self.review_liststore[path][use_me_col] = not self.review_liststore[path][
-            use_me_col
-        ]
+        self.review_liststore[path][use_me_col] = not self.review_liststore[
+            path
+        ][use_me_col]
 
     def on_edit_crtoggle_toggled(self, column_widget, path):
-        self.review_liststore[path][iseditable_col] = not self.review_liststore[path][
+        self.review_liststore[path][iseditable_col] = (
+            not self.review_liststore[path][iseditable_col]
+        )
+        if not self.review_liststore[path][
             iseditable_col
-        ]
-        if not self.review_liststore[path][iseditable_col]:  # let's restore original
-            self.review_liststore[path][accno_col] = self.review_liststore[path][
-                orig_accno_col
-            ]
-            self.review_liststore[path][binomial_col] = self.review_liststore[path][
-                orig_binomial_col
-            ]
+        ]:  # let's restore original
+            self.review_liststore[path][accno_col] = self.review_liststore[
+                path
+            ][orig_accno_col]
+            self.review_liststore[path][binomial_col] = self.review_liststore[
+                path
+            ][orig_binomial_col]
         else:  # otherwise: restore last edit
-            self.review_liststore[path][accno_col] = self.review_liststore[path][
-                edited_accno_col
-            ]
-            self.review_liststore[path][binomial_col] = self.review_liststore[path][
-                edited_binomial_col
-            ]
+            self.review_liststore[path][accno_col] = self.review_liststore[
+                path
+            ][edited_accno_col]
+            self.review_liststore[path][binomial_col] = self.review_liststore[
+                path
+            ][edited_binomial_col]
 
     def do_import(self):  # step 2
         session = db.Session()
@@ -280,7 +302,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
         # make sure selected location exists
         if self.model.location is None:
             self.model.location = "imported"
-        location = session.query(Location).filter_by(code=self.model.location).first()
+        location = (
+            session.query(Location).filter_by(code=self.model.location).first()
+        )
         if location is not None:
             logger.log(11, "location {} already in database".format(location))
         else:
@@ -305,25 +329,39 @@ class PictureImporterPresenter(GenericEditorPresenter):
             # create or retrieve genus and species
             genus = session.query(Genus).filter_by(epithet=epgn).one()
             species = (
-                session.query(Species).filter_by(genus=genus, epithet=epsp).first()
+                session.query(Species)
+                .filter_by(genus=genus, epithet=epsp)
+                .first()
             )
             if species is not None:
-                logger.log(11, "species {} {} already in database".format(epgn, epsp))
+                logger.log(
+                    11, "species {} {} already in database".format(epgn, epsp)
+                )
             else:
-                species = query_session_new(session, Species, genus=genus, epithet=epsp)
+                species = query_session_new(
+                    session, Species, genus=genus, epithet=epsp
+                )
                 if species is None:
                     species = Species(genus=genus, epithet=epsp)
                     session.add(species)
                     logger.log(13, "created species {} {}".format(epgn, epsp))
                 else:
-                    logger.log(12, "reusing new species {} {}".format(epgn, epsp))
+                    logger.log(
+                        12, "reusing new species {} {}".format(epgn, epsp)
+                    )
 
             # create or retrieve accession (needs species)
-            accession = session.query(Accession).filter_by(code=accession_code).first()
+            accession = (
+                session.query(Accession).filter_by(code=accession_code).first()
+            )
             if accession is not None:
-                logger.log(11, "accession %s already in database" % (accession_code))
+                logger.log(
+                    11, "accession %s already in database" % (accession_code)
+                )
             else:
-                accession = query_session_new(session, Accession, code=accession_code)
+                accession = query_session_new(
+                    session, Accession, code=accession_code
+                )
                 if accession is None:
                     accession = Accession(
                         species=species, code=accession_code, quantity_recvd=1
@@ -336,7 +374,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
                         ),
                     )
                 else:
-                    logger.log(12, "reusing new accession %s" % (accession_code))
+                    logger.log(
+                        12, "reusing new accession %s" % (accession_code)
+                    )
 
             # create or retrieve plant (needs: accession, location)
             plant = (
@@ -345,7 +385,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
                 .first()
             )
             if plant is not None:
-                logger.log(11, "plant %s already in database" % (complete_plant_code))
+                logger.log(
+                    11, "plant %s already in database" % (complete_plant_code)
+                )
             else:
                 plant = query_session_new(
                     session, Plant, accession=accession, code=plant_code
@@ -360,7 +402,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
                     session.add(plant)
                     logger.log(13, "created plant %s" % (complete_plant_code))
                 else:
-                    logger.log(12, "reusing new plant %s" % (complete_plant_code))
+                    logger.log(
+                        12, "reusing new plant %s" % (complete_plant_code)
+                    )
 
             # copy picture file - possibly renaming it
             utils.copy_picture_with_thumbnail(self.model.filepath, filename)
@@ -380,7 +424,11 @@ class PictureImporterPresenter(GenericEditorPresenter):
                 )
             else:
                 note = query_session_new(
-                    session, PlantNote, plant=plant, note=filename, category="<picture>"
+                    session,
+                    PlantNote,
+                    plant=plant,
+                    note=filename,
+                    category="<picture>",
                 )
                 if note is None:
                     note = PlantNote(
@@ -511,14 +559,16 @@ class PictureImporterTool(pluginmgr.Tool):
     def start(cls):
         cls.model.visible_pane = 0
         view = GenericEditorView(
-            cls.glade_path, parent=None, root_widget_name="picture_importer_dialog"
+            cls.glade_path,
+            parent=None,
+            root_widget_name="picture_importer_dialog",
         )
         presenter = PictureImporterPresenter(cls.model, view)
-        result = presenter.start()
+        presenter.start()
         try:
             from bauble import gui
 
             gui.get_view().update()
-        except Exception as e:
+        except Exception:
             pass
         return True

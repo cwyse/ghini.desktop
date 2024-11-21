@@ -18,27 +18,31 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 """
 The top level module for Ghini.
 """
-import gi
+import logging
+import os
+import sys
+import traceback
+from gettext import gettext as _
 
-gi.require_version("Gtk", "3.0")
+import bauble.error as err
+import bauble.i18n
+import bauble.paths as paths
 import debugpy
+import gi
+from bauble.version import version
 from gi.repository import Gtk
 
+gi.require_version("Gtk", "3.0")
+
 debugpy.breakpoint()
-import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 consoleLevel = logging.DEBUG
 
-import os
-import sys
-
-import bauble.paths as paths
 
 try:
     import faulthandler
@@ -47,14 +51,11 @@ try:
 except:
     pass
 
-from bauble.version import version
 
 version_tuple = tuple(version.split("."))
 release_date = None
 release_version = None
 installation_date = "1970-01-01T00:00:00Z"
-
-import bauble.i18n
 
 
 def pb_set_fraction(fraction):
@@ -111,7 +112,6 @@ sys.path.append(paths.lib_dir())
 
 
 # set SQLAlchemy logging level
-import logging
 
 logging.getLogger("sqlalchemy").setLevel(logging.DEBUG)
 
@@ -126,10 +126,6 @@ default_icon = None
 conn_name = None
 """The name of the current connection.
 """
-
-import traceback
-
-import bauble.error as err
 
 
 def save_state():
@@ -160,7 +156,7 @@ def quit():
         task.kill()
     try:
         save_state()
-    except RuntimeError as e:
+    except RuntimeError:
         pass
     sys.exit(1)
 
@@ -188,7 +184,7 @@ def command_handler(cmd, arg):
     handler_cls = None
     try:
         handler_cls = pluginmgr.commands[cmd]
-    except KeyError as e:
+    except KeyError:
         if cmd is None:
             utils.message_dialog(_("No default handler registered"))
         else:
@@ -213,7 +209,9 @@ def command_handler(cmd, arg):
     except Exception as e:
         msg = utils.xml_safe(e)
         logger.error("bauble.command_handler(): %s" % msg)
-        utils.message_details_dialog(msg, traceback.format_exc(), Gtk.MessageType.ERROR)
+        utils.message_details_dialog(
+            msg, traceback.format_exc(), Gtk.MessageType.ERROR
+        )
 
 
 conn_default_pref = "conn.default"
@@ -398,7 +396,9 @@ dbengine.html#create-engine-url-arguments>`_
                     "already a database at this connection any existing "
                     "data will be destroyed!</i>"
                 )
-                d = utils.create_yes_no_dialog(msg, buttons=Gtk.ButtonsType.NONE)
+                d = utils.create_yes_no_dialog(
+                    msg, buttons=Gtk.ButtonsType.NONE
+                )
                 d.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
                 d.add_button(_("Create"), 24)
                 d.add_button(_("Create and Initialize"), 42)
@@ -406,7 +406,9 @@ dbengine.html#create-engine-url-arguments>`_
                 d.set_response_sensitive(42, False)
 
                 def on_timeout():
-                    if d.get_property("visible"):  # conditional avoids GTK+ warning
+                    if d.get_property(
+                        "visible"
+                    ):  # conditional avoids GTK+ warning
                         d.set_response_sensitive(24, True)
                         d.set_response_sensitive(42, True)
                         return False
