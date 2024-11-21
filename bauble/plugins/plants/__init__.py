@@ -49,21 +49,30 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.search as search
 from bauble import utils
-from bauble.plugins.plants.family import (Familia, Family, FamilyEditor,
-                                          FamilyInfoBox, FamilyNote,
-                                          family_context_menu)
-from bauble.plugins.plants.genus import (Genus, GenusEditor, GenusInfoBox,
-                                         GenusNote, genus_context_menu)
-from bauble.plugins.plants.geography import (GeographicArea,
-                                             get_species_in_geographic_area)
-from bauble.plugins.plants.species import (Species, SpeciesDistribution,
-                                           SpeciesEditor, SpeciesInfoBox,
-                                           SpeciesNote, SynonymSearch,
-                                           VernacularName,
-                                           VernacularNameInfoBox,
-                                           add_accession_action,
-                                           species_context_menu,
-                                           vernname_context_menu)
+from bauble.plugins.plants.family import Familia
+from bauble.plugins.plants.family import Family
+from bauble.plugins.plants.family import family_context_menu
+from bauble.plugins.plants.family import FamilyEditor
+from bauble.plugins.plants.family import FamilyInfoBox
+from bauble.plugins.plants.family import FamilyNote
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.genus import genus_context_menu
+from bauble.plugins.plants.genus import GenusEditor
+from bauble.plugins.plants.genus import GenusInfoBox
+from bauble.plugins.plants.genus import GenusNote
+from bauble.plugins.plants.geography import GeographicArea
+from bauble.plugins.plants.geography import get_species_in_geographic_area
+from bauble.plugins.plants.species import add_accession_action
+from bauble.plugins.plants.species import Species
+from bauble.plugins.plants.species import species_context_menu
+from bauble.plugins.plants.species import SpeciesDistribution
+from bauble.plugins.plants.species import SpeciesEditor
+from bauble.plugins.plants.species import SpeciesInfoBox
+from bauble.plugins.plants.species import SpeciesNote
+from bauble.plugins.plants.species import SynonymSearch
+from bauble.plugins.plants.species import VernacularName
+from bauble.plugins.plants.species import VernacularNameInfoBox
+from bauble.plugins.plants.species import vernname_context_menu
 from bauble.ui import DefaultView
 from bauble.view import SearchView
 
@@ -78,6 +87,18 @@ from threading import Thread
 from gi.repository import GObject
 
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ""
+    gtk_widget.set_text(text)
+
+
 class LabelUpdater(Thread):
     def __init__(self, widget, query, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -86,23 +107,25 @@ class LabelUpdater(Thread):
 
     def run(self):
         ssn = db.Session()
-        value, = ssn.execute(self.query).first()
-        GObject.idle_add(utils.none, self.widget.set_text, str(value) if str(value) is not None else '')
+        (value,) = ssn.execute(self.query).first()
+        GObject.idle_add(
+            utils.none,
+            self.widget.set_text,
+            str(value) if str(value) is not None else "",
+        )
         ssn.close()
 
 
 class SplashInfoBox(pluginmgr.View):
-    '''info box shown in the initial splash screen.
-
-    '''
+    """info box shown in the initial splash screen."""
 
     def __init__(self):
-        '''
-        '''
-        logger.debug('SplashInfoBox::__init__')
+        """ """
+        logger.debug("SplashInfoBox::__init__")
         super().__init__()
-        filename = os.path.join(paths.lib_dir(), 'plugins', 'plants',
-                                'infoboxes.glade')
+        filename = os.path.join(
+            paths.lib_dir(), "plugins", "plants", "infoboxes.glade"
+        )
         self.widgets = utils.BuilderWidgets(filename)
         self.widgets.remove_parent(self.widgets.splash_vbox)
         self.pack_start(self.widgets.splash_vbox, True, False, 8)
@@ -110,197 +133,263 @@ class SplashInfoBox(pluginmgr.View):
         utils.make_label_clickable(
             self.widgets.splash_nfamuse,
             lambda *a: bauble.gui.send_command(
-                'family where genera.species.id != 0'))
+                "family where genera.species.id != 0"
+            ),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_ngenuse,
             lambda *a: bauble.gui.send_command(
-                'genus where species.accessions.id!=0'))
+                "genus where species.accessions.id!=0"
+            ),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_nspctot,
-            lambda *a: bauble.gui.send_command(
-                'species like %'))
+            lambda *a: bauble.gui.send_command("species like %"),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_nspcuse,
             lambda *a: bauble.gui.send_command(
-                'species where not accessions = Empty'))
+                "species where not accessions = Empty"
+            ),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_nspcnot,
             lambda *a: bauble.gui.send_command(
-                'species where accessions = Empty'))
+                "species where accessions = Empty"
+            ),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_nacctot,
-            lambda *a: bauble.gui.send_command(
-                'accession like %'))
+            lambda *a: bauble.gui.send_command("accession like %"),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_naccuse,
             lambda *a: bauble.gui.send_command(
-                'accession where sum(plants.quantity)>0'))
+                "accession where sum(plants.quantity)>0"
+            ),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_naccnot,
             lambda *a: bauble.gui.send_command(
-                'accession where plants = Empty or sum(plants.quantity)=0'))
+                "accession where plants = Empty or sum(plants.quantity)=0"
+            ),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_nplttot,
-            lambda *a: bauble.gui.send_command(
-                'plant like %'))
+            lambda *a: bauble.gui.send_command("plant like %"),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_npltuse,
-            lambda *a: bauble.gui.send_command(
-                'plant where sum(quantity)>0'))
+            lambda *a: bauble.gui.send_command("plant where sum(quantity)>0"),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_npltnot,
-            lambda *a: bauble.gui.send_command(
-                'plant where sum(quantity)=0'))
+            lambda *a: bauble.gui.send_command("plant where sum(quantity)=0"),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_nloctot,
-            lambda *a: bauble.gui.send_command(
-                'location like %'))
+            lambda *a: bauble.gui.send_command("location like %"),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_nlocuse,
             lambda *a: bauble.gui.send_command(
-                'location where sum(plants.quantity)>0'))
+                "location where sum(plants.quantity)>0"
+            ),
+        )
 
         utils.make_label_clickable(
             self.widgets.splash_nlocnot,
             lambda *a: bauble.gui.send_command(
-                'location where plants is Empty or sum(plants.quantity)=0'))
+                "location where plants is Empty or sum(plants.quantity)=0"
+            ),
+        )
 
         for i in range(1, 11):
             wname = "stqr_%02d_button" % i
             widget = getattr(self.widgets, wname)
-            widget.connect('clicked', partial(self.on_sqb_clicked, i))
+            widget.connect("clicked", partial(self.on_sqb_clicked, i))
         wname = "splash_stqr_button"
         widget = getattr(self.widgets, wname)
-        widget.connect('clicked', self.on_splash_stqr_button_clicked)
+        widget.connect("clicked", self.on_splash_stqr_button_clicked)
 
     def update(self):
-        '''
-        '''
-        logger.debug('SplashInfoBox::update')
+        """ """
+        logger.debug("SplashInfoBox::update")
         statusbar = bauble.gui.widgets.statusbar
-        sbcontext_id = statusbar.get_context_id('searchview.nresults')
+        sbcontext_id = statusbar.get_context_id("searchview.nresults")
         statusbar.pop(sbcontext_id)
-        safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), '')
+        safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), "")
 
         ssn = db.Session()
         q = ssn.query(bauble.meta.BaubleMeta)
-        q = q.filter(bauble.meta.BaubleMeta.name.startswith('stqr'))
+        q = q.filter(bauble.meta.BaubleMeta.name.startswith("stqr"))
         name_tooltip_query = {
-            int(i.name[5:]): (i.value.split(':', 2))
-            for i in q.all()}
+            int(i.name[5:]): (i.value.split(":", 2)) for i in q.all()
+        }
         ssn.close()
 
         for i in range(1, 11):
             wname = "stqr_%02d_button" % i
             widget = getattr(self.widgets, wname)
             name, tooltip, query = name_tooltip_query.get(
-                i, (_('<empty>'), '', ''))
+                i, (_("<empty>"), "", "")
+            )
             widget.set_label(name)
             widget.set_tooltip_text(tooltip)
 
         self.name_tooltip_query = name_tooltip_query
 
         # LabelUpdater objects **can** run in a thread.
-        if 'GardenPlugin' in pluginmgr.plugins:
+        if "GardenPlugin" in pluginmgr.plugins:
             self.start_thread(
-                LabelUpdater(self.widgets.splash_nplttot,
-                             "select count(*) from plant"))
+                LabelUpdater(
+                    self.widgets.splash_nplttot, "select count(*) from plant"
+                )
+            )
             self.start_thread(
-                LabelUpdater(self.widgets.splash_npltuse,
-                             "select count(*) from plant where quantity>0"))
+                LabelUpdater(
+                    self.widgets.splash_npltuse,
+                    "select count(*) from plant where quantity>0",
+                )
+            )
             self.start_thread(
-                LabelUpdater(self.widgets.splash_npltnot,
-                             "select count(*) from plant where quantity=0"))
+                LabelUpdater(
+                    self.widgets.splash_npltnot,
+                    "select count(*) from plant where quantity=0",
+                )
+            )
             self.start_thread(
-                LabelUpdater(self.widgets.splash_nacctot,
-                             "select count(*) from accession"))
+                LabelUpdater(
+                    self.widgets.splash_nacctot,
+                    "select count(*) from accession",
+                )
+            )
             self.start_thread(
-                LabelUpdater(self.widgets.splash_naccuse,
-                             "select count(distinct accession.id) "
-                             "from accession "
-                             "join plant on plant.accession_id=accession.id "
-                             "where plant.quantity>0"))
+                LabelUpdater(
+                    self.widgets.splash_naccuse,
+                    "select count(distinct accession.id) "
+                    "from accession "
+                    "join plant on plant.accession_id=accession.id "
+                    "where plant.quantity>0",
+                )
+            )
             self.start_thread(
-                LabelUpdater(self.widgets.splash_naccnot,
-                             "select count(id) "
-                             "from accession "
-                             "where id not in "
-                             "(select accession_id from plant "
-                             " where plant.quantity>0)"))
+                LabelUpdater(
+                    self.widgets.splash_naccnot,
+                    "select count(id) "
+                    "from accession "
+                    "where id not in "
+                    "(select accession_id from plant "
+                    " where plant.quantity>0)",
+                )
+            )
             self.start_thread(
-                LabelUpdater(self.widgets.splash_nloctot,
-                             "select count(*) from location"))
+                LabelUpdater(
+                    self.widgets.splash_nloctot,
+                    "select count(*) from location",
+                )
+            )
             self.start_thread(
-                LabelUpdater(self.widgets.splash_nlocuse,
-                             "select count(distinct location.id) "
-                             "from location "
-                             "join plant on plant.location_id=location.id "
-                             "where plant.quantity>0"))
+                LabelUpdater(
+                    self.widgets.splash_nlocuse,
+                    "select count(distinct location.id) "
+                    "from location "
+                    "join plant on plant.location_id=location.id "
+                    "where plant.quantity>0",
+                )
+            )
             self.start_thread(
-                LabelUpdater(self.widgets.splash_nlocnot,
-                             "select count(id) "
-                             "from location "
-                             "where id not in "
-                             "(select location_id from plant "
-                             " where plant.quantity>0)"))
+                LabelUpdater(
+                    self.widgets.splash_nlocnot,
+                    "select count(id) "
+                    "from location "
+                    "where id not in "
+                    "(select location_id from plant "
+                    " where plant.quantity>0)",
+                )
+            )
 
         self.start_thread(
-            LabelUpdater(self.widgets.splash_nspcuse,
-                         "select count(distinct species.id) "
-                         "from species join accession "
-                         "on accession.species_id=species.id"))
+            LabelUpdater(
+                self.widgets.splash_nspcuse,
+                "select count(distinct species.id) "
+                "from species join accession "
+                "on accession.species_id=species.id",
+            )
+        )
         self.start_thread(
-            LabelUpdater(self.widgets.splash_ngenuse,
-                         "select count(distinct species.genus_id) "
-                         "from species join accession "
-                         "on accession.species_id=species.id"))
+            LabelUpdater(
+                self.widgets.splash_ngenuse,
+                "select count(distinct species.genus_id) "
+                "from species join accession "
+                "on accession.species_id=species.id",
+            )
+        )
         self.start_thread(
-            LabelUpdater(self.widgets.splash_nfamuse,
-                         "select count(distinct genus.family_id) from genus "
-                         "join species on species.genus_id=genus.id "
-                         "join accession on accession.species_id=species.id "))
+            LabelUpdater(
+                self.widgets.splash_nfamuse,
+                "select count(distinct genus.family_id) from genus "
+                "join species on species.genus_id=genus.id "
+                "join accession on accession.species_id=species.id ",
+            )
+        )
         self.start_thread(
-            LabelUpdater(self.widgets.splash_nspctot,
-                         "select count(*) from species"))
+            LabelUpdater(
+                self.widgets.splash_nspctot, "select count(*) from species"
+            )
+        )
         self.start_thread(
-            LabelUpdater(self.widgets.splash_ngentot,
-                         "select count(*) from genus"))
+            LabelUpdater(
+                self.widgets.splash_ngentot, "select count(*) from genus"
+            )
+        )
         self.start_thread(
-            LabelUpdater(self.widgets.splash_nfamtot,
-                         "select count(*) from family"))
+            LabelUpdater(
+                self.widgets.splash_nfamtot, "select count(*) from family"
+            )
+        )
         self.start_thread(
-            LabelUpdater(self.widgets.splash_nspcnot,
-                         "select count(id) from species "
-                         "where id not in "
-                         "(select distinct species.id "
-                         " from species join accession "
-                         " on accession.species_id=species.id)"))
+            LabelUpdater(
+                self.widgets.splash_nspcnot,
+                "select count(id) from species "
+                "where id not in "
+                "(select distinct species.id "
+                " from species join accession "
+                " on accession.species_id=species.id)",
+            )
+        )
         self.start_thread(
-            LabelUpdater(self.widgets.splash_ngennot,
-                         "select count(id) from genus "
-                         "where id not in "
-                         "(select distinct species.genus_id "
-                         " from species join accession "
-                         " on accession.species_id=species.id)"))
+            LabelUpdater(
+                self.widgets.splash_ngennot,
+                "select count(id) from genus "
+                "where id not in "
+                "(select distinct species.genus_id "
+                " from species join accession "
+                " on accession.species_id=species.id)",
+            )
+        )
         self.start_thread(
-            LabelUpdater(self.widgets.splash_nfamnot,
-                         "select count(id) from family "
-                         "where id not in "
-                         "(select distinct genus.family_id from genus "
-                         "join species on species.genus_id=genus.id "
-                         "join accession on accession.species_id=species.id)"))
+            LabelUpdater(
+                self.widgets.splash_nfamnot,
+                "select count(id) from family "
+                "where id not in "
+                "(select distinct genus.family_id from genus "
+                "join species on species.genus_id=genus.id "
+                "join accession on accession.species_id=species.id)",
+            )
+        )
 
     def on_sqb_clicked(self, btn_no, *args):
         try:
@@ -312,87 +401,117 @@ class SplashInfoBox(pluginmgr.View):
 
     def on_splash_stqr_button_clicked(self, *args):
         from .stored_queries import edit_callback
+
         edit_callback()
 
 
 class PlantsPlugin(pluginmgr.Plugin):
     tools = [TaxonomyCheckTool, StoredQueryEditorTool]
-    provides = {'Family': Family,
-                'FamilyNote': FamilyNote,
-                'Genus': Genus,
-                'GenusNote': GenusNote,
-                'Species': Species,
-                'SpeciesNote': SpeciesNote,
-                'VernacularName': VernacularName,
-                'GeographicArea': GeographicArea, }
+    provides = {
+        "Family": Family,
+        "FamilyNote": FamilyNote,
+        "Genus": Genus,
+        "GenusNote": GenusNote,
+        "Species": Species,
+        "SpeciesNote": SpeciesNote,
+        "VernacularName": VernacularName,
+        "GeographicArea": GeographicArea,
+    }
 
     @classmethod
     def init(cls):
         pluginmgr.provided.update(cls.provides)
-        if 'GardenPlugin' in pluginmgr.plugins:
+        if "GardenPlugin" in pluginmgr.plugins:
             species_context_menu.insert(1, add_accession_action)
             vernname_context_menu.insert(1, add_accession_action)
 
-        mapper_search = search.get_strategy('MapperSearch')
+        mapper_search = search.get_strategy("MapperSearch")
 
-        mapper_search.add_meta(('family', 'fam'), Family, ['epithet'])
-        SearchView.row_meta[Family].set(children="genera",
-                                        infobox=FamilyInfoBox,
-                                        context_menu=family_context_menu)
+        mapper_search.add_meta(("family", "fam"), Family, ["epithet"])
+        SearchView.row_meta[Family].set(
+            children="genera",
+            infobox=FamilyInfoBox,
+            context_menu=family_context_menu,
+        )
 
-        mapper_search.add_meta(('genus', 'gen'), Genus, ['epithet'])
-        SearchView.row_meta[Genus].set(children="species",
-                                       infobox=GenusInfoBox,
-                                       context_menu=genus_context_menu)
+        mapper_search.add_meta(("genus", "gen"), Genus, ["epithet"])
+        SearchView.row_meta[Genus].set(
+            children="species",
+            infobox=GenusInfoBox,
+            context_menu=genus_context_menu,
+        )
 
         from functools import partial
+
         search.add_strategy(SynonymSearch)
-        mapper_search.add_meta(('species', 'sp'), Species,
-                               ['epithet', 'sp2', 'infrasp1', 'infrasp2',
-                                'infrasp3', 'infrasp4'])
+        mapper_search.add_meta(
+            ("species", "sp"),
+            Species,
+            ["epithet", "sp2", "infrasp1", "infrasp2", "infrasp3", "infrasp4"],
+        )
         SearchView.row_meta[Species].set(
-            children=partial(db.natsort, 'accessions'),
+            children=partial(db.natsort, "accessions"),
             infobox=SpeciesInfoBox,
-            context_menu=species_context_menu)
+            context_menu=species_context_menu,
+        )
 
-        mapper_search.add_meta(('vernacular', 'vern', 'common'),
-                               VernacularName, ['name'])
+        mapper_search.add_meta(
+            ("vernacular", "vern", "common"), VernacularName, ["name"]
+        )
         SearchView.row_meta[VernacularName].set(
-            children=partial(db.natsort, 'species.accessions'),
+            children=partial(db.natsort, "species.accessions"),
             infobox=VernacularNameInfoBox,
-            context_menu=vernname_context_menu)
+            context_menu=vernname_context_menu,
+        )
 
-        mapper_search.add_meta(('geography', 'geo'), GeographicArea, ['name'])
+        mapper_search.add_meta(("geography", "geo"), GeographicArea, ["name"])
         SearchView.row_meta[GeographicArea].set(children=get_species_in_geographic_area)
 
         ## now it's the turn of the DefaultView
-        logger.debug('PlantsPlugin::init, registering splash info box')
+        logger.debug("PlantsPlugin::init, registering splash info box")
         DefaultView.infoboxclass = SplashInfoBox
 
         if bauble.gui is not None:
             base = os.path.join(paths.lib_dir(), "plugins", "plants")
-            bauble.gui.add_to_insert_menu(FamilyEditor, _('Family'), "wiki-family.png", base)
-            bauble.gui.add_to_insert_menu(GenusEditor, _('Genus'), "wiki-genus.png", base)
-            bauble.gui.add_to_insert_menu(SpeciesEditor, _('Species'), "wiki-species.png", base)
+            bauble.gui.add_to_insert_menu(
+                FamilyEditor, _("Family"), "wiki-family.png", base
+            )
+            bauble.gui.add_to_insert_menu(
+                GenusEditor, _("Genus"), "wiki-genus.png", base
+            )
+            bauble.gui.add_to_insert_menu(
+                SpeciesEditor, _("Species"), "wiki-species.png", base
+            )
 
         # suggest some useful defaults for stored queries
         import bauble.meta as meta
+
         session = db.Session()
-        default = 'false'
-        q = session.query(bauble.meta.BaubleMeta).filter(bauble.meta.BaubleMeta.name.startswith('stqr-'))
+        default = "false"
+        q = session.query(bauble.meta.BaubleMeta).filter(
+            bauble.meta.BaubleMeta.name.startswith("stqr-")
+        )
         for i in q.all():
             default = i.name
             session.delete(i)
             session.commit()
-        init_marker = meta.get_default('stqv_initialized', default, session)
-        if init_marker.value == 'false':
-            init_marker.value = 'true'
+        init_marker = meta.get_default("stqv_initialized", default, session)
+        if init_marker.value == "false":
+            init_marker.value = "true"
             for index, name, tooltip, query in [
-                    (9, _('history'), _('the history in this database'), ':history'),
-                    (10, _('preferences'), _('your user preferences'), ':prefs')]:
-                meta.get_default('stqr_%02d' % index,
-                                 "{}:{}:{}".format(name, tooltip, query),
-                                 session)
+                (
+                    9,
+                    _("history"),
+                    _("the history in this database"),
+                    ":history",
+                ),
+                (10, _("preferences"), _("your user preferences"), ":prefs"),
+            ]:
+                meta.get_default(
+                    "stqr_%02d" % index,
+                    "{}:{}:{}".format(name, tooltip, query),
+                    session,
+                )
             session.commit()
         session.close()
 
@@ -405,12 +524,20 @@ class PlantsPlugin(pluginmgr.Plugin):
         if not import_defaults:
             return
         path = os.path.join(paths.lib_dir(), "plugins", "plants", "default")
-        filenames = [os.path.join(path, f) for f in ('family.txt',
-                     'family_synonym.txt',
-                     'genus.txt', 'genus_synonym.txt', 'geographic_area.txt',
-                     'habit.txt')]
+        filenames = [
+            os.path.join(path, f)
+            for f in (
+                "family.txt",
+                "family_synonym.txt",
+                "genus.txt",
+                "genus_synonym.txt",
+                "geographic_area.txt",
+                "habit.txt",
+            )
+        ]
 
         from bauble.plugins.imex.csv_ import CSVImporter
+
         csv = CSVImporter()
         csv.start(filenames, metadata=db.metadata, force=True)
 

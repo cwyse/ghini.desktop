@@ -18,35 +18,35 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import logging
-
-logger = logging.getLogger(__name__)
-
 import os
-
-# TURN OFF desktop.open for this module so that the test doesn't open
-# the report
-import bauble.utils.desktop as desktop
-
-desktop.open = lambda x: x
-
 from unittest import TestCase
 
+import bauble.utils.desktop as desktop
 from bauble import utils
-from bauble.plugins.garden import Accession, Location, Plant
-from bauble.plugins.plants import (
-    Family,
-    Genus,
-    GeographicArea,
-    Species,
-    SpeciesDistribution,
-    VernacularName,
-)
-from bauble.plugins.report import PS, SVG, get_pertinent_objects
+from bauble.plugins.garden import Accession
+from bauble.plugins.garden import Location
+from bauble.plugins.garden import Plant
+from bauble.plugins.plants import Family
+from bauble.plugins.plants import Genus
+from bauble.plugins.plants import GeographicArea
+from bauble.plugins.plants import Species
+from bauble.plugins.plants import SpeciesDistribution
+from bauble.plugins.plants import VernacularName
+from bauble.plugins.report import get_pertinent_objects
+from bauble.plugins.report import PS
+from bauble.plugins.report import SVG
 from bauble.plugins.report.mako import MakoFormatterPlugin
 from bauble.plugins.report.utils import Code39
 from bauble.test import BaubleTestCase
+
+logger = logging.getLogger(__name__)
+
+
+# TURN OFF desktop.open for this module so that the test doesn't open
+# the report
+
+desktop.open = lambda x: x
 
 
 class MakoFormatterTests(BaubleTestCase):
@@ -73,7 +73,9 @@ class MakoFormatterTests(BaubleTestCase):
                     geo = GeographicArea(id=sctr, name="Mexico%s" % sctr)
                     dist = SpeciesDistribution(geographic_area_id=sctr)
                     sp.distribution.append(dist)
-                    vn = VernacularName(id=sctr, species=sp, name="name%s" % sctr)
+                    vn = VernacularName(
+                        id=sctr, species=sp, name="name%s" % sctr
+                    )
                     self.session.add_all([sp, geo, dist, vn])
                     for a in range(2):
                         actr += 1
@@ -102,7 +104,9 @@ class MakoFormatterTests(BaubleTestCase):
     def test_format_all_mako_templates_not_using_qr(self):
         selection = self.session.query(Plant).all()
         # td is this module name, minus mako/test, plus templates
-        td = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+        td = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "templates"
+        )
         for i, tn in enumerate(os.listdir(td)):
             if not tn.endswith(".mako"):
                 continue
@@ -121,7 +125,8 @@ class MakoFormatterTests(BaubleTestCase):
                     "location": Location,
                 }[domain]
                 todo = sorted(
-                    get_pertinent_objects(cls, selection), key=utils.natsort_key
+                    get_pertinent_objects(cls, selection),
+                    key=utils.natsort_key,
                 )
             except KeyError:
                 todo = selection
@@ -132,7 +137,9 @@ class MakoFormatterTests(BaubleTestCase):
     def test_format_qr_postscript_templates(self):
         selection = self.session.query(Plant).all()
         # td is this module name, minus mako/test, plus templates
-        td = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+        td = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "templates"
+        )
         for i, tn in enumerate(os.listdir(td)):
             if not tn.endswith(".mako"):
                 continue
@@ -148,17 +155,21 @@ class MakoFormatterTests(BaubleTestCase):
                 "species": Species,
                 "location": Location,
             }[domain]
-            todo = sorted(get_pertinent_objects(cls, selection), key=utils.natsort_key)
+            todo = sorted(
+                get_pertinent_objects(cls, selection), key=utils.natsort_key
+            )
             report = MakoFormatterPlugin.format(todo, template=filename)
             self.assertEqual((filename, type(report)), (filename, bytes))
 
     def test_format_qr_svg_templates(self):
-        from nose import SkipTest
+        pass
 
         # raise SkipTest("related to issue #363")
         plants = self.session.query(Plant).all()
         # td is this module name, minus mako/test, plus templates
-        td = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+        td = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "templates"
+        )
         for i, tn in enumerate(os.listdir(td)):
             if not tn.endswith(".mako"):
                 continue
@@ -168,9 +179,12 @@ class MakoFormatterTests(BaubleTestCase):
                 continue
             filename = os.path.join(td, tn)
             options = {
-                n: d for (n, t, d, p) in MakoFormatterPlugin.get_options(filename)
+                n: d
+                for (n, t, d, p) in MakoFormatterPlugin.get_options(filename)
             }
-            report = MakoFormatterPlugin.format(plants, template=filename, **options)
+            report = MakoFormatterPlugin.format(
+                plants, template=filename, **options
+            )
             self.assertEqual((filename, type(report)), (filename, bytes))
 
 
@@ -207,7 +221,9 @@ class PostscriptProductionTest(TestCase):
 
     def test_add_text_centred(self):
         g = PS.add_text(200, 0, "a", align=0.5)
-        self.assertEqual(g, "149.3 0.0 moveto\n" "<41>\n" "[ 101.3 ]\n" "xshow")
+        self.assertEqual(
+            g, "149.3 0.0 moveto\n" "<41>\n" "[ 101.3 ]\n" "xshow"
+        )
 
     def test_add_text_right_aligned(self):
         g = PS.add_text(200, 0, "a", align=1)
@@ -484,24 +500,32 @@ class QRCodeTests(BaubleTestCase):
         self.assertEqual(parts[2], "</g>")
 
     def test_can_get_qr_as_string_translated_framed(self):
-        g = SVG.add_qr(30, 10, "http://ghini.readthedocs.io/en/ghini-3.1-dev/", side=30)
+        g = SVG.add_qr(
+            30, 10, "http://ghini.readthedocs.io/en/ghini-3.1-dev/", side=30
+        )
         parts = g.split("\n")
         self.assertEqual(len(parts), 3)
         self.assertTrue(
-            parts[0].startswith('<g transform="translate(30,10)scale(0.731707317073')
+            parts[0].startswith(
+                '<g transform="translate(30,10)scale(0.731707317073'
+            )
         )
         self.assertEqual(parts[2], "</g>")
 
         g = SVG.add_qr(30, 10, "2014.0018.2", side=30)
         parts = g.split("\n")
         self.assertEqual(len(parts), 3)
-        self.assertEqual(parts[0], '<g transform="translate(30,10)scale(1.2)">')
+        self.assertEqual(
+            parts[0], '<g transform="translate(30,10)scale(1.2)">'
+        )
         self.assertEqual(parts[2], "</g>")
 
         g = SVG.add_qr(30, 10, "2014.0018", side=30)
         parts = g.split("\n")
         self.assertEqual(len(parts), 3)
         self.assertTrue(
-            parts[0].startswith('<g transform="translate(30,10)scale(1.4285714')
+            parts[0].startswith(
+                '<g transform="translate(30,10)scale(1.4285714'
+            )
         )
         self.assertEqual(parts[2], "</g>")

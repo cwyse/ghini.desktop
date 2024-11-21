@@ -22,29 +22,34 @@
 import logging
 import os
 import traceback
-
-from gi.repository import Gtk
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-from sqlalchemy import Column, Unicode, UnicodeText, text
-from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import relationship, validates
-from sqlalchemy.orm.session import object_session
+from gettext import gettext as _
 
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.utils as utils
-from bauble.editor import (
-    GenericEditorPresenter,
-    GenericEditorView,
-    GenericModelViewPresenterEditor,
-    NotesPresenter,
-    UnicodeOrNoneValidator,
-)
+from bauble.editor import GenericEditorPresenter
+from bauble.editor import GenericEditorView
+from bauble.editor import GenericModelViewPresenterEditor
+from bauble.editor import NotesPresenter
+from bauble.editor import UnicodeOrNoneValidator
 from bauble.view import Action
+from bauble.view import InfoBox
+from bauble.view import InfoExpander
+from bauble.view import MapInfoExpander
+from bauble.view import PropertiesExpander
+from gi.repository import Gtk
+from sqlalchemy import Column
+from sqlalchemy import text
+from sqlalchemy import Unicode
+from sqlalchemy import UnicodeText
+from sqlalchemy.exc import DBAPIError
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm import validates
+from sqlalchemy.orm.session import object_session
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def edit_callback(locations):
@@ -68,7 +73,8 @@ def remove_callback(locations):
     s = "{}: {}".format(loc.__class__.__name__, str(loc))
     if len(loc.plants) > 0:
         msg = _(
-            "Please remove the plants from <b>%(location)s</b> " "before deleting it."
+            "Please remove the plants from <b>%(location)s</b> "
+            "before deleting it."
         ) % {"location": loc}
         utils.message_dialog(msg, Gtk.MessageType.WARNING)
         return
@@ -148,7 +154,10 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
         if self.description is not None:
-            return (utils.xml_safe(str(self)), utils.xml_safe(str(self.description)))
+            return (
+                utils.xml_safe(str(self)),
+                utils.xml_safe(str(self.description)),
+            )
         else:
             return utils.xml_safe(str(self))
 
@@ -196,7 +205,9 @@ class Location(db.Base, db.Serializable, db.WithNotes):
         }
 
 
-LocationNote = db.make_note_class("Location", Location, compute_serializable_fields)
+LocationNote = db.make_note_class(
+    "Location", Location, compute_serializable_fields
+)
 Location.notes = relationship(
     "LocationNote",
     back_populates="location",
@@ -233,7 +244,9 @@ class LocationEditorView(GenericEditorView):
 
     def __init__(self, parent=None):
         super().__init__(
-            os.path.join(paths.lib_dir(), "plugins", "garden", "loc_editor.glade"),
+            os.path.join(
+                paths.lib_dir(), "plugins", "garden", "loc_editor.glade"
+            ),
             parent=parent,
         )
         self.use_ok_and_add = True
@@ -285,8 +298,12 @@ class LocationEditorPresenter(GenericEditorPresenter):
         self.refresh_view()  # put model values in view
 
         # connect signals
-        self.assign_simple_handler("loc_name_entry", "name", UnicodeOrNoneValidator())
-        self.assign_simple_handler("loc_code_entry", "code", UnicodeOrNoneValidator())
+        self.assign_simple_handler(
+            "loc_name_entry", "name", UnicodeOrNoneValidator()
+        )
+        self.assign_simple_handler(
+            "loc_code_entry", "code", UnicodeOrNoneValidator()
+        )
         self.assign_simple_handler(
             "loc_desc_textview", "description", UnicodeOrNoneValidator()
         )
@@ -314,7 +331,8 @@ class LocationEditorPresenter(GenericEditorPresenter):
         entry_widget = self.view.widgets.loc_merge_entry
         if self.has_problems(entry_widget):
             logger.warning(
-                "'%s' does not identify a valid location" % entry_widget.get_text()
+                "'%s' does not identify a valid location"
+                % entry_widget.get_text()
             )
             return
         logger.debug(
@@ -373,7 +391,9 @@ class LocationEditorPresenter(GenericEditorPresenter):
 
         # step 2: merge model and merger_candidate  `description` and `name`
         # fields, mark there's a problem to solve there.
-        self.view.widget_set_value("loc_code_entry", getattr(self.model, "code"))
+        self.view.widget_set_value(
+            "loc_code_entry", getattr(self.model, "code")
+        )
 
         buf = self.view.widgets.loc_desc_textview.get_buffer()
         self.view.widget_set_value(
@@ -465,8 +485,12 @@ class LocationEditor(GenericModelViewPresenterEditor):
                     self.commit_changes()
                 self._committed.append(self.model)
             except DBAPIError as e:
-                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(e.orig)
-                utils.message_details_dialog(msg, str(e), Gtk.MessageType.ERROR)
+                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(
+                    e.orig
+                )
+                utils.message_details_dialog(
+                    msg, str(e), Gtk.MessageType.ERROR
+                )
                 self.session.rollback()
                 return False
             except Exception as e:
@@ -522,9 +546,6 @@ class LocationEditor(GenericModelViewPresenterEditor):
         return self._committed
 
 
-from bauble.view import InfoBox, InfoExpander, MapInfoExpander, PropertiesExpander
-
-
 class GeneralLocationExpander(InfoExpander):
 
     def __init__(self, widgets):
@@ -539,7 +560,9 @@ class GeneralLocationExpander(InfoExpander):
             cmd = 'plant where location.code="%s"' % self.current_obj.code
             bauble.gui.send_command(cmd)
 
-        utils.make_label_clickable(self.widgets.loc_nplants_data, on_nplants_clicked)
+        utils.make_label_clickable(
+            self.widgets.loc_nplants_data, on_nplants_clicked
+        )
 
     def update(self, row):
         """ """
@@ -547,7 +570,9 @@ class GeneralLocationExpander(InfoExpander):
         from bauble.plugins.garden.plant import Plant
 
         self.widget_set_value(
-            "loc_name_data", "<big>%s</big>" % utils.xml_safe(str(row)), markup=True
+            "loc_name_data",
+            "<big>%s</big>" % utils.xml_safe(str(row)),
+            markup=True,
         )
         session = object_session(row)
         nplants = session.query(Plant).filter_by(location_id=row.id).count()

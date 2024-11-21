@@ -15,19 +15,20 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
 import os
 
+import bauble
+import bauble.prefs as prefs
+from bauble.connmgr import ConnMgrPresenter
+from bauble.editor import MockDialog
+from bauble.editor import MockView
+from bauble.test import BaubleTestCase
+from bauble.test import check_dupids
 from gi.repository import Gtk
-
-## just keeping it here because I am forgetful and I never recall how to
-## import SkipTest otherwise! and commented out because of FlyCheck.
 from nose import SkipTest
 
-from bauble.connmgr import ConnMgrPresenter
-from bauble.editor import MockDialog, MockView
-from bauble.test import BaubleTestCase, check_dupids
+# just keeping it here because I am forgetful and I never recall how to
+# import SkipTest otherwise! and commented out because of FlyCheck.
 
 
 def test_duplicate_ids():
@@ -39,9 +40,6 @@ def test_duplicate_ids():
     head, tail = os.path.split(mod.__file__)
     assert not check_dupids(os.path.join(head, "connmgr.glade"))
 
-
-import bauble
-import bauble.prefs as prefs
 
 prefs.testing = True
 
@@ -75,7 +73,9 @@ class ConnMgrPresenterTests(BaubleTestCase):
         presenter = ConnMgrPresenter(view)
         # T_0
         self.assertTrue(presenter.view.widget_get_visible("expander"))
-        self.assertFalse(presenter.view.widget_get_visible("noconnectionlabel"))
+        self.assertFalse(
+            presenter.view.widget_get_visible("noconnectionlabel")
+        )
         # action
         presenter.remove_connection("nugkui")
         # T_1
@@ -95,9 +95,11 @@ class ConnMgrPresenterTests(BaubleTestCase):
         presenter = ConnMgrPresenter(view)
         presenter.view.reply_yes_no_dialog.append(False)
         presenter.on_remove_button_clicked("button")
-        ## nothing changes
+        # nothing changes
         self.assertTrue(presenter.view.widget_get_visible("expander"))
-        self.assertFalse(presenter.view.widget_get_visible("noconnectionlabel"))
+        self.assertFalse(
+            presenter.view.widget_get_visible("noconnectionlabel")
+        )
 
     def test_one_connection_on_remove_confirm_positive(self):
         view = MockView(combos={"name_combo": [], "type_combo": []})
@@ -112,7 +114,7 @@ class ConnMgrPresenterTests(BaubleTestCase):
         presenter = ConnMgrPresenter(view)
         presenter.view.reply_yes_no_dialog.append(True)
         presenter.on_remove_button_clicked("button")
-        ## visibility swapped
+        # visibility swapped
         self.assertFalse(presenter.view.widget_get_visible("expander"))
         self.assertTrue(presenter.view.widget_get_visible("noconnectionlabel"))
 
@@ -181,9 +183,11 @@ class ConnMgrPresenterTests(BaubleTestCase):
         presenter = ConnMgrPresenter(view)
         presenter.view.reply_yes_no_dialog.append(True)
         presenter.on_remove_button_clicked("button")
-        ## visibility same
+        # visibility same
         self.assertTrue(presenter.view.widget_get_visible("expander"))
-        self.assertFalse(presenter.view.widget_get_visible("noconnectionlabel"))
+        self.assertFalse(
+            presenter.view.widget_get_visible("noconnectionlabel")
+        )
         self.assertTrue("combobox_set_active" in view.invoked)
 
     def test_one_connection_shown_and_selected_sqlite(self):
@@ -200,7 +204,9 @@ class ConnMgrPresenterTests(BaubleTestCase):
         presenter = ConnMgrPresenter(view)
         self.assertEqual(presenter.connection_name, "nugkui")
         self.assertTrue(presenter.view.widget_get_visible("expander"))
-        self.assertFalse(presenter.view.widget_get_visible("noconnectionlabel"))
+        self.assertFalse(
+            presenter.view.widget_get_visible("noconnectionlabel")
+        )
 
     def test_one_connection_shown_and_selected_postgresql(self):
         view = MockView(combos={"name_combo": [], "type_combo": []})
@@ -220,7 +226,9 @@ class ConnMgrPresenterTests(BaubleTestCase):
         self.assertTrue(presenter.view.widget_get_visible("expander"))
         self.assertTrue(presenter.view.widget_get_visible("dbms_parambox"))
         self.assertFalse(presenter.view.widget_get_visible("sqlite_parambox"))
-        self.assertFalse(presenter.view.widget_get_visible("noconnectionlabel"))
+        self.assertFalse(
+            presenter.view.widget_get_visible("noconnectionlabel")
+        )
 
     def test_one_connection_shown_and_selected_oracle(self):
         view = MockView(combos={"name_combo": [], "type_combo": []})
@@ -240,7 +248,9 @@ class ConnMgrPresenterTests(BaubleTestCase):
         self.assertTrue(presenter.view.widget_get_visible("expander"))
         self.assertTrue(presenter.view.widget_get_visible("dbms_parambox"))
         self.assertFalse(presenter.view.widget_get_visible("sqlite_parambox"))
-        self.assertFalse(presenter.view.widget_get_visible("noconnectionlabel"))
+        self.assertFalse(
+            presenter.view.widget_get_visible("noconnectionlabel")
+        )
 
     def test_two_connections_wrong_default_use_first_one(self):
         view = MockView(combos={"name_combo": [], "type_combo": []})
@@ -297,7 +307,7 @@ class ConnMgrPresenterTests(BaubleTestCase):
         self.assertEqual(presenter.connection_name, "quisquis")
         presenter.refresh_view()  # in reality this is triggered by gtk view
         self.assertEqual(presenter.dbtype, "PostgreSQL")
-        ## if the above succeeds, the following is riggered by the view!
+        # if the above succeeds, the following is riggered by the view!
         # presenter.on_combo_changed('type_combo', 'PostgreSQL')
         # T_1
         self.assertTrue(presenter.view.widget_get_visible("dbms_parambox"))
@@ -374,7 +384,9 @@ class ConnMgrPresenterTests(BaubleTestCase):
             "file": "/tmp/test.db",
             "pictures": "/tmp/",
         }
-        self.assertEqual(presenter.parameters_to_uri(params), "sqlite:////tmp/test.db")
+        self.assertEqual(
+            presenter.parameters_to_uri(params), "sqlite:////tmp/test.db"
+        )
         params = {
             "type": "PostgreSQL",
             "passwd": False,
@@ -384,7 +396,8 @@ class ConnMgrPresenterTests(BaubleTestCase):
             "user": "pg",
         }
         self.assertEqual(
-            presenter.parameters_to_uri(params), "postgresql://pg@localhost/quisquis"
+            presenter.parameters_to_uri(params),
+            "postgresql://pg@localhost/quisquis",
         )
         params = {
             "type": "PostgreSQL",
@@ -457,7 +470,7 @@ class ConnMgrPresenterTests(BaubleTestCase):
         presenter = ConnMgrPresenter(view)
         self.assertEqual(presenter.connection_name, "quisquis")
         self.assertEqual(presenter.dbtype, "PostgreSQL")
-        ## we need trigger all signals that would go by gtk
+        # we need trigger all signals that would go by gtk
         p = presenter.connections[presenter.connection_name]
         presenter.view.widget_set_value("database_entry", p["db"])
         presenter.on_text_entry_changed("database_entry")
@@ -465,7 +478,9 @@ class ConnMgrPresenterTests(BaubleTestCase):
         presenter.on_text_entry_changed("user_entry")
         presenter.view.widget_set_value("host_entry", p["host"])
         presenter.on_text_entry_changed("host_entry")
-        self.assertEqual(presenter.connection_uri, "postgresql://pg@localhost/quisquis")
+        self.assertEqual(
+            presenter.connection_uri, "postgresql://pg@localhost/quisquis"
+        )
 
 
 class AddConnectionTests(BaubleTestCase):
@@ -476,7 +491,7 @@ class AddConnectionTests(BaubleTestCase):
         presenter = ConnMgrPresenter(view)
         presenter.view.reply_entry_dialog.append("")
         presenter.on_add_button_clicked("button")
-        ## nothing changes
+        # nothing changes
         self.assertFalse(presenter.view.widget_get_visible("expander"))
         self.assertFalse(presenter.view.widget_get_sensitive("connect_button"))
         self.assertTrue(presenter.view.widget_get_visible("noconnectionlabel"))
@@ -488,10 +503,12 @@ class AddConnectionTests(BaubleTestCase):
         presenter.view.reply_entry_dialog.append("conn_name")
         presenter.on_add_button_clicked("button")
         presenter.refresh_view()  # this is done by gtk
-        ## visibility swapped
+        # visibility swapped
         self.assertTrue(presenter.view.widget_get_visible("expander"))
         self.assertTrue(presenter.view.widget_get_sensitive("connect_button"))
-        self.assertFalse(presenter.view.widget_get_visible("noconnectionlabel"))
+        self.assertFalse(
+            presenter.view.widget_get_visible("noconnectionlabel")
+        )
 
     def test_one_connection_on_add_confirm_positive(self):
         view = MockView(combos={"name_combo": [], "type_combo": []})
@@ -659,15 +676,15 @@ class OnDialogResponseTests(BaubleTestCase):
         prefs.prefs[bauble.conn_default_pref] = "nugkui"
         view.reply_file_chooser_dialog = []
         presenter = ConnMgrPresenter(view)
-        ## change something
+        # change something
         view.widget_set_value("usedefaults_chkbx", True)
         presenter.on_usedefaults_chkbx_toggled("usedefaults_chkbx")
-        ## press escape
+        # press escape
         dialog = MockDialog()
         view.reply_yes_no_dialog = [True]
         view.invoked = []
         presenter.on_dialog_response(dialog, Gtk.ResponseType.CANCEL)
-        ## question was asked whether to save
+        # question was asked whether to save
         self.assertFalse("run_message_dialog" in view.invoked)
         self.assertTrue("run_yes_no_dialog" in view.invoked)
         self.assertTrue(dialog.hidden)

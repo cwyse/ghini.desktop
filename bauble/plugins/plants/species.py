@@ -18,20 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
-
-
 import logging
-
-from gi.repository import Gtk
-
-logger = logging.getLogger(__name__)
-
-logger.setLevel(logging.INFO)
-
 import os
 import traceback
-
-from sqlalchemy.orm.session import object_session
+from gettext import gettext as _
 
 import bauble
 import bauble.db as db
@@ -40,22 +30,31 @@ import bauble.pluginmgr as pluginmgr
 import bauble.search as search
 import bauble.utils as utils
 import bauble.view as view
-from bauble.plugins.plants.species_editor import (
-    SpeciesDistribution,
-    SpeciesEditor,
-    SpeciesEditorPresenter,
-    SpeciesEditorView,
-    edit_species,
-)
-from bauble.plugins.plants.species_model import (
-    DefaultVernacularName,
-    Species,
-    SpeciesNote,
-    SpeciesSynonym,
-    VernacularName,
-)
+from bauble.plugins.plants.species_editor import edit_species
+from bauble.plugins.plants.species_editor import SpeciesDistribution
+from bauble.plugins.plants.species_editor import SpeciesEditor
+from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
+from bauble.plugins.plants.species_editor import SpeciesEditorView
+from bauble.plugins.plants.species_model import DefaultVernacularName
+from bauble.plugins.plants.species_model import Species
+from bauble.plugins.plants.species_model import SpeciesNote
+from bauble.plugins.plants.species_model import SpeciesSynonym
+from bauble.plugins.plants.species_model import VernacularName
 from bauble.prefs import prefs
-from bauble.view import Action, PropertiesExpander
+from bauble.view import Action
+from bauble.view import InfoBox
+from bauble.view import InfoExpander
+from bauble.view import PropertiesExpander
+from bauble.view import select_in_search_results
+from gi.repository import Gtk
+from sqlalchemy.orm.session import object_session
+
+pass
+
+logger = logging.getLogger(__name__)
+
+logger.setLevel(logging.INFO)
+
 
 SpeciesDistribution  # will be imported by clients of this module
 SpeciesEditorPresenter, SpeciesEditorView, SpeciesEditor, edit_species,
@@ -92,7 +91,10 @@ def remove_callback(values):
         utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
         return
     else:
-        msg = _("Are you sure you want to remove the species <i>%s</i>?") % safe_str
+        msg = (
+            _("Are you sure you want to remove the species <i>%s</i>?")
+            % safe_str
+        )
     if not utils.yes_no_dialog(msg):
         return
     try:
@@ -141,9 +143,6 @@ species_context_menu = [edit_action, remove_action]
 vernname_context_menu = [edit_action]
 
 
-from bauble.view import InfoBox, InfoBoxPage, InfoExpander, select_in_search_results
-
-
 class SynonymSearch(search.SearchStrategy):
     """
     Return any synonyms for matching species.
@@ -175,7 +174,9 @@ class SynonymSearch(search.SearchStrategy):
             # synonym of something else, include that something else. that
             # is, the accepted name.
             if isinstance(result, Species):
-                q = session.query(SpeciesSynonym).filter_by(synonym_id=result.id)
+                q = session.query(SpeciesSynonym).filter_by(
+                    synonym_id=result.id
+                )
                 results.extend([syn.species for syn in q])
             elif isinstance(result, Genus):
                 q = session.query(GenusSynonym).filter_by(synonym_id=result.id)
@@ -220,7 +221,9 @@ class VernacularExpander(InfoExpander):
                     row.default_vernacular_name is not None
                     and vn == row.default_vernacular_name
                 ):
-                    names.insert(0, "%s - %s (default)" % (vn.name, vn.language))
+                    names.insert(
+                        0, "%s - %s (default)" % (vn.name, vn.language)
+                    )
                 else:
                     names.append("%s - %s" % (vn.name, vn.language))
             self.widget_set_value("sp_vernacular_data", "\n".join(names))
@@ -259,7 +262,10 @@ class SynonymsExpander(InfoExpander):
             % (row, accepted, row.synonyms)
         )
         self.set_label(_("Synonyms"))  # reset default value
-        on_label_clicked = lambda l, e, syn: select_in_search_results(syn)
+
+        def on_label_clicked(l, e, syn):
+            return select_in_search_results(syn)
+
         if accepted is not None:
             self.set_label(_("Accepted name"))
             # create clickable label that will select the synonym
@@ -328,7 +334,9 @@ class GeneralSpeciesExpander(InfoExpander):
             cmd = "plant where accession.species.id=%s" % self.current_obj.id
             bauble.gui.send_command(cmd)
 
-        utils.make_label_clickable(self.widgets.sp_nplants_data, on_nplants_clicked)
+        utils.make_label_clickable(
+            self.widgets.sp_nplants_data, on_nplants_clicked
+        )
 
     def update(self, row):
         """
@@ -338,18 +346,25 @@ class GeneralSpeciesExpander(InfoExpander):
         """
         self.current_obj = row
         session = object_session(row)
+
         # link function
-        on_label_clicked = lambda l, e, x: select_in_search_results(x)
+        def on_label_clicked(l, e, x):
+            return select_in_search_results(x)
+
         # Link to family
         self.widget_set_value(
-            "sp_fam_data", "<small>(%s)</small>" % row.genus.family.epithet, markup=True
+            "sp_fam_data",
+            "<small>(%s)</small>" % row.genus.family.epithet,
+            markup=True,
         )
         utils.make_label_clickable(
             self.widgets.sp_fam_data, on_label_clicked, row.genus.family
         )
         # link to genus
         self.widget_set_value(
-            "sp_gen_data", "<big><i>%s</i></big>" % row.genus.genus, markup=True
+            "sp_gen_data",
+            "<big><i>%s</i></big>" % row.genus.genus,
+            markup=True,
         )
         utils.make_label_clickable(
             self.widgets.sp_gen_data, on_label_clicked, row.genus
@@ -426,7 +441,8 @@ class GeneralSpeciesExpander(InfoExpander):
                 .count()
             )
             self.widget_set_value(
-                "sp_nplants_data", "%s in %s accessions" % (nplants, nacc_in_plants)
+                "sp_nplants_data",
+                "%s in %s accessions" % (nplants, nacc_in_plants),
             )
 
         living_plants = sum(
@@ -465,14 +481,18 @@ class SpeciesInfoBox(InfoBox):
                 "_base_uri": "http://www.gbif.org/species/search?q=%s",
                 "_space": "+",
                 "title": _("Search GBIF"),
-                "tooltip": _("Search the Global Biodiversity Information Facility"),
+                "tooltip": _(
+                    "Search the Global Biodiversity Information Facility"
+                ),
             },
             {
                 "name": "ITISButton",
                 "_base_uri": "http://www.itis.gov/servlet/SingleRpt/SingleRpt?search_topic=Scientific_Name&search_value=%s&search_kingdom=Plant&search_span=containing&categories=All&source=html&search_credRating=All",
                 "_space": "%20",
                 "title": _("Search ITIS"),
-                "tooltip": _("Search the Intergrated Taxonomic Information System"),
+                "tooltip": _(
+                    "Search the Intergrated Taxonomic Information System"
+                ),
             },
             {
                 "name": "GRINButton",
@@ -507,7 +527,9 @@ class SpeciesInfoBox(InfoBox):
                 "_base_uri": "http://www.bgci.org/plant_search.php?action=Find&ftrGenus=%(genus.genus)s&ftrRedList=&ftrSpecies=%(sp)s&ftrRedList1997=&ftrEpithet=&ftrCWR=&x=0&y=0#results",
                 "_space": " ",
                 "title": _("Search BGCI"),
-                "tooltip": _("Search Botanic Gardens Conservation International"),
+                "tooltip": _(
+                    "Search Botanic Gardens Conservation International"
+                ),
             },
             {
                 "name": "TPLButton",
@@ -525,7 +547,9 @@ class SpeciesInfoBox(InfoBox):
             },
         ]
         super().__init__()
-        filename = os.path.join(paths.lib_dir(), "plugins", "plants", "infoboxes.glade")
+        filename = os.path.join(
+            paths.lib_dir(), "plugins", "plants", "infoboxes.glade"
+        )
         # load the widgets directly instead of using BuilderWidgets()
         # because the caching that BuilderWidgets() does can mess up
         # displaying the SpeciesInfoBox sometimes if you try to show
@@ -568,7 +592,9 @@ class VernacularNameInfoBox(SpeciesInfoBox):
 
     def update(self, row):
         logger.info(
-            "VernacularNameInfoBox.update {}({})".format(row.__class__.__name__, row)
+            "VernacularNameInfoBox.update {}({})".format(
+                row.__class__.__name__, row
+            )
         )
         if isinstance(row, VernacularName):
             super().update(row.species)

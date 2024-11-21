@@ -15,17 +15,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import csv
 import difflib
 import logging
+import threading
 
 import requests
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-import threading
 
 
 class AskTPL(threading.Thread):
@@ -44,12 +42,15 @@ class AskTPL(threading.Thread):
     ):
         super().__init__(group=group, target=None, name=None)
         logger.debug(
-            "new %s, already running %s.", self.name, self.running and self.running.name
+            "new %s, already running %s.",
+            self.name,
+            self.running and self.running.name,
         )
         if self.running is not None:
             if self.running.binomial == binomial:
                 logger.debug(
-                    "already requesting %s, ignoring repeated request", binomial
+                    "already requesting %s, ignoring repeated request",
+                    binomial,
                 )
                 binomial = None
             else:
@@ -77,7 +78,9 @@ class AskTPL(threading.Thread):
     def run(self):
         def ask_tpl(binomial):
             result = requests.get(
-                "http://www.theplantlist.org/tpl1.1/search?q=" + binomial + "&csv=true",
+                "http://www.theplantlist.org/tpl1.1/search?q="
+                + binomial
+                + "&csv=true",
                 timeout=self.timeout,
             )
             logger.debug(result.text)
@@ -152,7 +155,10 @@ class AskTPL(threading.Thread):
 
             logger.warning(traceback.format_exc())
             logger.debug(
-                "%s (%s)%s : completed with trouble", self.name, type(e).__name__, e
+                "%s (%s)%s : completed with trouble",
+                self.name,
+                type(e).__name__,
+                e,
             )
             self.__class__.running = None
             found = accepted = None

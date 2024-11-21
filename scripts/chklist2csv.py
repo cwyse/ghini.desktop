@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import csv
 import re
 import sys
@@ -8,9 +7,7 @@ data_dir = "/home/brett/devel/bauble/data/"
 families_file = data_dir + "csv/Family.txt"
 genera_file = data_dir + "csv/Genera.txt"
 checklist_file = data_dir + "old/belize_plants.txt"
-species_columns = (
-    '"genusID","sp","sp_author","infrasp_rank","infrasp","infrasp_author","sp_hybrid"'
-)
+species_columns = '"genusID","sp","sp_author","infrasp_rank","infrasp","infrasp_author","sp_hybrid"'
 
 # synonyms to use for the checklist genera
 # generic_synonyms = {'Adenocalymna', Adenocalymma Mart. ex Meisn.
@@ -20,7 +17,12 @@ species_columns = (
 # to contruct the object
 class Plant:
     def __init__(
-        self, genus=None, species=None, infrasp_rank=None, infrasp=None, cv=None
+        self,
+        genus=None,
+        species=None,
+        infrasp_rank=None,
+        infrasp=None,
+        cv=None,
     ):
         self.genus = genus or ""
         self.species = species or ""
@@ -40,7 +42,9 @@ class Plant:
         # look for .sp, meaning it is not identified and should only
         # set the genus
         if speciesPart.find(" sp.") != -1:
-            self.genus = re.match(r"(?P<genus>[\w]*)\s+", speciesPart).group("genus")
+            self.genus = re.match(r"(?P<genus>[\w]*)\s+", speciesPart).group(
+                "genus"
+            )
             return
 
         m = re.match(
@@ -216,7 +220,9 @@ for gen, sp in list(missing.items()):
 
 
 if len(bad_lines) > 0:
-    sys.stderr.write("******* could do anything with the following lines: *******\n")
+    sys.stderr.write(
+        "******* could do anything with the following lines: *******\n"
+    )
 for b in bad_lines:
     sys.stderr.write(b + "\n")
     # print b

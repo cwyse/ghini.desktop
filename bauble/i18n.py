@@ -24,7 +24,6 @@
 #
 # internationalization support
 #
-
 """
 The i18n module defines the _() function for creating translatable strings.
 
@@ -32,16 +31,18 @@ _() is added to the Python builtins so there is no reason to import
 this module more than once in an application.  It is usually imported
 in :mod:`bauble`
 """
-
+import builtins
 import gettext
 import locale
 import os
+import sys
 
-# the following has effect on Windows: to set the environment variables as
-# on an operating system. operating systems don't need it.
 import bauble.gettext_windows
 import bauble.paths as paths
 from bauble import version_tuple
+
+# the following has effect on Windows: to set the environment variables as
+# on an operating system. operating systems don't need it.
 
 bauble.gettext_windows.setup_env()
 
@@ -74,7 +75,6 @@ langs += ["en"]
 # use.  First we check the default, then what the system told us, and
 # finally the 'known' list
 
-import sys
 
 if sys.platform in ["win32", "darwin"]:
     locale = gettext
@@ -89,6 +89,5 @@ lang = gettext.translation(
 # associate this module's as well as the global `_` functions (we marked our
 # translatable strings with it) to lang.gettext(), which translates them.
 _ = lang.gettext
-import builtins
 
 builtins._ = lang.gettext

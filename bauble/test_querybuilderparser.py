@@ -14,11 +14,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
-from nose import SkipTest
-
 from bauble.test import BaubleTestCase
+from nose import SkipTest
 
 from .querybuilderparser import BuiltQuery
 
@@ -59,7 +56,9 @@ class QBP(BaubleTestCase):
         self.assertEqual(query.domain, "plant")
 
     def test_clauses_have_fields(self):
-        query = BuiltQuery("genus WHERE epithet=Inga or family.epithet=Poaceae")
+        query = BuiltQuery(
+            "genus WHERE epithet=Inga or family.epithet=Poaceae"
+        )
         self.assertEqual(len(query.clauses), 2)
         self.assertEqual(query.clauses[0].connector, None)
         self.assertEqual(query.clauses[1].connector, "or")
@@ -111,7 +110,9 @@ class QBP(BaubleTestCase):
 
     def test_is_only_usable_clauses(self):
         # valid query, but not for the query builder
-        query = BuiltQuery("species WHERE genus.epithet=Inga or count(accessions.id)>4")
+        query = BuiltQuery(
+            "species WHERE genus.epithet=Inga or count(accessions.id)>4"
+        )
         print(query.parsed)
         self.assertEqual(query.is_valid, True)
         self.assertEqual(len(query.clauses), 1)
@@ -125,7 +126,9 @@ class QBP(BaubleTestCase):
     def test_be_able_to_skip_first_query_if_invalid(self):
         # valid query, but not for the query builder
         raise SkipTest("we can't do that without rewriting the grammar")
-        query = BuiltQuery("species WHERE count(accessions.id)>4 or genus.epithet=Inga")
+        query = BuiltQuery(
+            "species WHERE count(accessions.id)>4 or genus.epithet=Inga"
+        )
         print((query, query.clauses))
         self.assertEqual(query.is_valid, True)
         self.assertEqual(len(query.clauses), 1)

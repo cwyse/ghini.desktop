@@ -16,16 +16,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import logging
+from tempfile import mkstemp
+
+from bauble import prefs
+from bauble import version_tuple
+from bauble.test import BaubleTestCase
 
 logger = logging.getLogger(__name__)
 
-
-from tempfile import mkstemp
-
-from bauble import prefs, version_tuple
-from bauble.test import BaubleTestCase
 
 prefs.testing = True
 

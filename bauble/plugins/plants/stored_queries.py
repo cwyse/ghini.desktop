@@ -16,18 +16,23 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
-
 import logging
+import os.path
+from gettext import gettext as _
 
-from gi.repository import Gtk, Pango
+import bauble
+from bauble import db
+from bauble import editor
+from bauble import meta
+from bauble import paths
+from bauble import pluginmgr
+from gi.repository import Pango
+
+pass
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-import os.path
-
-import bauble
-from bauble import db, editor, meta, paths, pluginmgr
 
 
 class StoredQueriesModel:
@@ -58,9 +63,13 @@ class StoredQueriesModel:
         ssn = db.Session()
         for index in range(1, 11):
             if self.__label[index] == "":
-                ssn.query(meta.BaubleMeta).filter_by(name="stqr_%02d" % index).delete()
+                ssn.query(meta.BaubleMeta).filter_by(
+                    name="stqr_%02d" % index
+                ).delete()
             else:
-                obj = db.get_or_create(ssn, meta.BaubleMeta, name="stqr_%02d" % index)
+                obj = db.get_or_create(
+                    ssn, meta.BaubleMeta, name="stqr_%02d" % index
+                )
                 if obj.value != self[index]:
                     obj.value = self[index]
         ssn.commit()
@@ -138,7 +147,9 @@ class StoredQueriesPresenter(editor.GenericEditorPresenter):
             bname = "stqr_%02d_button" % i
             lname = "stqr_%02d_label" % i
             self.view.widget_set_active(bname, i == self.model.page)
-            self.view.widget_set_attributes(lname, self.weight[i == self.model.page])
+            self.view.widget_set_attributes(
+                lname, self.weight[i == self.model.page]
+            )
 
     def refresh_view(self):
         super().refresh_view()
@@ -172,7 +183,9 @@ class StoredQueriesPresenter(editor.GenericEditorPresenter):
 def edit_callback():
     session = db.Session()
     view = editor.GenericEditorView(
-        os.path.join(paths.lib_dir(), "plugins", "plants", "stored_queries.glade"),
+        os.path.join(
+            paths.lib_dir(), "plugins", "plants", "stored_queries.glade"
+        ),
         parent=None,
         root_widget_name="stqr_dialog",
     )

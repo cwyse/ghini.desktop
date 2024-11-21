@@ -15,24 +15,34 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
+import json
 import logging
 import os
-
-from gi.repository import Gtk
-
-logger = logging.getLogger(__name__)
-
-
-import json
+from gettext import gettext as _
 
 import bauble.task
-from bauble import db, editor, paths, pb_set_fraction, pluginmgr, utils
-from bauble.plugins.garden.accession import Accession, AccessionNote
+from bauble import db
+from bauble import editor
+from bauble import paths
+from bauble import pb_set_fraction
+from bauble import pluginmgr
+from bauble.plugins.garden.accession import Accession
+from bauble.plugins.garden.accession import AccessionNote
 from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.plant import Plant, PlantNote
-from bauble.plugins.garden.source import Contact, Source
-from bauble.plugins.plants import Familia, Genus, Species, SpeciesNote, VernacularName
+from bauble.plugins.garden.plant import Plant
+from bauble.plugins.garden.plant import PlantNote
+from bauble.plugins.plants import Familia
+from bauble.plugins.plants import Genus
+from bauble.plugins.plants import Species
+from bauble.plugins.plants import SpeciesNote
+from bauble.plugins.plants import VernacularName
+from gi.repository import Gtk
+
+pass
+pass
+pass
+
+logger = logging.getLogger(__name__)
 
 
 def serializedatetime(obj):
@@ -131,7 +141,9 @@ class JSONExporter(editor.GenericEditorPresenter):
                 plantnotes = (
                     self.session.query(PlantNote)
                     .filter(
-                        PlantNote.plant_id.in_(bindparam("plant_ids", expanding=True))
+                        PlantNote.plant_id.in_(
+                            bindparam("plant_ids", expanding=True)
+                        )
                     )
                     .params(plant_ids=plants)
                     .all()
@@ -151,9 +163,15 @@ class JSONExporter(editor.GenericEditorPresenter):
                     .all()
                 )
 
-            return result + vernacular + plantnotes + accessionnotes + speciesnotes
+            return (
+                result
+                + vernacular
+                + plantnotes
+                + accessionnotes
+                + speciesnotes
+            )
 
-        ## export disregarding selection
+        # export disregarding selection
         result = []
         if self.selection_based_on == "sbo_plants":
             plant_query = (
@@ -173,7 +191,11 @@ class JSONExporter(editor.GenericEditorPresenter):
             # Plant notes with bindparam for dynamic expansion
             plantnotes = (
                 self.session.query(PlantNote)
-                .filter(PlantNote.plant_id.in_(bindparam("plant_ids", expanding=True)))
+                .filter(
+                    PlantNote.plant_id.in_(
+                        bindparam("plant_ids", expanding=True)
+                    )
+                )
                 .params(plant_ids=[j.id for j in plants])
                 .all()
             )
@@ -181,7 +203,9 @@ class JSONExporter(editor.GenericEditorPresenter):
             # Locations with bindparam for dynamic expansion
             locations = (
                 self.session.query(Location)
-                .filter(Location.id.in_(bindparam("location_ids", expanding=True)))
+                .filter(
+                    Location.id.in_(bindparam("location_ids", expanding=True))
+                )
                 .params(location_ids=[j.location_id for j in plants])
                 .all()
             )
@@ -189,7 +213,11 @@ class JSONExporter(editor.GenericEditorPresenter):
             # Accessions with bindparam for dynamic expansion
             accessions = (
                 self.session.query(Accession)
-                .filter(Accession.id.in_(bindparam("accession_ids", expanding=True)))
+                .filter(
+                    Accession.id.in_(
+                        bindparam("accession_ids", expanding=True)
+                    )
+                )
                 .params(accession_ids=[j.accession_id for j in plants])
                 .order_by(Accession.code)
                 .all()
@@ -208,7 +236,9 @@ class JSONExporter(editor.GenericEditorPresenter):
             )
 
             # All unique contacts, no bindparam needed as it's a set operation
-            contacts = list({a.source.source_detail for a in accessions if a.source})
+            contacts = list(
+                {a.source.source_detail for a in accessions if a.source}
+            )
 
             # Extend results with non-further-used objects
             result.extend(locations)
@@ -216,7 +246,9 @@ class JSONExporter(editor.GenericEditorPresenter):
             result.extend(plantnotes)
 
         elif self.selection_based_on == "sbo_accessions":
-            accessions = self.session.query(Accession).order_by(Accession.code).all()
+            accessions = (
+                self.session.query(Accession).order_by(Accession.code).all()
+            )
 
             if self.include_private is False:
                 accessions = [j for j in accessions if j.private is False]
@@ -234,11 +266,13 @@ class JSONExporter(editor.GenericEditorPresenter):
             )
 
             # Unique contacts without repetition
-            contacts = list({a.source.source_detail for a in accessions if a.source})
+            contacts = list(
+                {a.source.source_detail for a in accessions if a.source}
+            )
         else:
             contacts = []
 
-        ## now the taxonomy, based either on all species or on the ones used
+        # now the taxonomy, based either on all species or on the ones used
         if self.selection_based_on == "sbo_taxa":
             species = self.session.query(Species).order_by(Species.sp).all()
         else:
@@ -248,7 +282,9 @@ class JSONExporter(editor.GenericEditorPresenter):
             # Species query with dynamic expansion for the list of species IDs
             species = (
                 self.session.query(Species)
-                .filter(Species.id.in_(bindparam("species_ids", expanding=True)))
+                .filter(
+                    Species.id.in_(bindparam("species_ids", expanding=True))
+                )
                 .params(species_ids=[j.species_id for j in accessions])
                 .order_by(Species.sp)
                 .all()
@@ -266,7 +302,7 @@ class JSONExporter(editor.GenericEditorPresenter):
             .all()
         )
 
-        ## All used genera with dynamic list expansion
+        # All used genera with dynamic list expansion
         genera = (
             self.session.query(Genus)
             .filter(Genus.id.in_(bindparam("genus_ids", expanding=True)))
@@ -296,12 +332,18 @@ class JSONExporter(editor.GenericEditorPresenter):
             .all()
         )
 
-        ## prepend the result with the taxonomic information
+        # prepend the result with the taxonomic information
         result = (
-            families + genera + species + speciesnotes + vernacular + contacts + result
+            families
+            + genera
+            + species
+            + speciesnotes
+            + vernacular
+            + contacts
+            + result
         )
 
-        ## done, return the result
+        # done, return the result
         return result
 
     def on_btnbrowse_clicked(self, button):
@@ -332,7 +374,9 @@ class JSONExporter(editor.GenericEditorPresenter):
 
         filename = self.filename
         if os.path.exists(filename) and not os.path.isfile(filename):
-            raise ValueError("%s exists and is not a a regular file" % filename)
+            raise ValueError(
+                "%s exists and is not a a regular file" % filename
+            )
 
         objects = self.get_objects()
         # if objects is None then export all objects under classes Familia,
@@ -365,7 +409,9 @@ class JSONExporter(editor.GenericEditorPresenter):
                 ",\n ".join(
                     [
                         json.dumps(
-                            obj.as_dict(), default=serializedatetime, sort_keys=True
+                            obj.as_dict(),
+                            default=serializedatetime,
+                            sort_keys=True,
                         )
                         for obj in objects
                     ]
@@ -430,7 +476,7 @@ class JSONImporter(editor.GenericEditorPresenter):
         pass
 
     def run(self, objects):
-        ## generator function. will be run as a task.
+        # generator function. will be run as a task.
         session = db.Session()
         n = len(objects)
         for i, obj in enumerate(objects):
@@ -441,7 +487,8 @@ class JSONImporter(editor.GenericEditorPresenter):
             except Exception as e:
                 session.rollback()
                 logger.warning(
-                    "could not import %s (%s: %s)" % (obj, type(e).__name__, e.args)
+                    "could not import %s (%s: %s)"
+                    % (obj, type(e).__name__, e.args)
                 )
             pb_set_fraction(float(i) / n)
             yield

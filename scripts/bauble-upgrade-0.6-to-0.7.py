@@ -1,12 +1,9 @@
 #!/usr/bin/env python
-
 # this script needs both a connections to a database created with bauble 0.6.x
 # and the csv files exported from the same database, it will create a directory
 # called 0.7 in the same directory as the exported csv files with the new
 # converted files...you will also need the default geography data to have
 # functioning database
-
-
 # What has changed from 0.6->0.7 ?
 # ------------------
 # - species.id_qual column is now accession.id_qual column, any species
@@ -90,7 +87,8 @@ def migrate_idqual():
     # select all species that have idqual set
     # species = species.select(id_qual != None)
     sp_results = select(
-        [species_table.c.id, species_table.c.id_qual], species_table.c.id_qual != None
+        [species_table.c.id, species_table.c.id_qual],
+        species_table.c.id_qual != None,
     ).execute()
     #    print sp_results
     acc_cols = list(accession_table.c.keys())

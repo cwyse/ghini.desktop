@@ -15,17 +15,17 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-import difflib
 import json
 import logging
+import threading
 
 import requests
 
+pass
+
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-import threading
 
 
 class AskGBIF(threading.Thread):
@@ -44,12 +44,15 @@ class AskGBIF(threading.Thread):
     ):
         super().__init__(group=group, target=None, name=None)
         logger.debug(
-            "new %s, already running %s.", self.name, self.running and self.running.name
+            "new %s, already running %s.",
+            self.name,
+            self.running and self.running.name,
         )
         if self.running is not None:
             if self.running.binomial == binomial:
                 logger.debug(
-                    "already requesting %s, ignoring repeated request", binomial
+                    "already requesting %s, ignoring repeated request",
+                    binomial,
                 )
                 binomial = None
             else:
@@ -77,7 +80,8 @@ class AskGBIF(threading.Thread):
     def run(self):
         def ask_gbif(binomial):
             result = requests.get(
-                "http://api.gbif.org/v1/species/match?verbose=false&name=" + binomial,
+                "http://api.gbif.org/v1/species/match?verbose=false&name="
+                + binomial,
                 timeout=self.timeout,
             )
             logger.debug(result.text)
@@ -107,7 +111,9 @@ class AskGBIF(threading.Thread):
             logger.debug("found this: %s", str(found))
             if found["status"] == "SYNONYM":
                 accepted = ask_gbif(found["species"])
-                logger.debug("ask_gbif on the Accepted ID returns %s", accepted)
+                logger.debug(
+                    "ask_gbif on the Accepted ID returns %s", accepted
+                )
                 logger.debug("%s after second query", self.name)
             if self.stopped():
                 raise ShouldStopNow("after second query")
@@ -119,7 +125,10 @@ class AskGBIF(threading.Thread):
 
             logger.warning(traceback.format_exc())
             logger.debug(
-                "%s (%s)%s : completed with trouble", self.name, type(e).__name__, e
+                "%s (%s)%s : completed with trouble",
+                self.name,
+                type(e).__name__,
+                e,
             )
             self.__class__.running = None
             found = accepted = None

@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 """
 This module doesn't do anything other than create a placeholder for
 other Ghini plugins

@@ -47,10 +47,21 @@ import bauble.meta as meta
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-from bauble.utils import safe_set_text
 
 PADDING = 6
 import math
+
+
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ""
+    gtk_widget.set_text(text)
 
 
 class MapViewer(Gtk.Dialog):

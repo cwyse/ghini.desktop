@@ -26,7 +26,6 @@
 #
 # Data from the ODK aggregator is written to the database, inconditionally.
 #
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -132,8 +131,12 @@ except:
 
 # get submissions from all known form definitions
 
-r = get_submissions(user, pw, "ghini-collect.appspot.com", "plant_form_r", to_skip)
-s = get_submissions(user, pw, "ghini-collect.appspot.com", "plant_form_s", to_skip)
+r = get_submissions(
+    user, pw, "ghini-collect.appspot.com", "plant_form_r", to_skip
+)
+s = get_submissions(
+    user, pw, "ghini-collect.appspot.com", "plant_form_s", to_skip
+)
 items = r + s
 
 objects = []
@@ -163,7 +166,9 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
     plant = {"object": "plant", "code": "1"}
     accession["code"] = item["acc_no_scan"] or item["acc_no_typed"]
     if not accession["code"]:
-        logger.warn("can't handle submission %s without accession code" % str(item))
+        logger.warn(
+            "can't handle submission %s without accession code" % str(item)
+        )
         continue
     # if the plant code contains a plant code, separate it from accession code.
     plant["accession"] = accession["code"]
@@ -187,7 +192,9 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
         # TODO: retrieve species from session, or add one to it.
         item["species"] = item["species"].replace(".", "")
 
-        genus_epithet, species_epithet = (str(item["species"]).split(" ") + [""])[:2]
+        genus_epithet, species_epithet = (
+            str(item["species"]).split(" ") + [""]
+        )[:2]
         if species_epithet == "":
             species_epithet = "sp"
 
@@ -209,7 +216,9 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
         plant["quantity"] = 1
         item["species"] = item.get("species") or "Zzz sp"
         accession["species"] = item["species"]
-        genus_epithet, species_epithet = (str(item["species"]).split(" ") + [""])[:2]
+        genus_epithet, species_epithet = (
+            str(item["species"]).split(" ") + [""]
+        )[:2]
         need_species = True
 
     else:  # this is an existing accession
@@ -221,7 +230,9 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
             accession = {}
 
     if item["species"]:
-        db_genus = session.query(Genus).filter(Genus.epithet == genus_epithet).first()
+        db_genus = (
+            session.query(Genus).filter(Genus.epithet == genus_epithet).first()
+        )
         if db_genus is None:
             logger.debug("com'è possibile? %s" % item["species"])
         else:
@@ -243,7 +254,9 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
 
     # needed for plant_notes and the change object
     author = imei2user[item["deviceid"]]
-    timestamp = datetime.datetime.strptime(item["end"][:19], "%Y-%m-%dT%H:%M:%S")
+    timestamp = datetime.datetime.strptime(
+        item["end"][:19], "%Y-%m-%dT%H:%M:%S"
+    )
 
     # should do something with alive or dead status (put quantity to zero).
     if item.get("alive", "1") == "0":
@@ -260,7 +273,9 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
         except Exception as e:
             print((type(e), e))
             continue
-        pic_name = (item["acc_no_scan"] or item["acc_no_typed"]) + " " + pic_name
+        pic_name = (
+            (item["acc_no_scan"] or item["acc_no_typed"]) + " " + pic_name
+        )
         pic_full_name = os.path.join(pic_path, pic_name)
         get_image(user, pw, url, pic_full_name)
         note = {
@@ -282,7 +297,9 @@ for i in list(species_needed.values()) + list(locations_needed.values()):
 
 with codecs.open(filename, "wb", "utf-8") as output:
     output.write("[")
-    output.write(",\n ".join([json.dumps(obj, sort_keys=True) for obj in objects]))
+    output.write(
+        ",\n ".join([json.dumps(obj, sort_keys=True) for obj in objects])
+    )
     output.write("]")
 
 with open(os.path.join(path, "odk-seen.json"), "w") as output:

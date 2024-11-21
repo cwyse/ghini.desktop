@@ -1322,7 +1322,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             # verifier entry
             entry = self.widgets.ver_verifier_entry
             if self.model.verifier:
-                entry.props.text = self.model.verifier
+                entry.set_text = self.model.verifier
             self.presenter().view.connect(
                 entry, "changed", self.on_entry_changed, "verifier"
             )
@@ -1332,7 +1332,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             if self.model.date:
                 utils.set_widget_value(self.date_entry, self.model.date)
             else:
-                self.date_entry.props.text = utils.today_str()
+                self.date_entry.set_text = utils.today_str()
             self.presenter().view.connect(
                 self.date_entry, "changed", self.on_date_entry_changed
             )
@@ -1340,7 +1340,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             # reference entry
             ref_entry = self.widgets.ver_ref_entry
             if self.model.reference:
-                ref_entry.props.text = self.model.reference
+                ref_entry.set_text = self.model.reference
             self.presenter().view.connect(
                 ref_entry, "changed", self.on_entry_changed, "reference"
             )
@@ -1374,7 +1374,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
                 ver_prev_taxon_entry, sp_cell_data_func
             )
             if self.model.prev_species:
-                ver_prev_taxon_entry.props.text = "%s" % self.model.prev_species
+                ver_prev_taxon_entry.set_text = "%s" % self.model.prev_species
             self.presenter().assign_completions_handler(
                 ver_prev_taxon_entry, sp_get_completions, on_prevsp_select
             )
@@ -1388,7 +1388,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
                 ver_new_taxon_entry, sp_cell_data_func
             )
             if self.model.species:
-                ver_new_taxon_entry.props.text = utils.utf8(self.model.species)
+                ver_new_taxon_entry.set_text = utils.utf8(self.model.species)
             self.presenter().assign_completions_handler(
                 ver_new_taxon_entry, sp_get_completions, on_sp_select
             )
@@ -1428,7 +1428,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             textview.set_border_width(1)
             buff = Gtk.TextBuffer()
             if self.model.notes:
-                buff.props.text = self.model.notes
+                buff.set_text = self.model.notes
             textview.set_buffer(buff)
             self.presenter().view.connect(
                 buff, "changed", self.on_entry_changed, "notes"
@@ -1454,7 +1454,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             value = None
             PROBLEM = "INVALID_DATE"
             try:
-                value = editor.DateValidator().to_python(entry.props.text)
+                value = editor.DateValidator().to_python(entry.set_text)
             except ValidatorError as e:
                 logger.debug(e)
                 self.presenter().add_problem(PROBLEM, entry)
@@ -1498,7 +1498,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             self.presenter().parent_ref().refresh_sensitivity()
 
         def on_entry_changed(self, entry, attr):
-            text = entry.props.text
+            text = entry.set_text
             if not text:
                 self.set_model_attr(attr, None)
             else:
@@ -1518,9 +1518,9 @@ class VerificationPresenter(editor.GenericEditorPresenter):
                 # something, we trigger the 'changed' signal on the 'date'
                 # entry as well, by first clearing the entry then setting it
                 # to its intended value.
-                tmp = self.date_entry.props.text
-                safe_set_props(self.date_entry, 'text', '')
-                safe_set_props(self.date_entry, 'text', tmp)
+                tmp = self.date_entry.set_text
+                self.date_entry.set_text = ""
+                self.date_entry.set_text = tmp
             # if the verification isn't yet associated with an accession
             # then set the accession when we start changing values, this way
             # we can setup a dummy verification in the interface
@@ -1548,7 +1548,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             self.widgets.ver_expander_label.props.label = label
 
         def set_expanded(self, expanded):
-            self.widgets.ver_expander.props.expanded = expanded
+            self.widgets.ver_expander.set_expanded = expanded
 
         def on_taxon_add_button_clicked(self, button, taxon_entry):
             ## we come here when we are adding a Verification, and the
@@ -1585,9 +1585,9 @@ class SourcePresenter(editor.GenericEditorPresenter):
             "new_source_button", "clicked", self.on_new_source_button_clicked
         )
 
-        self.view.widgets.source_garden_prop_box.props.visible = False
-        self.view.widgets.source_sw.props.visible = False
-        self.view.widgets.source_none_label.props.visible = True
+        self.view.widgets.source_garden_prop_box.set_visible = False
+        self.view.widgets.source_sw.set_visible = False
+        self.view.widgets.source_none_label.set_visible = True
 
         # populate the source combo
         def on_select(source):
@@ -1614,7 +1614,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
             # self.model.source will be reset the None if the source
             # combo value is None in commit_changes()
             self.model.source = self.source
-            safe_set_props(self.view.widgets.sources_code_entry, 'text', '')
+            self.view.widgets.sources_code_entry.set_text = ""
 
         if self.source.collection:
             self.collection = self.source.collection
@@ -1623,10 +1623,10 @@ class SourcePresenter(editor.GenericEditorPresenter):
             self.collection = Collection()
             self.session.add(self.collection)
             enabled = False
-        self.view.widgets.source_coll_add_button.props.sensitive = not enabled
-        self.view.widgets.source_coll_remove_button.props.sensitive = enabled
-        self.view.widgets.source_coll_expander.props.expanded = enabled
-        self.view.widgets.source_coll_expander.props.sensitive = enabled
+        self.view.widgets.source_coll_add_button.set_sensitive = not enabled
+        self.view.widgets.source_coll_remove_button.set_sensitive = enabled
+        self.view.widgets.source_coll_expander.set_expanded = enabled
+        self.view.widgets.source_coll_expander.set_sensitive = enabled
 
         if self.source.propagation:
             self.propagation = self.source.propagation
@@ -1635,10 +1635,10 @@ class SourcePresenter(editor.GenericEditorPresenter):
             self.propagation = Propagation()
             self.session.add(self.propagation)
             enabled = False
-        self.view.widgets.source_prop_add_button.props.sensitive = not enabled
-        self.view.widgets.source_prop_remove_button.props.sensitive = enabled
-        self.view.widgets.source_prop_expander.props.expanded = enabled
-        self.view.widgets.source_prop_expander.props.sensitive = enabled
+        self.view.widgets.source_prop_add_button.set_sensitive = not enabled
+        self.view.widgets.source_prop_remove_button.set_sensitive = enabled
+        self.view.widgets.source_prop_expander.set_expanded = enabled
+        self.view.widgets.source_prop_expander.set_sensitive = enabled
 
         # TODO: all the sub presenters here take the
         # AccessionEditorPresenter as their parent though their real
@@ -1667,7 +1667,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         self.collection_presenter.register_clipboard()
 
         def on_changed(entry, *args):
-            text = entry.props.text
+            text = entry.set_text
             if text.strip():
                 self.source.sources_code = utils.utf8(text)
             else:
@@ -1731,37 +1731,37 @@ class SourcePresenter(editor.GenericEditorPresenter):
 
     def on_coll_add_button_clicked(self, *args):
         self.model.source.collection = self.collection
-        self.view.widgets.source_coll_expander.props.expanded = True
-        self.view.widgets.source_coll_expander.props.sensitive = True
-        self.view.widgets.source_coll_add_button.props.sensitive = False
-        self.view.widgets.source_coll_remove_button.props.sensitive = True
+        self.view.widgets.source_coll_expander.set_expanded = True
+        self.view.widgets.source_coll_expander.set_sensitive = True
+        self.view.widgets.source_coll_add_button.set_sensitive = False
+        self.view.widgets.source_coll_remove_button.set_sensitive = True
         self._dirty = True
         self.refresh_sensitivity()
 
     def on_coll_remove_button_clicked(self, *args):
         self.model.source.collection = None
-        self.view.widgets.source_coll_expander.props.expanded = False
-        self.view.widgets.source_coll_expander.props.sensitive = False
-        self.view.widgets.source_coll_add_button.props.sensitive = True
-        self.view.widgets.source_coll_remove_button.props.sensitive = False
+        self.view.widgets.source_coll_expander.set_expanded = False
+        self.view.widgets.source_coll_expander.set_sensitive = False
+        self.view.widgets.source_coll_add_button.set_sensitive = True
+        self.view.widgets.source_coll_remove_button.set_sensitive = False
         self._dirty = True
         self.refresh_sensitivity()
 
     def on_prop_add_button_clicked(self, *args):
         self.model.source.propagation = self.propagation
-        self.view.widgets.source_prop_expander.props.expanded = True
-        self.view.widgets.source_prop_expander.props.sensitive = True
-        self.view.widgets.source_prop_add_button.props.sensitive = False
-        self.view.widgets.source_prop_remove_button.props.sensitive = True
+        self.view.widgets.source_prop_expander.set_expanded = True
+        self.view.widgets.source_prop_expander.set_sensitive = True
+        self.view.widgets.source_prop_add_button.set_sensitive = False
+        self.view.widgets.source_prop_remove_button.set_sensitive = True
         self._dirty = True
         self.refresh_sensitivity()
 
     def on_prop_remove_button_clicked(self, *args):
         self.model.source.propagation = None
-        self.view.widgets.source_prop_expander.props.expanded = False
-        self.view.widgets.source_prop_expander.props.sensitive = False
-        self.view.widgets.source_prop_add_button.props.sensitive = True
-        self.view.widgets.source_prop_remove_button.props.sensitive = False
+        self.view.widgets.source_prop_expander.set_expanded = False
+        self.view.widgets.source_prop_expander.set_sensitive = False
+        self.view.widgets.source_prop_add_button.set_sensitive = True
+        self.view.widgets.source_prop_remove_button.set_sensitive = False
         self._dirty = True
         self.refresh_sensitivity()
 
@@ -1818,7 +1818,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         PROBLEM = "unknown_source"
 
         def cell_data_func(col, cell, model, treeiter, data=None):
-            safe_set_props(cell, 'text', utils.utf8(model[treeiter][0]))
+            cell.set_text = utils.utf8(model[treeiter][0])
 
         combo = self.view.widgets.acc_source_comboentry
         combo.clear()
@@ -1850,7 +1850,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
             widget_visibility = dict(
                 source_sw=False, source_garden_prop_box=False, source_none_label=False
             )
-            if entry.props.text == self.garden_prop_str:
+            if entry.set_text == self.garden_prop_str:
                 widget_visibility["source_garden_prop_box"] = True
             elif not self.model.source or not self.model.source.source_detail:
                 widget_visibility["source_none_label"] = True
@@ -1858,8 +1858,8 @@ class SourcePresenter(editor.GenericEditorPresenter):
                 # self.model.source.source_detail = value
                 widget_visibility["source_sw"] = True
             for widget, value in list(widget_visibility.items()):
-                self.view.widgets[widget].props.visible = value
-            self.view.widgets.source_alignment.props.sensitive = True
+                self.view.widgets[widget].set_visible = value
+            self.view.widgets.source_alignment.set_sensitive = True
 
         def on_match_select(completion, model, treeiter):
             value = model[treeiter][0]
@@ -1867,10 +1867,10 @@ class SourcePresenter(editor.GenericEditorPresenter):
             # source is changed and restore them if they are switched
             # back
             if not value:
-                safe_set_props(combo.get_child(), 'text', '')
+                combo.get_child().set_text = ""
                 on_select(None)
             else:
-                safe_set_props(combo.get_child(), 'text', utils.utf8(value))
+                combo.get_child().set_text = utils.utf8(value)
                 on_select(value)
 
             # don't set the model as dirty if this is called during
@@ -1883,7 +1883,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         self.view.connect(completion, "match-selected", on_match_select)
 
         def on_entry_changed(entry, data=None):
-            text = utils.utf8(entry.props.text)
+            text = utils.utf8(entry.set_text)
             # see if the text matches a completion string
             comp = entry.get_completion()
 
@@ -1915,9 +1915,9 @@ class SourcePresenter(editor.GenericEditorPresenter):
                 # set the text value on the entry since it does all the
                 # validation
                 if not detail:
-                    combo.get_child().props.text = ""
+                    combo.get_child().set_text = ""
                 else:
-                    combo.get_child().props.text = utils.utf8(detail)
+                    combo.get_child().set_text = utils.utf8(detail)
             update_visible()
             return True
 
@@ -2385,15 +2385,15 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             value = combo.get_model()[treeiter][0]
         else:
             # the changed handler is fired again after the
-            # combo.get_child().props.text with the activer iter set to None
+            # combo.get_child().set_text with the activer iter set to None
             return True
         # the entry change handler does the validation of the model
-        combo.get_child().props.text = recvd_type_values[value]
+        combo.get_child().set_text = recvd_type_values[value]
 
     def on_recvd_type_entry_changed(self, entry, *args):
         """ """
         problem = "BAD_RECVD_TYPE"
-        text = entry.props.text
+        text = entry.set_text
         if not text.strip():
             self.remove_problem(problem, entry)
             self.set_model_attr("recvd_type", None)
@@ -2444,7 +2444,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         value = None
         PROBLEM = "INVALID_DATE"
         try:
-            value = editor.DateValidator().to_python(entry.props.text)
+            value = editor.DateValidator().to_python(entry.set_text)
         except ValidatorError as e:
             logger.debug(e)
             self.add_problem(PROBLEM, entry)
@@ -2956,13 +2956,13 @@ class SourceExpander(InfoExpander):
 
     def update(self, row):
         if not row.source:
-            self.props.expanded = False
-            self.props.sensitive = False
+            self.set_expanded = False
+            self.set_sensitive = False
             return
 
         if row.source.source_detail:
-            self.widgets.source_name_label.props.visible = True
-            self.widgets.source_name_data.props.visible = True
+            self.widgets.source_name_label.set_visible = True
+            self.widgets.source_name_data.set_visible = True
             self.widget_set_value(
                 "source_name_data", utils.utf8(row.source.source_detail)
             )
@@ -2976,8 +2976,8 @@ class SourceExpander(InfoExpander):
                 row.source.source_detail,
             )
         else:
-            self.widgets.source_name_label.props.visible = False
-            self.widgets.source_name_data.props.visible = False
+            self.widgets.source_name_label.set_visible = False
+            self.widgets.source_name_data.set_visible = False
 
         sources_code = ""
         if row.source.sources_code:
@@ -2985,8 +2985,8 @@ class SourceExpander(InfoExpander):
         self.widget_set_value("sources_code_data", utils.utf8(sources_code))
 
         if row.source.plant_propagation:
-            self.widgets.parent_plant_label.props.visible = True
-            self.widgets.parent_plant_eventbox.props.visible = True
+            self.widgets.parent_plant_label.set_visible = True
+            self.widgets.parent_plant_eventbox.set_visible = True
             self.widget_set_value(
                 "parent_plant_data", str(row.source.plant_propagation.plant)
             )
@@ -2994,8 +2994,8 @@ class SourceExpander(InfoExpander):
                 "propagation_data", row.source.plant_propagation.get_summary()
             )
         else:
-            self.widgets.parent_plant_label.props.visible = False
-            self.widgets.parent_plant_eventbox.props.visible = False
+            self.widgets.parent_plant_label.set_visible = False
+            self.widgets.parent_plant_eventbox.set_visible = False
 
         prop_str = ""
         if row.source.propagation:
@@ -3003,12 +3003,12 @@ class SourceExpander(InfoExpander):
         self.widget_set_value("propagation_data", prop_str)
 
         if row.source.collection:
-            self.widgets.collection_expander.props.expanded = True
-            self.widgets.collection_expander.props.sensitive = True
+            self.widgets.collection_expander.set_expanded = True
+            self.widgets.collection_expander.set_sensitive = True
             self.update_collection(row.source.collection)
         else:
-            self.widgets.collection_expander.props.expanded = False
-            self.widgets.collection_expander.props.sensitive = False
+            self.widgets.collection_expander.set_expanded = False
+            self.widgets.collection_expander.set_sensitive = False
 
 
 class VerificationsExpander(InfoExpander):
@@ -3122,14 +3122,14 @@ class AccessionInfoBox(InfoBox):
 
         urls = [x for x in [utils.get_urls(note.note) for note in row.notes] if x != []]
         if not urls:
-            self.links.props.visible = False
-            self.links._sep.props.visible = False
+            self.links.set_visible = False
+            self.links._sep.set_visible = False
         else:
-            self.links.props.visible = True
-            self.links._sep.props.visible = True
+            self.links.set_visible = True
+            self.links._sep.set_visible = True
             self.links.update(row)
 
-        self.source.props.sensitive = True
+        self.source.set_sensitive = True
         self.source.update(row)
 
 

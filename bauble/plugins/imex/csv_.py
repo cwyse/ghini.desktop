@@ -23,26 +23,27 @@
 # Description: have to name this module csv_ in order to avoid conflict
 # with the system csv module
 #
-
-
 import csv
 import logging
 import os
 import traceback
+from gettext import gettext as _
 
-logger = logging.getLogger(__name__)
-
-from gi.repository import Gtk
-from sqlalchemy import Boolean, ColumnDefault
-from sqlalchemy.orm import configure_mappers
-
-import bauble
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
 import bauble.task
 import bauble.utils as utils
-from bauble import paths, pb_set_fraction
+from bauble import pb_set_fraction
 from bauble.error import BaubleError
+from gi.repository import Gtk
+from sqlalchemy import Boolean
+from sqlalchemy import ColumnDefault
+from sqlalchemy.orm import configure_mappers
+
+pass
+
+logger = logging.getLogger(__name__)
+
 
 # TODO: i've also had a problem with bad insert statements, e.g. importing a
 # geography table after creating a new database and it doesn't use the
@@ -95,7 +96,9 @@ class UnicodeReader:
 
 class UnicodeWriter:
 
-    def __init__(self, f, fields=None, dialect=csv.excel, encoding="utf-8", **kwds):
+    def __init__(
+        self, f, fields=None, dialect=csv.excel, encoding="utf-8", **kwds
+    ):
         self.writer = csv.writer(f, dialect=dialect, **kwds)
         self.field_order = fields
         self.encoding = encoding
@@ -276,13 +279,14 @@ class CSVImporter(Importer):
         for table in metadata.sorted_tables:
             try:
                 sorted_tables.insert(0, (table, filename_dict.pop(table.name)))
-            except KeyError as e:
+            except KeyError:
                 # table.name not in list of filenames
                 pass
 
         if len(filename_dict) > 0:
             msg = (
-                _("Could not match all filenames to table names.\n\n%s") % filename_dict
+                _("Could not match all filenames to table names.\n\n%s")
+                % filename_dict
             )
             utils.message_dialog(msg, Gtk.MessageType.ERROR)
             return
@@ -304,19 +308,21 @@ class CSVImporter(Importer):
                 created_tables.append(table.name)
 
         steps_so_far = 0
-        cleaned = None
+        pass
         insert = None
         depends = set()  # the type will be changed to a [] later
         try:
             logger.debug("entering try block in csv importer")
-            ## get all the dependencies
+            # get all the dependencies
             for table, filename in sorted_tables:
-                logger.debug("get table dependendencies for table %s" % table.name)
+                logger.debug(
+                    "get table dependendencies for table %s" % table.name
+                )
                 d = utils.find_dependent_tables(table)
                 depends.update(list(d))
                 del d
 
-            ## drop all of the dependencies together
+            # drop all of the dependencies together
             if len(depends) > 0:
                 if not force:
                     msg = _(
@@ -330,7 +336,9 @@ class CSVImporter(Importer):
                     response = True
 
                 if response and len(depends) > 0:
-                    logger.debug("dropping: %s" % ", ".join([d.name for d in depends]))
+                    logger.debug(
+                        "dropping: %s" % ", ".join([d.name for d in depends])
+                    )
                     configure_mappers()
                     metadata.drop_all(bind=connection, tables=depends)
                 else:
@@ -406,7 +414,9 @@ class CSVImporter(Importer):
                 # open a temporary reader to get the column keys so we
                 # can later precompile our insert statement
                 f = open(filename)
-                tmp = UnicodeReader(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
+                tmp = UnicodeReader(
+                    f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE
+                )
                 next(tmp)
                 csv_columns = set(tmp.reader.fieldnames)
                 del tmp
@@ -420,23 +430,29 @@ class CSVImporter(Importer):
                 for column in table.c:
                     if isinstance(column.default, ColumnDefault):
                         defaults[column.name] = column.default.execute()
-                column_names = list(table.c.keys())
+                list(table.c.keys())
 
                 # check if there are any foreign keys to on the table
                 # that refer to itself, if so create a new file with
                 # the lines sorted in order of dependency so that we
                 # don't get errors about importing values into a
                 # foreign_key that don't reference and existin row
-                self_keys = [f for f in table.foreign_keys if f.column.table == table]
+                self_keys = [
+                    f for f in table.foreign_keys if f.column.table == table
+                ]
                 if self_keys:
-                    key_pairs = [(x.parent.name, x.column.name) for x in self_keys]
+                    key_pairs = [
+                        (x.parent.name, x.column.name) for x in self_keys
+                    ]
                     filename = self._toposort_file(filename, key_pairs)
 
                 # the column keys for the insert are a union of the
                 # columns in the CSV file and the columns with
                 # defaults
                 column_keys = list(csv_columns.union(list(defaults.keys())))
-                insert = table.insert(bind=connection).compile(column_keys=column_keys)
+                insert = table.insert(bind=connection).compile(
+                    column_keys=column_keys
+                )
 
                 values = []
 
@@ -448,10 +464,13 @@ class CSVImporter(Importer):
                     if 0 < percent < 1.0:
                         pb_set_fraction(percent)
 
-                isempty = lambda v: v in ("", None)
+                def isempty(v):
+                    return v in ("", None)
 
                 f = open(filename)
-                reader = UnicodeReader(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
+                reader = UnicodeReader(
+                    f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE
+                )
                 # NOTE: we shouldn't get this far if the file doesn't
                 # have any rows to import but if so there is a chance
                 # that this loop could cause problems
@@ -518,7 +537,7 @@ class CSVImporter(Importer):
             # TODO: need to get those tables from depends that need to
             # be created but weren't created already
             metadata.create_all(connection, depends, checkfirst=True)
-        except GeneratorExit as e:
+        except GeneratorExit:
             transaction.rollback()
             raise
         except Exception as e:
@@ -539,15 +558,20 @@ class CSVImporter(Importer):
             for table, filename in sorted_tables:
                 for col in table.c:
                     utils.reset_sequence(col)
-        except Exception as e:
+        except Exception:
             col_name = None
             try:
                 col_name = col.name
             except Exception:
                 pass
-            msg = _("Error: Could not set the sequence for column: %s") % col_name
+            msg = (
+                _("Error: Could not set the sequence for column: %s")
+                % col_name
+            )
             utils.message_details_dialog(
-                utils.xml_safe(msg), traceback.format_exc(), type=Gtk.MessageType.ERROR
+                utils.xml_safe(msg),
+                traceback.format_exc(),
+                type=Gtk.MessageType.ERROR,
             )
 
         # no callback, so we better update the interface here
@@ -650,7 +674,9 @@ class CSVExporter:
 
         def write_csv(filename, rows):
             f = open(filename, "w")
-            writer = UnicodeWriter(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
+            writer = UnicodeWriter(
+                f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE
+            )
             writer.writerows(rows)
             f.close()
 

@@ -1,19 +1,15 @@
 # generate documentation about searching
 # - the list of domains and their relevant tables
 # - link to the model doc for the columns to use or combine the two
-
 # TODO: at the moment this scripts only searches all the plugins
 # modules for classes that subclass bauble.BaubleMapper and then
 # generates the documents from the mappers...we need to combine this
 # with the domains from the search strategies
-
 # TODO: generate docs in a common wiki syntax, either in
 # reStructuredText, markdown or wikidot format
-
 """
 Generate docs about search strategies, mapper properties, etc.
 """
-
 import os
 import sys
 

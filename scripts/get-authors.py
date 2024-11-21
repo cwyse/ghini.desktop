@@ -16,15 +16,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 # tropicos-to-json is a filter.
 #
 # pass it a json export (piping, or giving the name as parameter). the json
 # file should contain species for which you miss the author, this script
 # will query tropicos and generate a json file for the same species, but
 # with authorship. pipe the output to a different json file.
-
-
 import fileinput
 import json
 import sys

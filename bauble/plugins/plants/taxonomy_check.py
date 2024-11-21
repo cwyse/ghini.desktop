@@ -28,60 +28,82 @@ from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.plugins.plants import Species
 
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ""
+    gtk_widget.set_text(text)
+
+
 def start_taxonomy_check():
-    '''run the batch taxonomy check (BTC)
-    '''
+    """run the batch taxonomy check (BTC)"""
 
     view = GenericEditorView(
-        os.path.join(paths.lib_dir(), 'plugins', 'plants',
-                     'taxonomy_check.glade'),
+        os.path.join(
+            paths.lib_dir(), "plugins", "plants", "taxonomy_check.glade"
+        ),
         parent=None,
-        root_widget_name='dialog1')
-    model = type('BTCStatus', (object,), {})()
+        root_widget_name="dialog1",
+    )
+    model = type("BTCStatus", (object,), {})()
     model.page = 1
     model.selection = view.get_selection()
     model.tick_off = None
     model.report = None
-    model.file_path = ''
+    model.file_path = ""
 
     if model.selection is None:
         return
     from sqlalchemy.orm import object_session
+
     presenter = BatchTaxonomicCheckPresenter(
-        model, view, refresh_view=True,
-        session=object_session(model.selection[0]))
+        model,
+        view,
+        refresh_view=True,
+        session=object_session(model.selection[0]),
+    )
     error_state = presenter.start()
     if error_state:
         presenter.session.rollback()
     else:
         presenter.commit_changes()
         from bauble import gui
+
         view = gui.get_view()
-        if hasattr(view, 'update'):
+        if hasattr(view, "update"):
             view.update()
     presenter.cleanup()
     return error_state
 
 
 def species_to_fix(ssn, binomial, author, create=False):
-    if binomial.find(' ') == -1:
+    if binomial.find(" ") == -1:
         return None
     binomial = utils.to_unicode(binomial)
     author = utils.to_unicode(author)
-    parts = binomial.split(' ')
+    parts = binomial.split(" ")
     if len(parts) == 4:
         gen_epithet, sp_epithet, rank, epithet = parts
     else:
-        gen_epithet, sp_epithet = binomial.split(' ', 1)
+        gen_epithet, sp_epithet = binomial.split(" ", 1)
         rank = epithet = None
     result = Species.retrieve_or_create(
-        ssn, {'object': 'taxon',
-              'rank': 'species',
-              'ht-epithet': gen_epithet,
-              'epithet': sp_epithet,
-              'ht-rank': 'genus',
-              'author': author},
-        create=create)
+        ssn,
+        {
+            "object": "taxon",
+            "rank": "species",
+            "ht-epithet": gen_epithet,
+            "epithet": sp_epithet,
+            "ht-rank": "genus",
+            "author": author,
+        },
+        create=create,
+    )
     if rank is not None:
         result.infrasp1 = epithet
         result.infrasp1_rank = rank
@@ -100,8 +122,8 @@ ACCEPTED_BINOMIAL = 6
 ACCEPTED_AUTHORSHIP = 7
 TO_PROCESS = 8
 
-YES_ICON = 'gtk-yes'
-NO_ICON = 'gtk-no'
+YES_ICON = "gtk-yes"
+NO_ICON = "gtk-no"
 
 
 def set_row_active(tick_off_row, to_process):
@@ -111,7 +133,7 @@ def set_row_active(tick_off_row, to_process):
 
 
 class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
-    '''
+    """
     the batch taxonomy check (BTC) can run if you have an equal rank
     selection of taxa in your search results. The BTC exports the names
     to the clipboard and opens the browser on the
@@ -123,104 +145,135 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
 
     the Model of the BTC is a list of tuples.
 
-    '''
+    """
 
-    widget_to_field_map = {'file_path_entry': 'file_path'}
-    view_accept_buttons = ['ok_button']
+    widget_to_field_map = {"file_path_entry": "file_path"}
+    view_accept_buttons = ["ok_button"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.refresh_visible_frame()
         self.tick_off_list = self.view.widgets.liststore2
-        self.binomials = [item.str(remove_zws=True)
-                          for item in self.model.selection
-                          if isinstance(item, Species) and item.sp != '']
+        self.binomials = [
+            item.str(remove_zws=True)
+            for item in self.model.selection
+            if isinstance(item, Species) and item.sp != ""
+        ]
 
     def refresh_visible_frame(self):
         for i in range(1, 4):
-            frame_id = 'frame%d' % i
+            frame_id = "frame%d" % i
             self.view.widget_set_visible(frame_id, i == self.model.page)
-        self.view.widget_set_sensitive('ok_button', self.model.page == 3)
+        self.view.widget_set_sensitive("ok_button", self.model.page == 3)
 
     def on_frame1_next(self, *args):
-        'parse the results into the liststore2 and move to frame 2'
+        "parse the results into the liststore2 and move to frame 2"
         responses = []
         self.tick_off_list.clear()
         import codecs
-        with codecs.open(self.model.file_path, 'r', 'utf16') as f:
-            keys = f.readline().strip().split('\t')
+
+        with codecs.open(self.model.file_path, "r", "utf16") as f:
+            keys = f.readline().strip().split("\t")
             for l in f.readlines():
                 l = l.strip()
                 values = [i.strip() for i in l.split("\t")]
                 responses.append(dict(list(zip(keys, values))))
         for binomial, response in zip(self.binomials, responses):
-            acceptable = response['Name_matched_rank'] == 'species'
-            row = [acceptable,
-                   acceptable and YES_ICON or NO_ICON,
-                   binomial]
-            for key in ['Name_matched', 'Name_matched_author',
-                        'Taxonomic_status', 'Accepted_name',
-                        'Accepted_name_author']:
+            acceptable = response["Name_matched_rank"] == "species"
+            row = [acceptable, acceptable and YES_ICON or NO_ICON, binomial]
+            for key in [
+                "Name_matched",
+                "Name_matched_author",
+                "Taxonomic_status",
+                "Accepted_name",
+                "Accepted_name_author",
+            ]:
                 row.append(response[key])
             row.append(acceptable)
             self.tick_off_list.append(row)
-            if response['Taxonomic_status'] == 'Synonym':
-                row = [True, YES_ICON, '', response['Accepted_name'],
-                       response['Accepted_name_author'], 'Accepted',
-                       '', '', True]
+            if response["Taxonomic_status"] == "Synonym":
+                row = [
+                    True,
+                    YES_ICON,
+                    "",
+                    response["Accepted_name"],
+                    response["Accepted_name_author"],
+                    "Accepted",
+                    "",
+                    "",
+                    True,
+                ]
                 self.tick_off_list.append(row)
         self.on_frame_next(*args)
 
     def on_frame2_next(self, *args):
-        'execute all that is selected in liststore2 and move to frame 3'
+        "execute all that is selected in liststore2 and move to frame 3"
         self.on_frame_next(*args)
         tb = self.view.widgets.textbuffer3
         tag_bold = tb.create_tag(None, weight=Pango.Weight.BOLD)
-        tag_red = tb.create_tag(None, weight=Pango.Weight.BOLD,
-                                foreground=Pango.Color('red'))
-        safe_set_text(tb, '')
+        tag_red = tb.create_tag(
+            None, weight=Pango.Weight.BOLD, foreground=Pango.Color("red")
+        )
+        safe_set_text(tb, "")
 
         for row in self.tick_off_list:
             if row[TO_PROCESS] is False:
-                tb.insert_at_cursor("skipping %s\n" %
-                                    (row[OLD_BINOMIAL] or row[NEW_BINOMIAL]))
+                tb.insert_at_cursor(
+                    "skipping %s\n" % (row[OLD_BINOMIAL] or row[NEW_BINOMIAL])
+                )
                 continue
-            if row[OLD_BINOMIAL] == '':
-                tb.insert_with_tags(tb.get_end_iter(),
-                                    "new taxon %s" % row[NEW_BINOMIAL],
-                                    tag_bold)
+            if row[OLD_BINOMIAL] == "":
+                tb.insert_with_tags(
+                    tb.get_end_iter(),
+                    "new taxon %s" % row[NEW_BINOMIAL],
+                    tag_bold,
+                )
                 obj = species_to_fix(
-                    self.session, row[NEW_BINOMIAL], row[AUTHORSHIP],
-                    create=True)
+                    self.session,
+                    row[NEW_BINOMIAL],
+                    row[AUTHORSHIP],
+                    create=True,
+                )
             else:
-                if row[TAXON_STATUS] == 'Synonym':
+                if row[TAXON_STATUS] == "Synonym":
                     accepted = species_to_fix(
-                        self.session, row[ACCEPTED_BINOMIAL],
+                        self.session,
+                        row[ACCEPTED_BINOMIAL],
                         row[ACCEPTED_AUTHORSHIP],
-                        create=True)
+                        create=True,
+                    )
                 else:
                     accepted = None
                 obj = species_to_fix(
-                    self.session, row[OLD_BINOMIAL], row[AUTHORSHIP],
-                    create=False)
+                    self.session,
+                    row[OLD_BINOMIAL],
+                    row[AUTHORSHIP],
+                    create=False,
+                )
                 if obj is None:
-                    tb.insert_with_tags(tb.get_end_iter(),
-                                        "bad taxon %s" % row[OLD_BINOMIAL],
-                                        tag_bold, tag_red)
+                    tb.insert_with_tags(
+                        tb.get_end_iter(),
+                        "bad taxon %s" % row[OLD_BINOMIAL],
+                        tag_bold,
+                        tag_red,
+                    )
                     continue
-                tb.insert_with_tags(tb.get_end_iter(),
-                                    "update taxon %s" % row[OLD_BINOMIAL],
-                                    tag_bold)
+                tb.insert_with_tags(
+                    tb.get_end_iter(),
+                    "update taxon %s" % row[OLD_BINOMIAL],
+                    tag_bold,
+                )
 
                 gen_epithet, sp_epithet = utils.to_unicode(
-                    row[NEW_BINOMIAL]).split(' ', 1)
+                    row[NEW_BINOMIAL]
+                ).split(" ", 1)
                 obj.genus.genus = gen_epithet
                 obj.sp = sp_epithet
                 if accepted:
                     obj.accepted = accepted
-            tb.insert_with_tags(tb.get_end_iter(),
-                                " %s\n" % row[AUTHORSHIP],
-                                tag_bold)
+            tb.insert_with_tags(
+                tb.get_end_iter(), " %s\n" % row[AUTHORSHIP], tag_bold
+            )
 
     def on_frame_next(self, *args):
         self.model.page += 1
@@ -231,36 +284,39 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
         self.refresh_visible_frame()
 
     def on_copy_to_clipboard_button_clicked(self, *args):
-        text = '\n'.join(self.binomials)
+        text = "\n".join(self.binomials)
         from gi.repository import Gtk
+
         clipboard = Gtk.Clipboard()
         safe_set_text(clipboard, text)
 
     def on_tnrs_browse_button_clicked(self, *args):
         from bauble.utils import desktop
-        desktop.open('http://tnrs.iplantcollaborative.org/TNRSapp.html')
+
+        desktop.open("http://tnrs.iplantcollaborative.org/TNRSapp.html")
 
     def on_tick_off_view_row_activated(self, view, path, column, data=None):
-        '''toggle the selected row
+        """toggle the selected row
 
         if selected row goes YES and is a synonym, also next row goes YES.
         if selected row goes NO and previous is synonym, previous goes NO.
-        '''
+        """
         if self.tick_off_list[path][ACCEPTABLE]:
             tick_off_item = self.tick_off_list[path]
             to_process = not tick_off_item[TO_PROCESS]
             set_row_active(tick_off_item, to_process)
-            if to_process and tick_off_item[TAXON_STATUS] == 'Synonym':
+            if to_process and tick_off_item[TAXON_STATUS] == "Synonym":
                 next_row_path = (path[0] + 1,)
                 set_row_active(self.tick_off_list[next_row_path], to_process)
-            if not to_process and tick_off_item[OLD_BINOMIAL] == '':
+            if not to_process and tick_off_item[OLD_BINOMIAL] == "":
                 prev_row_path = (path[0] - 1,)
                 set_row_active(self.tick_off_list[prev_row_path], to_process)
 
     def on_toggle_all_clicked(self, *args):
-        all_active = reduce(lambda a, b: a and b,
-                            [row[TO_PROCESS] for row in self.tick_off_list
-                             if row[ACCEPTABLE]])
+        all_active = reduce(
+            lambda a, b: a and b,
+            [row[TO_PROCESS] for row in self.tick_off_list if row[ACCEPTABLE]],
+        )
         to_process = not all_active
         for row in self.tick_off_list:
             if not row[ACCEPTABLE]:
@@ -271,19 +327,27 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
 
     def on_filebtnbrowse_clicked(self, *args):
         from gi.repository import Gtk
-        previously = self.view.widget_get_value('file_path_entry')
+
+        previously = self.view.widget_get_value("file_path_entry")
         last_folder, bn = os.path.split(previously)
         self.view.run_file_chooser_dialog(
-            _("Choose a file…"), parent=self,
+            _("Choose a file…"),
+            parent=self,
             action=Gtk.FileChooserAction.SAVE,
-            buttons=(Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
-                     Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL),
-            last_folder=last_folder, target='file_path_entry')
+            buttons=(
+                Gtk.STOCK_OK,
+                Gtk.ResponseType.ACCEPT,
+                Gtk.STOCK_CANCEL,
+                Gtk.ResponseType.CANCEL,
+            ),
+            last_folder=last_folder,
+            target="file_path_entry",
+        )
 
 
 class TaxonomyCheckTool(pluginmgr.Tool):
     item_position = 15
-    label = _('Taxonomy check')
+    label = _("Taxonomy check")
     icon_name = "taxonomy_check.png"
 
     @classmethod

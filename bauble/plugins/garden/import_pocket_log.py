@@ -21,18 +21,24 @@
 #
 # Data from the ghini.pocket log is written to the session, inconditionally.
 #
-
 import logging
-
-logger = logging.getLogger(__name__)
-
 import os.path
 
+from bauble import db
+from bauble.plugins.garden import Accession
+from bauble.plugins.garden import Location
+from bauble.plugins.garden import Plant
+from bauble.plugins.garden import PlantNote
+from bauble.plugins.garden import Verification
+from bauble.plugins.plants import Family
+from bauble.plugins.plants import Genus
+from bauble.plugins.plants import Species
 from dateutil.parser import parse
 
-from bauble import db
-from bauble.plugins.garden import Accession, Location, Plant, PlantNote, Verification
-from bauble.plugins.plants import Family, Genus, Species
+pass
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_genus(session, keys):
@@ -127,7 +133,9 @@ def process_inventory_line(session, baseline, timestamp, parameters):
             plant.location = location
     else:
         # if not even accession is in place, let's create a default one
-        accession = session.query(Accession).filter_by(code=accession_code).first()
+        accession = (
+            session.query(Accession).filter_by(code=accession_code).first()
+        )
         if accession is None:
             fictive_family = lookup(session, Family, epithet="Zz-Plantae")
             fictive_genus = lookup(
@@ -137,7 +145,10 @@ def process_inventory_line(session, baseline, timestamp, parameters):
                 session, Species, genus=fictive_genus, infrasp1="sp"
             )
             accession = lookup(
-                session, Accession, code=accession_code, species=fictive_species
+                session,
+                Accession,
+                code=accession_code,
+                species=fictive_species,
             )
         plant = lookup(
             session,
@@ -161,7 +172,9 @@ def process_inventory_line(session, baseline, timestamp, parameters):
 
 
 def process_pending_edit_line(session, baseline, timestamp, parameters):
-    full_plant_code, scientific_name, quantity, coordinates, *pictures = parameters
+    full_plant_code, scientific_name, quantity, coordinates, *pictures = (
+        parameters
+    )
     if not full_plant_code:
         # what should we do…
         return
@@ -172,8 +185,12 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
     accession_code, plant_code = heuristic_split(full_plant_code)
 
     fictive_family = lookup(session, Family, epithet="Zz-Plantae")
-    fictive_genus = lookup(session, Genus, family=fictive_family, epithet="Zzd-Plantae")
-    fictive_species = lookup(session, Species, genus=fictive_genus, infrasp1="sp")
+    fictive_genus = lookup(
+        session, Genus, family=fictive_family, epithet="Zzd-Plantae"
+    )
+    fictive_species = lookup(
+        session, Species, genus=fictive_genus, infrasp1="sp"
+    )
 
     # how long is the species indication?
     epithets = [i for i in scientific_name.split(" ") if i]
@@ -186,7 +203,9 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
         species = lookup(session, Species, genus=genus, infrasp1="sp")
     elif len(epithets) >= 2:
         if len(epithets) > 2:
-            logger.info("ignoring infraspecific epithets ›%s‹" % scientific_name)
+            logger.info(
+                "ignoring infraspecific epithets ›%s‹" % scientific_name
+            )
         genus = lookup(session, Genus, epithet=epithets[0])
         species = lookup(session, Species, genus=genus, epithet=epithets[1])
 
@@ -237,16 +256,24 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
 
     if coordinates != "(@;@)":
         # remove any previous such note
-        session.query(PlantNote).filter_by(plant=plant, category="<coords>").delete()
+        session.query(PlantNote).filter_by(
+            plant=plant, category="<coords>"
+        ).delete()
         # add new one
         lat, lon = (float(i) for i in coordinates[1:-1].split(";"))
         value = "{{lat:{:0.6f},lon:{:0.6f}}}".format(lat, lon)
-        note = lookup(session, PlantNote, plant=plant, category="<coords>", note=value)
+        note = lookup(
+            session, PlantNote, plant=plant, category="<coords>", note=value
+        )
 
     for picture in pictures:
         basename = os.path.basename(picture)
         note = lookup(
-            session, PlantNote, plant=plant, category="<picture>", note=basename
+            session,
+            PlantNote,
+            plant=plant,
+            category="<picture>",
+            note=basename,
         )
 
 
@@ -278,7 +305,7 @@ if False:
     )
     zzz = q.one()
 
-    import csv
+    pass
     import sys
 
     header = ["timestamp", "location", "acc_code", "imei", "species"]
@@ -288,7 +315,9 @@ if False:
 
     for line in fileinput.input():
         sys.stdout.flush()
-        obj = dict(list(zip(header, [i.strip() for i in str(line).split(":")])))
+        obj = dict(
+            list(zip(header, [i.strip() for i in str(line).split(":")]))
+        )
         if len(obj) < 3:
             continue  # ignore blank lines
         obj.setdefault("species", "Zzz sp")
@@ -314,18 +343,20 @@ if False:
                 sys.stdout.write(":")  # we altered a plant location
             else:
                 sys.stdout.write(".")  # we confirmed a plant location
-        except Exception as e:
+        except Exception:
             try:
                 accession = (
                     session.query(Accession)
                     .filter(Accession.code == obj["acc_code"])
                     .one()
                 )
-            except Exception as e:
+            except Exception:
                 accession = Accession(species=species, code=obj["acc_code"])
                 session.add(accession)
                 sys.stdout.write("a")  # we added a new accession
-            plant = Plant(accession=accession, location=loc, quantity=1, code="1")
+            plant = Plant(
+                accession=accession, location=loc, quantity=1, code="1"
+            )
             session.add(plant)
             session.flush()
             sys.stdout.write("p")  # we added a new plant

@@ -22,13 +22,11 @@
 The bauble.task module allows you to queue up long running tasks. The
 running tasks still block but allows the GUI to update.
 """
-
 import logging
 
+import bauble
 import fibra
 from gi.repository import Gtk
-
-import bauble
 
 logger = logging.getLogger(__name__)
 

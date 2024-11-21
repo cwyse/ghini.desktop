@@ -25,23 +25,8 @@ import logging
 import os
 import traceback
 import weakref
+from gettext import gettext as _
 from random import random
-
-logger = logging.getLogger(__name__)
-
-from gi.repository import Gdk, GObject, Gtk
-from sqlalchemy import (
-    Column,
-    Float,
-    ForeignKey,
-    Integer,
-    Unicode,
-    UnicodeText,
-    select,
-    text,
-)
-from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import relationship
 
 import bauble.btypes as types
 import bauble.db as db
@@ -49,7 +34,25 @@ import bauble.editor as editor
 import bauble.paths as paths
 import bauble.utils as utils
 import bauble.view as view
-from bauble.plugins.plants.geography import GeographicArea, GeographicAreaMenu
+from bauble.plugins.plants.geography import GeographicArea
+from bauble.plugins.plants.geography import GeographicAreaMenu
+from gi.repository import Gdk
+from gi.repository import GObject
+from gi.repository import Gtk
+from sqlalchemy import Column
+from sqlalchemy import Float
+from sqlalchemy import ForeignKey
+from sqlalchemy import Integer
+from sqlalchemy import select
+from sqlalchemy import text
+from sqlalchemy import Unicode
+from sqlalchemy import UnicodeText
+from sqlalchemy.orm import relationship
+
+pass
+
+
+logger = logging.getLogger(__name__)
 
 def collection_edit_callback(coll):
     from bauble.plugins.garden.accession import edit_callback
@@ -124,7 +127,10 @@ class Source(db.Base):
     )
 
     collection = relationship(
-        "Collection", uselist=False, back_populates="source", single_parent=True
+        "Collection",
+        uselist=False,
+        back_populates="source",
+        single_parent=True,
     )
 
     # relation to a propagation that is specific to this Source and
@@ -271,7 +277,9 @@ class Collection(db.Base):
         acc = self.source.accession
         safe = utils.xml_safe
         return (
-            "{} - <small>{}</small>".format(safe(acc), safe(acc.species_str())),
+            "{} - <small>{}</small>".format(
+                safe(acc), safe(acc.species_str())
+            ),
             safe(self),
         )
 
@@ -334,7 +342,9 @@ class CollectionPresenter(editor.ChildPresenter):
             "alt_entry", "elevation", editor.FloatOrNoneStringValidator()
         )
         self.assign_simple_handler(
-            "altacc_entry", "elevation_accy", editor.FloatOrNoneStringValidator()
+            "altacc_entry",
+            "elevation_accy",
+            editor.FloatOrNoneStringValidator(),
         )
         self.assign_simple_handler(
             "habitat_textview", "habitat", editor.UnicodeOrNoneValidator()
@@ -359,7 +369,9 @@ class CollectionPresenter(editor.ChildPresenter):
         self.view.connect("lat_entry", "changed", self.on_lat_entry_changed)
         self.view.connect("lon_entry", "changed", self.on_lon_entry_changed)
 
-        self.view.connect("coll_date_entry", "changed", self.on_date_entry_changed)
+        self.view.connect(
+            "coll_date_entry", "changed", self.on_date_entry_changed
+        )
 
         utils.setup_date_button(view, "coll_date_entry", "coll_date_button")
 
@@ -375,7 +387,9 @@ class CollectionPresenter(editor.ChildPresenter):
         self.view.widgets.add_region_button.set_sensitive(False)
 
         def on_add_button_pressed(button, event):
-            self.geo_menu.popup(None, None, None, None, event.button, event.time)
+            self.geo_menu.popup(
+                None, None, None, None, event.button, event.time
+            )
 
         self.view.connect(
             "add_region_button", "button-press-event", on_add_button_pressed
@@ -410,7 +424,8 @@ class CollectionPresenter(editor.ChildPresenter):
 
         if field in ("longitude", "latitude"):
             sensitive = (
-                self.model.latitude is not None and self.model.longitude is not None
+                self.model.latitude is not None
+                and self.model.longitude is not None
             )
             self.view.widgets.geoacc_entry.set_sensitive(sensitive)
             self.view.widgets.datum_entry.set_sensitive(sensitive)
@@ -428,13 +443,18 @@ class CollectionPresenter(editor.ChildPresenter):
         return self._dirty
 
     def refresh_view(self):
-        from bauble.plugins.garden.accession import latitude_to_dms, longitude_to_dms
+        from bauble.plugins.garden.accession import (
+            latitude_to_dms,
+            longitude_to_dms,
+        )
 
         for widget, field in list(self.widget_to_field_map.items()):
             value = getattr(self.model, field)
             logger.debug("{}, {}, {}".format(widget, field, value))
             if value is not None and field == "date":
-                value = "{}/{}/{}".format(value.day, value.month, "%04d" % value.year)
+                value = "{}/{}/{}".format(
+                    value.day, value.month, "%04d" % value.year
+                )
             self.view.widget_set_value(widget, value)
 
         latitude = self.model.latitude
@@ -545,7 +565,9 @@ class CollectionPresenter(editor.ChildPresenter):
         elif len(parts) == 3:
             dec = dms_to_decimal(direction, *list(map(Decimal, parts)))
         else:
-            raise ValueError(_("_parse_lat_lon() -- incorrect format: %s") % text)
+            raise ValueError(
+                _("_parse_lat_lon() -- incorrect format: %s") % text
+            )
         return dec
 
     def _get_lat_direction(self):
@@ -592,10 +614,14 @@ class CollectionPresenter(editor.ChildPresenter):
                 dms_string = "%s %s\u00B0%s'%s\"" % latitude_to_dms(latitude)
         except Exception:
             logger.debug(traceback.format_exc())
-            bg_color = Gdk.Color.parse("red")
-            self.add_problem(self.PROBLEM_BAD_LATITUDE, self.view.widgets.lat_entry)
+            Gdk.Color.parse("red")
+            self.add_problem(
+                self.PROBLEM_BAD_LATITUDE, self.view.widgets.lat_entry
+            )
         else:
-            self.remove_problem(self.PROBLEM_BAD_LATITUDE, self.view.widgets.lat_entry)
+            self.remove_problem(
+                self.PROBLEM_BAD_LATITUDE, self.view.widgets.lat_entry
+            )
 
         safe_set_text(self.view.widgets.lat_dms_label, dms_string)
         if text is None or text.strip() == "":
@@ -623,10 +649,14 @@ class CollectionPresenter(editor.ChildPresenter):
                 dms_string = "%s %s\u00B0%s'%s\"" % longitude_to_dms(longitude)
         except Exception:
             logger.debug(traceback.format_exc())
-            bg_color = Gdk.Color.parse("red")
-            self.add_problem(self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry)
+            Gdk.Color.parse("red")
+            self.add_problem(
+                self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry
+            )
         else:
-            self.remove_problem(self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry)
+            self.remove_problem(
+                self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry
+            )
 
         safe_set_text(self.view.widgets.lon_dms_label, dms_string)
         # self.set_model_attr('longitude', utils.utf8(longitude))
@@ -672,10 +702,12 @@ class PropagationChooserPresenter(editor.ChildPresenter):
                 prop = treeview.get_model()[path][0]
                 acc_view = self.parent_ref().view
                 acc_view.widget_set_value(
-                    "acc_species_entry", utils.utf8(prop.plant.accession.species)
+                    "acc_species_entry",
+                    utils.utf8(prop.plant.accession.species),
                 )
                 acc_view.widget_set_value(
-                    "acc_quantity_recvd_entry", utils.utf8(prop.accessible_quantity)
+                    "acc_quantity_recvd_entry",
+                    utils.utf8(prop.accessible_quantity),
                 )
                 from bauble.plugins.garden.accession import recvd_type_values
                 from bauble.plugins.garden.propagation import prop_type_results
@@ -696,7 +728,9 @@ class PropagationChooserPresenter(editor.ChildPresenter):
         )
 
         def get_accessible_plants():
-            logger.debug("in PropagationChooserPresenter:plant_get_completions")
+            logger.debug(
+                "in PropagationChooserPresenter:plant_get_completions"
+            )
             from bauble.plugins.garden.accession import Accession
             from bauble.plugins.garden.plant import Plant
 
@@ -735,7 +769,9 @@ class PropagationChooserPresenter(editor.ChildPresenter):
             from bauble.plugins.garden.plant import Plant
 
             plant = (
-                self.session.query(Plant).filter(Plant.id == model[matches[0]][1]).one()
+                self.session.query(Plant)
+                .filter(Plant.id == model[matches[0]][1])
+                .one()
             )
             # populate the propagation browser
             treeview = self.view.widgets.source_prop_treeview
@@ -765,7 +801,9 @@ class PropagationChooserPresenter(editor.ChildPresenter):
 
         parent_plant = self.model.plant_propagation.plant
         # set the parent accession
-        self.view.widget_set_value("source_prop_plant_combo", str(parent_plant))
+        self.view.widget_set_value(
+            "source_prop_plant_combo", str(parent_plant)
+        )
 
         if not parent_plant.propagations:
             treeview.set_sensitive = False
@@ -805,7 +843,9 @@ def create_contact(parent=None):
 
 
 def source_detail_edit_callback(details, parent=None):
-    glade_path = os.path.join(paths.lib_dir(), "plugins", "garden", "contact.glade")
+    glade_path = os.path.join(
+        paths.lib_dir(), "plugins", "garden", "contact.glade"
+    )
     view = editor.GenericEditorView(
         glade_path, parent=parent, root_widget_name="source_details_dialog"
     )
@@ -850,7 +890,10 @@ source_detail_remove_action = view.Action(
     multiselect=True,
 )
 
-source_detail_context_menu = [source_detail_edit_action, source_detail_remove_action]
+source_detail_context_menu = [
+    source_detail_edit_action,
+    source_detail_remove_action,
+]
 
 
 #
@@ -860,7 +903,9 @@ def compute_serializable_fields(cls, session, keys):
     result = {"contact": None}
 
     parent_keys = {"name": keys["contact"]}
-    result["contact"] = Contact.retrieve_or_create(session, parent_keys, create=False)
+    result["contact"] = Contact.retrieve_or_create(
+        session, parent_keys, create=False
+    )
 
     return result
 
@@ -905,7 +950,9 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
             return None
 
 
-ContactNote = db.make_note_class("Contact", Contact, compute_serializable_fields)
+ContactNote = db.make_note_class(
+    "Contact", Contact, compute_serializable_fields
+)
 Contact.notes = relationship(
     "ContactNote",
     back_populates="contact",
@@ -949,7 +996,9 @@ class GeneralSourceDetailExpander(view.InfoExpander):
         # from textwrap import TextWrapper
         # wrapper = TextWrapper(width=50, subsequent_indent='  ')
         self.widget_set_value(
-            "sd_name_data", "<big>%s</big>" % utils.xml_safe(row.name), markup=True
+            "sd_name_data",
+            "<big>%s</big>" % utils.xml_safe(row.name),
+            markup=True,
         )
         source_type = ""
         if row.source_type:

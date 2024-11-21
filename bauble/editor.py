@@ -21,30 +21,37 @@
 # Description: a collection of functions and abstract classes for creating
 # editors for Ghini data
 #
-
-
 import datetime
 import logging
 import os
 import sys
 import weakref
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
+from gettext import gettext as _
 from random import random
-
-import lxml.etree as etree
-from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk, Pango
-from sqlalchemy.orm import object_mapper, object_session
-from sqlalchemy.orm.exc import UnmappedInstanceError
 
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
-from bauble.error import CheckConditionError, check
+import lxml.etree as etree
+from bauble.error import check
+from bauble.error import CheckConditionError
+from bauble.utils import parse_date
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
+from gi.repository import GLib
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Pango
+from sqlalchemy.orm import object_mapper
+from sqlalchemy.orm import object_session
+
+pass
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 # TODO: create a generic date entry that can take a mask for the date format
@@ -77,9 +84,6 @@ class Validator:
 
     def to_python(self, value):
         raise NotImplementedError
-
-
-from bauble.utils import parse_date
 
 
 class DateValidator(Validator):
@@ -168,7 +172,8 @@ class IntOrNoneStringValidator(Validator):
             return int(value)
         except Exception:
             raise ValidatorError(
-                "Could not convert value to int: %s (%s)" % (value, type(value))
+                "Could not convert value to int: %s (%s)"
+                % (value, type(value))
             )
 
 
@@ -187,11 +192,14 @@ class FloatOrNoneStringValidator(Validator):
             return float(value)
         except Exception:
             raise ValidatorError(
-                "Could not convert value to float: %s (%s)" % (value, type(value))
+                "Could not convert value to float: %s (%s)"
+                % (value, type(value))
             )
 
 
-def default_completion_cell_data_func(column, renderer, model, treeiter, data=None):
+def default_completion_cell_data_func(
+    column, renderer, model, treeiter, data=None
+):
     """
     the default completion cell data function for
     GenericEditorView.attach_completions
@@ -298,7 +306,9 @@ class GenericEditorView:
                 if filename:
                     self.widget_set_value(target, filename)
         except Exception as e:
-            logger.warning("unhandled %s exception in editor.py: %s" % (type(e), e))
+            logger.warning(
+                "unhandled %s exception in editor.py: %s" % (type(e), e)
+            )
         chooser.destroy()
 
     def run_entry_dialog(self, title, parent, flags, buttons, visible=True):
@@ -308,7 +318,9 @@ class GenericEditorView:
         entry = Gtk.Entry()
         if visible is not True:
             entry.set_visibility(False)
-        entry.connect("activate", lambda entry: d.response(Gtk.ResponseType.ACCEPT))
+        entry.connect(
+            "activate", lambda entry: d.response(Gtk.ResponseType.ACCEPT)
+        )
         d.vbox.pack_start(entry, True, True, 0)
         d.show_all()
         d.run()
@@ -317,7 +329,11 @@ class GenericEditorView:
         return user_reply
 
     def run_message_dialog(
-        self, msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+        self,
+        msg,
+        type=Gtk.MessageType.INFO,
+        buttons=Gtk.ButtonsType.OK,
+        parent=None,
     ):
         utils.message_dialog(msg, type, buttons, parent)
 
@@ -350,7 +366,9 @@ class GenericEditorView:
         self.get_window().set_icon(icon)
 
     def image_set_from_file(self, widget, value):
-        widget = isinstance(widget, Gtk.Widget) and widget or self.widgets[widget]
+        widget = (
+            isinstance(widget, Gtk.Widget) and widget or self.widgets[widget]
+        )
         widget.set_from_file(value)
 
     def set_label(self, widget_name, value):
@@ -382,7 +400,9 @@ class GenericEditorView:
         :param type: one of MESSAGE_BOX_INFO, MESSAGE_BOX_ERROR or
           MESSAGE_BOX_YESNO
         """
-        return utils.add_message_box(self.widgets.message_box_parent, message_box_type)
+        return utils.add_message_box(
+            self.widgets.message_box_parent, message_box_type
+        )
 
     def connect_signals(self, target):
         "connect all signals declared in the glade file"
@@ -623,7 +643,9 @@ class GenericEditorView:
         widget = self.__get_widget(widget)
         return utils.get_widget_value(widget, index)
 
-    def widget_set_value(self, widget, value, markup=False, default=None, index=0):
+    def widget_set_value(
+        self, widget, value, markup=False, default=None, index=0
+    ):
         """
         :param widget: a widget or name of a widget in self.widgets
         :param value: the value to put in the widgets
@@ -636,7 +658,9 @@ class GenericEditorView:
         if isinstance(widget, Gtk.Widget):
             utils.set_widget_value(widget, value, markup, default, index)
         else:
-            utils.set_widget_value(self.widgets[widget], value, markup, default, index)
+            utils.set_widget_value(
+                self.widgets[widget], value, markup, default, index
+            )
 
     def on_dialog_response(self, dialog, response, *args):
         """
@@ -724,7 +748,9 @@ class GenericEditorView:
         return completion
 
     # TODO: add a default value to set in the combo
-    def init_translatable_combo(self, combo, translations, default=None, cmp=None):
+    def init_translatable_combo(
+        self, combo, translations, default=None, cmp=None
+    ):
         """
         Initialize a Gtk.ComboBox with translations values where
         model[row][0] is the value that will be stored in the database
@@ -748,7 +774,9 @@ class GenericEditorView:
                 list(translations.items()), key=lambda x: (x[1] != None, x[1])
             )
         if cmp is not None:
-            translations = sorted(translations, key=lambda a: (a[0] != None, a[0]))
+            translations = sorted(
+                translations, key=lambda a: (a[0] != None, a[0])
+            )
         for key, value in translations:
             model.append([key, value])
         combo.set_model(model)
@@ -772,8 +800,8 @@ class GenericEditorView:
         pass
 
     def start(self):
-        ## while being ran, the view will invoke callbacks in the presenter
-        ## which, in turn, will alter the attributes in the model.
+        # while being ran, the view will invoke callbacks in the presenter
+        # which, in turn, will alter the attributes in the model.
         return self.get_window().run()
 
     def cleanup(self):
@@ -866,7 +894,11 @@ class MockView:
             return ""
 
     def run_message_dialog(
-        self, msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+        self,
+        msg,
+        type=Gtk.MessageType.INFO,
+        buttons=Gtk.ButtonsType.OK,
+        parent=None,
     ):
         self.invoked.append("run_message_dialog")
         args = [msg, type, buttons, parent]
@@ -1159,7 +1191,8 @@ class GenericEditorPresenter:
         self.clipboard_presenters = []
         if not hasattr(self.__class__, "clipboard"):
             logging.debug(
-                "creating clipboard in presenter class %s" % self.__class__.__name__
+                "creating clipboard in presenter class %s"
+                % self.__class__.__name__
             )
             self.__class__.clipboard = {}
 
@@ -1168,7 +1201,9 @@ class GenericEditorPresenter:
                 self.session = object_session(model)
             except Exception as e:
                 logger.debug(
-                    "GenericEditorPresenter::__init__ - {}, {}".format(type(e), e)
+                    "GenericEditorPresenter::__init__ - {}, {}".format(
+                        type(e), e
+                    )
                 )
 
             if self.session is None:  # object_session gave None without error
@@ -1178,7 +1213,9 @@ class GenericEditorPresenter:
                     if isinstance(model, db.Base):
                         self.model = model = self.session.merge(model)
                 else:
-                    logger.debug("db.Session was None, I cannot get a session.")
+                    logger.debug(
+                        "db.Session was None, I cannot get a session."
+                    )
                     self.session = None
 
         if view:
@@ -1190,14 +1227,17 @@ class GenericEditorPresenter:
     def create_toolbar(self, *args, **kwargs):
         view, model = self.view, self.model
         logging.debug(
-            "creating toolbar in content_area presenter %s" % self.__class__.__name__
+            "creating toolbar in content_area presenter %s"
+            % self.__class__.__name__
         )
         actiongroup = Gtk.ActionGroup("window-clip-actions")
         accelgroup = Gtk.AccelGroup()
         fake_toolbar = Gtk.Toolbar()
         fake_toolbar.set_name("toolbar")
         view.get_window().add_accel_group(accelgroup)
-        view.get_window().get_content_area().pack_start(fake_toolbar, True, True, 0)
+        view.get_window().get_content_area().pack_start(
+            fake_toolbar, True, True, 0
+        )
         for shortcut, cb in (
             ("<ctrl><shift>c", self.on_window_clip_copy),
             ("<ctrl><shift>v", self.on_window_clip_paste),
@@ -1325,9 +1365,9 @@ class GenericEditorPresenter:
             self.session.commit()
             try:
                 bauble.gui.get_view().update()
-            except Exception as e:
+            except Exception:
                 pass
-        except Exception as e:
+        except Exception:
             self.session.rollback()
             self.session.add_all(objs)
             raise
@@ -1344,7 +1384,11 @@ class GenericEditorPresenter:
             self.view.set_accept_buttons_sensitive(not self.has_problems())
 
     def __get_widget_name(self, widget):
-        return isinstance(widget, str) and widget or Gtk.Buildable.get_name(widget)
+        return (
+            isinstance(widget, str)
+            and widget
+            or Gtk.Buildable.get_name(widget)
+        )
 
     widget_get_name = __get_widget_name
 
@@ -1439,7 +1483,7 @@ class GenericEditorPresenter:
             "on_unique_text_entry_changed(%s, %s) - %s → %s"
             % (widget, attr, getattr(self.model, attr), value)
         )
-        ## check uniqueness
+        # check uniqueness
         klass = self.model.__class__
         k_attr = getattr(klass, attr)
         q = self.session.query(klass)
@@ -1449,7 +1493,7 @@ class GenericEditorPresenter:
             self.add_problem(self.PROBLEM_DUPLICATE, widget)
         else:
             self.remove_problem(self.PROBLEM_DUPLICATE, widget)
-        ## ok
+        # ok
         self.__set_model_attr(attr, value)
 
     def on_datetime_entry_changed(self, widget, value=None):
@@ -1489,7 +1533,9 @@ class GenericEditorPresenter:
     def on_group_changed(self, widget, *args):
         "handle group-changed signal on radio-button"
         if args:
-            logger.warning("on_group_changed received extra arguments" + str(args))
+            logger.warning(
+                "on_group_changed received extra arguments" + str(args)
+            )
         attr = self.__get_widget_attr(widget)
         value = self.__get_widget_name(widget)
         self.__set_model_attr(attr, value)
@@ -1592,13 +1638,15 @@ class GenericEditorPresenter:
           whose background color should change to indicate a problem
           (default=None)
         """
-        ## map case list of widget to list of cases single widget.
-        logger.debug("add_problem(%s, %s, %s)" % (self, problem_id, problem_widgets))
+        # map case list of widget to list of cases single widget.
+        logger.debug(
+            "add_problem(%s, %s, %s)" % (self, problem_id, problem_widgets)
+        )
         if isinstance(problem_widgets, (tuple, list)):
             list([self.add_problem(problem_id, w) for w in problem_widgets])
             return
 
-        ## here single widget.
+        # here single widget.
         widget = problem_widgets
         if not isinstance(widget, Gtk.Widget):
             try:
@@ -1628,7 +1676,8 @@ class GenericEditorPresenter:
         values = mapper.c[field].type.values
         if None in values:
             logger.debug(
-                "None value found in column %s, that is not in the Enum" % field
+                "None value found in column %s, that is not in the Enum"
+                % field
             )
             values.remove(None)
             values.insert(0, "")
@@ -1668,7 +1717,9 @@ class GenericEditorPresenter:
                 self.add_problem("BAD_VALUE_%s" % attr)
             else:
                 logger.debug(
-                    "validated {}({}) for {}".format(type(value).__name__, value, attr)
+                    "validated {}({}) for {}".format(
+                        type(value).__name__, value, attr
+                    )
                 )
                 setattr(self.model, attr, value)
         else:
@@ -1699,12 +1750,17 @@ class GenericEditorPresenter:
             def to_python(self, value):
                 try:
                     value = self.wrapped.to_python(value)
-                    self.presenter.remove_problem("BAD_VALUE_%s" % model_attr, widget)
+                    self.presenter.remove_problem(
+                        "BAD_VALUE_%s" % model_attr, widget
+                    )
                 except Exception as e:
                     logger.debug(
-                        "GenericEditorPresenter.ProblemValidator" ".to_python %s" % e
+                        "GenericEditorPresenter.ProblemValidator"
+                        ".to_python %s" % e
                     )
-                    self.presenter.add_problem("BAD_VALUE_%s" % model_attr, widget)
+                    self.presenter.add_problem(
+                        "BAD_VALUE_%s" % model_attr, widget
+                    )
                     raise
                 return value
 
@@ -1750,7 +1806,9 @@ class GenericEditorPresenter:
                 widget.get_child(), Gtk.Entry
             ):
                 self.view.connect(widget.get_child(), "changed", entry_changed)
-        elif isinstance(widget, (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)):
+        elif isinstance(
+            widget, (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)
+        ):
 
             def toggled(button, data=None):
                 active = button.get_active()
@@ -1810,7 +1868,9 @@ class GenericEditorPresenter:
             GObject.idle_add(idle_callback, values)
 
         def on_changed(entry, *args):
-            logger.debug("assign_completions_handler::on_changed %s %s" % (entry, args))
+            logger.debug(
+                "assign_completions_handler::on_changed %s %s" % (entry, args)
+            )
             text = entry.get_text()
 
             key_length = widget.get_completion().props.minimum_key_length
@@ -1837,7 +1897,10 @@ class GenericEditorPresenter:
                     # type a match in the entry without having to select
                     # it from the popup
                     def _cmp(row, data):
-                        return utils.utf8(row[0])[: len(text)].lower() == data.lower()
+                        return (
+                            utils.utf8(row[0])[: len(text)].lower()
+                            == data.lower()
+                        )
 
                     found = utils.search_tree_model(comp_model, text, _cmp)
                     logger.debug("matches found in ListStore: %s" % str(found))
@@ -1845,17 +1908,21 @@ class GenericEditorPresenter:
                         logger.debug("nothing found, nothing to select from")
                     elif len(found) == 1:
                         logger.debug(
-                            "one match, decide whether to select it - %s" % found[0]
+                            "one match, decide whether to select it - %s"
+                            % found[0]
                         )
                         v = comp.get_model()[found[0]][0]
                         # only auto select if the full string has been entered
                         if text.lower() == utils.utf8(v).lower():
-                            comp.emit("match-selected", comp.get_model(), found[0])
+                            comp.emit(
+                                "match-selected", comp.get_model(), found[0]
+                            )
                         else:
                             found = None
                     else:
                         logger.debug(
-                            "multiple matches, we cannot select any - %s" % str(found)
+                            "multiple matches, we cannot select any - %s"
+                            % str(found)
                         )
 
                 if text != "" and not found and PROBLEM not in self.problems:
@@ -1867,8 +1934,8 @@ class GenericEditorPresenter:
                     on_select(None)
                     self.remove_problem(PROBLEM, widget)
                 elif not comp_model:
-                    ## completion model is not in place when object is forced
-                    ## programmatically.
+                    # completion model is not in place when object is forced
+                    # programmatically.
                     on_select(text)  # `on_select` will know how to convert the
                     # text into a properly typed value.
                     self.remove_problem(PROBLEM, widget)
@@ -1986,7 +2053,7 @@ class GenericModelViewPresenterEditor:
             self.session.commit()
             try:
                 bauble.gui.get_view().update()
-            except Exception as e:
+            except Exception:
                 pass
         except Exception as e:
             logger.warning("can't commit changes: ({}) {}".format(type(e), e))
@@ -2013,7 +2080,9 @@ class NoteBox(Gtk.HBox):
             self.presenter.add_problem(
                 self.presenter.PROBLEM_EMPTY, self.widgets.note_textview
             )
-        buff.connect("changed", self.on_note_buffer_changed, self.widgets.note_textview)
+        buff.connect(
+            "changed", self.on_note_buffer_changed, self.widgets.note_textview
+        )
 
     def __init__(self, presenter, model=None):
         super().__init__()
@@ -2060,7 +2129,9 @@ class NoteBox(Gtk.HBox):
         utils.set_widget_value(
             self.widgets.category_comboentry, self.model.category or ""
         )
-        utils.setup_date_button(None, self.widgets.date_entry, self.widgets.date_button)
+        utils.setup_date_button(
+            None, self.widgets.date_entry, self.widgets.date_button
+        )
         date_str = utils.today_str()
         if self.model.date:
             format = prefs.prefs[prefs.date_format_pref]
@@ -2079,7 +2150,9 @@ class NoteBox(Gtk.HBox):
         self.widgets.category_comboentry.get_child().connect(
             "changed", self.on_category_entry_changed
         )
-        self.widgets.notes_remove_button.connect("clicked", self.on_notes_remove_button)
+        self.widgets.notes_remove_button.connect(
+            "clicked", self.on_notes_remove_button
+        )
 
         self.update_label()
         self.show_all()
@@ -2124,7 +2197,9 @@ class NoteBox(Gtk.HBox):
             text = utils.utf8(combo.get_model()[treeiter][0])
         else:
             return
-        self.widgets.category_comboentry.get_child().set_text = utils.utf8(text)
+        self.widgets.category_comboentry.get_child().set_text = utils.utf8(
+            text
+        )
 
     def on_category_entry_changed(self, entry, *args):
         """ """
@@ -2167,12 +2242,14 @@ class NoteBox(Gtk.HBox):
             label.append("(%s)" % utils.xml_safe(self.model.category))
 
         if self.model.note:
-            note_str = " : %s" % utils.xml_safe(self.model.note).replace("\n", "  ")
+            note_str = " : %s" % utils.xml_safe(self.model.note).replace(
+                "\n", "  "
+            )
             max_length = 25
             # label.props.ellipsize doesn't work properly on a
             # label in an expander we just do it ourselves here
             if len(self.model.note) > max_length:
-                label.append("%s …" % note_str[0 : max_length - 1])
+                label.append("%s …" % note_str[0: max_length - 1])
             else:
                 label.append(note_str)
 
@@ -2216,7 +2293,9 @@ class PictureBox(NoteBox):
         utils.set_widget_value(self.widgets.category_comboentry, "<picture>")
         self.presenter._dirty = False
 
-        self.widgets.picture_button.connect("clicked", self.on_activate_browse_button)
+        self.widgets.picture_button.connect(
+            "clicked", self.on_activate_browse_button
+        )
 
     def set_content(self, basename):
         for w in list(self.widgets.picture_button.get_children()):
@@ -2227,7 +2306,9 @@ class PictureBox(NoteBox):
                 thumbname = os.path.join(
                     prefs.prefs[prefs.picture_root_pref], "thumbs", basename
                 )
-                filename = os.path.join(prefs.prefs[prefs.picture_root_pref], basename)
+                filename = os.path.join(
+                    prefs.prefs[prefs.picture_root_pref], basename
+                )
                 if os.path.isfile(thumbname):
                     pixbuf = GdkPixbuf.Pixbuf.new_from_file(thumbname)
                 else:
@@ -2238,15 +2319,21 @@ class PictureBox(NoteBox):
                     scale = max(scale_x, scale_y, 1)
                     x = int(fullbuf.get_width() / scale)
                     y = int(fullbuf.get_height() / scale)
-                    pixbuf = fullbuf.scale_simple(x, y, GdkPixbuf.InterpType.BILINEAR)
+                    pixbuf = fullbuf.scale_simple(
+                        x, y, GdkPixbuf.InterpType.BILINEAR
+                    )
                 im.set_from_pixbuf(pixbuf)
             except GLib.GError as e:
-                logger.debug("picture %s caused GLib.GError %s" % (basename, e))
+                logger.debug(
+                    "picture %s caused GLib.GError %s" % (basename, e)
+                )
                 label = _("picture file %s not found.") % basename
                 im = Gtk.Label()
                 safe_set_text(im, label)
             except Exception as e:
-                logger.warning("can't commit changes: ({}) {}".format(type(e), e))
+                logger.warning(
+                    "can't commit changes: ({}) {}".format(type(e), e)
+                )
                 im = Gtk.Label()
                 safe_set_text(im, e)
         else:
@@ -2273,21 +2360,25 @@ class PictureBox(NoteBox):
             fileChooserDialog.run()
             filename = fileChooserDialog.get_filename()
             if filename:
-                ## remember chosen location for next time
+                # remember chosen location for next time
                 PictureBox.last_folder, basename = os.path.split(str(filename))
                 logger.debug("new current folder is: %s" % self.last_folder)
-                ## copy file to picture_root_dir (if not yet there),
-                ## also receiving thumbnail base64
-                thumb = utils.copy_picture_with_thumbnail(self.last_folder, basename)
-                ## make sure the category is <picture>
+                # copy file to picture_root_dir (if not yet there),
+                # also receiving thumbnail base64
+                thumb = utils.copy_picture_with_thumbnail(
+                    self.last_folder, basename
+                )
+                # make sure the category is <picture>
                 self.set_model_attr("category", "<picture>")
-                ## append thumbnail base64 to content string
+                # append thumbnail base64 to content string
                 basename = basename + "|data:image/jpeg;base64," + thumb
-                ## store basename in note field and fire callbacks.
+                # store basename in note field and fire callbacks.
                 self.set_model_attr("note", basename)
                 self.set_content(basename)
         except Exception as e:
-            logger.warning("unhandled exception in editor.py: " "(%s)%s" % (type(e), e))
+            logger.warning(
+                "unhandled exception in editor.py: " "(%s)%s" % (type(e), e)
+            )
         fileChooserDialog.destroy()
 
     def on_category_entry_changed(self, entry, *args):
@@ -2333,7 +2424,9 @@ class NotesPresenter(GenericEditorPresenter):
 
         self.parent_ref = weakref.ref(presenter)
         self.note_cls = (
-            object_mapper(presenter.model).get_property(notes_property).mapper.class_
+            object_mapper(presenter.model)
+            .get_property(notes_property)
+            .mapper.class_
         )
         self.notes = getattr(presenter.model, notes_property)
         self.parent_container = parent_container
@@ -2354,7 +2447,9 @@ class NotesPresenter(GenericEditorPresenter):
         logger.debug("notes: %s" % self.notes)
         logger.debug("children: %s" % self.box.get_children())
 
-        self.widgets.notes_add_button.connect("clicked", self.on_add_button_clicked)
+        self.widgets.notes_add_button.connect(
+            "clicked", self.on_add_button_clicked
+        )
         self.box.show_all()
 
     def on_add_button_clicked(self, *args):

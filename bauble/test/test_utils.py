@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 from unittest import TestCase
 
 import bauble.utils as utils
@@ -25,13 +24,19 @@ import bauble.utils as utils
 class Utils(TestCase):
 
     def test_topological_sort_total(self):
-        self.assertEqual(utils.topological_sort([1, 2, 3], [(2, 1), (3, 2)]), [3, 2, 1])
+        self.assertEqual(
+            utils.topological_sort([1, 2, 3], [(2, 1), (3, 2)]), [3, 2, 1]
+        )
 
     def test_topological_sort_partial(self):
-        self.assertEqual(utils.topological_sort([1, 2, 3, 4], [(2, 1)]), [4, 3, 2, 1])
+        self.assertEqual(
+            utils.topological_sort([1, 2, 3, 4], [(2, 1)]), [4, 3, 2, 1]
+        )
 
     def test_topological_sort_loop(self):
-        self.assertEqual(utils.topological_sort([1, 2], [(2, 1), (1, 2)]), None)
+        self.assertEqual(
+            utils.topological_sort([1, 2], [(2, 1), (1, 2)]), None
+        )
 
 
 class CacheTest(TestCase):

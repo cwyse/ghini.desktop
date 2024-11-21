@@ -27,18 +27,22 @@ import logging
 import os
 import tempfile
 
-import lxml.etree as etree
-
-logger = logging.getLogger(__name__)
-
-from nose import SkipTest
-
 import bauble.paths as paths
 import bauble.plugins.garden.test as garden_test
 import bauble.plugins.plants.test as plants_test
+import lxml.etree as etree
 from bauble.plugins.abcd import *
-from bauble.plugins.garden import Accession, Collection, Plant, Source
+from bauble.plugins.garden import Accession
+from bauble.plugins.garden import Collection
+from bauble.plugins.garden import Plant
+from bauble.plugins.garden import Source
 from bauble.test import BaubleTestCase
+
+pass
+
+
+logger = logging.getLogger(__name__)
+
 
 # TODO: the ABCD tests need to be completely reworked
 
@@ -53,15 +57,17 @@ class ABCDTestCase(BaubleTestCase):
         plants_test.setUp_data()
         garden_test.setUp_data()
 
-        schema_file = os.path.join(paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd")
+        schema_file = os.path.join(
+            paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd"
+        )
         xmlschema_doc = etree.parse(schema_file)
         self.abcd_schema = etree.XMLSchema(xmlschema_doc)
         from bauble.plugins.garden import Institution
 
         inst = Institution()
-        inst.name = inst.code = inst.contact = inst.technical_contact = inst.email = (
-            "test"
-        )
+        inst.name = inst.code = inst.contact = inst.technical_contact = (
+            inst.email
+        ) = "test"
         inst.write()
         self.session.commit()
 
@@ -93,7 +99,9 @@ class ABCDTestCase(BaubleTestCase):
         ABCDElement(unit, "SourceID", text="1111")
         unit_id = ABCDElement(unit, "UnitID", text="2222")
 
-        self.assertTrue(self.abcd_schema.validate(datasets), self.abcd_schema.error_log)
+        self.assertTrue(
+            self.abcd_schema.validate(datasets), self.abcd_schema.error_log
+        )
 
     def test_export(self):
         """
@@ -128,4 +136,6 @@ class ABCDTestCase(BaubleTestCase):
         data = plants_to_abcd(plants)
         self.assertNotEqual(data, None)
         # assert validate abcd
-        self.assertTrue(self.abcd_schema.validate(data), self.abcd_schema.error_log)
+        self.assertTrue(
+            self.abcd_schema.validate(data), self.abcd_schema.error_log
+        )

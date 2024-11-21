@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 print a list if duplicate ids in an XML file
 """

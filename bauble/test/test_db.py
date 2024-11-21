@@ -16,10 +16,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import bauble.plugins.garden.accession
 import bauble.plugins.plants.genus
-from bauble import db, prefs
+from bauble import db
+from bauble import prefs
 from bauble.test import BaubleTestCase
 
 prefs.testing = True
@@ -29,7 +29,9 @@ db.sqlalchemy_debug(True)
 
 class GlobalFunctionsTests(BaubleTestCase):
     def test_get_next_code_first_this_year(self):
-        self.assertEqual(db.class_of_object("genus"), bauble.plugins.plants.genus.Genus)
+        self.assertEqual(
+            db.class_of_object("genus"), bauble.plugins.plants.genus.Genus
+        )
         self.assertEqual(
             db.class_of_object("accession_note"),
             bauble.plugins.garden.accession.AccessionNote,

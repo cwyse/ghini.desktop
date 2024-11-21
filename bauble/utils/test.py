@@ -21,20 +21,22 @@
 # test.py
 #
 # Description: test for bauble.utils
-
-
-import sys
 import unittest
 
+import bauble.db as db
+import bauble.utils as utils
+from bauble.error import CheckConditionError
+from bauble.test import BaubleTestCase
+from bauble.utils import topological_sort
 from nose import SkipTest
 from pyparsing import *
 from sqlalchemy import *
 
-import bauble
-import bauble.db as db
-import bauble.utils as utils
-from bauble.error import CheckConditionError, check
-from bauble.test import BaubleTestCase
+pass
+
+
+pass
+pass
 
 
 class UtilsGTKTests(unittest.TestCase):
@@ -78,7 +80,9 @@ addasdadadad"""
 
         root = model.get_iter_first()
         results = utils.search_tree_model(model[root], "something")
-        self.assertTrue(sorted([model.get_path(r) for r in results]), sorted(to_find))
+        self.assertTrue(
+            sorted([model.get_path(r) for r in results]), sorted(to_find)
+        )
 
 
 class UtilsTests(unittest.TestCase):
@@ -118,14 +122,18 @@ class UtilsTests(unittest.TestCase):
     def test_get_urls(self):
         text = "There a link in here: http://bauble.belizebotanic.org"
         urls = utils.get_urls(text)
-        self.assertTrue(urls == [(None, "http://bauble.belizebotanic.org")], urls)
+        self.assertTrue(
+            urls == [(None, "http://bauble.belizebotanic.org")], urls
+        )
 
         text = (
             "There a link in here: http://bauble.belizebotanic.org "
             "and some text afterwards."
         )
         urls = utils.get_urls(text)
-        self.assertTrue(urls == [(None, "http://bauble.belizebotanic.org")], urls)
+        self.assertTrue(
+            urls == [(None, "http://bauble.belizebotanic.org")], urls
+        )
 
         text = (
             "There is a link here: http://bauble.belizebotanic.org "
@@ -146,7 +154,9 @@ class UtilsTests(unittest.TestCase):
             "[BBG]http://bauble.belizebotanic.org and some text afterwards."
         )
         urls = utils.get_urls(text)
-        self.assertTrue(urls == [("BBG", "http://bauble.belizebotanic.org")], urls)
+        self.assertTrue(
+            urls == [("BBG", "http://bauble.belizebotanic.org")], urls
+        )
 
 
 class UtilsDBTests(BaubleTestCase):
@@ -155,7 +165,7 @@ class UtilsDBTests(BaubleTestCase):
         super().setUp()
         from sqlalchemy.orm import configure_mappers
 
-        from bauble.db import engine, metadata
+        pass
 
         configure_mappers()
 
@@ -171,7 +181,9 @@ class UtilsDBTests(BaubleTestCase):
         from bauble.db import engine, metadata
 
         # table1 does't depend on any tables
-        table1 = Table("table1", metadata, Column("id", Integer, primary_key=True))
+        table1 = Table(
+            "table1", metadata, Column("id", Integer, primary_key=True)
+        )
 
         # table2 depends on table1
         table2 = Table(
@@ -229,7 +241,7 @@ class ResetSequenceTests(BaubleTestCase):
         # self.metadata.bind = db.engine
         from sqlalchemy.orm import configure_mappers
 
-        from bauble.db import engine, metadata
+        pass
 
         configure_mappers()
 
@@ -311,9 +323,6 @@ class ResetSequenceTests(BaubleTestCase):
         self.assertTrue(currval > rangemax, currval)
 
 
-from bauble.utils import topological_sort
-
-
 class TopologicalSortTests(unittest.TestCase):
     def test_empty_dependencies(self):
         r = topological_sort(["a", "b", "c"], [])
@@ -341,5 +350,5 @@ class TopologicalSortTests(unittest.TestCase):
         # self.assertEquals(r, [])
 
     def test_empty_input_full_dependencies(self):
-        r = topological_sort([], [("a", "b"), ("b", "c"), ("b", "d")])
+        topological_sort([], [("a", "b"), ("b", "c"), ("b", "d")])
         # self.assertEquals(r, [])

@@ -19,7 +19,6 @@
 #
 # test for bauble.meta
 #
-
 import bauble.meta as meta
 from bauble.test import BaubleTestCase
 

@@ -6,14 +6,12 @@
 #
 # License: GPL
 #
-
 # TODO:
 # - let the user choose a mirror
 # - *-dev versions of files?
 # - check MD5
 # - do an import MYSQL-python and check the version to see if we need to
 # install the .exe files
-
 import sys
 
 if sys.platform != "win32":

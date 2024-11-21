@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import math
 
 
@@ -40,7 +39,9 @@ def utm_to_latlon(zone, easting, northing, northernHemisphere=True):
         )
     )
 
-    ei = (1 - math.pow((1 - e * e), (1 / 2.0))) / (1 + math.pow((1 - e * e), (1 / 2.0)))
+    ei = (1 - math.pow((1 - e * e), (1 / 2.0))) / (
+        1 + math.pow((1 - e * e), (1 / 2.0))
+    )
 
     ca = 3 * ei / 2 - 27 * math.pow(ei, 3) / 32.0
 
@@ -57,7 +58,11 @@ def utm_to_latlon(zone, easting, northing, northernHemisphere=True):
 
     n0 = a / math.pow((1 - math.pow((e * math.sin(phi1)), 2)), (1 / 2.0))
 
-    r0 = a * (1 - e * e) / math.pow((1 - math.pow((e * math.sin(phi1)), 2)), (3 / 2.0))
+    r0 = (
+        a
+        * (1 - e * e)
+        / math.pow((1 - math.pow((e * math.sin(phi1)), 2)), (3 / 2.0))
+    )
     fact1 = n0 * math.tan(phi1) / r0
 
     _a1 = 500000 - easting
@@ -66,7 +71,9 @@ def utm_to_latlon(zone, easting, northing, northernHemisphere=True):
 
     t0 = math.pow(math.tan(phi1), 2)
     Q0 = e1sq * math.pow(math.cos(phi1), 2)
-    fact3 = (5 + 3 * t0 + 10 * Q0 - 4 * Q0 * Q0 - 9 * e1sq) * math.pow(dd0, 4) / 24
+    fact3 = (
+        (5 + 3 * t0 + 10 * Q0 - 4 * Q0 * Q0 - 9 * e1sq) * math.pow(dd0, 4) / 24
+    )
 
     fact4 = (
         (61 + 90 * t0 + 298 * Q0 + 45 * t0 * t0 - 252 * e1sq - 3 * Q0 * Q0)
@@ -77,7 +84,14 @@ def utm_to_latlon(zone, easting, northing, northernHemisphere=True):
     lof1 = _a1 / (n0 * k0)
     lof2 = (1 + 2 * t0 + Q0) * math.pow(dd0, 3) / 6.0
     lof3 = (
-        (5 - 2 * Q0 + 28 * t0 - 3 * math.pow(Q0, 2) + 8 * e1sq + 24 * math.pow(t0, 2))
+        (
+            5
+            - 2 * Q0
+            + 28 * t0
+            - 3 * math.pow(Q0, 2)
+            + 8 * e1sq
+            + 24 * math.pow(t0, 2)
+        )
         * math.pow(dd0, 5)
         / 120
     )

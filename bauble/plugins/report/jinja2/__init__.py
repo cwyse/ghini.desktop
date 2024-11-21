@@ -19,21 +19,22 @@
 #
 # report/jinja2/
 #
-
 import logging
-
-logger = logging.getLogger(__name__)
-
 import math
 import os
 import re
 import shutil
 import tempfile
+from gettext import gettext as _
 
+from bauble import paths
+from bauble import utils
+from bauble.plugins.report import PS
+from bauble.plugins.report import SVG
+from bauble.plugins.report import TemplateFormatterPlugin
 from gi.repository import Gtk
 
-from bauble import paths, utils
-from bauble.plugins.report import PS, SVG, TemplateFormatterPlugin
+logger = logging.getLogger(__name__)
 
 
 class Jinja2FormatterPlugin(TemplateFormatterPlugin):
@@ -66,7 +67,9 @@ class Jinja2FormatterPlugin(TemplateFormatterPlugin):
                 loader=ChoiceLoader(
                     [
                         FileSystemLoader(path),
-                        FileSystemLoader(os.path.join(paths.user_dir(), "templates")),
+                        FileSystemLoader(
+                            os.path.join(paths.user_dir(), "templates")
+                        ),
                         PackageLoader("bauble.plugins.report", "templates"),
                     ]
                 )

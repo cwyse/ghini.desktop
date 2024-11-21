@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 r"""Simple desktop integration for Python. This module provides desktop
 environment detection and resource opening support for a selection of common
 and standardised desktop environments.
@@ -126,7 +125,6 @@ import subprocess
 
 
 def _is_xfce():
-
     "Return whether XFCE is in use."
 
     # XFCE detection involves testing the output of a program.
@@ -160,7 +158,8 @@ def get_desktop():
     if "KDE_FULL_SESSION" in os.environ or "KDE_MULTIHEAD" in os.environ:
         return "KDE"
     elif (
-        "GNOME_DESKTOP_SESSION_ID" in os.environ or "GNOME_KEYRING_SOCKET" in os.environ
+        "GNOME_DESKTOP_SESSION_ID" in os.environ
+        or "GNOME_KEYRING_SOCKET" in os.environ
     ):
         return "GNOME"
     elif sys.platform == "darwin":

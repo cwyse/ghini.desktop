@@ -5,17 +5,13 @@
 # Description: convert TDWG plant distribution files out of the box to a single
 # CSV file
 #
-
 # TODO: should create new id's for each entry and have a tdwg_code for
 # each so we can maintain as much data as possbible
-
 # TODO: we should probably include the original text files in bauble
 # and run the conversion script on build
-
 # TODO: add a notes column to geography so we carry over the extra
 # geography data(kew regions, notes, etc.) and so that we can add
 # notes to them in bauble
-
 import codecs
 import os
 import re
@@ -60,7 +56,9 @@ class Reader:
     def group(self, line):
         m = self.line_rx.match(line.strip())
         if m is None:
-            raise ValueError("could not match:\n%s\n%s" % (str(line), (str(s))))
+            raise ValueError(
+                "could not match:\n%s\n%s" % (str(line), (str(s)))
+            )
         return m.groupdict()
 
     def __iter__(self):
@@ -120,7 +118,11 @@ def convert_level1():
     global converted_data, id_ctr
     reader = Reader(os.path.join(src_dir, "tblLevel1.txt"), "utf8")
     for line in reader:
-        r = Row(id=str(id_ctr), name=line["L1_continent"], tdwg_code=line["L1_code"])
+        r = Row(
+            id=str(id_ctr),
+            name=line["L1_continent"],
+            tdwg_code=line["L1_code"],
+        )
         converted_rows[line["L1_code"]] = r
         print(r.csv())
         id_ctr += 1

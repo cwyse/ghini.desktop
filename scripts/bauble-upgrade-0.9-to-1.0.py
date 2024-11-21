@@ -5,7 +5,6 @@
 # export CSV files from a Bauble 0.9 database to save them as CSV
 # files that can be imported into a Bauble 1.0 databa
 #
-
 import csv
 import glob
 import os
@@ -52,7 +51,9 @@ dst_path = os.path.join(src_path, "1.0")
 if os.path.exists(dst_path) and options.force:
     shutil.rmtree(dst_path)
 elif os.path.exists(dst_path):
-    response = eval(input("%s exists.  Would you like to delete it? " % dst_path))
+    response = eval(
+        input("%s exists.  Would you like to delete it? " % dst_path)
+    )
     if response in ("y", "Y"):
         shutil.rmtree(dst_path)
     else:
@@ -484,7 +485,13 @@ def do_bauble(filename):
         else:
             value = line["value"]
         writer.writerow(
-            [line["id"], line["name"], value, line["_created"], line["_last_updated"]]
+            [
+                line["id"],
+                line["name"],
+                value,
+                line["_created"],
+                line["_last_updated"],
+            ]
         )
     # del writer
 
@@ -718,10 +725,14 @@ def do_source():
         "_created",
         "_last_updated",
     ]
-    source_writer = create_writer(os.path.join(dst_path, "source.txt"), source_columns)
+    source_writer = create_writer(
+        os.path.join(dst_path, "source.txt"), source_columns
+    )
     source_ids = set()
 
-    donation_reader = UnicodeReader(open(os.path.join(src_path, "donation.txt")))
+    donation_reader = UnicodeReader(
+        open(os.path.join(src_path, "donation.txt"))
+    )
     note_writer = NoteWriter(
         "accession_note.txt", "accession_id", id_start=next_accession_note_id
     )
@@ -739,9 +750,13 @@ def do_source():
             ]
         )
         source_ids.add(int(line["id"]))
-        note_writer.write(line["notes"], line["accession_id"], category="Donation")
+        note_writer.write(
+            line["notes"], line["accession_id"], category="Donation"
+        )
 
-    collection_reader = UnicodeReader(open(os.path.join(src_path, "collection.txt")))
+    collection_reader = UnicodeReader(
+        open(os.path.join(src_path, "collection.txt"))
+    )
     collection_columns = [
         "id",
         "collector",

@@ -16,10 +16,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 # This is just yet another example. The given input was of such a simple
 # format that it felt excessive, adapting the generic script to handle it.
-
 import csv
 import json
 
@@ -31,7 +29,12 @@ result = []
 for r in csv.reader(open(input_file_name)):
     obj = dict(list(zip(header, [i.strip() for i in r])))
     code = obj["Numeración"]
-    plant = {"accession": code, "code": "1", "location": "INV4", "object": "plant"}
+    plant = {
+        "accession": code,
+        "code": "1",
+        "location": "INV4",
+        "object": "plant",
+    }
     if obj["Condición fitosanitaria"] == "Muerta":
         plant["quantity"] = 0
     result.append(plant)

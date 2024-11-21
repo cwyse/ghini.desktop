@@ -17,31 +17,35 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import logging
+from gettext import gettext as _
 
+import bauble
+from bauble.editor import GenericEditorPresenter
 from gi.repository import Gtk
+from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm.properties import ColumnProperty
+from sqlalchemy.orm.properties import RelationshipProperty
+
+from .querybuilderparser import BuiltQuery
+from .search import EmptyToken
+from .search import MapperSearch
+
+pass
 
 logger = logging.getLogger(__name__)
 
-from sqlalchemy.orm import class_mapper
-from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
 
 RelationProperty = RelationshipProperty
 
-import bauble
-from bauble.editor import GenericEditorPresenter, GenericEditorView
-
-from .querybuilderparser import BuiltQuery
-from .search import EmptyToken, MapperSearch
 
 
 def parse_typed_value(value):
     """Parses input and returns corresponding typed value: int, float, None, or EmptyToken."""
     try:
-        if value == 'None':
+        if value == "None":
             return None
-        elif value == 'Empty':
+        elif value == "Empty":
             return EmptyToken()
         try:
             new_val = int(value)
@@ -51,6 +55,7 @@ def parse_typed_value(value):
     except ValueError as e:
         logger.error("Invalid input type: %s", value)
         return value  # fallback to string
+
 
 class SchemaMenu(Gtk.Menu):
     """SchemaMenu
@@ -67,9 +72,13 @@ class SchemaMenu(Gtk.Menu):
 
     """
 
-    def __init__(self, mapper, activate_cb=None,
-                 relation_filter=lambda c, p: True,
-                 leading_items=[]):
+    def __init__(
+        self,
+        mapper,
+        activate_cb=None,
+        relation_filter=lambda c, p: True,
+        leading_items=[],
+    ):
         super().__init__()
         self.activate_cb = activate_cb
         self.relation_filter = relation_filter
@@ -78,9 +87,7 @@ class SchemaMenu(Gtk.Menu):
         self.show_all()
 
     def on_activate(self, menuitem, prop):
-        """invoke activate_cb on selected menu item
-
-        """
+        """invoke activate_cb on selected menu item"""
         path = []
         path = [menuitem.get_child().props.label]
         menu = menuitem.get_parent()
@@ -91,20 +98,18 @@ class SchemaMenu(Gtk.Menu):
             label = menuitem.get_child().props.label
             path.append(label)
             menu = menuitem.get_parent()
-        full_path = '.'.join(reversed(path))
+        full_path = ".".join(reversed(path))
         self.activate_cb(menuitem, full_path, prop)
 
     def on_select(self, menuitem, prop):
-        """construct and show submenu corresponding to RelationProperty
-
-        """
+        """construct and show submenu corresponding to RelationProperty"""
         submenu = menuitem.get_submenu()
         if len(submenu.get_children()) == 0:  # still empty: construct it
             self.append_menuitems(prop.mapper, prop, target=submenu)
         submenu.show_all()
 
     def append_menuitems(self, mapper, container=None, target=None):
-        '''Populate target menu
+        """Populate target menu
 
         Construct as manu Gtk.MenuItem as the properties of `mapper` and
         append each new item to the target menu.
@@ -122,7 +127,7 @@ class SchemaMenu(Gtk.Menu):
         `container` is the property from which that MenuItem was created,
         in a previous invocation of append_menuitems.
 
-        '''
+        """
         # When looping over iterate_properties leave out properties that
         # start with underscore since they are considered private.
         # Separate properties in column_properties and relation_properties.
@@ -130,27 +135,36 @@ class SchemaMenu(Gtk.Menu):
         # First in order is own 'id'.
 
         column_properties = sorted(
-            [x for x in mapper.iterate_properties
-             if isinstance(x, ColumnProperty)
-             and not x.key.endswith('_id')
-             and not x.key.startswith('_')],
-            key=lambda k: (k.key!='id', k.key))
+            [
+                x
+                for x in mapper.iterate_properties
+                if isinstance(x, ColumnProperty)
+                and not x.key.endswith("_id")
+                and not x.key.startswith("_")
+            ],
+            key=lambda k: (k.key != "id", k.key),
+        )
         relation_properties = sorted(
-            [x for x in mapper.iterate_properties if isinstance(x, RelationProperty)
-                   and not x.key.startswith('_')],
-            key=lambda k: k.key)
+            [
+                x
+                for x in mapper.iterate_properties
+                if isinstance(x, RelationProperty)
+                and not x.key.startswith("_")
+            ],
+            key=lambda k: k.key,
+        )
 
         if container is None or not container.uselist:
             for key in self.leading_items:
                 item = Gtk.MenuItem(key, use_underline=False)
-                item.connect('activate', self.on_activate, None)
+                item.connect("activate", self.on_activate, None)
                 target.append(item)
 
         for prop in column_properties:
             if not self.relation_filter(container, prop):
                 continue
             item = Gtk.MenuItem(prop.key, use_underline=False)
-            item.connect('activate', self.on_activate, prop)
+            item.connect("activate", self.on_activate, prop)
             target.append(item)
 
         for prop in relation_properties:
@@ -159,15 +173,14 @@ class SchemaMenu(Gtk.Menu):
             item = Gtk.MenuItem(prop.key, use_underline=False)
             submenu = Gtk.Menu()
             item.set_submenu(submenu)
-            item.connect('select', self.on_select, prop)
+            item.connect("select", self.on_select, prop)
             target.append(item)
 
 
 class ExpressionRow:
-    """
-    """
+    """ """
 
-    conditions = ['=', '!=', '<', '<=', '>', '>=', 'like', 'contains']
+    conditions = ["=", "!=", "<", "<=", ">", ">=", "like", "contains"]
 
     def __init__(self, query_builder, remove_callback, row_number):
         self.table = query_builder.view.widgets.expressions_table
@@ -183,17 +196,20 @@ class ExpressionRow:
             self.and_or_combo.set_hexpand(False)
             self.table.attach(self.and_or_combo, 0, row_number, 1, 1)
 
-        self.prop_button = Gtk.Button(_('Choose a property…'))
+        self.prop_button = Gtk.Button(_("Choose a property…"))
         self.prop_button.props.use_underline = False
 
         def on_prop_button_clicked(button, event, menu):
             menu.popup(None, None, None, None, event.button, event.time)
 
-        self.schema_menu = SchemaMenu(self.presenter.mapper,
-                                      self.on_schema_menu_activated,
-                                      self.relation_filter)
-        self.prop_button.connect('button-press-event', on_prop_button_clicked,
-                                 self.schema_menu)
+        self.schema_menu = SchemaMenu(
+            self.presenter.mapper,
+            self.on_schema_menu_activated,
+            self.relation_filter,
+        )
+        self.prop_button.connect(
+            "button-press-event", on_prop_button_clicked, self.schema_menu
+        )
         self.table.attach(self.prop_button, 1, row_number, 1, 1)
 
         self.cond_combo = Gtk.ComboBoxText()
@@ -205,16 +221,18 @@ class ExpressionRow:
         # change depending on the type of the property chosen in the
         # schema menu, see self.on_schema_menu_activated
         self.value_widget = Gtk.Entry()
-        self.value_widget.connect('changed', self.on_value_changed)
+        self.value_widget.connect("changed", self.on_value_changed)
         self.table.attach(self.value_widget, 3, row_number, 1, 1)
 
         if row_number != 1:
-            image = Gtk.Image.new_from_stock(Gtk.STOCK_REMOVE,
-                                             Gtk.IconSize.BUTTON)
+            image = Gtk.Image.new_from_stock(
+                Gtk.STOCK_REMOVE, Gtk.IconSize.BUTTON
+            )
             self.remove_button = Gtk.Button()
             self.remove_button.props.image = image
-            self.remove_button.connect('clicked',
-                                       lambda b: remove_callback(self))
+            self.remove_button.connect(
+                "clicked", lambda b: remove_callback(self)
+            )
             self.table.attach(self.remove_button, 4, row_number, 1, 1)
 
     def on_value_changed(self, widget, *args):
@@ -230,12 +248,12 @@ class ExpressionRow:
         """
         self.prop_button.props.label = path
         self.menu_item_activated = True
-        row = self.table.child_get_property(self.value_widget, 'top-attach')
-        width = self.table.child_get_property(self.value_widget,
-                                               'width')
-        height = self.table.child_get_property(self.value_widget,
-                                              'height')
-        column = self.table.child_get_property(self.value_widget, 'left-attach')
+        row = self.table.child_get_property(self.value_widget, "top-attach")
+        width = self.table.child_get_property(self.value_widget, "width")
+        height = self.table.child_get_property(self.value_widget, "height")
+        column = self.table.child_get_property(
+            self.value_widget, "left-attach"
+        )
         self.table.remove(self.value_widget)
 
         # change the widget depending on the type of the selected property
@@ -247,29 +265,38 @@ class ExpressionRow:
             self.value_widget = Gtk.ComboBox()
             cell = Gtk.CellRendererText()
             self.value_widget.pack_start(cell, True)
-            self.value_widget.add_attribute(cell, 'text', 1)
+            self.value_widget.add_attribute(cell, "text", 1)
             model = Gtk.ListStore(str, str)
             if prop.columns[0].type.translations:
                 trans = prop.columns[0].type.translations
-                prop_values = [(k, trans[k]) for k in sorted(list(trans.keys()), key=lambda x: (x is not None, x))]
+                prop_values = [
+                    (k, trans[k])
+                    for k in sorted(
+                        list(trans.keys()), key=lambda x: (x is not None, x)
+                    )
+                ]
             else:
                 values = prop.columns[0].type.values
-                prop_values = [(v, v) for v in sorted(values, key=lambda x: (x is not None, x))]
+                prop_values = [
+                    (v, v)
+                    for v in sorted(values, key=lambda x: (x is not None, x))
+                ]
             for value, translation in prop_values:
                 model.append([value, translation])
             self.value_widget.props.model = model
-            self.value_widget.connect('changed', self.on_value_changed)
+            self.value_widget.connect("changed", self.on_value_changed)
         elif not isinstance(self.value_widget, Gtk.Entry):
             self.value_widget = Gtk.Entry()
-            self.value_widget.connect('changed', self.on_value_changed)
+            self.value_widget.connect("changed", self.on_value_changed)
 
         self.table.attach(self.value_widget, column, row, width, height)
         self.table.show_all()
         self.presenter.validate()
 
     def relation_filter(self, container, prop):
-        if isinstance(prop, ColumnProperty) and \
-                isinstance(prop.columns[0].type, bauble.btypes.Date):
+        if isinstance(prop, ColumnProperty) and isinstance(
+            prop.columns[0].type, bauble.btypes.Date
+        ):
             return False
         return True
 
@@ -278,9 +305,17 @@ class ExpressionRow:
         Returns a tuple of the and_or_combo, prop_button, cond_combo,
         value_widget, and remove_button widgets.
         """
-        return (i for i in (self.and_or_combo, self.prop_button, self.cond_combo,
-                            self.value_widget, self.remove_button)
-                if i)
+        return (
+            i
+            for i in (
+                self.and_or_combo,
+                self.prop_button,
+                self.cond_combo,
+                self.value_widget,
+                self.remove_button,
+            )
+            if i
+        )
 
     def get_expression(self):
         """
@@ -293,7 +328,7 @@ class ExpressionRow:
         if not self.menu_item_activated:
             return None
 
-        value = ''
+        value = ""
         if isinstance(self.value_widget, Gtk.ComboBox):
             model = self.value_widget.props.model
             active_iter = self.value_widget.get_active_iter()
@@ -303,21 +338,26 @@ class ExpressionRow:
             # assume it's a Gtk.Entry or other widget with a text property
             value = self.value_widget.set_text.strip()
         value = parse_typed_value(value)
-        and_or = ''
+        and_or = ""
         if self.and_or_combo:
             and_or = self.and_or_combo.get_active_text()
         field_name = self.prop_button.props.label
         if value == EmptyToken():
-            field_name = field_name.rsplit('.', 1)[0]
-        result = ' '.join([and_or, field_name,
-                           self.cond_combo.get_active_text(),
-                           repr(value)]).strip()
+            field_name = field_name.rsplit(".", 1)[0]
+        result = " ".join(
+            [
+                and_or,
+                field_name,
+                self.cond_combo.get_active_text(),
+                repr(value),
+            ]
+        ).strip()
         return result
 
 
 class QueryBuilder(GenericEditorPresenter):
 
-    view_accept_buttons = ['cancel_button', 'confirm_button']
+    view_accept_buttons = ["cancel_button", "confirm_button"]
     default_size = None
 
     def __init__(self, view=None):
@@ -415,29 +455,31 @@ class QueryBuilder(GenericEditorPresenter):
 
     @property
     def valid_clauses(self):
-        return [i.get_expression()
-                for i in self.expression_rows
-                if i.get_expression()]
+        return [
+            i.get_expression()
+            for i in self.expression_rows
+            if i.get_expression()
+        ]
 
     def get_query(self):
         """
         Return query expression string.
         """
 
-        query = [self.domain, 'where'] + self.valid_clauses
-        return ' '.join(query)
+        query = [self.domain, "where"] + self.valid_clauses
+        return " ".join(query)
 
     def set_query(self, q):
         parsed = BuiltQuery(q)
         if not parsed.is_valid:
-            logger.debug('cannot restore query, invalid')
+            logger.debug("cannot restore query, invalid")
             return
 
         # locate domain in list of valid domains
         try:
             index = sorted(self.domain_map.keys()).index(parsed.domain)
         except ValueError as e:
-            logger.debug('cannot restore query, {}({})'.format(type(e), e))
+            logger.debug("cannot restore query, {}({})".format(type(e), e))
             return
         # and set the domain_combo correspondently
         self.view.widgets.domain_combo.set_active(index)
@@ -448,14 +490,16 @@ class QueryBuilder(GenericEditorPresenter):
                 self.on_add_clause()
             row = self.expression_rows[-1]
             if clause.connector:
-                row.and_or_combo.set_active({'and': 0, 'or': 1}[clause.connector])
+                row.and_or_combo.set_active(
+                    {"and": 0, "or": 1}[clause.connector]
+                )
 
             # the part about the value is a bit more complex: where the
             # clause.field leads to an enumerated property, on_add_clause
             # associates a gkt.ComboBox to it, otherwise a Gtk.Entry.
             # To set the value of a gkt.ComboBox we match one of its
             # items. To set the value of a gkt.Entry we need set_text.
-            steps = clause.field.split('.')
+            steps = clause.field.split(".")
             cls = self.domain_map[parsed.domain]
             mapper = class_mapper(cls)
             for target in steps[:-1]:

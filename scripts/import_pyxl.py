@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-workbook_name = "/home/mario/Dropbox/SharedWithMario/PvdT/DenHelder_for_Ghini.xlsx"
+workbook_name = (
+    "/home/mario/Dropbox/SharedWithMario/PvdT/DenHelder_for_Ghini.xlsx"
+)
 sheet_name = "Den Helder"
 
 column_equivalence = {
@@ -72,7 +74,10 @@ for rn in range(1, sheet.max_row):
         list(
             zip(
                 header,
-                [sheet.cell(row=rn + 1, column=i + 1).value for i in range(max_column)],
+                [
+                    sheet.cell(row=rn + 1, column=i + 1).value
+                    for i in range(max_column)
+                ],
             )
         )
     )

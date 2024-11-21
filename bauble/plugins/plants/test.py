@@ -20,36 +20,45 @@
 #
 # Description: test for the Plant plugin
 #
-
-
 import logging
 import os
-import sys
 from functools import partial
 from unittest import TestCase
 
+import bauble.db as db
+import bauble.utils as utils
+from bauble.plugins.plants.family import Family
+from bauble.plugins.plants.family import FamilyEditor
+from bauble.plugins.plants.family import FamilyNote
+from bauble.plugins.plants.family import FamilySynonym
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.genus import GenusEditor
+from bauble.plugins.plants.genus import GenusNote
+from bauble.plugins.plants.genus import GenusSynonym
+from bauble.plugins.plants.geography import GeographicArea
+from bauble.plugins.plants.geography import get_species_in_geographic_area
+from bauble.plugins.plants.species import DefaultVernacularName
+from bauble.plugins.plants.species import edit_species
+from bauble.plugins.plants.species import Species
+from bauble.plugins.plants.species import SpeciesDistribution
+from bauble.plugins.plants.species import SpeciesNote
+from bauble.plugins.plants.species import SpeciesSynonym
+from bauble.plugins.plants.species import VernacularName
+from bauble.plugins.plants.species_model import _remove_zws as remove_zws
+from bauble.test import BaubleTestCase
+from bauble.test import check_dupids
+from bauble.test import mockfunc
 from nose import SkipTest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
 
-import bauble.db as db
-import bauble.utils as utils
-from bauble.plugins.plants.family import Family, FamilyEditor, FamilyNote, FamilySynonym
-from bauble.plugins.plants.genus import Genus, GenusEditor, GenusNote, GenusSynonym
-from bauble.plugins.plants.geography import (
-    GeographicArea,
-    get_species_in_geographic_area,
-)
-from bauble.plugins.plants.species import (
-    DefaultVernacularName,
-    Species,
-    SpeciesDistribution,
-    SpeciesNote,
-    SpeciesSynonym,
-    VernacularName,
-    edit_species,
-)
-from bauble.test import BaubleTestCase, check_dupids, mockfunc
+from editor import GenericModelViewPresenterEditor
+from editor import MockView
+
+pass
+
+
+pass
 
 logging.basicConfig()
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
@@ -69,8 +78,6 @@ logging.basicConfig()
 # TODO: create some scenarios that should fail
 
 
-from bauble.plugins.plants.species_model import _remove_zws as remove_zws
-
 family_test_data = (
     {"id": 1, "epithet": "Orchidaceae"},
     {"id": 2, "epithet": "Leguminosae", "qualifier": "s. str."},
@@ -78,7 +85,9 @@ family_test_data = (
     {"id": 4, "epithet": "Solanaceae"},
 )
 
-family_note_test_data = ({"id": 1, "family_id": 1, "category": "CITES", "note": "II"},)
+family_note_test_data = (
+    {"id": 1, "family_id": 1, "category": "CITES", "note": "II"},
+)
 
 genus_test_data = (
     {"id": 1, "epithet": "Maxillaria", "family_id": 1},
@@ -90,13 +99,31 @@ genus_test_data = (
     {"id": 7, "epithet": "Brugmansia", "family_id": 4},
 )
 
-genus_note_test_data = ({"id": 1, "genus_id": 5, "category": "CITES", "note": "I"},)
+genus_note_test_data = (
+    {"id": 1, "genus_id": 5, "category": "CITES", "note": "I"},
+)
 
 species_test_data = (
-    {"id": 1, "epithet": "variabilis", "genus_id": 1, "author": "Bateman ex Lindl."},
-    {"id": 2, "epithet": "cochleata", "genus_id": 2, "author": "(L.) Lem\xe9e"},
+    {
+        "id": 1,
+        "epithet": "variabilis",
+        "genus_id": 1,
+        "author": "Bateman ex Lindl.",
+    },
+    {
+        "id": 2,
+        "epithet": "cochleata",
+        "genus_id": 2,
+        "author": "(L.) Lem\xe9e",
+    },
     {"id": 3, "epithet": "precatorius", "genus_id": 3, "author": "L."},
-    {"id": 4, "epithet": "alapense", "genus_id": 4, "hybrid": True, "author": "F\xe9e"},
+    {
+        "id": 4,
+        "epithet": "alapense",
+        "genus_id": 4,
+        "hybrid": True,
+        "author": "F\xe9e",
+    },
     {
         "id": 5,
         "epithet": "cochleata",
@@ -150,7 +177,12 @@ species_test_data = (
     {"id": 11, "epithet": "generalis", "genus_id": 1, "sp_qual": "agg."},
     {"id": 12, "genus_id": 1, "cv_group": "SomeGroup"},
     {"id": 13, "genus_id": 1, "infrasp1_rank": "cv.", "infrasp1": "Red"},
-    {"id": 14, "genus_id": 1, "infrasp1_rank": "cv.", "infrasp1": "Red & Blue"},
+    {
+        "id": 14,
+        "genus_id": 1,
+        "infrasp1_rank": "cv.",
+        "infrasp1": "Red & Blue",
+    },
     {
         "id": 15,
         "epithet": "cochleata",
@@ -227,7 +259,9 @@ species_str_map = {
     7: "Abrus precatorius SomethingRidiculous Group",
     8: "Abrus precatorius (SomethingRidiculous Group) 'Hot Rio Nights'",
     9: "Maxillaria %sgeneralis 'Red'" % Species.hybrid_char,
-    10: ("Maxillaria %sgeneralis (SomeGroup Group) 'Red'" % Species.hybrid_char),
+    10: (
+        "Maxillaria %sgeneralis (SomeGroup Group) 'Red'" % Species.hybrid_char
+    ),
     11: "Maxillaria generalis agg.",
     12: "Maxillaria SomeGroup Group",
     13: "Maxillaria 'Red'",
@@ -260,7 +294,10 @@ species_str_authors_map = {
     6: "Encyclia cochleata (L.) Lem\xe9e 'Black Night'",
     7: "Abrus precatorius L. SomethingRidiculous Group",
     8: "Abrus precatorius L. (SomethingRidiculous Group) 'Hot Rio Nights'",
-    15: ("Encyclia cochleata L. subsp. " "cochleata L. var. cochleata L. 'Black' L."),
+    15: (
+        "Encyclia cochleata L. subsp. "
+        "cochleata L. var. cochleata L. 'Black' L."
+    ),
 }
 
 species_markup_authors_map = {
@@ -412,7 +449,10 @@ class FamilyTests(PlantTestCase):
         self.assertTrue(self.session.query(FamilySynonym).count() == 0)
 
     def test_constraints(self):
-        values = [dict(epithet="family"), dict(epithet="family", qualifier="s. lat.")]
+        values = [
+            dict(epithet="family"),
+            dict(epithet="family", qualifier="s. lat."),
+        ]
         for v in values:
             self.session.add(Family(**v))
             self.session.add(Family(**v))
@@ -469,11 +509,14 @@ class FamilyTests(PlantTestCase):
 
         # effect
         print(self.invoked)
-        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
+        self.assertFalse(
+            "message_details_dialog" in [f for (f, m) in self.invoked]
+        )
         self.assertTrue(
             (
                 "yes_no_dialog",
-                "Are you sure you want to " "remove the family <i>Arecaceae</i>?",
+                "Are you sure you want to "
+                "remove the family <i>Arecaceae</i>?",
             )
             in self.invoked
         )
@@ -503,11 +546,14 @@ class FamilyTests(PlantTestCase):
 
         # effect
         print(self.invoked)
-        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
+        self.assertFalse(
+            "message_details_dialog" in [f for (f, m) in self.invoked]
+        )
         self.assertTrue(
             (
                 "yes_no_dialog",
-                "Are you sure you want to " "remove the family <i>Arecaceae</i>?",
+                "Are you sure you want to "
+                "remove the family <i>Arecaceae</i>?",
             )
             in self.invoked
         )
@@ -537,12 +583,14 @@ class FamilyTests(PlantTestCase):
         )
         from bauble.plugins.plants.family import remove_callback
 
-        result = remove_callback([f5])
+        remove_callback([f5])
         self.session.flush()
 
         # effect
         print(self.invoked)
-        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
+        self.assertFalse(
+            "message_details_dialog" in [f for (f, m) in self.invoked]
+        )
         self.assertTrue(
             (
                 "message_dialog",
@@ -630,7 +678,12 @@ class GenusTests(PlantTestCase):
             dict(family=family, epithet="genus"),
             dict(family=family, epithet="genus", author="author"),
             dict(family=family, epithet="genus", qualifier="s. lat."),
-            dict(family=family, epithet="genus", qualifier="s. lat.", author="author"),
+            dict(
+                family=family,
+                epithet="genus",
+                qualifier="s. lat.",
+                author="author",
+            ),
         ]
         for v in values:
             self.session.add(Genus(**v))
@@ -658,7 +711,9 @@ class GenusTests(PlantTestCase):
         editor = GenusEditor(model=gen)
         editor.start()
         del editor
-        assert utils.gc_objects_by_type("GenusEditor") == [], "GenusEditor not deleted"
+        assert (
+            utils.gc_objects_by_type("GenusEditor") == []
+        ), "GenusEditor not deleted"
         assert (
             utils.gc_objects_by_type("GenusEditorPresenter") == []
         ), "GenusEditorPresenter not deleted"
@@ -699,7 +754,9 @@ class GenusTests(PlantTestCase):
         self.session.flush()
 
         # effect
-        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
+        self.assertFalse(
+            "message_details_dialog" in [f for (f, m) in self.invoked]
+        )
         self.assertTrue(
             (
                 "yes_no_dialog",
@@ -734,7 +791,9 @@ class GenusTests(PlantTestCase):
 
         # effect
         print(self.invoked)
-        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
+        self.assertFalse(
+            "message_details_dialog" in [f for (f, m) in self.invoked]
+        )
         self.assertTrue(
             (
                 "yes_no_dialog",
@@ -769,12 +828,14 @@ class GenusTests(PlantTestCase):
         )
         from bauble.plugins.plants.genus import remove_callback
 
-        result = remove_callback([f5])
+        remove_callback([f5])
         self.session.flush()
 
         # effect
         print(self.invoked)
-        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
+        self.assertFalse(
+            "message_details_dialog" in [f for (f, m) in self.invoked]
+        )
         self.assertTrue(
             (
                 "message_dialog",
@@ -794,7 +855,11 @@ class GenusSynonymyTests(PlantTestCase):
 
     def setUp(self):
         super().setUp()
-        f = self.session.query(Family).filter(Family.family == "Orchidaceae").one()
+        f = (
+            self.session.query(Family)
+            .filter(Family.family == "Orchidaceae")
+            .one()
+        )
         bu = Genus(family=f, genus="Bulbophyllum")  # accepted
         zy = Genus(family=f, genus="Zygoglossum")  # synonym
         bu.synonyms.append(zy)
@@ -803,29 +868,61 @@ class GenusSynonymyTests(PlantTestCase):
 
     def test_forward_synonyms(self):
         "a taxon has a list of synonyms"
-        bu = self.session.query(Genus).filter(Genus.genus == "Bulbophyllum").one()
-        zy = self.session.query(Genus).filter(Genus.genus == "Zygoglossum").one()
+        bu = (
+            self.session.query(Genus)
+            .filter(Genus.genus == "Bulbophyllum")
+            .one()
+        )
+        zy = (
+            self.session.query(Genus)
+            .filter(Genus.genus == "Zygoglossum")
+            .one()
+        )
         self.assertEqual(bu.synonyms, [zy])
         self.assertEqual(zy.synonyms, [])
 
     def test_backward_synonyms(self):
         "synonymy is used to get the accepted taxon"
-        bu = self.session.query(Genus).filter(Genus.genus == "Bulbophyllum").one()
-        zy = self.session.query(Genus).filter(Genus.genus == "Zygoglossum").one()
+        bu = (
+            self.session.query(Genus)
+            .filter(Genus.genus == "Bulbophyllum")
+            .one()
+        )
+        zy = (
+            self.session.query(Genus)
+            .filter(Genus.genus == "Zygoglossum")
+            .one()
+        )
         self.assertEqual(zy.accepted, bu)
         self.assertEqual(bu.accepted, None)
 
     def test_synonymy_included_in_as_dict(self):
-        bu = self.session.query(Genus).filter(Genus.genus == "Bulbophyllum").one()
-        zy = self.session.query(Genus).filter(Genus.genus == "Zygoglossum").one()
+        bu = (
+            self.session.query(Genus)
+            .filter(Genus.genus == "Bulbophyllum")
+            .one()
+        )
+        zy = (
+            self.session.query(Genus)
+            .filter(Genus.genus == "Zygoglossum")
+            .one()
+        )
         self.assertTrue("accepted" not in bu.as_dict())
         self.assertTrue("accepted" in zy.as_dict())
         self.assertEqual(zy.as_dict()["accepted"], bu.as_dict(recurse=False))
 
     def test_define_accepted(self):
         # notice that same test should be also in Species and Family
-        bu = self.session.query(Genus).filter(Genus.epithet == "Bulbophyllum").one()
-        f = self.session.query(Family).filter(Family.epithet == "Orchidaceae").one()
+        bu = (
+            self.session.query(Genus)
+            .filter(Genus.epithet == "Bulbophyllum")
+            .one()
+        )
+        f = (
+            self.session.query(Family)
+            .filter(Family.epithet == "Orchidaceae")
+            .one()
+        )
         he = Genus(family=f, epithet="Henosis")  # one more synonym
         self.session.add(he)
         self.session.commit()
@@ -839,7 +936,7 @@ class GenusSynonymyTests(PlantTestCase):
         # Altamiranoa Rose used to refer to Villadia Rose for its accepted
         # name, it is now updated to Sedum L.
 
-        ## T_0
+        # T_0
         claceae = Family(epithet="Crassulaceae")  # J. St.-Hil.
         villa = Genus(family=claceae, epithet="Villadia", author="Rose")
         alta = Genus(family=claceae, epithet="Altamiranoa", author="Rose")
@@ -865,9 +962,12 @@ class SpeciesTests(PlantTestCase):
         # import default geographic_area data
         import bauble.paths as paths
 
-        default_path = os.path.join(paths.lib_dir(), "plugins", "plants", "default")
+        default_path = os.path.join(
+            paths.lib_dir(), "plugins", "plants", "default"
+        )
         filenames = [
-            os.path.join(default_path, f) for f in ("geographic_area.txt", "habit.txt")
+            os.path.join(default_path, f)
+            for f in ("geographic_area.txt", "habit.txt")
         ]
         from bauble.plugins.imex.csv_ import CSVImporter
 
@@ -1053,11 +1153,13 @@ class SpeciesTests(PlantTestCase):
         """
         Test the Species.synonyms property
         """
-        load_sp = lambda id: self.session.query(Species).get(id)
+
+        def load_sp(id):
+            return self.session.query(Species).get(id)
 
         def syn_str(id1, id2, isit="not"):
             sp1 = load_sp(id1)
-            sp2 = load_sp(id2)
+            load_sp(id2)
             return "%s(%s).synonyms: %s" % (
                 sp1,
                 sp1.id,
@@ -1196,7 +1298,9 @@ class SpeciesTests(PlantTestCase):
         self.session.flush()
 
         # effect
-        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
+        self.assertFalse(
+            "message_details_dialog" in [f for (f, m) in self.invoked]
+        )
         print(self.invoked)
         self.assertTrue(
             (
@@ -1233,7 +1337,9 @@ class SpeciesTests(PlantTestCase):
 
         # effect
         print(self.invoked)
-        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
+        self.assertFalse(
+            "message_details_dialog" in [f for (f, m) in self.invoked]
+        )
         self.assertTrue(
             (
                 "yes_no_dialog",
@@ -1271,12 +1377,14 @@ class SpeciesTests(PlantTestCase):
         )
         from bauble.plugins.plants.species import remove_callback
 
-        result = remove_callback([sp])
+        remove_callback([sp])
         self.session.flush()
 
         # effect
         print(self.invoked)
-        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
+        self.assertFalse(
+            "message_details_dialog" in [f for (f, m) in self.invoked]
+        )
         self.assertTrue(
             (
                 "message_dialog",
@@ -1307,7 +1415,11 @@ class GeographicAreaTests(PlantTestCase):
         import bauble.paths as paths
 
         filename = os.path.join(
-            paths.lib_dir(), "plugins", "plants", "default", "geographic_area.txt"
+            paths.lib_dir(),
+            "plugins",
+            "plants",
+            "default",
+            "geographic_area.txt",
         )
         from bauble.plugins.imex.csv_ import CSVImporter
 
@@ -1348,7 +1460,9 @@ class GeographicAreaTests(PlantTestCase):
         species = get_species_in_geographic_area(mexico)
         self.assertTrue([s.id for s in species] == [sp1.id, sp2.id])
 
-        north_america = self.session.query(GeographicArea).get(northern_america_id)
+        north_america = self.session.query(GeographicArea).get(
+            northern_america_id
+        )
         species = get_species_in_geographic_area(north_america)
         self.assertTrue([s.id for s in species] == [sp1.id, sp2.id, sp3.id])
 
@@ -1362,7 +1476,9 @@ class GeographicAreaTests(PlantTestCase):
         dist = SpeciesDistribution(geographic_area_id=45)
         sp1.distribution.append(dist)
         self.session.flush()
-        self.assertEqual(sp1.distribution_str(), "Mexico Central, Western Canada")
+        self.assertEqual(
+            sp1.distribution_str(), "Mexico Central, Western Canada"
+        )
 
 
 class FromAndToDictTest(PlantTestCase):
@@ -1398,10 +1514,10 @@ class FromAndToDictTest(PlantTestCase):
         fab = Family.retrieve_or_create(
             self.session, {"rank": "family", "epithet": "Fabaceae"}
         )
-        ## it's in the session, it wasn't there before.
+        # it's in the session, it wasn't there before.
         self.assertTrue(fab in self.session)
         self.assertFalse(fab in all_families)
-        ## according to the session, it is in the database
+        # according to the session, it is in the database
         ses_families = self.session.query(Family).all()
         self.assertTrue(fab in ses_families)
 
@@ -1422,7 +1538,7 @@ class FromAndToDictTest(PlantTestCase):
         fab = Family.retrieve_or_create(
             self.session, {"rank": "family", "epithet": "Fabaceae"}
         )
-        ## after commit it's in database.
+        # after commit it's in database.
         self.session.commit()
         other_session = db.Session()
         all_families = other_session.query(Family).all()
@@ -1444,7 +1560,9 @@ class FromAndToDictTest(PlantTestCase):
         orc = Family.retrieve_or_create(
             self.session, {"rank": "family", "epithet": "Orchidaceae"}
         )
-        all_genera_orc = self.session.query(Genus).filter(Genus.family == orc).all()
+        all_genera_orc = (
+            self.session.query(Genus).filter(Genus.family == orc).all()
+        )
         mxl = Genus.retrieve_or_create(
             self.session,
             {
@@ -1480,7 +1598,7 @@ class FromAndToDict_create_update_test(PlantTestCase):
         self.assertEqual(obj, None)
 
     def test_family_nocreate_noupdateeq_existing(self):
-        ## retrieve same object, we only give the keys
+        # retrieve same object, we only give the keys
         obj = Family.retrieve_or_create(
             self.session,
             {"object": "taxon", "rank": "familia", "epithet": "Leguminosae"},
@@ -1491,7 +1609,7 @@ class FromAndToDict_create_update_test(PlantTestCase):
         self.assertEqual(obj.qualifier, "s. str.")
 
     def test_family_nocreate_noupdatediff_existing(self):
-        ## do not update object with new data
+        # do not update object with new data
         obj = Family.retrieve_or_create(
             self.session,
             {
@@ -1506,7 +1624,7 @@ class FromAndToDict_create_update_test(PlantTestCase):
         self.assertEqual(obj.qualifier, "s. str.")
 
     def test_family_nocreate_updatediff_existing(self):
-        ## update object in self.session
+        # update object in self.session
         obj = Family.retrieve_or_create(
             self.session,
             {
@@ -1554,7 +1672,7 @@ class FromAndToDict_create_update_test(PlantTestCase):
         self.assertEqual(obj, None)
 
     def test_genus_nocreate_noupdateeq_existing(self):
-        ## retrieve same object, we only give the keys
+        # retrieve same object, we only give the keys
         obj = Genus.retrieve_or_create(
             self.session,
             {"object": "taxon", "rank": "genus", "epithet": "Maxillaria"},
@@ -1565,7 +1683,7 @@ class FromAndToDict_create_update_test(PlantTestCase):
         self.assertEqual(obj.author, "")
 
     def test_genus_nocreate_noupdatediff_existing(self):
-        ## do not update object with new data
+        # do not update object with new data
         obj = Genus.retrieve_or_create(
             self.session,
             {
@@ -1581,7 +1699,7 @@ class FromAndToDict_create_update_test(PlantTestCase):
         self.assertEqual(obj.author, "")
 
     def test_genus_nocreate_updatediff_existing(self):
-        ## update object in self.session
+        # update object in self.session
         obj = Genus.retrieve_or_create(
             self.session,
             {
@@ -1600,7 +1718,9 @@ class FromAndToDict_create_update_test(PlantTestCase):
         bra = self.session.query(Species).filter(Species.id == 21).first()
         vn_bra = (
             self.session.query(VernacularName)
-            .filter(VernacularName.language == "agr", VernacularName.species == bra)
+            .filter(
+                VernacularName.language == "agr", VernacularName.species == bra
+            )
             .all()
         )
         self.assertEqual(
@@ -1614,7 +1734,9 @@ class FromAndToDict_create_update_test(PlantTestCase):
         )
         vn_bra = (
             self.session.query(VernacularName)
-            .filter(VernacularName.language == "es", VernacularName.species == bra)
+            .filter(
+                VernacularName.language == "es", VernacularName.species == bra
+            )
             .all()
         )
         self.assertEqual(
@@ -1641,7 +1763,7 @@ class FromAndToDict_create_update_test(PlantTestCase):
         self.assertEqual(obj, None)
 
     def test_vernacular_name_nocreate_noupdateeq_existing(self):
-        ## retrieve same object, we only give the keys
+        # retrieve same object, we only give the keys
         obj = VernacularName.retrieve_or_create(
             self.session,
             {
@@ -1656,7 +1778,7 @@ class FromAndToDict_create_update_test(PlantTestCase):
         self.assertEqual(obj.name, "Toé")
 
     def test_vernacular_name_nocreate_noupdatediff_existing(self):
-        ## do not update object with new data
+        # do not update object with new data
         obj = VernacularName.retrieve_or_create(
             self.session,
             {
@@ -1671,7 +1793,7 @@ class FromAndToDict_create_update_test(PlantTestCase):
         self.assertEqual(obj.name, "Toé")
 
     def test_vernacular_name_nocreate_updatediff_existing(self):
-        ## update object in self.session
+        # update object in self.session
         obj = VernacularName.retrieve_or_create(
             self.session,
             {
@@ -1797,7 +1919,9 @@ class GenusHybridMarker_test(PlantTestCase):
             },
         )
         self.assertEqual(gen.hybrid_marker, "H")
-        self.assertEqual(gen.hybrid_epithet, "Miltonia × Odontoglossum × Cochlioda")
+        self.assertEqual(
+            gen.hybrid_epithet, "Miltonia × Odontoglossum × Cochlioda"
+        )
 
     def test_intergeneric_graft_hybrid_plus(self):
         gen = Genus.retrieve_or_create(
@@ -1852,7 +1976,8 @@ Lauraceae,,Cinnamomum,,"camphora",f.,"linaloolifera","(Y.Fujita) Sugim."
 Lauraceae,,Cinnamomum,,"camphora",var.,"nominale","Hats. & Hayata"
 """
         Family.retrieve_or_create(
-            self.session, {"object": "taxon", "rank": "family", "epithet": "Lauraceae"}
+            self.session,
+            {"object": "taxon", "rank": "family", "epithet": "Lauraceae"},
         )
         self.cinnamomum = Genus.retrieve_or_create(
             self.session,
@@ -1904,7 +2029,8 @@ Lauraceae,,Cinnamomum,,"camphora",var.,"nominale","Hats. & Hayata"
     def include_gleditsia_triacanthos(self):
         "Gleditsia triacanthos var. inermis 'Sunburst'."
         Family.retrieve_or_create(
-            self.session, {"object": "taxon", "rank": "family", "epithet": "Fabaceae"}
+            self.session,
+            {"object": "taxon", "rank": "family", "epithet": "Fabaceae"},
         )
         self.gleditsia = Genus.retrieve_or_create(
             self.session,
@@ -2049,7 +2175,7 @@ class SpeciesProperties_test(PlantTestCase):
         self.assertEqual(obj, None)
 
     def test_species_note_nocreate_noupdateeq_existing(self):
-        ## retrieve same object, we only give the keys
+        # retrieve same object, we only give the keys
         obj = SpeciesNote.retrieve_or_create(
             self.session,
             {
@@ -2064,7 +2190,7 @@ class SpeciesProperties_test(PlantTestCase):
         self.assertEqual(obj.note, "LC")
 
     def test_species_note_nocreate_noupdatediff_existing(self):
-        ## do not update object with new data
+        # do not update object with new data
         obj = SpeciesNote.retrieve_or_create(
             self.session,
             {
@@ -2079,7 +2205,7 @@ class SpeciesProperties_test(PlantTestCase):
         self.assertEqual(obj.note, "LC")
 
     def test_species_note_nocreate_updatediff_existing(self):
-        ## update object in self.session
+        # update object in self.session
         obj = SpeciesNote.retrieve_or_create(
             self.session,
             {
@@ -2144,7 +2270,9 @@ class AttributesStoredInNotes(PlantTestCase):
             create=False,
             update=False,
         )
-        note = SpeciesNote(category="<coords>", note="lat:8.3;lon:-80.1;alt:1400.0")
+        note = SpeciesNote(
+            category="<coords>", note="lat:8.3;lon:-80.1;alt:1400.0"
+        )
         note.species = obj
         self.session.commit()
         self.assertEqual(obj.coords, {"lat": 8.3, "lon": -80.1, "alt": 1400.0})
@@ -2227,9 +2355,6 @@ class ConservationStatus_test(PlantTestCase):
             update=False,
         )
         self.assertEqual(obj.conservation, "LC")
-
-
-from editor import GenericModelViewPresenterEditor, MockView
 
 
 class PresenterTest(PlantTestCase):
@@ -2327,7 +2452,9 @@ class GlobalFunctionsTest(PlantTestCase):
     def test_vername_markup_func(self):
         vName = self.session.query(VernacularName).filter_by(id=1).one()
         first, second = vName.search_view_markup_pair()
-        self.assertEqual(remove_zws(second), "<i>Maxillaria</i> <i>variabilis</i>")
+        self.assertEqual(
+            remove_zws(second), "<i>Maxillaria</i> <i>variabilis</i>"
+        )
         self.assertEqual(first, "SomeName")
 
     def test_species_get_kids(self):
@@ -2337,9 +2464,6 @@ class GlobalFunctionsTest(PlantTestCase):
     def test_vernname_get_kids(self):
         vName = self.session.query(VernacularName).filter_by(id=1).one()
         self.assertEqual(partial(db.natsort, "species.accessions")(vName), [])
-
-
-import bauble.search
 
 
 class BaubleSearchSearchTest(BaubleTestCase):

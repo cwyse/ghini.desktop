@@ -40,21 +40,18 @@ import bauble.utils as utils
 
 # TODO: single file or one file per table
 
+
 def ElementFactory(parent, name, **kwargs):
     try:
-        text = kwargs.pop('text')
+        text = kwargs.pop("text")
     except KeyError:
         text = None
     el = etree.SubElement(parent, name, **kwargs)
     try:
         if text is not None:
-            if isinstance(text, bytes):
-                # Decode bytes to UTF-8
-                el.text = text.decode('utf-8', errors='replace')
-            else:
-                el.text = str(text, 'utf8')
+            el.text = str(text, "utf8")
     except (AssertionError, TypeError):
-        el.text = str(str(text), 'utf8')
+        el.text = str(str(text), "utf8")
     return el
 
 
@@ -65,80 +62,98 @@ class XMLExporter:
 
     def start(self, path=None):
 
-        d = Gtk.Dialog('Ghini - XML Exporter', bauble.gui.window,
-                       Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                       (Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT,
-                        Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT))
+        d = Gtk.Dialog(
+            "Ghini - XML Exporter",
+            bauble.gui.window,
+            Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            (
+                Gtk.STOCK_CANCEL,
+                Gtk.ResponseType.REJECT,
+                Gtk.STOCK_OK,
+                Gtk.ResponseType.ACCEPT,
+            ),
+        )
 
         box = Gtk.VBox(spacing=20)
         d.vbox.pack_start(box, True, True, 10)
 
-        file_chooser = Gtk.FileChooserButton(_('Select a directory'))
+        file_chooser = Gtk.FileChooserButton(_("Select a directory"))
         file_chooser.set_select_multiple(False)
         file_chooser.set_action(Gtk.FileChooserAction.SELECT_FOLDER)
         box.pack_start(file_chooser, True, True, 0)
-        check = Gtk.CheckButton(_('Save all data in one file'))
+        check = Gtk.CheckButton(_("Save all data in one file"))
         check.set_active(True)
         box.pack_start(check, True, True, 0)
 
-        d.connect('response', self.on_dialog_response,
-                  file_chooser.get_filename(), check.get_active())
+        d.connect(
+            "response",
+            self.on_dialog_response,
+            file_chooser.get_filename(),
+            check.get_active(),
+        )
         d.show_all()
         d.run()
         d.hide()
 
     def on_dialog_response(self, dialog, response, filename, one_file):
-        logger.debug('on_dialog_response({}, {})'.format(filename, one_file))
+        logger.debug("on_dialog_response({}, {})".format(filename, one_file))
         if response == Gtk.ResponseType.ACCEPT:
             self.__export_task(filename, one_file)
         dialog.destroy()
 
     def __export_task(self, path, one_file=True):
         if not one_file:
-            tableset_el = etree.Element('tableset')
+            tableset_el = etree.Element("tableset")
 
         for table_name, table in list(db.metadata.tables.items()):
             if one_file:
-                tableset_el = etree.Element('tableset')
-            logger.info('exporting %s…' % table_name)
-            table_el = ElementFactory(tableset_el, 'table',
-                                      attrib={'name': table_name})
+                tableset_el = etree.Element("tableset")
+            logger.info("exporting %s…" % table_name)
+            table_el = ElementFactory(
+                tableset_el, "table", attrib={"name": table_name}
+            )
             results = table.select().execute().fetchall()
             columns = list(table.c.keys())
             try:
                 for row in results:
-                    row_el = ElementFactory(table_el, 'row')
+                    row_el = ElementFactory(table_el, "row")
                     for col in columns:
-                        ElementFactory(row_el, 'column', attrib={'name': col},
-                                       text=row[col])
+                        ElementFactory(
+                            row_el,
+                            "column",
+                            attrib={"name": col},
+                            text=row[col],
+                        )
             except ValueError as e:
-                utils.message_details_dialog(utils.xml_safe(e),
-                                             traceback.format_exc(),
-                                             Gtk.MessageType.ERROR)
+                utils.message_details_dialog(
+                    utils.xml_safe(e),
+                    traceback.format_exc(),
+                    Gtk.MessageType.ERROR,
+                )
                 return
             else:
                 if one_file:
                     tree = etree.ElementTree(tableset_el)
-                    filename = os.path.join(path, '%s.xml' % table_name)
+                    filename = os.path.join(path, "%s.xml" % table_name)
                     # TODO: can figure out why this keeps crashing
-                    tree.write(filename, encoding='utf8', xml_declaration=True)
+                    tree.write(filename, encoding="utf8", xml_declaration=True)
 
         if not one_file:
             tree = etree.ElementTree(tableset_el)
-            filename = os.path.join(path, 'bauble.xml')
-            tree.write(filename, encoding='utf8', xml_declaration=True)
+            filename = os.path.join(path, "bauble.xml")
+            tree.write(filename, encoding="utf8", xml_declaration=True)
 
 
 class XMLExportCommandHandler(pluginmgr.CommandHandler):
 
-    command = 'exxml'
+    command = "exxml"
 
     def __call__(self, cmd, arg):
-        logger.debug('XMLExportCommandHandler(%s)' % arg)
+        logger.debug("XMLExportCommandHandler(%s)" % arg)
         exporter = XMLExporter()
-        logger.debug('starting')
+        logger.debug("starting")
         exporter.start(arg)
-        logger.debug('started')
+        logger.debug("started")
 
 
 class XMLExportTool(pluginmgr.Tool):
@@ -156,8 +171,11 @@ class XMLImexPlugin(pluginmgr.Plugin):
     tools = [XMLExportTool]
     commands = [XMLExportCommandHandler]
 
+
 try:
     import lxml.etree as etree
 except ImportError:
-    utils.message_dialog('The <i>lxml</i> package is required for the '
-                         'XML Import/Exporter plugin')
+    utils.message_dialog(
+        "The <i>lxml</i> package is required for the "
+        "XML Import/Exporter plugin"
+    )

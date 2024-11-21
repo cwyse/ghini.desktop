@@ -17,7 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -94,7 +93,9 @@ for line in fileinput.input():
     # `species` is the fictive identification for all following acc. codes.
 
     try:
-        accession = session.query(Accession).filter(Accession.code == text).one()
+        accession = (
+            session.query(Accession).filter(Accession.code == text).one()
+        )
     except:
         unknown.append(text)
         sys.stdout.write("?")

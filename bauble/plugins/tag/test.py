@@ -16,41 +16,44 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
 import imp
+import os
+from functools import partial
+from gettext import gettext as _
 
+import bauble.db as db
+import bauble.plugins.tag as tag_plugin
+import bauble.utils as utils
 import gi
+from bauble import prefs
+from bauble.editor import GenericEditorView
+from bauble.editor import MockView
+from bauble.plugins.plants import Family
+from bauble.plugins.tag import Tag
+from bauble.plugins.tag import TagEditorPresenter
+from bauble.plugins.tag import TagInfoBox
+from bauble.test import BaubleTestCase
+from bauble.test import check_dupids
+from bauble.test import mockfunc
+from gi.repository import Gtk
+
+pass
+pass
+
 
 gi.require_version("Gtk", "3.0")
 
-import os
-
-from nose import SkipTest
-from sqlalchemy import or_
-
-from bauble import prefs
 
 # from sqlalchemy.exc import *
 
 
 prefs.testing = True
 
-from functools import partial
-
-from gi.repository import Gtk
-
-import bauble.plugins.tag as tag_plugin
-import bauble.utils as utils
-from bauble.editor import GenericEditorView, MockView
-from bauble.plugins.plants import Family
-from bauble.plugins.tag import Tag, TagEditorPresenter, TagInfoBox
-from bauble.test import BaubleTestCase, check_dupids, mockfunc
 
 try:
-    from importlib import reload
+    pass
 except:
-    from imp import reload
+    pass
 
 
 def test_duplicate_ids():
@@ -259,9 +262,14 @@ class TagTests(BaubleTestCase):
 
         # effect
         print(self.invoked)
-        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
+        self.assertFalse(
+            "message_details_dialog" in [f for (f, m) in self.invoked]
+        )
         self.assertTrue(
-            ("yes_no_dialog", "Are you sure you want to " "remove Tag: Arecaceae?")
+            (
+                "yes_no_dialog",
+                "Are you sure you want to " "remove Tag: Arecaceae?",
+            )
             in self.invoked
         )
         self.assertEqual(result, None)
@@ -294,7 +302,10 @@ class TagTests(BaubleTestCase):
         print(self.invoked)
         self.assertTrue("_reset_tags_menu" in [f for (f, m) in self.invoked])
         self.assertTrue(
-            ("yes_no_dialog", "Are you sure you want to " "remove Tag: Arecaceae?")
+            (
+                "yes_no_dialog",
+                "Are you sure you want to " "remove Tag: Arecaceae?",
+            )
             in self.invoked
         )
         self.assertEqual(result, True)
@@ -371,9 +382,6 @@ class GetTagIdsTests(BaubleTestCase):
         self.assertEqual(s_some, {1, 2, 3})
 
 
-import bauble.db as db
-
-
 class MockTagView(GenericEditorView):
     def __init__(self):
         self._dirty = False
@@ -397,7 +405,9 @@ class MockTagView(GenericEditorView):
     def mark_problem(self, widget_name):
         pass
 
-    def widget_set_value(self, widget, value, markup=False, default=None, index=0):
+    def widget_set_value(
+        self, widget, value, markup=False, default=None, index=0
+    ):
         self.dict[widget] = value
 
     def widget_get_value(self, widget, index=0):
@@ -429,7 +439,7 @@ class TagPresenterTests(BaubleTestCase):
         session.add(obj)
         session.commit()
         session.close()
-        ## ok. thing is already there now.
+        # ok. thing is already there now.
 
         session = db.Session()
         view = MockTagView()
@@ -524,13 +534,15 @@ class AttachedToTests(BaubleTestCase):
 
 class TagInfoBoxTest(BaubleTestCase):
     def test_can_create_infobox(self):
-        ib = TagInfoBox()
+        TagInfoBox()
 
     def test_update_infobox_from_empty_tag(self):
         t = Tag(tag="name", description="description")
         ib = TagInfoBox()
         ib.update(t)
-        self.assertEqual(ib.widgets.ib_description_label.get_text(), t.description)
+        self.assertEqual(
+            ib.widgets.ib_description_label.get_text(), t.description
+        )
         self.assertEqual(ib.widgets.ib_name_label.get_text(), t.tag)
         self.assertEqual(ib.general.table_cells, [])
 
@@ -545,7 +557,9 @@ class TagInfoBoxTest(BaubleTestCase):
         ib = TagInfoBox()
         self.assertEqual(ib.general.table_cells, [])
         ib.update(t)
-        self.assertEqual(ib.widgets.ib_description_label.get_text(), t.description)
+        self.assertEqual(
+            ib.widgets.ib_description_label.get_text(), t.description
+        )
         self.assertEqual(ib.widgets.ib_name_label.get_text(), t.tag)
         self.assertEqual(len(ib.general.table_cells), 2)
         self.assertEqual(ib.general.table_cells[0].get_text(), "Tag")

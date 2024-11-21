@@ -17,18 +17,22 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
-
 import logging
-
-logger = logging.getLogger(__name__)
-
 import os
+import threading
 
-from gi.repository import GObject, Gtk
-
-from bauble import db, pluginmgr
+from bauble import db
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
+from gi.repository import GObject
+
+pass
+
+pass
+
+pass
+
+logger = logging.getLogger(__name__)
 
 
 def create_pocket(filename):
@@ -91,11 +95,10 @@ CREATE TABLE "plant" (
     cn.commit()
 
 
-import threading
-
-
 class ExportToPocketThread(threading.Thread):
-    def __init__(self, filename, progressbar=None, callback=None, include_private=True):
+    def __init__(
+        self, filename, progressbar=None, callback=None, include_private=True
+    ):
         super().__init__(target=None, name=None)
         self.filename = filename
         self.callback = callback
@@ -108,7 +111,10 @@ class ExportToPocketThread(threading.Thread):
 
         session = db.Session()
         plant_query = (
-            session.query(Plant).order_by(Plant.code).join(Accession).order_by(Plant.id)
+            session.query(Plant)
+            .order_by(Plant.code)
+            .join(Accession)
+            .order_by(Plant.id)
         )
         if self.include_private is False:
             # no private accessions: add a filter to only keep non-private
@@ -118,7 +124,9 @@ class ExportToPocketThread(threading.Thread):
         plants = plant_query.all()
         accessions = (
             session.query(Accession)
-            .filter(Accession.id.in_(bindparam("accession_ids", expanding=True)))
+            .filter(
+                Accession.id.in_(bindparam("accession_ids", expanding=True))
+            )
             .params(accession_ids=[j.accession_id for j in plants])
             .order_by(Accession.id)
             .all()
@@ -153,7 +161,9 @@ class ExportToPocketThread(threading.Thread):
                 )
             except Exception as e:
                 logger.info(
-                    "error exporting species {}: {} {}".format(i.id, type(e), e)
+                    "error exporting species {}: {} {}".format(
+                        i.id, type(e), e
+                    )
                 )
             count += 1
             if self.progressbar:
@@ -177,12 +187,15 @@ class ExportToPocketThread(threading.Thread):
                 )
             except Exception as e:
                 logger.info(
-                    "error exporting accession {}: {} {}".format(i.id, type(e), e)
+                    "error exporting accession {}: {} {}".format(
+                        i.id, type(e), e
+                    )
                 )
             count += 1
             if self.progressbar:
                 GObject.idle_add(
-                    self.progressbar.set_fraction, 0.05 + 0.40 * count / len(accessions)
+                    self.progressbar.set_fraction,
+                    0.05 + 0.40 * count / len(accessions),
                 )
             if not self.keep_running:
                 break
@@ -204,11 +217,14 @@ class ExportToPocketThread(threading.Thread):
                     ),
                 )
             except Exception as e:
-                logger.info("error exporting plant {}: {} {}".format(i.id, type(e), e))
+                logger.info(
+                    "error exporting plant {}: {} {}".format(i.id, type(e), e)
+                )
             count += 1
             if self.progressbar:
                 GObject.idle_add(
-                    self.progressbar.set_fraction, 0.45 + 0.55 * count / len(plants)
+                    self.progressbar.set_fraction,
+                    0.45 + 0.55 * count / len(plants),
                 )
             if not self.keep_running:
                 break

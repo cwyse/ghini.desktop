@@ -19,10 +19,11 @@
 #
 # meta.py
 #
-from sqlalchemy import Column, Unicode, UnicodeText
-
 import bauble.db as db
 import bauble.utils as utils
+from sqlalchemy import Column
+from sqlalchemy import Unicode
+from sqlalchemy import UnicodeText
 
 VERSION_KEY = "version"
 CREATED_KEY = "created"
