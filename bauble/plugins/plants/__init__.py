@@ -87,7 +87,7 @@ class LabelUpdater(Thread):
     def run(self):
         ssn = db.Session()
         value, = ssn.execute(self.query).first()
-        GObject.idle_add(safe_set_text, self.widget, value)
+        GObject.idle_add(utils.none, self.widget.set_text, str(value) if str(value) is not None else '')
         ssn.close()
 
 

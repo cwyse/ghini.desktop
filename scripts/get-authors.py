@@ -25,7 +25,6 @@
 # with authorship. pipe the output to a different json file.
 
 
-
 import fileinput
 import json
 import sys
@@ -36,22 +35,25 @@ result = []
 json_to_import = "\n".join(fileinput.input())
 values = json.loads(json_to_import)
 for i in values:
-    query = i['ht-epithet'] + ' ' + i['epithet']
+    query = i["ht-epithet"] + " " + i["epithet"]
     sys.stderr.write("querying tropicos for %s ... " % query)
     i = gettropicos.getTropicos(query)
-    if i['FullNameWithAuthors'] == '':
+    if i["FullNameWithAuthors"] == "":
         sys.stderr.write("can't find it.\n")
         continue
-    author = i['FullNameWithAuthors'][len(i['Query']) + 1:]
-    if author.find(')') != -1:
-        author = author[author.find(')') + 2:]
-    obj = {'genus': i['Query'].split()[0],
-           'species': i['Query'].split()[1],
-           'author': author
-           }
-    result.append('{"object": "taxon", "ht-epithet": "%(genus)s", '
-                  '"epithet": "%(species)s", "author": "%(author)s", '
-                  '"ht-rank": "genus", "rank": "species"}' % obj)
-    sys.stderr.write('ok\n')
+    author = i["FullNameWithAuthors"][len(i["Query"]) + 1 :]
+    if author.find(")") != -1:
+        author = author[author.find(")") + 2 :]
+    obj = {
+        "genus": i["Query"].split()[0],
+        "species": i["Query"].split()[1],
+        "author": author,
+    }
+    result.append(
+        '{"object": "taxon", "ht-epithet": "%(genus)s", '
+        '"epithet": "%(species)s", "author": "%(author)s", '
+        '"ht-rank": "genus", "rank": "species"}' % obj
+    )
+    sys.stderr.write("ok\n")
 
 print("[" + ",\n  ".join(result) + "]")

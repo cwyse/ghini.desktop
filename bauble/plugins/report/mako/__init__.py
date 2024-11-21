@@ -42,34 +42,47 @@ class MakoFormatterPlugin(TemplateFormatterPlugin):
     author to validate the type of the values and act accordingly if not.
     """
 
-    title = 'Mako'
-    extension = '.mako'
+    title = "Mako"
+    extension = ".mako"
     domain_pattern = re.compile(r"^##\s*DOMAIN\s+([a-z_]*)\s*$")
-    option_pattern = re.compile(r"^## OPTION ([a-z_]*): \("
-                                "type: ([a-z_]*), "
-                                "default: '(.*)', "
-                                r"tooltip: '(.*)'\)$")
+    option_pattern = re.compile(
+        r"^## OPTION ([a-z_]*): \("
+        "type: ([a-z_]*), "
+        "default: '(.*)', "
+        r"tooltip: '(.*)'\)$"
+    )
     paths = []
 
     @classmethod
     def get_template(cls, name):
         if not name:
-            msg = _('Please select a template.')
+            msg = _("Please select a template.")
             butils.idle_message(msg, Gtk.MessageType.WARNING)
             return False
-        cls.paths = [os.path.join(bpaths.user_dir(), 'templates'),
-                     os.path.join(bpaths.lib_dir(), 'plugins', 'report', 'templates'), ]
+        cls.paths = [
+            os.path.join(bpaths.user_dir(), "templates"),
+            os.path.join(bpaths.lib_dir(), "plugins", "report", "templates"),
+        ]
         path, name = os.path.split(name)
         if path:
             cls.paths.insert(0, path)
         from mako.lookup import TemplateLookup
+
         try:
-            lookup = TemplateLookup(cls.paths, input_encoding='utf-8', output_encoding='utf-8')
+            lookup = TemplateLookup(
+                cls.paths, input_encoding="utf-8", output_encoding="utf-8"
+            )
             template = lookup.get_template(name)
             return template
         except Exception as e:
             import traceback
-            butils.idle_message("Reading template {}\n{}({})\n{}".format(name, type(e).__name__, e, traceback.format_exc()), type=Gtk.MessageType.ERROR)
+
+            butils.idle_message(
+                "Reading template {}\n{}({})\n{}".format(
+                    name, type(e).__name__, e, traceback.format_exc()
+                ),
+                type=Gtk.MessageType.ERROR,
+            )
             return False
 
 

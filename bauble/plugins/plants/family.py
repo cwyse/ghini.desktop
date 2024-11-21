@@ -45,7 +45,7 @@ import bauble.utils as utils
 import bauble.utils.web as web
 import bauble.view as view
 from bauble.prefs import prefs
-from bauble.utils import safe_set_props
+
 
 def edit_callback(families):
     """

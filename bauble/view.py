@@ -1081,6 +1081,7 @@ class SearchView(pluginmgr.View):
                     'markup', '%s\n%s' %
                     (_mainstr_tmpl % main_str, _substr_tmpl % substr_str)
                 )
+
             except (saexc.InvalidRequestError, TypeError) as e:
                 logger.warning(
                     'bauble.view.SearchView.cell_data_func(): \n(%s)%s' %

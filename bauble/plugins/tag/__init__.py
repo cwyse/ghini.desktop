@@ -44,7 +44,6 @@ from sqlalchemy.orm.session import object_session
 import bauble
 from bauble import db, editor, paths, pluginmgr, search, ui, utils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
-from bauble import utils
 from bauble.view import Action, InfoBox, InfoExpander, SearchView
 
 

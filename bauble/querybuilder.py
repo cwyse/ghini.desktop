@@ -31,7 +31,6 @@ RelationProperty = RelationshipProperty
 
 import bauble
 from bauble.editor import GenericEditorPresenter, GenericEditorView
-from bauble.utils import safe_set_text
 
 from .querybuilderparser import BuiltQuery
 from .search import EmptyToken, MapperSearch

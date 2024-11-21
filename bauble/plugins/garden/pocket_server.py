@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 import gi
 
-gi.require_version('Gtk', '3.0')
+gi.require_version("Gtk", "3.0")
 import datetime
 import os.path
 
@@ -34,23 +34,23 @@ from gi.repository import GLib, Gtk
 
 from bauble import db, meta, paths, pluginmgr
 from bauble.editor import GenericEditorPresenter, GenericEditorView
-from bauble.utils import safe_set_text
 
 
 def get_ip():
-    '''get the ip address relative to default route
+    """get the ip address relative to default route
 
     see https://stackoverflow.com/a/28950776/78912
 
-    '''
+    """
     import socket
+
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         # doesn't even have to be reachable
-        s.connect(('10.255.255.255', 1))
+        s.connect(("10.255.255.255", 1))
         IP = s.getsockname()[0]
     except:
-        IP = '127.0.0.1'
+        IP = "127.0.0.1"
     finally:
         s.close()
     return IP
@@ -58,7 +58,8 @@ def get_ip():
 
 def get_code():
     import random
-    return ''.join(chr(int(random.random()*24) + 97) for i in range(6))
+
+    return "".join(chr(int(random.random() * 24) + 97) for i in range(6))
 
 
 from threading import Thread
@@ -66,7 +67,7 @@ from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
 
 class RequestHandler(SimpleXMLRPCRequestHandler):
-    rpc_paths = ('/API1',)
+    rpc_paths = ("/API1",)
 
 
 class PocketServer(Thread):
@@ -93,7 +94,7 @@ class PocketServer(Thread):
                 self.imei_to_user_name = {v[1]: v[2] for v in self.clients}
 
             def verify(self, client_id):
-                self.log.append(("verify ›%s‹" % (client_id), ))
+                self.log.append(("verify ›%s‹" % (client_id),))
                 user_name = self.imei_to_user_name.get(client_id, None)
                 if user_name is None:
                     return self.USER_NOT_REGISTERED
@@ -102,7 +103,9 @@ class PocketServer(Thread):
 
             def register(self, client_id, user_name, security_code):
                 self.presenter._dirty = True
-                self.log.append(("register ›{}‹ ›{}‹".format(client_id, security_code), ))
+                self.log.append(
+                    ("register ›{}‹ ›{}‹".format(client_id, security_code),)
+                )
                 if not isinstance(client_id, str) or not isinstance(user_name, str):
                     return self.WRONG_TYPE_IN_PARAMETERS
                 elif security_code != self.presenter.model.code:
@@ -110,12 +113,24 @@ class PocketServer(Thread):
                 else:
                     if user_name == self.imei_to_user_name.get(client_id):
                         return self.USER_ALREADY_REGISTERED
-                    self.clients.append((len(self.clients), client_id, user_name, ))
+                    self.clients.append(
+                        (
+                            len(self.clients),
+                            client_id,
+                            user_name,
+                        )
+                    )
                     self.imei_to_user_name[client_id] = user_name
                     return self.OK
 
             def get_snapshot(self, client_id):
-                self.log.append(("get_snapshot ›{}‹ ›{}‹".format(client_id, self.presenter.pocket_fn), ))
+                self.log.append(
+                    (
+                        "get_snapshot ›{}‹ ›{}‹".format(
+                            client_id, self.presenter.pocket_fn
+                        ),
+                    )
+                )
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
                 elif client_id not in {i[1] for i in self.clients}:
@@ -123,17 +138,21 @@ class PocketServer(Thread):
                 elif not isinstance(client_id, str):
                     return self.WRONG_TYPE_IN_PARAMETERS
                 import base64
+
                 try:
                     with open(self.presenter.pocket_fn, "rb") as pocket_file:
                         encoded_string = base64.b64encode(pocket_file.read())
-                        return encoded_string.decode("utf-8") 
+                        return encoded_string.decode("utf-8")
                 except:
                     return self.GENERIC_ERROR
 
             def put_change(self, client_id, log_lines, baseline):
                 user_name = self.imei_to_user_name.get(client_id, None)
                 from .import_pocket_log import process_line
-                self.log.append(("put_change ›{}‹ ›{}‹".format(client_id, len(log_lines)), ))
+
+                self.log.append(
+                    ("put_change ›{}‹ ›{}‹".format(client_id, len(log_lines)),)
+                )
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
                 elif client_id not in {i[1] for i in self.clients}:
@@ -151,18 +170,24 @@ class PocketServer(Thread):
                 return self.OK
 
             def put_picture(self, client_id, name, base64_content):
-                self.log.append(("put_picture ›{}‹ ›{}‹".format(client_id, name), ))
+                self.log.append(("put_picture ›{}‹ ›{}‹".format(client_id, name),))
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
                 elif client_id not in {i[1] for i in self.clients}:
                     return self.USER_NOT_REGISTERED
-                elif not isinstance(client_id, str) or not isinstance(name, str) or not isinstance(base64_content, str):
+                elif (
+                    not isinstance(client_id, str)
+                    or not isinstance(name, str)
+                    or not isinstance(base64_content, str)
+                ):
                     return self.WRONG_TYPE_IN_PARAMETERS
                 from bauble import prefs
+
                 filename = os.path.join(prefs.prefs[prefs.picture_root_pref], name)
                 try:
                     with open(filename, "xb") as picture_file:
                         import base64
+
                         content = base64.b64decode(base64_content)
                         picture_file.write(content)
                         picture_file.close()
@@ -172,25 +197,35 @@ class PocketServer(Thread):
                 except:
                     return self.GENERIC_ERROR
 
-            def put_picture_chunk(self, client_id, name, chunk_no, chunk_count, base64_content):
-                self.log.append(("put_picture ›{}‹ ›{}‹".format(client_id, name), ))
+            def put_picture_chunk(
+                self, client_id, name, chunk_no, chunk_count, base64_content
+            ):
+                self.log.append(("put_picture ›{}‹ ›{}‹".format(client_id, name),))
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
                 elif client_id not in {i[1] for i in self.clients}:
                     return self.USER_NOT_REGISTERED
-                elif not isinstance(client_id, str) or not isinstance(name, str) or not isinstance(base64_content, str):
+                elif (
+                    not isinstance(client_id, str)
+                    or not isinstance(name, str)
+                    or not isinstance(base64_content, str)
+                ):
                     return self.WRONG_TYPE_IN_PARAMETERS
                 import base64
+
                 content = base64.b64decode(base64_content)
                 self.receiving.set_default(name, {})
                 self.receiving[name][chunk_no] = content
                 if len(self.receiving[name]) < chunk_count:
                     return self.SEND_MORE
                 from bauble import prefs
+
                 filename = os.path.join(prefs.prefs[prefs.picture_root_pref], name)
                 try:
                     with open(filename, "xb") as picture_file:
-                        content = b''.join([i[1] for i in sorted(self.receiving[name].items())])
+                        content = b"".join(
+                            [i[1] for i in sorted(self.receiving[name].items())]
+                        )
                         picture_file.write(content)
                         picture_file.close()
                         del self.receiving[name]
@@ -205,9 +240,9 @@ class PocketServer(Thread):
         self.api = API(presenter)
 
     def run(self):
-        self.server = SimpleXMLRPCServer((self.ip, self.port),
-                                         requestHandler=RequestHandler,
-                                         logRequests=False)
+        self.server = SimpleXMLRPCServer(
+            (self.ip, self.port), requestHandler=RequestHandler, logRequests=False
+        )
         self.server.register_introspection_functions()
         self.server.register_instance(self.api)
         self.server.serve_forever()
@@ -218,26 +253,30 @@ class PocketServer(Thread):
 
 
 class PocketServerPresenter(GenericEditorPresenter):
-    '''manage the xmlrpc server for pocket communication
-
-    '''
+    """manage the xmlrpc server for pocket communication"""
 
     widget_to_field_map = {
-        'last_snapshot_date_entry': 'last_snapshot_date',
-        'code_entry': 'code',
-        'autorefresh_checkbutton': 'autorefresh',
-        'ip_address_entry': 'ip_address',
-        'port_entry': 'port',
-        }
+        "last_snapshot_date_entry": "last_snapshot_date",
+        "code_entry": "code",
+        "autorefresh_checkbutton": "autorefresh",
+        "ip_address_entry": "ip_address",
+        "port_entry": "port",
+    }
 
     def __init__(self, model, view):
         # invoke constructor
-        super().__init__(model=model, view=view, refresh_view=True, do_commit=True,
-                         committing_results=[-5, -4, -1])  # close, ×, ESC
+        super().__init__(
+            model=model,
+            view=view,
+            refresh_view=True,
+            do_commit=True,
+            committing_results=[-5, -4, -1],
+        )  # close, ×, ESC
         # put list_store directly in presenter and grab list from database
         self.clients_ls = self.view.widgets.clients_ls
         # guarantee that self.pocket_fn exists
         import tempfile
+
         handle, self.pocket_fn = tempfile.mkstemp()
         os.close(handle)
         # other initialization
@@ -259,9 +298,7 @@ class PocketServerPresenter(GenericEditorPresenter):
 
     def read_clients_list(self):
         self.clients_ls.clear()
-        query = (self.session.
-                 query(meta.BaubleMeta).
-                 filter_by(name='pocket-clients'))
+        query = self.session.query(meta.BaubleMeta).filter_by(name="pocket-clients")
         row = query.first()
         if row:
             elems = eval(row.value)
@@ -271,12 +308,10 @@ class PocketServerPresenter(GenericEditorPresenter):
             self.clients_ls.append((i, key, elems[key]))
 
     def commit_changes(self):
-        query = (self.session.
-                 query(meta.BaubleMeta).
-                 filter_by(name='pocket-clients'))
+        query = self.session.query(meta.BaubleMeta).filter_by(name="pocket-clients")
         row = query.first()
         if row is None:
-            row = meta.BaubleMeta(name='pocket-clients')
+            row = meta.BaubleMeta(name="pocket-clients")
             self.session.add(row)
         row.value = str({i[1]: i[2] for i in self.clients_ls})
         self.session.commit()
@@ -284,7 +319,7 @@ class PocketServerPresenter(GenericEditorPresenter):
     def treeview_changed(self, widget, event, data=None):
         adj = widget.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
-        
+
     def on_activity_expander_activate(self, target, *args):
         self.view.widgets.activity_log.set_visible(not target.get_expanded())
 
@@ -293,22 +328,27 @@ class PocketServerPresenter(GenericEditorPresenter):
         safe_set_text(self.view.widgets.last_snapshot_date_entry, text)
         self.view.widgets.new_snapshot_button.set_sensitive(False)
         from .exporttopocket import ExportToPocketThread, create_pocket
+
         create_pocket(self.pocket_fn)
         self.view.widgets.progressbar.set_fraction(0)
         self.view.widgets.progressbar_placeholder.set_visible(False)
         self.view.widgets.progressbar.set_visible(True)
-        self.start_thread(ExportToPocketThread(self.pocket_fn, self.view.widgets.progressbar, self.on_export_complete))
+        self.start_thread(
+            ExportToPocketThread(
+                self.pocket_fn, self.view.widgets.progressbar, self.on_export_complete
+            )
+        )
         self.opacity = 0.0
         self.is_exporting = True
         GLib.timeout_add(50, self.flashing_creating)
 
     def on_export_complete(self):
-        now = datetime.datetime.now().isoformat().split('.')[0]
+        now = datetime.datetime.now().isoformat().split(".")[0]
         self.view.widgets.last_snapshot_date_entry.set_text(now)
         self.view.widgets.progressbar.set_visible(False)
         self.view.widgets.progressbar_placeholder.set_visible(True)
         self.is_exporting = False
-        
+
     def on_remove_client_button_clicked(self, target, *args):
         selection = self.view.widgets.client_selection
         ls, iter = selection.get_selected()
@@ -321,7 +361,7 @@ class PocketServerPresenter(GenericEditorPresenter):
         self.model.code = get_code()
         entry = self.view.widgets.code_entry
         safe_set_text(entry, self.model.code)
-        
+
     def start_stop_server(self, target, *args):
         if target.get_active():
             self.start_thread(PocketServer(presenter=self))
@@ -340,7 +380,7 @@ class PocketServerPresenter(GenericEditorPresenter):
     def stop_spinner(self, *args):
         self.view.widgets.server_toggle_button.set_active(False)
         self.keep_spinning = False
-    
+
     def rotate(self, *args):
         self.angle -= 15
         self.angle %= 360
@@ -367,17 +407,19 @@ class PocketServerPresenter(GenericEditorPresenter):
 
 class PocketServerTool(pluginmgr.Tool):
     item_position = 32
-    label = _('Pocket Server…')
+    label = _("Pocket Server…")
     icon_name = "server"
     # prepare fields
     port = 44464
     autorefresh = False
-    last_snapshot_date = ''
+    last_snapshot_date = ""
 
     @classmethod
     def start(cls):
-        filename = os.path.join(paths.lib_dir(), "plugins", "garden", 'pocket_server.glade')
-        view = GenericEditorView(filename, root_widget_name='pocket_server_dialog')
+        filename = os.path.join(
+            paths.lib_dir(), "plugins", "garden", "pocket_server.glade"
+        )
+        view = GenericEditorView(filename, root_widget_name="pocket_server_dialog")
         cls.ip_address = get_ip()
         cls.code = get_code()
         c = PocketServerPresenter(cls, view)

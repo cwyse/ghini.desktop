@@ -49,7 +49,6 @@ from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
 from bauble.plugins.plants import Family, Genus, Species, VernacularName
 from bauble.plugins.tag import Tag
 from bauble.prefs import prefs
-from bauble.utils import safe_set_text
 
 from .flat_export import FlatFileExportTool
 from .utils import PS, SVG

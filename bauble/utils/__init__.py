@@ -50,13 +50,11 @@ def safe_set_text(gtk_widget, text):
     """
     Sets the text of a Gtk widget replacing None with an empty string.
 
-    :param gtk_widget: Instance of a Gtk widget
+    :param label: Instance of a Gtk widget
     :param text: The text to set, which may be None
     """
     if text is None:
         text = ''
-    elif isinstance(text, bytes):
-        text = text.decode('utf-8')  # Convert bytes to string
     gtk_widget.set_text(text)
 
 
@@ -806,7 +804,7 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
 
     # if combo is a Gtk.ComboBoxEntry then setup completions
     def compl_cell_data_func(col, cell, model, treeiter, data=None):
-        safe_set_props(cell, 'text', utf8(model[treeiter][0]))
+        cell.props.text = utf8(model[treeiter][0])
     completion = Gtk.EntryCompletion()
     completion.set_model(model)
     cell = Gtk.CellRendererText()  # set up the completion renderer
@@ -825,7 +823,7 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
         value = model[treeiter][0]
         if value:
             set_combo_from_value(combo, value)
-            safe_set_props(combo.get_child(), 'text', utf8(value))
+            combo.get_child().props.text = utf8(value)
         else:
             safe_set_props(combo.get_child(), 'text', '')
 

@@ -29,7 +29,7 @@ class BaubleError(Exception):
         if self.msg is None:
             return str(type(self).__name__)
         else:
-            return '{}: {}'.format(type(self).__name__, self.msg)
+            return "{}: {}".format(type(self).__name__, self.msg)
         return self.msg
 
 

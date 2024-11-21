@@ -30,29 +30,52 @@ from sqlalchemy.orm import eagerload, object_session
 
 import bauble
 import bauble.pluginmgr as pluginmgr
-#from bauble.plugins.garden.propagation import *
+
+# from bauble.plugins.garden.propagation import *
 import bauble.search as search
 import bauble.utils as utils
-from bauble.plugins.garden.accession import (Accession, AccessionEditor,
-                                             AccessionInfoBox, AccessionNote,
-                                             Verification, acc_context_menu)
-from bauble.plugins.garden.institution import (Institution, InstitutionCommand,
-                                               InstitutionTool,
-                                               start_institution_editor)
-from bauble.plugins.garden.location import (Location, LocationEditor,
-                                            LocationInfoBox, loc_context_menu)
+from bauble.plugins.garden.accession import (
+    Accession,
+    AccessionEditor,
+    AccessionInfoBox,
+    AccessionNote,
+    Verification,
+    acc_context_menu,
+)
+from bauble.plugins.garden.institution import (
+    Institution,
+    InstitutionCommand,
+    InstitutionTool,
+    start_institution_editor,
+)
+from bauble.plugins.garden.location import (
+    Location,
+    LocationEditor,
+    LocationInfoBox,
+    loc_context_menu,
+)
 from bauble.plugins.garden.picture_importer import PictureImporterTool
-from bauble.plugins.garden.plant import (Plant, PlantEditor, PlantInfoBox,
-                                         PlantNote, PlantSearch,
-                                         default_plant_delimiter,
-                                         plant_context_menu,
-                                         plant_delimiter_key)
+from bauble.plugins.garden.plant import (
+    Plant,
+    PlantEditor,
+    PlantInfoBox,
+    PlantNote,
+    PlantSearch,
+    default_plant_delimiter,
+    plant_context_menu,
+    plant_delimiter_key,
+)
 from bauble.plugins.garden.pocket_server import PocketServerTool
-from bauble.plugins.garden.source import (Collection, Contact, ContactInfoBox,
-                                          ContactPresenter, Source,
-                                          collection_context_menu,
-                                          create_contact,
-                                          source_detail_context_menu)
+from bauble.plugins.garden.source import (
+    Collection,
+    Contact,
+    ContactInfoBox,
+    ContactPresenter,
+    Source,
+    collection_context_menu,
+    create_contact,
+    source_detail_context_menu,
+)
 from bauble.view import SearchView
 
 # other ideas:
@@ -65,14 +88,16 @@ class GardenPlugin(pluginmgr.Plugin):
     depends = ["PlantsPlugin"]
     tools = [InstitutionTool, PictureImporterTool, PocketServerTool]
     commands = [InstitutionCommand]
-    provides = {'Accession': Accession,
-                'AccessionNote': AccessionNote,
-                'Location': Location,
-                'Plant': Plant,
-                'PlantNote': PlantNote,
-                'Source': Source,
-                'Contact': Contact,
-                'Collection': Collection}
+    provides = {
+        "Accession": Accession,
+        "AccessionNote": AccessionNote,
+        "Location": Location,
+        "Plant": Plant,
+        "PlantNote": PlantNote,
+        "Source": Source,
+        "Contact": Contact,
+        "Collection": Collection,
+    }
 
     @classmethod
     def install(cls, *args, **kwargs):
@@ -82,50 +107,63 @@ class GardenPlugin(pluginmgr.Plugin):
     def init(cls):
         pluginmgr.provided.update(cls.provides)
         from bauble.plugins.plants import Species
-        mapper_search = search.get_strategy('MapperSearch')
+
+        mapper_search = search.get_strategy("MapperSearch")
 
         from functools import partial
-        mapper_search.add_meta(('accession', 'acc'), Accession, ['code'])
+
+        mapper_search.add_meta(("accession", "acc"), Accession, ["code"])
         SearchView.row_meta[Accession].set(
             children=partial(db.natsort, "plants"),
             infobox=AccessionInfoBox,
-            context_menu=acc_context_menu)
+            context_menu=acc_context_menu,
+        )
 
-        mapper_search.add_meta(('location', 'loc'), Location, ['name', 'code'])
+        mapper_search.add_meta(("location", "loc"), Location, ["name", "code"])
         SearchView.row_meta[Location].set(
-            children=partial(db.natsort, 'plants'),
+            children=partial(db.natsort, "plants"),
             infobox=LocationInfoBox,
-            context_menu=loc_context_menu)
+            context_menu=loc_context_menu,
+        )
 
-        mapper_search.add_meta(('plant', 'planting'), Plant, ['code'])
+        mapper_search.add_meta(("plant", "planting"), Plant, ["code"])
         search.add_strategy(PlantSearch)  # special search value strategy
-        #search.add_strategy(SpeciesSearch)  # special search value strategy
+        # search.add_strategy(SpeciesSearch)  # special search value strategy
         SearchView.row_meta[Plant].set(
-            infobox=PlantInfoBox,
-            context_menu=plant_context_menu)
+            infobox=PlantInfoBox, context_menu=plant_context_menu
+        )
 
-        mapper_search.add_meta(('contact', 'contacts', 'person', 'org',
-                                'source'), Contact, ['name'])
+        mapper_search.add_meta(
+            ("contact", "contacts", "person", "org", "source"), Contact, ["name"]
+        )
 
         def sd_kids(detail):
             session = object_session(detail)
-            results = session.query(Accession).join(Source).\
-                join(Contact).options(eagerload('species')).\
-                filter(Contact.id == detail.id).all()
+            results = (
+                session.query(Accession)
+                .join(Source)
+                .join(Contact)
+                .options(eagerload("species"))
+                .filter(Contact.id == detail.id)
+                .all()
+            )
             return results
+
         SearchView.row_meta[Contact].set(
             children=sd_kids,
             infobox=ContactInfoBox,
-            context_menu=source_detail_context_menu)
+            context_menu=source_detail_context_menu,
+        )
 
-        mapper_search.add_meta(('collection', 'col', 'coll'),
-                               Collection, ['locale'])
-        coll_kids = lambda coll: sorted(coll.source.accession.plants,
-                                        key=utils.natsort_key)
+        mapper_search.add_meta(("collection", "col", "coll"), Collection, ["locale"])
+        coll_kids = lambda coll: sorted(
+            coll.source.accession.plants, key=utils.natsort_key
+        )
         SearchView.row_meta[Collection].set(
             children=coll_kids,
             infobox=AccessionInfoBox,
-            context_menu=collection_context_menu)
+            context_menu=collection_context_menu,
+        )
 
         # done here b/c the Species table is not part of this plugin
         SearchView.row_meta[Species].child = "accessions"
@@ -134,18 +172,31 @@ class GardenPlugin(pluginmgr.Plugin):
             import os.path
 
             from bauble import paths
+
             base = os.path.join(paths.lib_dir(), "plugins", "garden")
             from gi.repository import Gtk
-            submenu = bauble.gui.ui_manager.get_widget('/ui/MenuBar/insert_menu').get_submenu()
+
+            submenu = bauble.gui.ui_manager.get_widget(
+                "/ui/MenuBar/insert_menu"
+            ).get_submenu()
             submenu.append(Gtk.SeparatorMenuItem())
-            bauble.gui.add_to_insert_menu(AccessionEditor, _('Accession'), "insert-new.png", base)
-            bauble.gui.add_to_insert_menu(PlantEditor, _('Planting'), "insert-new.png", base)
-            bauble.gui.add_to_insert_menu(LocationEditor, _('Location'), "insert-new.png", base)
+            bauble.gui.add_to_insert_menu(
+                AccessionEditor, _("Accession"), "insert-new.png", base
+            )
+            bauble.gui.add_to_insert_menu(
+                PlantEditor, _("Planting"), "insert-new.png", base
+            )
+            bauble.gui.add_to_insert_menu(
+                LocationEditor, _("Location"), "insert-new.png", base
+            )
             submenu.append(Gtk.SeparatorMenuItem())
-            bauble.gui.add_to_insert_menu(create_contact, _('Contact'), "contact.png", base)
+            bauble.gui.add_to_insert_menu(
+                create_contact, _("Contact"), "contact.png", base
+            )
 
         # if the plant delimiter isn't in the bauble meta then add the default
         import bauble.meta as meta
+
         meta.get_default(plant_delimiter_key, default_plant_delimiter)
 
         institution = Institution()
@@ -165,13 +216,14 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
     :param on_select: a one-parameter function
 
     """
-    PROBLEM = 'UNKNOWN_LOCATION'
-    re_code_name_splitter = re.compile(r'\(([^)]+)\) ?(.*)')
+    PROBLEM = "UNKNOWN_LOCATION"
+    re_code_name_splitter = re.compile(r"\(([^)]+)\) ?(.*)")
 
     def cell_data_func(col, cell, model, treeiter, data=None):
-        safe_set_props(cell, 'text', utils.utf8(model[treeiter][0]))
+        cell.props.text = utils.utf8(model[treeiter][0])
 
     from gi.repository import Gtk
+
     completion = Gtk.EntryCompletion()
     cell = Gtk.CellRendererText()  # set up the completion renderer
     completion.pack_start(cell, True)
@@ -187,23 +239,26 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
     combo.set_cell_data_func(cell, cell_data_func)
 
     model = Gtk.ListStore(object)
-    model.append(('',))
-    for loc in sorted(presenter.session.query(Location).all(),
-                      key=lambda loc: utils.natsort_key(loc.code)):
-        model.append((loc, ))
+    model.append(("",))
+    for loc in sorted(
+        presenter.session.query(Location).all(),
+        key=lambda loc: utils.natsort_key(loc.code),
+    ):
+        model.append((loc,))
     combo.set_model(model)
     completion.set_model(model)
 
     def match_func(completion, key, treeiter, data=None):
-        logger.debug('match_func')
+        logger.debug("match_func")
         loc = completion.get_model()[treeiter][0]
-        return (loc.name and loc.name.lower().startswith(key.lower())) or \
-               (loc.code and loc.code.lower().startswith(key.lower()))
+        return (loc.name and loc.name.lower().startswith(key.lower())) or (
+            loc.code and loc.code.lower().startswith(key.lower())
+        )
 
     completion.set_match_func(match_func)
 
     def on_match_select(completion, model, treeiter):
-        logger.debug('on_match_select')
+        logger.debug("on_match_select")
         value = model[treeiter][0]
         on_select(value)
         safe_set_props(entry, 'text', str(value))
@@ -211,10 +266,10 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
         presenter.refresh_sensitivity()
         return True
 
-    presenter.view.connect(completion, 'match-selected', on_match_select)
+    presenter.view.connect(completion, "match-selected", on_match_select)
 
     def on_entry_changed(entry, presenter):
-        logger.debug('on_entry_changed(%s, %s)', entry, presenter)
+        logger.debug("on_entry_changed(%s, %s)", entry, presenter)
         text = utils.utf8(entry.props.text)
 
         if not text and not required:
@@ -230,7 +285,7 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
 
         found = utils.search_tree_model(compl_model, text, _cmp)
         if len(found) == 1:
-            completion.emit('match-selected', compl_model, found[0])
+            completion.emit("match-selected", compl_model, found[0])
             return True
         # if text looks like '(code) name', then split it into the two
         # parts, then see if the text matches exactly a code or name
@@ -239,26 +294,28 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
             code, name = match.groups()
         else:
             code = name = text
-        codes = presenter.session.query(Location).\
-            filter(utils.ilike(Location.code, '%s' % utils.utf8(code)))
-        names = presenter.session.query(Location).\
-            filter(utils.ilike(Location.name, '%s' % utils.utf8(name)))
+        codes = presenter.session.query(Location).filter(
+            utils.ilike(Location.code, "%s" % utils.utf8(code))
+        )
+        names = presenter.session.query(Location).filter(
+            utils.ilike(Location.name, "%s" % utils.utf8(name))
+        )
         if codes.count() == 1:
-            logger.debug('location matches code')
+            logger.debug("location matches code")
             location = codes.first()
             presenter.remove_problem(PROBLEM, entry)
             on_select(location)
         elif names.count() == 1:
-            logger.debug('location matches name')
+            logger.debug("location matches name")
             location = names.first()
             presenter.remove_problem(PROBLEM, entry)
             on_select(location)
         else:
-            logger.debug('location %s does not match anything' % text)
+            logger.debug("location %s does not match anything" % text)
             presenter.add_problem(PROBLEM, entry)
         return True
 
-    presenter.view.connect(entry, 'changed', on_entry_changed, presenter)
+    presenter.view.connect(entry, "changed", on_entry_changed, presenter)
 
     def on_combo_changed(combo, *args):
         # model = combo.get_model()
@@ -267,7 +324,8 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
             return
         location = combo.get_model()[i][0]
         safe_set_props(combo.get_child(), 'text', str(location))
-    presenter.view.connect(combo, 'changed', on_combo_changed)
+
+    presenter.view.connect(combo, "changed", on_combo_changed)
 
 
 import bauble.db as db

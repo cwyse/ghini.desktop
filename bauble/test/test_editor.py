@@ -36,66 +36,65 @@ from bauble.test import BaubleTestCase
 class BaubleTests(BaubleTestCase):
 
     def test_create_generic_view(self):
-        filename = os.path.join(paths.lib_dir(), 'bauble.glade')
+        filename = os.path.join(paths.lib_dir(), "bauble.glade")
         view = GenericEditorView(filename)
         print(type(view.widgets))
         self.assertTrue(type(view.widgets) is utils.BuilderWidgets)
 
     def test_set_title_ok(self):
-        filename = os.path.join(paths.lib_dir(), 'bauble.glade')
-        view = GenericEditorView(filename, root_widget_name='main_window')
-        title = 'testing'
+        filename = os.path.join(paths.lib_dir(), "bauble.glade")
+        view = GenericEditorView(filename, root_widget_name="main_window")
+        title = "testing"
         view.set_title(title)
         self.assertEqual(view.get_window().get_title(), title)
 
     def test_set_title_no_root(self):
-        filename = os.path.join(paths.lib_dir(), 'bauble.glade')
+        filename = os.path.join(paths.lib_dir(), "bauble.glade")
         view = GenericEditorView(filename)
-        title = 'testing'
+        title = "testing"
         self.assertRaises(NotImplementedError, view.set_title, title)
         self.assertRaises(NotImplementedError, view.get_window)
 
     def test_set_icon_no_root(self):
-        filename = os.path.join(paths.lib_dir(), 'bauble.glade')
+        filename = os.path.join(paths.lib_dir(), "bauble.glade")
         view = GenericEditorView(filename)
-        title = 'testing'
+        title = "testing"
         self.assertRaises(NotImplementedError, view.set_icon, title)
 
     def test_add_widget(self):
         from gi.repository import Gtk
-        filename = os.path.join(paths.lib_dir(), 'bauble.glade')
+
+        filename = os.path.join(paths.lib_dir(), "bauble.glade")
         view = GenericEditorView(filename)
-        label = Gtk.Label(label='testing')
-        view.widget_add('statusbar', label)
+        label = Gtk.Label(label="testing")
+        view.widget_add("statusbar", label)
 
 
 class PleaseIgnoreMe:
-    '''these cannot be tested in a non-windowed environment
-    '''
+    """these cannot be tested in a non-windowed environment"""
 
     def test_set_accept_buttons_sensitive_not_set(self):
-        'it is a task of the presenter to indicate the accept buttons'
-        filename = os.path.join(paths.lib_dir(), 'connmgr.glade')
-        view = GenericEditorView(filename, root_widget_name='main_dialog')
-        self.assertRaises(AttributeError,
-                          view.set_accept_buttons_sensitive, True)
+        "it is a task of the presenter to indicate the accept buttons"
+        filename = os.path.join(paths.lib_dir(), "connmgr.glade")
+        view = GenericEditorView(filename, root_widget_name="main_dialog")
+        self.assertRaises(AttributeError, view.set_accept_buttons_sensitive, True)
 
     def test_set_sensitive(self):
-        filename = os.path.join(paths.lib_dir(), 'connmgr.glade')
-        view = GenericEditorView(filename, root_widget_name='main_dialog')
-        view.widget_set_sensitive('cancel_button', True)
+        filename = os.path.join(paths.lib_dir(), "connmgr.glade")
+        view = GenericEditorView(filename, root_widget_name="main_dialog")
+        view.widget_set_sensitive("cancel_button", True)
         self.assertTrue(view.widgets.cancel_button.get_sensitive())
-        view.widget_set_sensitive('cancel_button', False)
+        view.widget_set_sensitive("cancel_button", False)
         self.assertFalse(view.widgets.cancel_button.get_sensitive())
 
     def test_set_visible_get_visible(self):
-        filename = os.path.join(paths.lib_dir(), 'connmgr.glade')
-        view = GenericEditorView(filename, root_widget_name='main_dialog')
-        view.widget_set_visible('noconnectionlabel', True)
-        self.assertTrue(view.widget_get_visible('noconnectionlabel'))
+        filename = os.path.join(paths.lib_dir(), "connmgr.glade")
+        view = GenericEditorView(filename, root_widget_name="main_dialog")
+        view.widget_set_visible("noconnectionlabel", True)
+        self.assertTrue(view.widget_get_visible("noconnectionlabel"))
         self.assertTrue(view.widgets.noconnectionlabel.get_visible())
-        view.widget_set_visible('noconnectionlabel', False)
-        self.assertFalse(view.widget_get_visible('noconnectionlabel'))
+        view.widget_set_visible("noconnectionlabel", False)
+        self.assertFalse(view.widget_get_visible("noconnectionlabel"))
         self.assertFalse(view.widgets.noconnectionlabel.get_visible())
 
 
@@ -108,40 +107,42 @@ from bauble.utils import parse_date
 class TimeStampParserTests(unittest.TestCase):
 
     def test_date_parser_generic(self):
-        target = datetime.datetime(2019, 1, 18, 18, 20, tzinfo=datetime.timezone(datetime.timedelta(hours=5)))
-        result = parse_date('18 January 2019 18:20 +0500')
+        target = datetime.datetime(
+            2019, 1, 18, 18, 20, tzinfo=datetime.timezone(datetime.timedelta(hours=5))
+        )
+        result = parse_date("18 January 2019 18:20 +0500")
         self.assertEqual(result, target)
-        result = parse_date('18:20, 18 January 2019 +0500')
+        result = parse_date("18:20, 18 January 2019 +0500")
         self.assertEqual(result, target)
-        result = parse_date('18:20+0500, 18 January 2019')
+        result = parse_date("18:20+0500, 18 January 2019")
         self.assertEqual(result, target)
-        result = parse_date('18:20+0500, 18 Jan 2019')
+        result = parse_date("18:20+0500, 18 Jan 2019")
         self.assertEqual(result, target)
-        result = parse_date('18:20+0500, 2019-01-18')
+        result = parse_date("18:20+0500, 2019-01-18")
         self.assertEqual(result, target)
-        result = parse_date('18:20+0500, 1/18 2019')
+        result = parse_date("18:20+0500, 1/18 2019")
         self.assertEqual(result, target)
-        result = parse_date('18:20+0500, 18/1 2019')
+        result = parse_date("18:20+0500, 18/1 2019")
         self.assertEqual(result, target)
 
     def test_date_parser_ambiguous(self):
         # defaults to European: day, month, year
-        result = parse_date('5 1 4')
+        result = parse_date("5 1 4")
         self.assertEqual(result, datetime.datetime(2004, 1, 5, 0, 0))
         # explicit, American: month, day, year
-        result = parse_date('5 1 4', dayfirst=False, yearfirst=False)
+        result = parse_date("5 1 4", dayfirst=False, yearfirst=False)
         self.assertEqual(result, datetime.datetime(2004, 5, 1, 0, 0))
         # explicit, European: day, month, year
-        result = parse_date('5 1 4', dayfirst=True, yearfirst=False)
+        result = parse_date("5 1 4", dayfirst=True, yearfirst=False)
         self.assertEqual(result, datetime.datetime(2004, 1, 5, 0, 0))
         # explicit, Japanese: year, month, day (month, day, year)
-        result = parse_date('5 1 4', dayfirst=False, yearfirst=True)
+        result = parse_date("5 1 4", dayfirst=False, yearfirst=True)
         self.assertEqual(result, datetime.datetime(2005, 1, 4, 0, 0))
         # explicit, illogical: year, day, month
-        result = parse_date('5 1 4', dayfirst=True, yearfirst=True)
+        result = parse_date("5 1 4", dayfirst=True, yearfirst=True)
         self.assertEqual(result, datetime.datetime(2005, 4, 1, 0, 0))
 
     def test_date_parser_365(self):
         target = datetime.datetime(2014, 1, 1, 20)
-        result = parse_date('2014-01-01 20')
+        result = parse_date("2014-01-01 20")
         self.assertEqual(result, target)

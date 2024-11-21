@@ -20,11 +20,11 @@
 # Images table definition
 #
 
-#from bauble.plugins import BaubleTable, tables
-#from bauble.treevieweditor import TreeViewEditorDialog
+# from bauble.plugins import BaubleTable, tables
+# from bauble.treevieweditor import TreeViewEditorDialog
 #
 #
-#class Image(BaubleTable):
+# class Image(BaubleTable):
 #
 #    # not unique but if a duplicate uri is entered the user
 #    # should be asked if this is what they want
@@ -46,7 +46,7 @@
 ##
 ## Image editor
 ##
-#class ImageEditor(TreeViewEditorDialog):
+# class ImageEditor(TreeViewEditorDialog):
 #
 #    visible_columns_pref = "editor.image.columns"
 #    column_width_pref = "editor.image.column_width"

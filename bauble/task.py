@@ -136,7 +136,7 @@ def set_message(msg):
     except NameError as e:
         # this is expected to happen, it's normal behaviour.
         logger.info(e)  # global name '_context_id' is not defined
-        _context_id = bauble.gui.widgets.statusbar.get_context_id('__task')
+        _context_id = bauble.gui.widgets.statusbar.get_context_id("__task")
         logger.info("new context id: %s" % _context_id)
     msg_id = bauble.gui.widgets.statusbar.push(_context_id, msg)
     __message_ids.append(msg_id)
@@ -148,8 +148,11 @@ def clear_messages():
     Clear all the messages from the statusbar that were set with
     :func:`bauble.task.set_message`
     """
-    if bauble.gui is None or bauble.gui.widgets is None \
-            or bauble.gui.widgets.statusbar is None:
+    if (
+        bauble.gui is None
+        or bauble.gui.widgets is None
+        or bauble.gui.widgets.statusbar is None
+    ):
         return
     global _context_id, __message_ids
     for mid in __message_ids:

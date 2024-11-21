@@ -34,11 +34,12 @@ def get_species_in_geographic_area(geo):
     """
     session = object_session(geo)
     if not session:
-        ValueError('get_species_in_geographic_area(): geographic_area is not in a session')
+        ValueError(
+            "get_species_in_geographic_area(): geographic_area is not in a session"
+        )
 
     # get all the geographic_area children under geo
-    from bauble.plugins.plants.species_model import (Species,
-                                                     SpeciesDistribution)
+    from bauble.plugins.plants.species_model import Species, SpeciesDistribution
 
     # get the children of geo
     geo_table = geo.__table__
@@ -53,12 +54,21 @@ def get_species_in_geographic_area(geo):
             grand_kids = get_geographic_area_children(kid)
             master_ids.update(grand_kids)
         return kids
+
     geokids = get_geographic_area_children(geo.id)
     master_ids.update(geokids)
     from sqlalchemy import bindparam
-    q = session.query(Species).join(SpeciesDistribution).\
-        filter(SpeciesDistribution.geographic_area_id.in_(bindparam('master_ids', expanding=True)))\
+
+    q = (
+        session.query(Species)
+        .join(SpeciesDistribution)
+        .filter(
+            SpeciesDistribution.geographic_area_id.in_(
+                bindparam("master_ids", expanding=True)
+            )
+        )
         .params(master_ids=master_ids)
+    )
     return list(q)
 
 
@@ -67,8 +77,17 @@ class GeographicAreaMenu(Gtk.Menu):
     def __init__(self, callback):
         super().__init__()
         geographic_area_table = GeographicArea.__table__
-        geos = select([geographic_area_table.c.id, geographic_area_table.c.name,
-                       geographic_area_table.c.parent_id]).execute().fetchall()
+        geos = (
+            select(
+                [
+                    geographic_area_table.c.id,
+                    geographic_area_table.c.name,
+                    geographic_area_table.c.parent_id,
+                ]
+            )
+            .execute()
+            .fetchall()
+        )
         geos_hash = {}
         # TODO: i think the geo_hash should be calculated in an idle
         # function so that starting the editor isn't delayed while the
@@ -98,7 +117,7 @@ class GeographicAreaMenu(Gtk.Menu):
             item = Gtk.MenuItem(name)
             if not has_kids(geo_id):
                 if item.get_submenu() is None:
-                    item.connect('activate', callback, geo_id)
+                    item.connect("activate", callback, geo_id)
                     # self.view.connect(item, 'activate',
                     #                   self.on_activate_add_menu_item, geo_id)
                 return item
@@ -118,10 +137,10 @@ class GeographicAreaMenu(Gtk.Menu):
                 submenu.insert(sel_item, 0)
                 submenu.insert(Gtk.SeparatorMenuItem(), 1)
                 item.set_submenu(submenu)
-                #self.view.connect(sel_item, 'activate',callback, geo_id)
-                sel_item.connect('activate', callback, geo_id)
+                # self.view.connect(sel_item, 'activate',callback, geo_id)
+                sel_item.connect("activate", callback, geo_id)
             else:
-                item.connect('activate', callback, geo_id)
+                item.connect("activate", callback, geo_id)
             return item
 
         def populate():
@@ -146,6 +165,7 @@ class GeographicAreaMenu(Gtk.Menu):
             self.show_all()
 
         from gi.repository import GObject
+
         GObject.idle_add(populate)
 
 
@@ -169,13 +189,14 @@ class GeographicArea(db.Base):
 
     :Constraints:
     """
-    __tablename__ = 'geographic_area'
+
+    __tablename__ = "geographic_area"
 
     # columns
     name = Column(Unicode(255), nullable=False)
     tdwg_code = Column(String(6))
     iso_code = Column(String(7))
-    parent_id = Column(Integer, ForeignKey('geographic_area.id'))
+    parent_id = Column(Integer, ForeignKey("geographic_area.id"))
 
     def __str__(self):
         return self.name
@@ -183,13 +204,15 @@ class GeographicArea(db.Base):
 
 # late bindings
 GeographicArea.children = relationship(
-    'GeographicArea',
+    "GeographicArea",
     primaryjoin=GeographicArea.parent_id == GeographicArea.id,
-    cascade='all',
+    cascade="all",
     back_populates="parent",
-    order_by=[GeographicArea.name])
+    order_by=[GeographicArea.name],
+)
 
 GeographicArea.parent = relationship(
-    'GeographicArea',
+    "GeographicArea",
     back_populates="children",
-    remote_side=[GeographicArea.__table__.c.id])
+    remote_side=[GeographicArea.__table__.c.id],
+)

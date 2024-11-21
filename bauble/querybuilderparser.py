@@ -23,28 +23,50 @@
 #
 # if the query does not follow the grammar, start from scratch.
 
-from pyparsing import (CaselessLiteral, Forward, Group, Regex, Word, WordEnd,
-                       WordStart, ZeroOrMore, alphanums, alphas, alphas8bit,
-                       delimitedList, oneOf, quotedString, removeQuotes)
+from pyparsing import (
+    CaselessLiteral,
+    Forward,
+    Group,
+    Regex,
+    Word,
+    WordEnd,
+    WordStart,
+    ZeroOrMore,
+    alphanums,
+    alphas,
+    alphas8bit,
+    delimitedList,
+    oneOf,
+    quotedString,
+    removeQuotes,
+)
 
 
 class BuiltQuery:
 
     wordStart, wordEnd = WordStart(), WordEnd()
 
-    AND_ = wordStart + CaselessLiteral('and') + wordEnd
-    OR_ = wordStart + CaselessLiteral('or') + wordEnd
-    BETWEEN_ = wordStart + CaselessLiteral('between') + wordEnd
+    AND_ = wordStart + CaselessLiteral("and") + wordEnd
+    OR_ = wordStart + CaselessLiteral("or") + wordEnd
+    BETWEEN_ = wordStart + CaselessLiteral("between") + wordEnd
 
-    numeric_value = Regex(r'[-]?\d+(\.\d*)?([eE]\d+)?')
-    unquoted_string = Word(alphanums + alphas8bit + '%.-_*;:')
-    string_value = (quotedString.setParseAction(removeQuotes) | unquoted_string)
-    fieldname = Group(delimitedList(Word(alphas+'_', alphanums+'_'), '.'))
-    value = (numeric_value | string_value)
-    binop = oneOf('= == != <> < <= > >= has like contains', caseless=True)
+    numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?")
+    unquoted_string = Word(alphanums + alphas8bit + "%.-_*;:")
+    string_value = quotedString.setParseAction(removeQuotes) | unquoted_string
+    fieldname = Group(delimitedList(Word(alphas + "_", alphanums + "_"), "."))
+    value = numeric_value | string_value
+    binop = oneOf("= == != <> < <= > >= has like contains", caseless=True)
     clause = fieldname + binop + value
-    unparseable_clause = (fieldname + BETWEEN_ + value + AND_ + value) | (Word(alphanums) + '(' + fieldname + ')' + binop + value)
-    expression = Group(clause) + ZeroOrMore(Group( AND_ + clause | OR_ + clause | ((OR_|AND_) + unparseable_clause).suppress()))
+    unparseable_clause = (fieldname + BETWEEN_ + value + AND_ + value) | (
+        Word(alphanums) + "(" + fieldname + ")" + binop + value
+    )
+    expression = Group(clause) + ZeroOrMore(
+        Group(
+            AND_ + clause
+            | OR_ + clause
+            | ((OR_ | AND_) + unparseable_clause).suppress()
+        )
+    )
     query = Word(alphas) + CaselessLiteral("where") + expression
 
     def __init__(self, s):
@@ -55,16 +77,23 @@ class BuiltQuery:
             self.is_valid = True
         except:
             self.is_valid = False
-        
+
     @property
     def clauses(self):
         if not self.__clauses:
-            self.__clauses = [type('FooBar', (object,),
-                                   dict(connector=len(i)==4 and i[0] or None,
-                                        field='.'.join(i[-3]),
-                                        operator=i[-2],
-                                        value=i[-1]))()
-                              for i in [k for k in self.parsed if len(k)>0][2:]]
+            self.__clauses = [
+                type(
+                    "FooBar",
+                    (object,),
+                    dict(
+                        connector=len(i) == 4 and i[0] or None,
+                        field=".".join(i[-3]),
+                        operator=i[-2],
+                        value=i[-1],
+                    ),
+                )()
+                for i in [k for k in self.parsed if len(k) > 0][2:]
+            ]
         return self.__clauses
 
     @property

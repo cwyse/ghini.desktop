@@ -22,11 +22,19 @@ def create_pyproject():
                 "file": "README.rst",  # Use README.rst instead of README.md
                 "content-type": "text/x-rst",  # Specify reStructuredText format
             },
-            "keywords": [ "database", "biodiversity", "botany", "collection", "herbarium", "arboretum"],
-
+            "keywords": [
+                "database",
+                "biodiversity",
+                "botany",
+                "collection",
+                "herbarium",
+                "arboretum",
+            ],
             "license": {"text": "GPLv2+"},
-            "authors": [{"name": "Mario Frasca", "email": "mario@anche.no"},
-                        {"name": "Chris Wyse", "email": "chris.wyse@wysechoice.net"}],
+            "authors": [
+                {"name": "Mario Frasca", "email": "mario@anche.no"},
+                {"name": "Chris Wyse", "email": "chris.wyse@wysechoice.net"},
+            ],
             "platforms": ["Linux", "Windows", "macOS"],
             "dependencies": [
                 # Main requirements from requirements.txt and constraints.txt

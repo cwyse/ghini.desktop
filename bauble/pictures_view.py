@@ -44,8 +44,9 @@ class PicturesView(Gtk.HBox):
     """
 
     def __init__(self, parent=None, fake=False):
-        logger.debug("entering PicturesView.__init__(parent=%s, fake=%s)"
-                     % (parent, fake))
+        logger.debug(
+            "entering PicturesView.__init__(parent=%s, fake=%s)" % (parent, fake)
+        )
         super().__init__()
         if fake:
             self.fake = True
@@ -54,8 +55,8 @@ class PicturesView(Gtk.HBox):
         import os
 
         from bauble import paths
-        glade_file = os.path.join(
-            paths.lib_dir(), 'pictures_view.glade')
+
+        glade_file = os.path.join(paths.lib_dir(), "pictures_view.glade")
         self.widgets = utils.BuilderWidgets(glade_file)
         self.widgets.remove_parent(self.widgets.scrolledwindow2)
         parent.add(self.widgets.scrolledwindow2)
@@ -74,10 +75,10 @@ class PicturesView(Gtk.HBox):
             try:
                 pics = o.pictures
             except AttributeError:
-                logger.debug('object %s does not know of pictures' % o)
+                logger.debug("object %s does not know of pictures" % o)
                 pics = []
             for p in pics:
-                logger.debug('object {} has picture {}'.format(o, p))
+                logger.debug("object {} has picture {}".format(o, p))
                 expander = Gtk.HBox()
                 expander.add(p)
                 self.ghini_box.pack_end(expander, False, False, 0)
@@ -95,6 +96,7 @@ class PicturesView(Gtk.HBox):
         self.ghini_box.pack_start(expander, False, False, 0)
         expander.show_all()
         return expander
+
 
 floating_window = None
 

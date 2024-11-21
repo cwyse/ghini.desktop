@@ -33,7 +33,7 @@ from bauble.error import BaubleError
 from bauble.prefs import prefs
 
 ## for sake of testing, just use sqlite3.
-uri = 'sqlite:///:memory:'
+uri = "sqlite:///:memory:"
 
 
 def init_bauble(uri, create=False):
@@ -41,9 +41,9 @@ def init_bauble(uri, create=False):
         db.open(uri, verify=False)
     except Exception as e:
         print(e, file=sys.stderr)
-        #debug e
+        # debug e
     if not bauble.db.engine:
-        raise BaubleError('not connected to a database')
+        raise BaubleError("not connected to a database")
     prefs.init()
     prefs.testing = True
     pluginmgr.load()
@@ -56,6 +56,7 @@ def update_gui():
     Flush any GTK Events.  Used for doing GUI testing.
     """
     from gi.repository import Gtk
+
     while Gtk.events_pending():
         Gtk.main_iteration()
 
@@ -67,11 +68,12 @@ def check_dupids(filename):
     ids = set()
     duplicates = set()
     import lxml.etree as etree
+
     tree = etree.parse(filename)
     for el in tree.getiterator():
-        if el.tag == 'col':
+        if el.tag == "col":
             continue
-        elid = el.get('id')
+        elid = el.get("id")
         if elid not in ids:
             ids.add(elid)
         elif elid and elid not in duplicates:
@@ -88,15 +90,15 @@ class MockLoggingHandler(logging.Handler):
         logging.Handler.__init__(self, *args, **kwargs)
 
     def emit(self, record):
-        received = self.messages.setdefault(
-            record.name, {}).setdefault(
-                record.levelname.lower(), [])
+        received = self.messages.setdefault(record.name, {}).setdefault(
+            record.levelname.lower(), []
+        )
         received.append(self.format(record))
 
     def reset(self):
         self.messages = {}
 
-        
+
 class BaubleTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -119,7 +121,9 @@ class BaubleTestCase(unittest.TestCase):
 
     # assertIsNone is not available before 2.7
     import sys
+
     if sys.version_info[:2] < (2, 7):
+
         def assertIsNone(self, item):
             self.assertTrue(item is None)
 

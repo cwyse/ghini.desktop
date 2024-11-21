@@ -34,7 +34,7 @@ path = os.path.dirname(os.path.realpath(__file__))
 
 import json
 
-with open(os.path.join(path, 'settings.json')) as f:
+with open(os.path.join(path, "settings.json")) as f:
     (user, pw, filename, imei2user, dburi, pic_path) = json.load(f)
 
 import bauble.db
@@ -45,12 +45,12 @@ from bauble.plugins.plants import Genus, Species
 bauble.db.open(dburi, True, True)
 session = bauble.db.Session()
 
-q = session.query(Species).filter(Species.infrasp1 == 'sp')
-q = q.join(Genus).filter(Genus.epithet == 'Zzz')
+q = session.query(Species).filter(Species.infrasp1 == "sp")
+q = q.join(Genus).filter(Genus.epithet == "Zzz")
 zzz = q.one()
 
-q = session.query(Species).filter(Species.epithet == 'sp')
-q = q.join(Genus).filter(Genus.epithet == 'Zzz')
+q = session.query(Species).filter(Species.epithet == "sp")
+q = q.join(Genus).filter(Genus.epithet == "Zzz")
 zzzsp = q.one()
 
 import sys
@@ -68,21 +68,26 @@ for line in fileinput.input():
         continue  # skip any empty lines
 
     try:
-        genus_name, location = re.split('[ ,]+', text)
+        genus_name, location = re.split("[ ,]+", text)
     except:
         genus_name = location = None
 
     if genus_name:
         genus = session.query(Genus).filter(Genus.epithet == genus_name).one()
         try:
-            species = session.query(Species).filter(Species.genus == genus).filter(Species.infrasp1 == 'sp').first()
+            species = (
+                session.query(Species)
+                .filter(Species.genus == genus)
+                .filter(Species.infrasp1 == "sp")
+                .first()
+            )
             if species is None:
                 raise Exception
-            sys.stdout.write('+')
+            sys.stdout.write("+")
         except:
-            species = Species(genus=genus, sp='', infrasp1='sp')
+            species = Species(genus=genus, sp="", infrasp1="sp")
             session.add(species)
-            sys.stdout.write('*')
+            sys.stdout.write("*")
             session.flush()
         continue  # we used the line, let's continue with the accession codes
 
@@ -92,18 +97,20 @@ for line in fileinput.input():
         accession = session.query(Accession).filter(Accession.code == text).one()
     except:
         unknown.append(text)
-        sys.stdout.write('?')
+        sys.stdout.write("?")
         continue
 
     if accession.species in [zzz, zzzsp]:
         accession.species = species
-        sys.stdout.write(':')
+        sys.stdout.write(":")
         session.flush()
     elif accession.species == species:
-        sys.stdout.write('.')
+        sys.stdout.write(".")
     else:
-        conflicting.setdefault(species.str(), []).append((accession.code, accession.species.str()))
-        sys.stdout.write('!')
+        conflicting.setdefault(species.str(), []).append(
+            (accession.code, accession.species.str())
+        )
+        sys.stdout.write("!")
 
 print()
 session.commit()

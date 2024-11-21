@@ -41,7 +41,6 @@ import bauble.utils.desktop as desktop
 from bauble import querybuilder
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.prefs import prefs
-from bauble.utils import safe_set_text
 from bauble.view import SearchView
 
 

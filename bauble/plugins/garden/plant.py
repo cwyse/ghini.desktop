@@ -32,8 +32,18 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from gi.repository import Gtk
-from sqlalchemy import (Boolean, Column, ForeignKey, Integer, Unicode,
-                        UnicodeText, UniqueConstraint, and_, func, text)
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    Integer,
+    Unicode,
+    UnicodeText,
+    UniqueConstraint,
+    and_,
+    func,
+    text,
+)
 from sqlalchemy.exc import DBAPIError, OperationalError
 from sqlalchemy.orm import object_mapper, relationship, validates
 from sqlalchemy.orm.session import object_session
@@ -46,23 +56,33 @@ import bauble.prefs as prefs
 import bauble.utils as utils
 from bauble.utils import safe_set_text
 import bauble.view as view
-from bauble.editor import (GenericEditorPresenter, GenericEditorView,
-                           GenericModelViewPresenterEditor, NotesPresenter,
-                           PicturesPresenter)
+from bauble.editor import (
+    GenericEditorPresenter,
+    GenericEditorView,
+    GenericModelViewPresenterEditor,
+    NotesPresenter,
+    PicturesPresenter,
+)
 from bauble.error import CheckConditionError
 from bauble.plugins.garden.location import Location, LocationEditor
 from bauble.plugins.garden.propagation import PlantPropagation
 from bauble.plugins.plants.species_model import Species
 from bauble.search import SearchStrategy
-from bauble.view import (Action, InfoBox, InfoExpander, MapInfoExpander,
-                         PropertiesExpander, select_in_search_results)
+from bauble.view import (
+    Action,
+    InfoBox,
+    InfoExpander,
+    MapInfoExpander,
+    PropertiesExpander,
+    select_in_search_results,
+)
 
 # TODO: might be worthwhile to have a label or textview next to the
 # location combo that shows the description of the currently selected
 # location
 
-plant_delimiter_key = 'plant_delimiter'
-default_plant_delimiter = '.'
+plant_delimiter_key = "plant_delimiter"
+default_plant_delimiter = "."
 
 
 def edit_callback(plants):
@@ -72,8 +92,10 @@ def edit_callback(plants):
 
 def branch_callback(plants):
     if plants[0].quantity <= 1:
-        msg = _("Not enough plants to split.  A plant should have at least "
-                "a quantity of 2 before it can be divided")
+        msg = _(
+            "Not enough plants to split.  A plant should have at least "
+            "a quantity of 2 before it can be divided"
+        )
         utils.message_dialog(msg, Gtk.MessageType.WARNING)
         return
 
@@ -82,9 +104,10 @@ def branch_callback(plants):
 
 
 def remove_callback(plants):
-    s = ', '.join([str(p) for p in plants])
-    msg = _("Are you sure you want to remove the following plants?\n\n%s") \
-        % utils.xml_safe(s)
+    s = ", ".join([str(p) for p in plants])
+    msg = _(
+        "Are you sure you want to remove the following plants?\n\n%s"
+    ) % utils.xml_safe(s)
     if not utils.yes_no_dialog(msg):
         return
 
@@ -95,29 +118,41 @@ def remove_callback(plants):
     try:
         session.commit()
     except Exception as e:
-        msg = _('Could not delete.\n\n%s') % utils.xml_safe(e)
+        msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
 
-        utils.message_details_dialog(msg, traceback.format_exc(),
-                                     type=Gtk.MessageType.ERROR)
+        utils.message_details_dialog(
+            msg, traceback.format_exc(), type=Gtk.MessageType.ERROR
+        )
     finally:
         session.close()
     return True
 
 
-edit_action = Action('plant_edit', _('_Edit'),
-                     callback=edit_callback,
-                     accelerator='<ctrl>e', multiselect=True)
+edit_action = Action(
+    "plant_edit",
+    _("_Edit"),
+    callback=edit_callback,
+    accelerator="<ctrl>e",
+    multiselect=True,
+)
 
-branch_action = Action('plant_branch', _('_Split'),
-                       callback=branch_callback,
-                       accelerator='<ctrl>b')
+branch_action = Action(
+    "plant_branch", _("_Split"), callback=branch_callback, accelerator="<ctrl>b"
+)
 
-remove_action = Action('plant_remove', _('_Delete'),
-                       callback=remove_callback,
-                       accelerator='<ctrl>Delete', multiselect=True)
+remove_action = Action(
+    "plant_remove",
+    _("_Delete"),
+    callback=remove_callback,
+    accelerator="<ctrl>Delete",
+    multiselect=True,
+)
 
 plant_context_menu = [
-    edit_action, branch_action, remove_action, ]
+    edit_action,
+    branch_action,
+    remove_action,
+]
 
 
 def get_next_code(acc):
@@ -131,12 +166,17 @@ def get_next_code(acc):
     # auto generate/increment the accession code
     session = db.Session()
     from bauble.plugins.garden import Accession
-    codes = session.query(Plant.code).join(Accession, Plant.accession_id == Accession.id).\
-        filter(Accession.id == acc.id).all()
+
+    codes = (
+        session.query(Plant.code)
+        .join(Accession, Plant.accession_id == Accession.id)
+        .filter(Accession.id == acc.id)
+        .all()
+    )
     next = 1
     if codes:
         try:
-            next = max([int(code[0]) for code in codes])+1
+            next = max([int(code[0]) for code in codes]) + 1
         except Exception as e:
             logger.debug(e)
             return None
@@ -164,8 +204,18 @@ def is_code_unique(plant, code):
     from sqlalchemy import bindparam
 
     from bauble.plugins.garden import Accession
-    count = session.query(Plant).join(Accession, Plant.accession_id == Accession.id).\
-        filter(and_(Accession.id == plant.accession.id, Plant.code.in_(bindparam('codes', expanding=True)))).count()
+
+    count = (
+        session.query(Plant)
+        .join(Accession, Plant.accession_id == Accession.id)
+        .filter(
+            and_(
+                Accession.id == plant.accession.id,
+                Plant.code.in_(bindparam("codes", expanding=True)),
+            )
+        )
+        .count()
+    )
     session.close()
     return count == 0
 
@@ -186,7 +236,7 @@ class PlantSearch(SearchStrategy):
             text = text[1:-1]
         else:
             logger.debug("text is not quoted, should strategy apply?")
-            #return []
+            # return []
         delimiter = Plant.get_delimiter()
         if delimiter not in text:
             logger.debug("delimiter not found, can't split the code")
@@ -196,8 +246,15 @@ class PlantSearch(SearchStrategy):
 
         try:
             from bauble.plugins.garden import Accession
-            query = session.query(Plant).join(Accession, Plant.accession_id == Accession.id).\
-                filter(Plant.code == str(plant_code), utils.ilike(Accession.code, f"%{acc_code}%"))
+
+            query = (
+                session.query(Plant)
+                .join(Accession, Plant.accession_id == Accession.id)
+                .filter(
+                    Plant.code == str(plant_code),
+                    utils.ilike(Accession.code, f"%{acc_code}%"),
+                )
+            )
             return query.all()
         except Exception as e:
             logger.debug("{} {}".format(e.__class__.name, e))
@@ -206,124 +263,144 @@ class PlantSearch(SearchStrategy):
 
 def as_dict(self):
     result = db.Serializable.as_dict(self)
-    result['plant'] = (self.plant.accession.code +
-                       Plant.get_delimiter() + self.plant.code)
+    result["plant"] = (
+        self.plant.accession.code + Plant.get_delimiter() + self.plant.code
+    )
     return result
+
 
 def retrieve(cls, session, keys):
     q = session.query(cls)
-    if 'plant' in keys:
-        acc_code, plant_code = keys['plant'].rsplit(
-            Plant.get_delimiter(), 1)
-        q = q.join(
-            Plant).filter(Plant.code == str(plant_code)).join(
-            Accession).filter(Accession.code == str(acc_code))
-    if 'date' in keys:
-        q = q.filter(cls.date == keys['date'])
-    if 'category' in keys:
-        q = q.filter(cls.category == keys['category'])
+    if "plant" in keys:
+        acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
+        q = (
+            q.join(Plant)
+            .filter(Plant.code == str(plant_code))
+            .join(Accession)
+            .filter(Accession.code == str(acc_code))
+        )
+    if "date" in keys:
+        q = q.filter(cls.date == keys["date"])
+    if "category" in keys:
+        q = q.filter(cls.category == keys["category"])
     try:
         return q.one()
     except:
         return None
 
-def compute_serializable_fields(cls, session, keys):
-    'plant is given as text, should be object'
-    result = {'plant': None}
 
-    acc_code, plant_code = keys['plant'].rsplit(
-        Plant.get_delimiter(), 1)
+def compute_serializable_fields(cls, session, keys):
+    "plant is given as text, should be object"
+    result = {"plant": None}
+
+    acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
     logger.debug("acc-plant: {}-{}".format(acc_code, plant_code))
-    q = session.query(Plant).filter(
-        Plant.code == str(plant_code)).join(
-        Accession).filter(Accession.code == str(acc_code))
+    q = (
+        session.query(Plant)
+        .filter(Plant.code == str(plant_code))
+        .join(Accession)
+        .filter(Accession.code == str(acc_code))
+    )
     plant = q.one()
 
-    result['plant'] = plant
+    result["plant"] = plant
 
     return result
 
+
 # TODO: some of these reasons are specific to UBC and could probably be culled.
 change_reasons = {
-    'DEAD': _('Dead'),
-    'DISC': _('Discarded'),
-    'DISW': _('Discarded, weedy'),
-    'LOST': _('Lost, whereabouts unknown'),
-    'STOL': _('Stolen'),
-    'WINK': _('Winter kill'),
-    'ERRO': _('Error correction'),
-    'DIST': _('Distributed elsewhere'),
-    'DELE': _('Deleted, yr. dead. unknown'),
-    'ASS#': _('Transferred to another acc.no.'),
-    'FOGS': _('Given to FOGs to sell'),
-    'PLOP': _('Area transf. to Plant Ops.'),
-    'BA40': _('Given to Back 40 (FOGs)'),
-    'TOTM': _('Transfered to Totem Field'),
-    'SUMK': _('Summer Kill'),
-    'DNGM': _('Did not germinate'),
-    'DISN': _('Discarded seedling in nursery'),
-    'GIVE': _('Given away (specify person)'),
-    'OTHR': _('Other'),
-    None: ''
-    }
+    "DEAD": _("Dead"),
+    "DISC": _("Discarded"),
+    "DISW": _("Discarded, weedy"),
+    "LOST": _("Lost, whereabouts unknown"),
+    "STOL": _("Stolen"),
+    "WINK": _("Winter kill"),
+    "ERRO": _("Error correction"),
+    "DIST": _("Distributed elsewhere"),
+    "DELE": _("Deleted, yr. dead. unknown"),
+    "ASS#": _("Transferred to another acc.no."),
+    "FOGS": _("Given to FOGs to sell"),
+    "PLOP": _("Area transf. to Plant Ops."),
+    "BA40": _("Given to Back 40 (FOGs)"),
+    "TOTM": _("Transfered to Totem Field"),
+    "SUMK": _("Summer Kill"),
+    "DNGM": _("Did not germinate"),
+    "DISN": _("Discarded seedling in nursery"),
+    "GIVE": _("Given away (specify person)"),
+    "OTHR": _("Other"),
+    None: "",
+}
+
 
 class PlantChange(db.Base):
-    """
-    """
-    __tablename__ = 'plant_change'
-    __mapper_args__ = {'order_by': text('plant_change.date')}
+    """ """
 
-    plant_id = Column(Integer, ForeignKey('plant.id'), nullable=False)
-    parent_plant_id = Column(Integer, ForeignKey('plant.id'))
+    __tablename__ = "plant_change"
+    __mapper_args__ = {"order_by": text("plant_change.date")}
+
+    plant_id = Column(Integer, ForeignKey("plant.id"), nullable=False)
+    parent_plant_id = Column(Integer, ForeignKey("plant.id"))
 
     # - if to_location_id is None changeis a removal
     # - if from_location_id is None then this change is a creation
     # - if to_location_id != from_location_id change is a transfer
-    from_location_id = Column(Integer, ForeignKey('location.id'))
-    to_location_id = Column(Integer, ForeignKey('location.id'))
+    from_location_id = Column(Integer, ForeignKey("location.id"))
+    to_location_id = Column(Integer, ForeignKey("location.id"))
 
     # the name of the person who made the change
     person = Column(Unicode(64))
 
     quantity = Column(Integer, autoincrement=False, nullable=False)
-    note_id = Column(Integer, ForeignKey('plant_note.id'))
+    note_id = Column(Integer, ForeignKey("plant_note.id"))
 
-    reason = Column(types.Enum(values=list(change_reasons.keys()),
-                               translations=change_reasons))
+    reason = Column(
+        types.Enum(values=list(change_reasons.keys()), translations=change_reasons)
+    )
 
     # date of change
     date = Column(types.DateTime, default=func.now())
 
     # Relationships
-    plant = relationship('Plant',
-                         back_populates='changes',
-                         primaryjoin='PlantChange.plant_id == Plant.id',
-                         uselist=False,
-                         cascade='all, delete-orphan', single_parent=True)
+    plant = relationship(
+        "Plant",
+        back_populates="changes",
+        primaryjoin="PlantChange.plant_id == Plant.id",
+        uselist=False,
+        cascade="all, delete-orphan",
+        single_parent=True,
+    )
 
-    parent_plant = relationship('Plant',
-                                 back_populates='branches',
-                                 primaryjoin='PlantChange.parent_plant_id == Plant.id',
-                                 foreign_keys='PlantChange.parent_plant_id', 
-                                 uselist=False, 
-                                 cascade='delete, delete-orphan', single_parent=True)
+    parent_plant = relationship(
+        "Plant",
+        back_populates="branches",
+        primaryjoin="PlantChange.parent_plant_id == Plant.id",
+        foreign_keys="PlantChange.parent_plant_id",
+        uselist=False,
+        cascade="delete, delete-orphan",
+        single_parent=True,
+    )
 
-    from_location = relationship('Location', primaryjoin='PlantChange.from_location_id == Location.id')
-    to_location = relationship('Location', primaryjoin='PlantChange.to_location_id == Location.id')
+    from_location = relationship(
+        "Location", primaryjoin="PlantChange.from_location_id == Location.id"
+    )
+    to_location = relationship(
+        "Location", primaryjoin="PlantChange.to_location_id == Location.id"
+    )
+
 
 # TODO: should sex be recorded at the species, accession or plant
 # level or just as part of a check since sex can change in some species
-sex_values = {
-    'Female': _('Female'),
-    'Male': _('Male'),
-    'Both': ''}
+sex_values = {"Female": _("Female"), "Male": _("Male"), "Both": ""}
 
-acc_type_values = {'Plant': _('Planting'),
-                   'Seed': _('Seed/Spore'),
-                   'Vegetative': _('Vegetative Part'),
-                   'Tissue': _('Tissue Culture'),
-                   'Other': _('Other'),
-                   None: ''}
+acc_type_values = {
+    "Plant": _("Planting"),
+    "Seed": _("Seed/Spore"),
+    "Vegetative": _("Vegetative Part"),
+    "Tissue": _("Tissue Culture"),
+    "Other": _("Other"),
+    None: "",
+}
 
 
 class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
@@ -367,67 +444,84 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     :Constraints:
         The combination of code and accession_id must be unique.
     """
-    __tablename__ = 'plant'
-    __table_args__ = (UniqueConstraint('code', 'accession_id'), {})
-    __mapper_args__ = {'order_by': [text('plant.accession_id'), text('plant.code')]}
+
+    __tablename__ = "plant"
+    __table_args__ = (UniqueConstraint("code", "accession_id"), {})
+    __mapper_args__ = {"order_by": [text("plant.accession_id"), text("plant.code")]}
 
     # columns
     code = Column(Unicode(6), nullable=False)
 
-    @validates('code')
+    @validates("code")
     def validate_stripping(self, key, value):
         if value is None:
             return None
         return value.strip()
 
-    acc_type = Column(types.Enum(values=list(acc_type_values.keys()),
-                                 translations=acc_type_values),
-                      default=None)
+    acc_type = Column(
+        types.Enum(values=list(acc_type_values.keys()), translations=acc_type_values),
+        default=None,
+    )
     memorial = Column(Boolean, default=False)
     quantity = Column(Integer, autoincrement=False, nullable=False)
 
-    accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
-    location_id = Column(Integer, ForeignKey('location.id'), nullable=False)
+    accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
+    location_id = Column(Integer, ForeignKey("location.id"), nullable=False)
 
     # Relationships
-    accession = relationship('Accession', back_populates='plants')
+    accession = relationship("Accession", back_populates="plants")
 
-    propagations = relationship('Propagation',
-                                 secondary='plant_prop',
-                                 back_populates='plants',
-                                 cascade='all, delete-orphan',
-                                 single_parent=True)
+    propagations = relationship(
+        "Propagation",
+        secondary="plant_prop",
+        back_populates="plants",
+        cascade="all, delete-orphan",
+        single_parent=True,
+    )
 
-    changes = relationship('PlantChange', back_populates='plant',
-                           primaryjoin='PlantChange.plant_id == Plant.id',
-                           cascade='all, delete-orphan', single_parent=True)
+    changes = relationship(
+        "PlantChange",
+        back_populates="plant",
+        primaryjoin="PlantChange.plant_id == Plant.id",
+        cascade="all, delete-orphan",
+        single_parent=True,
+    )
 
-    branches = relationship('PlantChange',
-                            back_populates='parent_plant',
-                            primaryjoin='PlantChange.parent_plant_id == Plant.id',  
-                            foreign_keys='PlantChange.parent_plant_id',
-                            cascade='delete, delete-orphan', single_parent=True)
-    
-    location = relationship('Location', back_populates='plants', uselist=False)
+    branches = relationship(
+        "PlantChange",
+        back_populates="parent_plant",
+        primaryjoin="PlantChange.parent_plant_id == Plant.id",
+        foreign_keys="PlantChange.parent_plant_id",
+        cascade="delete, delete-orphan",
+        single_parent=True,
+    )
+
+    location = relationship("Location", back_populates="plants", uselist=False)
 
     _delimiter = None
 
     def search_view_markup_pair(self):
-        '''provide the two lines describing object for SearchView row.
-        '''
+        """provide the two lines describing object for SearchView row."""
         import inspect
-        logger.debug('entering search_view_markup_pair {}, {}'.format(
-            self, str(inspect.stack()[1])))
+
+        logger.debug(
+            "entering search_view_markup_pair {}, {}".format(
+                self, str(inspect.stack()[1])
+            )
+        )
         sp_str = self.accession.species_str(markup=True, authors=True)
         dead_color = "#9900ff"
         if self.quantity <= 0:
-            dead_markup = '<span foreground="%s">%s</span>' % \
-                (dead_color, utils.xml_safe(self))
+            dead_markup = '<span foreground="%s">%s</span>' % (
+                dead_color,
+                utils.xml_safe(self),
+            )
             return dead_markup, sp_str
         else:
-            located_counted = ('%s <span foreground="#555555" size="small" '
-                               'weight="light">- %s alive in %s</span>') % (
-                utils.xml_safe(self), self.quantity, utils.xml_safe(self.location))
+            located_counted = (
+                '%s <span foreground="#555555" size="small" '
+                'weight="light">- %s alive in %s</span>'
+            ) % (utils.xml_safe(self), self.quantity, utils.xml_safe(self.location))
             return located_counted, sp_str
 
     @classmethod
@@ -441,7 +535,8 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         """
         if cls._delimiter is None or refresh:
             cls._delimiter = meta.get_default(
-                plant_delimiter_key, default_plant_delimiter).value
+                plant_delimiter_key, default_plant_delimiter
+            ).value
         return cls._delimiter
 
     @property
@@ -455,6 +550,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     def _get_delimiter(self):
         return Plant.get_delimiter()
+
     delimiter = property(lambda self: self._get_delimiter())
 
     def __str__(self):
@@ -471,8 +567,10 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             if session:
                 session.add(plant)
 
-        ignore = ('id', 'code', 'changes', 'notes', 'propagations', '_created')
-        properties = [p for p in object_mapper(self).iterate_properties if p.key not in ignore]
+        ignore = ("id", "code", "changes", "notes", "propagations", "_created")
+        properties = [
+            p for p in object_mapper(self).iterate_properties if p.key not in ignore
+        ]
         for prop in properties:
             setattr(plant, prop.key, getattr(self, prop.key))
         plant.code = code
@@ -480,63 +578,78 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         return plant
 
     def markup(self):
-        return "{}{}{} ({})".format(self.accession, self.delimiter, self.code,
-                                self.accession.species_str(markup=True, authors=True))
+        return "{}{}{} ({})".format(
+            self.accession,
+            self.delimiter,
+            self.code,
+            self.accession.species_str(markup=True, authors=True),
+        )
 
     def as_dict(self):
         result = db.Serializable.as_dict(self)
-        result['accession'] = self.accession.code
-        result['location'] = self.location.code
+        result["accession"] = self.accession.code
+        result["location"] = self.location.code
         return result
 
     @classmethod
     def compute_serializable_fields(cls, session, keys):
-        result = {'accession': None,
-                  'location': None}
+        result = {"accession": None, "location": None}
 
         acc_keys = {}
         acc_keys.update(keys)
-        acc_keys['code'] = keys['accession']
+        acc_keys["code"] = keys["accession"]
         accession = Accession.retrieve_or_create(
-            session, acc_keys, create=(
-                'taxon' in acc_keys and 'rank' in acc_keys))
+            session, acc_keys, create=("taxon" in acc_keys and "rank" in acc_keys)
+        )
 
         loc_keys = {}
         loc_keys.update(keys)
-        if 'location' in keys:
-            loc_keys['code'] = keys['location']
-            location = Location.retrieve_or_create(
-                session, loc_keys)
+        if "location" in keys:
+            loc_keys["code"] = keys["location"]
+            location = Location.retrieve_or_create(session, loc_keys)
         else:
             location = None
 
-        result['accession'] = accession
-        result['location'] = location
+        result["accession"] = accession
+        result["location"] = location
 
         return result
 
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.query(cls).join(Accession, cls.accession_id == Accession.id).\
-                filter(cls.code == keys['code'], Accession.code == keys['accession']).one()
+            return (
+                session.query(cls)
+                .join(Accession, cls.accession_id == Accession.id)
+                .filter(cls.code == keys["code"], Accession.code == keys["accession"])
+                .one()
+            )
         except:
             return None
 
     def top_level_count(self):
         sd = self.accession.source and self.accession.source.source_detail
-        return {(1, 'Plantings'): 1,
-                (2, 'Accessions'): {self.accession.id},
-                (3, 'Species'): {self.accession.species.id},
-                (4, 'Genera'): {self.accession.species.genus.id},
-                (5, 'Families'): {self.accession.species.genus.family.id},
-                (6, 'Living plants'): self.quantity,
-                (7, 'Locations'): {self.location.id},
-                (8, 'Sources'): set(sd and [sd.id] or []),
-                }
+        return {
+            (1, "Plantings"): 1,
+            (2, "Accessions"): {self.accession.id},
+            (3, "Species"): {self.accession.species.id},
+            (4, "Genera"): {self.accession.species.genus.id},
+            (5, "Families"): {self.accession.species.genus.family.id},
+            (6, "Living plants"): self.quantity,
+            (7, "Locations"): {self.location.id},
+            (8, "Sources"): set(sd and [sd.id] or []),
+        }
 
-PlantNote = db.make_note_class('Plant', Plant, compute_serializable_fields, as_dict, retrieve)
-Plant.notes = relationship('PlantNote', back_populates='plant', cascade='all, delete-orphan', single_parent=True)
+
+PlantNote = db.make_note_class(
+    "Plant", Plant, compute_serializable_fields, as_dict, retrieve
+)
+Plant.notes = relationship(
+    "PlantNote",
+    back_populates="plant",
+    cascade="all, delete-orphan",
+    single_parent=True,
+)
 
 from bauble.plugins.garden.accession import Accession
 
@@ -544,46 +657,49 @@ from bauble.plugins.garden.accession import Accession
 class PlantEditorView(GenericEditorView):
 
     _tooltips = {
-        'plant_code_entry': _('The planting code must be a unique code for '
-                              'the accession.  You may also use ranges '
-                              'like 1,2,7 or 1-3 to create multiple '
-                              'plants.'),
-        'plant_acc_entry': _('The accession must be selected from the list '
-                             'of completions.  To add an accession use the '
-                             'Accession editor.'),
-        'plant_loc_comboentry': _(
-            'The location of the planting in your collection.'),
-        'plant_acc_type_combo': _('The type of the plant material.\n\n'
-                                  'Possible values: %s') % (
-            ', '.join(list(acc_type_values.values()))),
-        'plant_loc_add_button': _('Create a new location.'),
-        'plant_loc_edit_button': _('Edit the selected location.'),
-        'prop_add_button': _(
-            'Create a new propagation record for this plant.'),
-        'pad_cancel_button': _('Cancel your changes.'),
-        'pad_ok_button': _('Save your changes.'),
-        'pad_next_button': _(
-            'Save your changes and add another plant.'),
-        'pad_nextaccession_button': _(
-            'Save your changes and add another accession.'),
-        }
+        "plant_code_entry": _(
+            "The planting code must be a unique code for "
+            "the accession.  You may also use ranges "
+            "like 1,2,7 or 1-3 to create multiple "
+            "plants."
+        ),
+        "plant_acc_entry": _(
+            "The accession must be selected from the list "
+            "of completions.  To add an accession use the "
+            "Accession editor."
+        ),
+        "plant_loc_comboentry": _("The location of the planting in your collection."),
+        "plant_acc_type_combo": _(
+            "The type of the plant material.\n\n" "Possible values: %s"
+        )
+        % (", ".join(list(acc_type_values.values()))),
+        "plant_loc_add_button": _("Create a new location."),
+        "plant_loc_edit_button": _("Edit the selected location."),
+        "prop_add_button": _("Create a new propagation record for this plant."),
+        "pad_cancel_button": _("Cancel your changes."),
+        "pad_ok_button": _("Save your changes."),
+        "pad_next_button": _("Save your changes and add another plant."),
+        "pad_nextaccession_button": _("Save your changes and add another accession."),
+    }
 
     def __init__(self, parent=None):
-        glade_file = os.path.join(paths.lib_dir(), 'plugins', 'garden',
-                                  'plant_editor.glade')
+        glade_file = os.path.join(
+            paths.lib_dir(), "plugins", "garden", "plant_editor.glade"
+        )
         super().__init__(glade_file, parent=parent)
         self.widgets.pad_ok_button.set_sensitive(False)
         self.widgets.pad_next_button.set_sensitive(False)
 
         def acc_cell_data_func(column, renderer, model, treeiter, data=None):
             v = model[treeiter][0]
-            renderer.set_property('text', '{} ({})'.format(str(v), str(v.species)))
+            renderer.set_property("text", "{} ({})".format(str(v), str(v.species)))
 
-        self.attach_completion('plant_acc_entry', acc_cell_data_func,
-                               minimum_key_length=2)
-        self.init_translatable_combo('plant_acc_type_combo', acc_type_values)
-        self.init_translatable_combo('reason_combo', change_reasons)
-        utils.setup_date_button(self, 'plant_date_entry', 'plant_date_button')
+        self.attach_completion(
+            "plant_acc_entry", acc_cell_data_func, minimum_key_length=2
+        )
+        self.init_translatable_combo("plant_acc_type_combo", acc_type_values)
+        self.init_translatable_combo("reason_combo", change_reasons)
+        utils.setup_date_button(self, "plant_date_entry", "plant_date_button")
         self.widgets.notebook.set_current_page(0)
 
     def get_window(self):
@@ -598,22 +714,23 @@ class PlantEditorView(GenericEditorView):
 
 class PlantEditorPresenter(GenericEditorPresenter):
 
-    widget_to_field_map = {'plant_code_entry': 'code',
-                           'plant_acc_entry': 'accession',
-                           'plant_loc_comboentry': 'location',
-                           'plant_acc_type_combo': 'acc_type',
-                           'plant_memorial_check': 'memorial',
-                           'plant_quantity_entry': 'quantity'
-                           }
+    widget_to_field_map = {
+        "plant_code_entry": "code",
+        "plant_acc_entry": "accession",
+        "plant_loc_comboentry": "location",
+        "plant_acc_type_combo": "acc_type",
+        "plant_memorial_check": "memorial",
+        "plant_quantity_entry": "quantity",
+    }
 
     PROBLEM_DUPLICATE_PLANT_CODE = str(random())
     PROBLEM_INVALID_QUANTITY = str(random())
 
     def __init__(self, model, view):
-        '''
+        """
         :param model: should be an instance of Plant class
         :param view: should be an instance of PlantEditorView
-        '''
+        """
         super().__init__(model, view)
         self.create_toolbar()
         self.session = object_session(model)
@@ -622,7 +739,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
 
         # if the model is in session.new then it might be a branched
         # plant so don't store it....is this hacky?
-        self.upper_quantity_limit = float('inf')
+        self.upper_quantity_limit = float("inf")
         if model in self.session.new:
             self._original_quantity = None
             self.lower_quantity_limit = 1
@@ -633,20 +750,21 @@ class PlantEditorPresenter(GenericEditorPresenter):
 
         # set default values for acc_type
         if self.model.id is None and self.model.acc_type is None:
-            self.model.acc_type = 'Plant'
+            self.model.acc_type = "Plant"
 
         notes_parent = self.view.widgets.notes_parent_box
         notes_parent.foreach(notes_parent.remove)
-        self.notes_presenter = NotesPresenter(self, 'notes', notes_parent)
+        self.notes_presenter = NotesPresenter(self, "notes", notes_parent)
 
         pictures_parent = self.view.widgets.pictures_parent_box
         pictures_parent.foreach(pictures_parent.remove)
-        self.pictures_presenter = PicturesPresenter(
-            self, 'notes', pictures_parent)
+        self.pictures_presenter = PicturesPresenter(self, "notes", pictures_parent)
 
         from bauble.plugins.garden.propagation import PropagationTabPresenter
-        self.prop_presenter = PropagationTabPresenter(self, self.model,
-                                                      self.view, self.session)
+
+        self.prop_presenter = PropagationTabPresenter(
+            self, self.model, self.view, self.session
+        )
 
         # if the PlantEditor has been started with a new plant but
         # the plant is already associated with an accession
@@ -654,20 +772,24 @@ class PlantEditorPresenter(GenericEditorPresenter):
             code = get_next_code(self.model.accession)
             if code:
                 # if get_next_code() returns None then there was an error
-                self.set_model_attr('code', code)
+                self.set_model_attr("code", code)
 
         # need to build the ComboBox logic before refreshing the view AND
         # make sure that refreshing the view will not be seen as a change.
         self.initializing = True
+
         def on_location_select(location):
             if self.initializing:
                 return
-            self.set_model_attr('location', location)
+            self.set_model_attr("location", location)
             if self.change.quantity is None:
                 self.change.quantity = self.model.quantity
+
         from bauble.plugins.garden import init_location_comboentry
-        init_location_comboentry(self, self.view.widgets.plant_loc_comboentry,
-                                 on_location_select)
+
+        init_location_comboentry(
+            self, self.view.widgets.plant_loc_comboentry, on_location_select
+        )
 
         self.refresh_view()  # put model values in view
         self.initializing = False
@@ -684,60 +806,69 @@ class PlantEditorPresenter(GenericEditorPresenter):
 
         sensitive = False
         if self.model not in self.session.new:
-            self.view.connect(self.view.widgets.reason_combo, 'changed',
-                              on_reason_changed)
+            self.view.connect(
+                self.view.widgets.reason_combo, "changed", on_reason_changed
+            )
             sensitive = True
         self.view.widgets.reason_combo.props.sensitive = sensitive
         self.view.widgets.reason_label.props.sensitive = sensitive
 
-        self.view.connect('plant_date_entry', 'changed',
-                          self.on_date_entry_changed)
+        self.view.connect("plant_date_entry", "changed", self.on_date_entry_changed)
 
         # assign signal handlers to monitor changes now that the view has
         # been filled in
         def acc_get_completions(text):
             query = self.session.query(Accession)
-            return query.filter(Accession.code.like(str('%s%%' % text))).\
-                order_by(Accession.code)
+            return query.filter(Accession.code.like(str("%s%%" % text))).order_by(
+                Accession.code
+            )
 
         def on_select(value):
-            self.set_model_attr('accession', value)
+            self.set_model_attr("accession", value)
             # reset the plant code to check that this is a valid code for the
             # new accession, fixes bug #103946
-            self.view.widgets.acc_species_label.set_markup('')
+            self.view.widgets.acc_species_label.set_markup("")
             if value is not None:
                 sp_str = self.model.accession.species.str(markup=True)
                 self.view.widgets.acc_species_label.set_markup(sp_str)
-                self.view.widgets.plant_code_entry.emit('changed')
-        self.assign_completions_handler('plant_acc_entry', acc_get_completions,
-                                        on_select=on_select)
+                self.view.widgets.plant_code_entry.emit("changed")
+
+        self.assign_completions_handler(
+            "plant_acc_entry", acc_get_completions, on_select=on_select
+        )
         if self.model.accession:
             sp_str = self.model.accession.species.str(markup=True)
         else:
-            sp_str = ''
+            sp_str = ""
         self.view.widgets.acc_species_label.set_markup(sp_str)
 
-        self.view.connect('plant_code_entry', 'changed',
-                          self.on_plant_code_entry_changed)
+        self.view.connect(
+            "plant_code_entry", "changed", self.on_plant_code_entry_changed
+        )
 
-        self.assign_simple_handler('plant_acc_type_combo', 'acc_type')
-        self.assign_simple_handler('plant_memorial_check', 'memorial')
-        self.view.connect('plant_quantity_entry', 'changed',
-                          self.on_quantity_changed)
-        self.view.connect('plant_loc_add_button', 'clicked',
-                          self.on_loc_button_clicked, 'add')
-        self.view.connect('plant_loc_edit_button', 'clicked',
-                          self.on_loc_button_clicked, 'edit')
+        self.assign_simple_handler("plant_acc_type_combo", "acc_type")
+        self.assign_simple_handler("plant_memorial_check", "memorial")
+        self.view.connect("plant_quantity_entry", "changed", self.on_quantity_changed)
+        self.view.connect(
+            "plant_loc_add_button", "clicked", self.on_loc_button_clicked, "add"
+        )
+        self.view.connect(
+            "plant_loc_edit_button", "clicked", self.on_loc_button_clicked, "edit"
+        )
         if self.model.quantity == 0:
             self.view.widgets.notebook.set_sensitive(False)
-            msg = _('This plant is marked with quantity zero. \n'
-                    'In practice, it is not any more part of the collection. \n'
-                    'Are you sure you want to edit it anyway?')
+            msg = _(
+                "This plant is marked with quantity zero. \n"
+                "In practice, it is not any more part of the collection. \n"
+                "Are you sure you want to edit it anyway?"
+            )
             box = None
+
             def on_response(button, response):
                 self.view.remove_box(box)
                 if response:
                     self.view.widgets.notebook.set_sensitive(True)
+
             box = self.view.add_message_box(utils.MESSAGE_BOX_YESNO)
             box.message = msg
             box.on_response = on_response
@@ -745,10 +876,12 @@ class PlantEditorPresenter(GenericEditorPresenter):
             self.view.add_box(box)
 
     def is_dirty(self):
-        return (self.pictures_presenter.is_dirty() or
-                self.notes_presenter.is_dirty() or
-                self.prop_presenter.is_dirty() or
-                self._dirty)
+        return (
+            self.pictures_presenter.is_dirty()
+            or self.notes_presenter.is_dirty()
+            or self.prop_presenter.is_dirty()
+            or self._dirty
+        )
 
     def on_date_entry_changed(self, entry, *args):
         self.change.date = entry.props.text
@@ -760,7 +893,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         except ValueError as e:
             logger.debug(e)
             value = None
-        self.set_model_attr('quantity', value)
+        self.set_model_attr("quantity", value)
         if value < self.lower_quantity_limit or value >= self.upper_quantity_limit:
             self.add_problem(self.PROBLEM_INVALID_QUANTITY, entry)
         else:
@@ -769,8 +902,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         if value is None:
             return
         if self._original_quantity:
-            self.change.quantity = \
-                abs(self._original_quantity-self.model.quantity)
+            self.change.quantity = abs(self._original_quantity - self.model.quantity)
         else:
             self.change.quantity = self.model.quantity
         self.refresh_view()
@@ -780,11 +912,11 @@ class PlantEditorPresenter(GenericEditorPresenter):
         Validates the accession number and the plant code from the editors.
         """
         text = utils.utf8(entry.get_text())
-        if text == '':
-            self.set_model_attr('code', None)
+        if text == "":
+            self.set_model_attr("code", None)
         else:
-            self.set_model_attr('code', utils.utf8(text))
-            
+            self.set_model_attr("code", utils.utf8(text))
+
         if not self.model.accession:
             self.remove_problem(self.PROBLEM_DUPLICATE_PLANT_CODE, entry)
             self.refresh_sensitivity()
@@ -793,12 +925,16 @@ class PlantEditorPresenter(GenericEditorPresenter):
         # add a problem if the code is not unique but not if it's the
         # same accession and plant code that we started with when the
         # editor was opened
-        if self.model.code is not None and not \
-                is_code_unique(self.model, self.model.code) and not \
-                (self._original_accession_id == self.model.accession.id and
-                 self.model.code == self._original_code):
+        if (
+            self.model.code is not None
+            and not is_code_unique(self.model, self.model.code)
+            and not (
+                self._original_accession_id == self.model.accession.id
+                and self.model.code == self._original_code
+            )
+        ):
 
-                self.add_problem(self.PROBLEM_DUPLICATE_PLANT_CODE, entry)
+            self.add_problem(self.PROBLEM_DUPLICATE_PLANT_CODE, entry)
         else:
             # remove_problem() won't complain if problem doesn't exist
             self.remove_problem(self.PROBLEM_DUPLICATE_PLANT_CODE, entry)
@@ -809,16 +945,20 @@ class PlantEditorPresenter(GenericEditorPresenter):
         self.refresh_sensitivity()
 
     def refresh_sensitivity(self):
-        logger.debug('refresh_sensitivity()')
+        logger.debug("refresh_sensitivity()")
         try:
-            logger.debug((self.model.accession is not None,
-                          self.model.code is not None,
-                          self.model.location is not None,
-                          self.model.quantity is not None,
-                          self.is_dirty(),
-                          len(self.problems) == 0))
+            logger.debug(
+                (
+                    self.model.accession is not None,
+                    self.model.code is not None,
+                    self.model.location is not None,
+                    self.model.quantity is not None,
+                    self.is_dirty(),
+                    len(self.problems) == 0,
+                )
+            )
         except OperationalError as e:
-            logger.debug('({}){}'.format(type(e), e))
+            logger.debug("({}){}".format(type(e), e))
             return
         logger.debug(self.problems)
 
@@ -830,17 +970,22 @@ class PlantEditorPresenter(GenericEditorPresenter):
         # self.view.widgets.plant_loc_edit_button.\
         #     set_sensitive(self.model.location is not None \
         #                       and not self.has_problems(combo_entry))
-        sensitive = (self.model.accession is not None and
-                     self.model.code is not None and
-                     self.model.location is not None and
-                     self.model.quantity is not None) \
-            and self.is_dirty() and len(self.problems) == 0
+        sensitive = (
+            (
+                self.model.accession is not None
+                and self.model.code is not None
+                and self.model.location is not None
+                and self.model.quantity is not None
+            )
+            and self.is_dirty()
+            and len(self.problems) == 0
+        )
         self.view.widgets.pad_ok_button.set_sensitive(sensitive)
         self.view.widgets.pad_next_button.set_sensitive(sensitive)
         self.view.widgets.split_planting_button.props.visible = False
 
     def set_model_attr(self, field, value, validator=None):
-        logger.debug('set_model_attr({}, {})'.format(field, value))
+        logger.debug("set_model_attr({}, {})".format(field, value))
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.refresh_sensitivity()
@@ -848,7 +993,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
     def on_loc_button_clicked(self, button, cmd=None):
         location = self.model.location
         combo = self.view.widgets.plant_loc_comboentry
-        if cmd == 'edit' and location:
+        if cmd == "edit" and location:
             LocationEditor(location, parent=self.view.get_window()).start()
             self.session.refresh(location)
             self.view.widget_set_value(combo, location)
@@ -859,7 +1004,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
                 self.session.add(location)
                 self.remove_problem(None, combo)
                 self.view.widget_set_value(combo, location)
-                self.set_model_attr('location', location)
+                self.set_model_attr("location", location)
 
     def refresh_view(self):
         # TODO: is this really relevant since this editor only creates new
@@ -870,14 +1015,13 @@ class PlantEditorPresenter(GenericEditorPresenter):
         for widget, field in list(self.widget_to_field_map.items()):
             value = getattr(self.model, field)
             self.view.widget_set_value(widget, value)
-            logger.debug('{}: {} = {}'.format(widget, field, value))
+            logger.debug("{}: {} = {}".format(widget, field, value))
 
-        self.view.widget_set_value('plant_acc_type_combo',
-                                   acc_type_values[self.model.acc_type],
-                                   index=1)
+        self.view.widget_set_value(
+            "plant_acc_type_combo", acc_type_values[self.model.acc_type], index=1
+        )
         self.view.widgets.plant_memorial_check.set_inconsistent(False)
-        self.view.widgets.plant_memorial_check.\
-            set_active(self.model.memorial is True)
+        self.view.widgets.plant_memorial_check.set_active(self.model.memorial is True)
 
         self.refresh_sensitivity()
 
@@ -887,7 +1031,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         list(map(msg_box_parent.remove, msg_box_parent.get_children()))
         # the entry is made not editable for branch mode
         self.view.widgets.plant_acc_entry.props.editable = True
-        self.view.get_window().props.title = _('Plant Editor')
+        self.view.get_window().props.title = _("Plant Editor")
 
     def start(self):
         return self.view.start()
@@ -923,11 +1067,11 @@ class PlantEditor(GenericModelViewPresenterEditor):
     ok_responses = (RESPONSE_NEXT,)
 
     def __init__(self, model=None, parent=None, branch_mode=False):
-        '''
+        """
         :param model: Plant instance or None
         :param parent: None
         :param branch_mode:
-        '''
+        """
         if branch_mode:
             if model is None:
                 raise CheckConditionError("branch_mode requires a model")
@@ -950,6 +1094,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
             self.branched_plant = self.session.merge(self.branched_plant)
 
         import bauble
+
         if not parent and bauble.gui:
             parent = bauble.gui.window
         self.parent = parent
@@ -967,23 +1112,28 @@ class PlantEditor(GenericModelViewPresenterEditor):
             view.widgets.plant_code_entry.grab_focus()
 
     def compute_plant_split_changes(self):
-        move_quantity_between_plants(from_plant=self.branched_plant,
-                                     to_plant=self.model,
-                                     to_plant_change=self.presenter.change)
+        move_quantity_between_plants(
+            from_plant=self.branched_plant,
+            to_plant=self.model,
+            to_plant_change=self.presenter.change,
+        )
 
     def commit_changes(self):
-        """
-        """
+        """ """
         codes = utils.range_builder(self.model.code)
-        if len(codes) <= 1 or self.model not in self.session.new \
-                and not self.branched_plant:
+        if (
+            len(codes) <= 1
+            or self.model not in self.session.new
+            and not self.branched_plant
+        ):
             change = self.presenter.change
             if self.branched_plant:
                 self.compute_plant_split_changes()
-            elif change.quantity is None \
-                    or (change.quantity == self.model.quantity and
-                        change.from_location == self.model.location and
-                        change.quantity == self.presenter._original_quantity):
+            elif change.quantity is None or (
+                change.quantity == self.model.quantity
+                and change.from_location == self.model.location
+                and change.quantity == self.presenter._original_quantity
+            ):
                 # if quantity and location haven't changed, nothing changed.
                 utils.delete_or_expunge(change)
                 self.model.change = None
@@ -991,8 +1141,10 @@ class PlantEditor(GenericModelViewPresenterEditor):
                 if self.model.location != change.from_location:
                     # transfer
                     change.to_location = self.model.location
-                elif self.model.quantity > self.presenter._original_quantity \
-                        and not change.to_location:
+                elif (
+                    self.model.quantity > self.presenter._original_quantity
+                    and not change.to_location
+                ):
                     # additions should use to_location
                     change.to_location = self.model.location
                     change.from_location = None
@@ -1019,7 +1171,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
             self.session.add(new_plant)
 
             # TODO: can't we use Plant.duplicate here?
-            ignore = ('changes', 'notes', 'propagations')
+            ignore = ("changes", "notes", "propagations")
             for prop in mapper.iterate_properties:
                 if prop.key not in ignore:
                     setattr(new_plant, prop.key, getattr(self.model, prop.key))
@@ -1043,7 +1195,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
         self._committed.extend(plants)
 
     def handle_response(self, response):
-        not_ok_msg = _('Are you sure you want to lose your changes?')
+        not_ok_msg = _("Are you sure you want to lose your changes?")
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
             try:
                 if self.presenter.is_dirty():
@@ -1053,21 +1205,24 @@ class PlantEditor(GenericModelViewPresenterEditor):
             except DBAPIError as e:
                 exc = traceback.format_exc()
                 logger.debug(exc)
-                msg = _('Error committing changes.\n\n%s') % e.orig
+                msg = _("Error committing changes.\n\n%s") % e.orig
                 utils.message_details_dialog(msg, str(e), Gtk.MessageType.ERROR)
                 self.session.rollback()
                 return False
             except Exception as e:
-                msg = _('Unknown error when committing changes. See the '
-                        'details for more information.\n\n%s') \
-                    % utils.xml_safe(e)
+                msg = _(
+                    "Unknown error when committing changes. See the "
+                    "details for more information.\n\n%s"
+                ) % utils.xml_safe(e)
                 logger.debug(traceback.format_exc())
-                utils.message_details_dialog(msg, traceback.format_exc(),
-                                             Gtk.MessageType.ERROR)
+                utils.message_details_dialog(
+                    msg, traceback.format_exc(), Gtk.MessageType.ERROR
+                )
                 self.session.rollback()
                 return False
-        elif (self.presenter.is_dirty() and utils.yes_no_dialog(not_ok_msg)) \
-                or not self.presenter.is_dirty():
+        elif (
+            self.presenter.is_dirty() and utils.yes_no_dialog(not_ok_msg)
+        ) or not self.presenter.is_dirty():
             self.session.rollback()
             return True
         else:
@@ -1077,8 +1232,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
         more_committed = None
         if response == self.RESPONSE_NEXT:
             self.presenter.cleanup()
-            e = PlantEditor(Plant(accession=self.model.accession),
-                            parent=self.parent)
+            e = PlantEditor(Plant(accession=self.model.accession), parent=self.parent)
             more_committed = e.start()
 
         if more_committed is not None:
@@ -1092,21 +1246,27 @@ class PlantEditor(GenericModelViewPresenterEditor):
 
     def start(self):
         from bauble.plugins.garden.accession import Accession
+
         sub_editor = None
         if self.session.query(Accession).count() == 0:
-            msg = 'You must first add or import at least one Accession into '\
-                  'the database before you can add plants.\n\nWould you like '\
-                  'to open the Accession editor?'
+            msg = (
+                "You must first add or import at least one Accession into "
+                "the database before you can add plants.\n\nWould you like "
+                "to open the Accession editor?"
+            )
             if utils.yes_no_dialog(msg):
                 # cleanup in case we start a new PlantEditor
                 self.presenter.cleanup()
                 from bauble.plugins.garden.accession import AccessionEditor
+
                 sub_editor = AccessionEditor()
                 self._commited = sub_editor.start()
         if self.session.query(Location).count() == 0:
-            msg = 'You must first add or import at least one Location into '\
-                  'the database before you can add plants.\n\nWould you '\
-                  'like to open the Location editor?'
+            msg = (
+                "You must first add or import at least one Location into "
+                "the database before you can add plants.\n\nWould you "
+                "like to open the Location editor?"
+            )
             if utils.yes_no_dialog(msg):
                 # cleanup in case we start a new PlantEditor
                 self.presenter.cleanup()
@@ -1115,13 +1275,15 @@ class PlantEditor(GenericModelViewPresenterEditor):
 
         if self.branched_plant:
             # set title if in branch mode
-            self.presenter.view.get_window().props.title += \
-                utils.utf8(' - %s' % _('Split Mode'))
+            self.presenter.view.get_window().props.title += utils.utf8(
+                " - %s" % _("Split Mode")
+            )
             message_box_parent = self.presenter.view.widgets.message_box_parent
             list(map(message_box_parent.remove, message_box_parent.get_children()))
-            msg = _('Splitting from %(plant_code)s.  The quantity will '
-                    'be subtracted from %(plant_code)s') \
-                % {'plant_code': str(self.branched_plant)}
+            msg = _(
+                "Splitting from %(plant_code)s.  The quantity will "
+                "be subtracted from %(plant_code)s"
+            ) % {"plant_code": str(self.branched_plant)}
             box = self.presenter.view.add_message_box(utils.MESSAGE_BOX_INFO)
             box.message = msg
             box.show_all()
@@ -1147,8 +1309,7 @@ class GeneralPlantExpander(InfoExpander):
     """
 
     def __init__(self, widgets):
-        '''
-        '''
+        """ """
         super().__init__(_("General"), widgets)
         general_box = self.widgets.general_box
         self.widgets.remove_parent(general_box)
@@ -1158,8 +1319,7 @@ class GeneralPlantExpander(InfoExpander):
         def on_acc_code_clicked(*args):
             select_in_search_results(self.current_obj.accession)
 
-        utils.make_label_clickable(self.widgets.acc_code_data,
-                                   on_acc_code_clicked)
+        utils.make_label_clickable(self.widgets.acc_code_data, on_acc_code_clicked)
 
         def on_species_clicked(*args):
             select_in_search_results(self.current_obj.accession.species)
@@ -1169,35 +1329,35 @@ class GeneralPlantExpander(InfoExpander):
         def on_location_clicked(*args):
             select_in_search_results(self.current_obj.location)
 
-        utils.make_label_clickable(self.widgets.location_data,
-                                   on_location_clicked)
+        utils.make_label_clickable(self.widgets.location_data, on_location_clicked)
 
     def update(self, row):
-        '''
-        '''
+        """ """
         self.current_obj = row
         acc_code = str(row.accession)
         plant_code = str(row)
-        head, tail = plant_code[:len(acc_code)], plant_code[len(acc_code):]
+        head, tail = plant_code[: len(acc_code)], plant_code[len(acc_code) :]
 
-        self.widget_set_value('acc_code_data', '<big>%s</big>' %
-                              utils.xml_safe(str(head)),
-                              markup=True)
-        self.widget_set_value('plant_code_data', '<big>%s</big>' %
-                              utils.xml_safe(str(tail)), markup=True)
-        self.widget_set_value('name_data',
-                              row.accession.species_str(markup=True, authors=True),
-                              markup=True)
-        self.widget_set_value('location_data', str(row.location))
-        self.widget_set_value('quantity_data', row.quantity)
+        self.widget_set_value(
+            "acc_code_data", "<big>%s</big>" % utils.xml_safe(str(head)), markup=True
+        )
+        self.widget_set_value(
+            "plant_code_data", "<big>%s</big>" % utils.xml_safe(str(tail)), markup=True
+        )
+        self.widget_set_value(
+            "name_data",
+            row.accession.species_str(markup=True, authors=True),
+            markup=True,
+        )
+        self.widget_set_value("location_data", str(row.location))
+        self.widget_set_value("quantity_data", row.quantity)
 
-        status_str = _('Alive')
+        status_str = _("Alive")
         if row.quantity <= 0:
-            status_str = _('Dead')
-        self.widget_set_value('status_data', status_str, False)
+            status_str = _("Dead")
+        self.widget_set_value("status_data", status_str, False)
 
-        self.widget_set_value('type_data', acc_type_values[row.acc_type],
-                              False)
+        self.widget_set_value("type_data", acc_type_values[row.acc_type], False)
 
         image_size = Gtk.IconSize.MENU
         stock = Gtk.STOCK_NO
@@ -1212,9 +1372,8 @@ class ChangesExpander(InfoExpander):
     """
 
     def __init__(self, widgets):
-        """
-        """
-        super().__init__(_('Changes'), widgets)
+        """ """
+        super().__init__(_("Changes"), widgets)
         self.vbox.props.spacing = 5
         self.table = Gtk.Grid()
         self.vbox.pack_start(self.table, False, False, 0)
@@ -1222,8 +1381,7 @@ class ChangesExpander(InfoExpander):
         self.table.props.column_spacing = 5
 
     def update(self, row):
-        '''
-        '''
+        """ """
         self.table.foreach(self.table.remove)
         if not row.changes:
             return
@@ -1231,43 +1389,53 @@ class ChangesExpander(InfoExpander):
         date_format = prefs.prefs[prefs.date_format_pref]
         current_row = 0
 
-        for change in sorted(row.changes, key=lambda x: (x.date, x._created), reverse=True):
+        for change in sorted(
+            row.changes, key=lambda x: (x.date, x._created), reverse=True
+        ):
             try:
                 seconds, divided_plant = min(
-                    [(abs((i.plant._created - change.date).total_seconds()), i.plant)
-                     for i in row.branches])
+                    [
+                        (abs((i.plant._created - change.date).total_seconds()), i.plant)
+                        for i in row.branches
+                    ]
+                )
                 if seconds > 3:
                     divided_plant = None
             except:
                 divided_plant = None
 
             date = change.date.strftime(date_format)
-            label = Gtk.Label(label='%s:' % date)
+            label = Gtk.Label(label="%s:" % date)
             label.set_alignment(0, 0)
             self.table.attach(label, 0, current_row, 1, 1)
             if change.to_location and change.from_location:
-                s = '%(quantity)s Transferred from %(from_loc)s to %(to)s' % \
-                    dict(quantity=change.quantity,
-                         from_loc=change.from_location, to=change.to_location)
+                s = "%(quantity)s Transferred from %(from_loc)s to %(to)s" % dict(
+                    quantity=change.quantity,
+                    from_loc=change.from_location,
+                    to=change.to_location,
+                )
             elif change.quantity < 0:
-                s = '%(quantity)s Removed from %(location)s' % \
-                    dict(quantity=-change.quantity,
-                         location=change.from_location)
+                s = "%(quantity)s Removed from %(location)s" % dict(
+                    quantity=-change.quantity, location=change.from_location
+                )
             elif change.quantity > 0:
-                s = '%(quantity)s Added to %(location)s' % \
-                    dict(quantity=change.quantity, location=change.to_location)
+                s = "%(quantity)s Added to %(location)s" % dict(
+                    quantity=change.quantity, location=change.to_location
+                )
             else:
-                s = '{}: {} -> {}'.format(change.quantity, change.from_location,
-                                      change.to_location)
+                s = "{}: {} -> {}".format(
+                    change.quantity, change.from_location, change.to_location
+                )
             if change.reason is not None:
-                s += '\n%s' % change_reasons[change.reason]
+                s += "\n%s" % change_reasons[change.reason]
             label = Gtk.Label(label=s)
-            label.set_alignment(0, .5)
+            label.set_alignment(0, 0.5)
             self.table.attach(label, 1, current_row, 1, 1)
             current_row += 1
             if change.parent_plant:
-                s = _('<i>Split from %(plant)s</i>') % \
-                    dict(plant=utils.xml_safe(change.parent_plant))
+                s = _("<i>Split from %(plant)s</i>") % dict(
+                    plant=utils.xml_safe(change.parent_plant)
+                )
                 label = Gtk.Label()
                 label.set_alignment(0.0, 0.0)
                 label.set_markup(s)
@@ -1278,12 +1446,12 @@ class ChangesExpander(InfoExpander):
                 def on_clicked(widget, event, parent):
                     select_in_search_results(parent)
 
-                utils.make_label_clickable(label, on_clicked,
-                                           change.parent_plant)
+                utils.make_label_clickable(label, on_clicked, change.parent_plant)
                 current_row += 1
             if divided_plant:
-                s = _('<i>Split as %(plant)s</i>') % \
-                    dict(plant=utils.xml_safe(divided_plant))
+                s = _("<i>Split as %(plant)s</i>") % dict(
+                    plant=utils.xml_safe(divided_plant)
+                )
                 label = Gtk.Label()
                 label.set_alignment(0.0, 0.0)
                 label.set_markup(s)
@@ -1310,9 +1478,8 @@ class PropagationExpander(InfoExpander):
     """
 
     def __init__(self, widgets):
-        """
-        """
-        super().__init__(_('Propagations'), widgets)
+        """ """
+        super().__init__(_("Propagations"), widgets)
         self.vbox.set_spacing(4)
 
     def update(self, row):
@@ -1369,11 +1536,11 @@ class PlantInfoBox(InfoBox):
     """
 
     def __init__(self):
-        '''
-        '''
+        """ """
         super().__init__()
-        filename = os.path.join(paths.lib_dir(), "plugins", "garden",
-                                "plant_infobox.glade")
+        filename = os.path.join(
+            paths.lib_dir(), "plugins", "garden", "plant_infobox.glade"
+        )
         self.widgets = utils.BuilderWidgets(filename)
         self.general = GeneralPlantExpander(self.widgets)
         self.add_expander(self.general)
@@ -1384,7 +1551,7 @@ class PlantInfoBox(InfoBox):
         self.propagations = PropagationExpander(self.widgets)
         self.add_expander(self.propagations)
 
-        self.links = view.LinksExpander('notes')
+        self.links = view.LinksExpander("notes")
         self.add_expander(self.links)
 
         self.mapinfo = MapInfoExpander(self.get_map_extents)
@@ -1402,12 +1569,11 @@ class PlantInfoBox(InfoBox):
         return result
 
     def update(self, row):
-        '''
-        '''
+        """ """
         # TODO: don't really need a location expander, could just
         # use a label in the general section
-        #loc = self.get_expander("Location")
-        #loc.update(row.location)
+        # loc = self.get_expander("Location")
+        # loc.update(row.location)
         self.general.update(row)
         self.transfers.update(row)
         self.propagations.update(row)

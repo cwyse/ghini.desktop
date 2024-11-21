@@ -56,69 +56,80 @@ from bauble.plugins.plants import Genus, Species
 
 def shorten(x):
     import re
+
     x = x.lower()  # ignore case
-    x = x.replace('-', '')  # remove hyphen
-    x = re.sub('c([ie])', r'z\1', x)  # palatal c sounds like z
-    x = re.sub('g([ie])', r'j\1', x)  # palatal g sounds like j
-    x = x.replace('ph', 'f')  # ph sounds like f
-    x = x.replace('v', 'f')  # v sounds like f // fricative (voiced or not)
-    x = x.replace('h', '')  # h sounds like nothing
-    x = re.sub('[gcq]', 'k', x)  # g, c, q sound like k // guttural
-    x = re.sub('[xz]', 's', x)  # x, z sound like s
-    x = x.replace('ae', 'e')  # ae sounds like e
-    x = re.sub('[ye]', 'i', x)  # y, e sound like i
-    x = re.sub('[ou]', 'u', x)  # o, u sound like u // so we only have a, i, u
-    x = re.sub(r'(.)\1', r'\1', x)  # doubled letters sound like single
-    return x;
+    x = x.replace("-", "")  # remove hyphen
+    x = re.sub("c([ie])", r"z\1", x)  # palatal c sounds like z
+    x = re.sub("g([ie])", r"j\1", x)  # palatal g sounds like j
+    x = x.replace("ph", "f")  # ph sounds like f
+    x = x.replace("v", "f")  # v sounds like f // fricative (voiced or not)
+    x = x.replace("h", "")  # h sounds like nothing
+    x = re.sub("[gcq]", "k", x)  # g, c, q sound like k // guttural
+    x = re.sub("[xz]", "s", x)  # x, z sound like s
+    x = x.replace("ae", "e")  # ae sounds like e
+    x = re.sub("[ye]", "i", x)  # y, e sound like i
+    x = re.sub("[ou]", "u", x)  # o, u sound like u // so we only have a, i, u
+    x = re.sub(r"(.)\1", r"\1", x)  # doubled letters sound like single
+    return x
 
 
 def get_genus(session, keys):
     try:
-        keys['gn_epit'], keys['sp_epit'] = keys['species'].split(' ')
+        keys["gn_epit"], keys["sp_epit"] = keys["species"].split(" ")
     except:
-        keys['gn_epit'], keys['sp_epit'] = ('Zzz', 'sp')
+        keys["gn_epit"], keys["sp_epit"] = ("Zzz", "sp")
 
-    genus = session.query(Genus).filter(Genus.epithet == keys['gn_epit']).one()
+    genus = session.query(Genus).filter(Genus.epithet == keys["gn_epit"]).one()
     return genus
 
 
 def get_species(session, keys):
-    if keys['sp_epit'] == 'sp':
-        keys['infrasp1'], keys['sp_epit'] = 'sp', ''
+    if keys["sp_epit"] == "sp":
+        keys["infrasp1"], keys["sp_epit"] = "sp", ""
     else:
-        keys['infrasp1'] = ''
+        keys["infrasp1"] = ""
 
-    if keys['sp_epit'] == 'sp':
+    if keys["sp_epit"] == "sp":
         try:
-            species = session.query(Species).filter(
-                Species.genus == genus).filter(
-                Species.infrasp1 == 'sp').one()
+            species = (
+                session.query(Species)
+                .filter(Species.genus == genus)
+                .filter(Species.infrasp1 == "sp")
+                .one()
+            )
             if species != zzz:  # no hace falta mencionarlo
-                sys.stdout.write('+')  # encontramos
+                sys.stdout.write("+")  # encontramos
         except:
-            species = Species(genus=genus, sp='', infrasp1='sp')
+            species = Species(genus=genus, sp="", infrasp1="sp")
             session.add(species)
             session.flush()
-            sys.stdout.write('*')  # tuvimos que crear
+            sys.stdout.write("*")  # tuvimos que crear
     else:
         try:
-            species = session.query(Species).filter(
-                Species.genus == genus).filter(
-                Species.epithet == keys['sp_epit']).one()
-            sys.stdout.write('+')  # encontramos
+            species = (
+                session.query(Species)
+                .filter(Species.genus == genus)
+                .filter(Species.epithet == keys["sp_epit"])
+                .one()
+            )
+            sys.stdout.write("+")  # encontramos
         except:
-            species = Species(genus=genus, sp='', epithet=keys['sp_epit'])
+            species = Species(genus=genus, sp="", epithet=keys["sp_epit"])
             session.add(species)
             session.flush()
-            sys.stdout.write('*')  # tuvimos que crear
+            sys.stdout.write("*")  # tuvimos que crear
     return species
 
 
 def get_location(session, keys):
     try:
-        loc = session.query(Location).filter(bauble.utils.ilike(Location.code, str(keys['location']))).one()
+        loc = (
+            session.query(Location)
+            .filter(bauble.utils.ilike(Location.code, str(keys["location"])))
+            .one()
+        )
     except:
-        loc = Location(code=keys['location'].upper())
+        loc = Location(code=keys["location"].upper())
         session.add(loc)
         session.flush()
     return loc
@@ -130,29 +141,29 @@ path = os.path.dirname(os.path.realpath(__file__))
 
 # read settings from file
 
-with open(os.path.join(path, 'settings.json')) as f:
+with open(os.path.join(path, "settings.json")) as f:
     (user, pw, filename, imei2user, dburi, pic_path) = json.load(f)
 
 bauble.db.open(dburi, True, True)
 session = bauble.db.Session()
 
-result = {'species': [],
-          'plants': []}
+result = {"species": [], "plants": []}
 
 insti = Institution()
-d = {'name': insti.name,
-     'lat': float(insti.geo_latitude),
-     'lon': float(insti.geo_longitude),
-     'zoom': int(26 - (math.log(float(insti.geo_diameter)) / math.log(2))),
-     'uuid': insti.uuid,
+d = {
+    "name": insti.name,
+    "lat": float(insti.geo_latitude),
+    "lon": float(insti.geo_longitude),
+    "zoom": int(26 - (math.log(float(insti.geo_diameter)) / math.log(2))),
+    "uuid": insti.uuid,
 }
 contact = insti.contact or insti.technical_contact
 if contact:
-    d['contact'] = contact
+    d["contact"] = contact
 if insti.email:
-    d['email'] = insti.email
+    d["email"] = insti.email
 if insti.tel:
-    d['phone'] = insti.tel
+    d["phone"] = insti.tel
 garden = d
 
 species = {}
@@ -169,45 +180,61 @@ for i in session.query(Plant).all():
     try:
         vernacular = s.default_vernacular_name.name
     except:
-        vernacular = ''
-    species.setdefault((s.str(authors=False, markup=False, remove_zws=True),
-                        s.sp_author,
-                        s.genus.family.epithet,
-                        vernacular), []).append(i)
+        vernacular = ""
+    species.setdefault(
+        (
+            s.str(authors=False, markup=False, remove_zws=True),
+            s.sp_author,
+            s.genus.family.epithet,
+            vernacular,
+        ),
+        [],
+    ).append(i)
 
 for k in species:
-    d = {'name': k[0],
-         'family': k[2],
-         'phonetic': shorten(k[0])}
+    d = {"name": k[0], "family": k[2], "phonetic": shorten(k[0])}
     if k[1]:
-        d['authorship'] = k[1]
+        d["authorship"] = k[1]
     if k[3]:
-        d['vernacular'] = k[3]
+        d["vernacular"] = k[3]
 
-    result['species'].append(d)
+    result["species"].append(d)
 
 for k, plants in list(species.items()):
     for v in plants:
-        d = {'garden_uuid': garden['uuid'],
-             'garden': insti.name,
-             'species': k[0],
-             'code': v.accession.code + '.' + v.code,
-             'zoom': 18,
-             'lat': v.coords['lat'],
-             'lon': v.coords['lon']}
-        result['plants'].append(d)
+        d = {
+            "garden_uuid": garden["uuid"],
+            "garden": insti.name,
+            "species": k[0],
+            "code": v.accession.code + "." + v.code,
+            "zoom": 18,
+            "lat": v.coords["lat"],
+            "lon": v.coords["lon"],
+        }
+        result["plants"].append(d)
 
-print('db.gardens.update({{uuid: "{}"}}, {{$set: {}}}, {{upsert: true}});'.format(garden['uuid'], json.dumps(garden)))
-for i in result['species']:
-    print('db.taxa.update({{name: {}}}, {{$set: {}}}, {{upsert: true}});'.format(json.dumps(i['name']), json.dumps(i)))
-print('db.plants.deleteMany({garden: %s});' % json.dumps(garden['name']))
-print('db.plants.insertMany(%s);' % json.dumps(result['plants']))
+print(
+    'db.gardens.update({{uuid: "{}"}}, {{$set: {}}}, {{upsert: true}});'.format(
+        garden["uuid"], json.dumps(garden)
+    )
+)
+for i in result["species"]:
+    print(
+        "db.taxa.update({{name: {}}}, {{$set: {}}}, {{upsert: true}});".format(
+            json.dumps(i["name"]), json.dumps(i)
+        )
+    )
+print("db.plants.deleteMany({garden: %s});" % json.dumps(garden["name"]))
+print("db.plants.insertMany(%s);" % json.dumps(result["plants"]))
 
-print('''\
+print(
+    """\
 db.gardens.find().sort({id:-1}).limit(1).forEach(function(g){
     db.gardens.updateOne({uuid: "%(uuid)s", id: {$exists: false}}, {$set: {id: g.id + 1}});
 });
 db.gardens.find({uuid: "%(uuid)s"}).forEach(function (elem) {
     db.plants.updateMany({garden_uuid: elem.uuid}, {$set: {garden_id: elem.id}})
 });
-''' % garden)
+"""
+    % garden
+)
