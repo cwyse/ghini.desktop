@@ -301,7 +301,7 @@ class ExpressionRow:
                 value = model[active_iter][0]
         else:
             # assume it's a Gtk.Entry or other widget with a text property
-            value = self.value_widget.props.text.strip()
+            value = self.value_widget.set_text.strip()
         value = parse_typed_value(value)
         and_or = ''
         if self.and_or_combo:
@@ -337,7 +337,7 @@ class QueryBuilder(GenericEditorPresenter):
         self.view.widgets.domain_liststore.clear()
         for key in sorted(self.domain_map.keys()):
             self.view.widgets.domain_liststore.append([key])
-        self.view.widgets.add_clause_button.props.sensitive = False
+        self.view.widgets.add_clause_button.set_sensitive = False
         self.refresh_view()
 
     def on_domain_combo_changed(self, *args):
@@ -363,7 +363,7 @@ class QueryBuilder(GenericEditorPresenter):
         self.on_add_clause()
         self.view.widgets.expressions_table.show_all()
         # let user add more clauses
-        self.view.widgets.add_clause_button.props.sensitive = True
+        self.view.widgets.add_clause_button.set_sensitive = True
 
     def validate(self):
         """
@@ -373,7 +373,7 @@ class QueryBuilder(GenericEditorPresenter):
         for row in self.expression_rows:
             value = None
             if isinstance(row.value_widget, Gtk.Entry):
-                value = row.value_widget.props.text
+                value = row.value_widget.set_text
             elif isinstance(row.value_widget, Gtk.ComboBox):
                 value = row.value_widget.get_active() >= 0
 
@@ -383,7 +383,7 @@ class QueryBuilder(GenericEditorPresenter):
                 valid = False
                 break
 
-        self.view.widgets.confirm_button.props.sensitive = valid
+        self.view.widgets.confirm_button.set_sensitive = valid
         return valid
 
     def remove_expression_row(self, row):

@@ -101,6 +101,18 @@ def get_species_instance(session, epithet, genus_epithet=None, create=False):
     return Species.retrieve_or_create(session=session, keys=keys, create=create)
 
 
+def safe_set_text(gtk_widget, text):
+    """
+    Sets the text of a Gtk widget replacing None with an empty string.
+
+    :param label: Instance of a Gtk widget
+    :param text: The text to set, which may be None
+    """
+    if text is None:
+        text = ""
+    gtk_widget.set_text(text)
+
+
 def longitude_to_dms(decimal):
     return decimal_to_dms(Decimal(decimal), "long")
 
@@ -127,21 +139,21 @@ def decimal_to_dms(decimal, long_or_lat):
         direction = dir_map[long_or_lat][1]
     dec = Decimal(str(abs(decimal)))
     d = Decimal(str(dec)).to_integral(rounding=ROUND_DOWN)
-    m = Decimal(abs((dec-d)*60)).to_integral(rounding=ROUND_DOWN)
-    m2 = Decimal(abs((dec-d)*60))
+    m = Decimal(abs((dec - d) * 60)).to_integral(rounding=ROUND_DOWN)
+    m2 = Decimal(abs((dec - d) * 60))
     places = 2
     q = Decimal((0, (1,), -places))
-    s = Decimal(abs((m2-m) * 60)).quantize(q)
+    s = Decimal(abs((m2 - m) * 60)).quantize(q)
     return direction, d, m, s
 
 
 def dms_to_decimal(dir, deg, min, sec, precision=6):
-    '''
+    """
     convert degrees, minutes, seconds to decimal
     return a decimal.Decimal
-    '''
+    """
     nplaces = Decimal(10) ** -precision
-    if dir in ('E', 'W'):  # longitude
+    if dir in ("E", "W"):  # longitude
         check(abs(deg) <= 180)
     else:
         check(abs(deg) <= 90)
@@ -150,14 +162,15 @@ def dms_to_decimal(dir, deg, min, sec, precision=6):
     deg = Decimal(str(abs(deg)))
     min = Decimal(str(min))
     sec = Decimal(str(sec))
-    dec = abs(sec/Decimal('3600')) + abs(min/Decimal('60.0')) + deg
-    if dir in ('W', 'S'):
+    dec = abs(sec / Decimal("3600")) + abs(min / Decimal("60.0")) + deg
+    if dir in ("W", "S"):
         dec = -dec
     return dec.quantize(nplaces)
 
 
-def generic_taxon_add_action(model, view, presenter, top_presenter,
-                             button, taxon_entry):
+def generic_taxon_add_action(
+    model, view, presenter, top_presenter, button, taxon_entry
+):
     """user hit click on taxon add button
 
     new taxon goes into model.species;
@@ -165,21 +178,21 @@ def generic_taxon_add_action(model, view, presenter, top_presenter,
     """
 
     from bauble.plugins.plants.species import edit_species
+
     committed = edit_species(parent_view=view.get_window(), is_dependent_window=True)
     if committed:
         if isinstance(committed, list):
             committed = committed[0]
-        logger.debug('new taxon added from within AccessionEditor')
+        logger.debug("new taxon added from within AccessionEditor")
         # add the new taxon to the session and start using it
         presenter.session.add(committed)
         safe_set_text(taxon_entry, "%s" % committed)
-        presenter.remove_problem(
-            hash(Gtk.Buildable.get_name(taxon_entry)), None)
-        setattr(model, 'species', committed)
+        presenter.remove_problem(hash(Gtk.Buildable.get_name(taxon_entry)), None)
+        setattr(model, "species", committed)
         presenter._dirty = True
         top_presenter.refresh_sensitivity()
     else:
-        logger.debug('new taxon not added after request from AccessionEditor')
+        logger.debug("new taxon not added after request from AccessionEditor")
 
 
 def edit_callback(accessions):
@@ -201,16 +214,17 @@ def remove_callback(accessions):
     if len(acc.plants) > 0:
         safe = utils.xml_safe
         plants = [str(plant) for plant in acc.plants]
-        values = dict(num_plants=len(acc.plants),
-                      plant_codes=safe(', '.join(plants)))
-        msg = (_('%(num_plants)s plants depend on this accession: '
-                 '<b>%(plant_codes)s</b>\n\n') % values +
-               _('You cannot remove an accession with plants.'))
+        values = dict(num_plants=len(acc.plants), plant_codes=safe(", ".join(plants)))
+        msg = _(
+            "%(num_plants)s plants depend on this accession: "
+            "<b>%(plant_codes)s</b>\n\n"
+        ) % values + _("You cannot remove an accession with plants.")
         utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
         return
     else:
-        msg = _("Are you sure you want to remove accession <b>%s</b>?") % \
-            utils.xml_safe(str(acc))
+        msg = _(
+            "Are you sure you want to remove accession <b>%s</b>?"
+        ) % utils.xml_safe(str(acc))
     if not utils.yes_no_dialog(msg):
         return
     try:
@@ -219,38 +233,45 @@ def remove_callback(accessions):
         session.delete(obj)
         session.commit()
     except Exception as e:
-        msg = _('Could not delete.\n\n%s') % utils.xml_safe(str(e))
-        utils.message_details_dialog(msg, traceback.format_exc(),
-                                     type=Gtk.MessageType.ERROR)
+        msg = _("Could not delete.\n\n%s") % utils.xml_safe(str(e))
+        utils.message_details_dialog(
+            msg, traceback.format_exc(), type=Gtk.MessageType.ERROR
+        )
     finally:
         session.close()
     return True
 
 
-edit_action = Action('acc_edit', _('_Edit'),
-                     callback=edit_callback,
-                     accelerator='<ctrl>e')
-add_plant_action = Action('acc_add', _('_Add plants'),
-                          callback=add_plants_callback,
-                          accelerator='<ctrl>k')
-remove_action = Action('acc_remove', _('_Delete'),
-                       callback=remove_callback,
-                       accelerator='<ctrl>Delete')
+edit_action = Action(
+    "acc_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
+)
+add_plant_action = Action(
+    "acc_add", _("_Add plants"), callback=add_plants_callback, accelerator="<ctrl>k"
+)
+remove_action = Action(
+    "acc_remove", _("_Delete"), callback=remove_callback, accelerator="<ctrl>Delete"
+)
 
 acc_context_menu = [edit_action, add_plant_action, remove_action]
 
 
-ver_level_descriptions = \
-    {0: _('The name of the record has not been checked by any authority.'),
-     1: _('The name of the record determined by comparison with other '
-          'named plants.'),
-     2: _('The name of the record determined by a taxonomist or by other '
-          'competent persons using herbarium and/or library and/or '
-          'documented living material.'),
-     3: _('The name of the plant determined by taxonomist engaged in '
-          'systematic revision of the group.'),
-     4: _('The record is part of type gathering or propagated from type '
-          'material by asexual methods.')}
+ver_level_descriptions = {
+    0: _("The name of the record has not been checked by any authority."),
+    1: _("The name of the record determined by comparison with other " "named plants."),
+    2: _(
+        "The name of the record determined by a taxonomist or by other "
+        "competent persons using herbarium and/or library and/or "
+        "documented living material."
+    ),
+    3: _(
+        "The name of the plant determined by taxonomist engaged in "
+        "systematic revision of the group."
+    ),
+    4: _(
+        "The record is part of type gathering or propagated from type "
+        "material by asexual methods."
+    ),
+}
 
 
 class Verification(db.Base):
@@ -292,29 +313,30 @@ class Verification(db.Base):
         table. What it was verified from.
 
     """
-    __tablename__ = 'verification'
-    __mapper_args__ = {'order_by': text('verification.date')}
+
+    __tablename__ = "verification"
+    __mapper_args__ = {"order_by": text("verification.date")}
 
     # columns
     verifier = Column(Unicode(64), nullable=False)
     date = Column(types.Date, nullable=False)
     reference = Column(UnicodeText)
-    accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
-    accession = relationship('Accession', back_populates='verifications')
+    accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
+    accession = relationship("Accession", back_populates="verifications")
 
     # the level of assurance of this verification
     level = Column(Integer, nullable=False, autoincrement=False)
 
     # what it was verified as
-    species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
+    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
 
     # what it was verified from
-    prev_species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
+    prev_species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
 
-    species = relationship(
-        'Species', primaryjoin='Verification.species_id==Species.id')
+    species = relationship("Species", primaryjoin="Verification.species_id==Species.id")
     prev_species = relationship(
-        'Species', primaryjoin='Verification.prev_species_id==Species.id')
+        "Species", primaryjoin="Verification.prev_species_id==Species.id"
+    )
 
     notes = Column(UnicodeText)
 
@@ -362,23 +384,25 @@ class Voucher(db.Base):
 
 
     """
-    __tablename__ = 'voucher'
+
+    __tablename__ = "voucher"
     herbarium = Column(Unicode(5), nullable=False)
     code = Column(Unicode(32), nullable=False)
     parent_material = Column(Boolean, default=False)
-    accession_id = Column(Integer, ForeignKey('accession.id'), nullable=False)
-    accession = relationship('Accession', back_populates='vouchers')
+    accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
+    accession = relationship("Accession", back_populates="vouchers")
+
 
 # ITF2 - E.1; Provenance Type Flag; Transfer code: prot
 prov_type_values = [
-    ('Wild', _('Accession of wild source')),  # W
-    ('Cultivated', _('Propagule(s) from a wild source plant')),  # Z
-    ('NotWild', _("Accession not of wild source")),  # G
-    ('Purchase', _('Purchase or gift')),  # COLLAPSE INTO G
-    ('InsufficientData', _("Insufficient Data")),  # U
-    ('Unknown', _("Unknown")),  # COLLAPSE INTO U
-    (None, ''),  # do not transfer this field
-    ]
+    ("Wild", _("Accession of wild source")),  # W
+    ("Cultivated", _("Propagule(s) from a wild source plant")),  # Z
+    ("NotWild", _("Accession not of wild source")),  # G
+    ("Purchase", _("Purchase or gift")),  # COLLAPSE INTO G
+    ("InsufficientData", _("Insufficient Data")),  # U
+    ("Unknown", _("Unknown")),  # COLLAPSE INTO U
+    (None, ""),  # do not transfer this field
+]
 
 # ITF2 - E.3; Wild Provenance Status Flag; Transfer code: wpst
 #  - further specifies the W and Z prov type flag
@@ -393,126 +417,128 @@ prov_type_values = [
 # user not familiar with ITF2 standard.
 wild_prov_status_values = [
     # Endemic found within indigenous range
-    ('WildNative', _("Wild native")),
+    ("WildNative", _("Wild native")),
     # found outside indigenous range
-    ('WildNonNative', _("Wild non-native")),
+    ("WildNonNative", _("Wild non-native")),
     # Endemic, cultivated, reintroduced or translocated within its
     # indigenous range
-    ('CultivatedNative', _("Cultivated native")),
-
+    ("CultivatedNative", _("Cultivated native")),
     # MISSING cultivated, found outside its indigenous range
     # (u'CultivatedNonNative', _("Cultivated non-native"))
-
     # TO REMOVE:
-    ('Impound', _("Impound")),
-    ('Collection', _("Collection")),
-    ('Rescue', _("Rescue")),
-    ('InsufficientData', _("Insufficient Data")),
-    ('Unknown', _("Unknown")),
-
+    ("Impound", _("Impound")),
+    ("Collection", _("Collection")),
+    ("Rescue", _("Rescue")),
+    ("InsufficientData", _("Insufficient Data")),
+    ("Unknown", _("Unknown")),
     # Not transferred
-    (None, '')]
+    (None, ""),
+]
 
 # not ITF2
 # - further specifies the Z prov type flag value
 cultivated_prov_status_values = [
-    ('InVitro', _("In vitro")),
-    ('Division', _("Division")),
-    ('Seed', _("Seed")),
-    ('Unknown', _("Unknown")),
-    (None, '')]
+    ("InVitro", _("In vitro")),
+    ("Division", _("Division")),
+    ("Seed", _("Seed")),
+    ("Unknown", _("Unknown")),
+    (None, ""),
+]
 
 # not ITF2
 # - further specifies the G prov type flag value
 purchase_prov_status_values = [
-    ('National', _("National")),
-    ('Imported', _("Imported")),
-    ('Unknown', _("Unknown")),
-    (None, '')]
+    ("National", _("National")),
+    ("Imported", _("Imported")),
+    ("Unknown", _("Unknown")),
+    (None, ""),
+]
 
 # not ITF2
 recvd_type_values = {
-    'ALAY': _('Air layer'),
-    'BBPL': _('Balled & burlapped plant'),
-    'BRPL': _('Bare root plant'),
-    'BUDC': _('Bud cutting'),
-    'BUDD': _('Budded'),
-    'BULB': _('Bulb'),
-    'CLUM': _('Clump'),
-    'CORM': _('Corm'),
-    'DIVI': _('Division'),
-    'GRAF': _('Graft'),
-    'LAYE': _('Layer'),
-    'PLNT': _('Planting'),
-    'PSBU': _('Pseudobulb'),
-    'RCUT': _('Rooted cutting'),
-    'RHIZ': _('Rhizome'),
-    'ROOC': _('Root cutting'),
-    'ROOT': _('Root'),
-    'SCIO': _('Scion'),
-    'SEDL': _('Seedling'),
-    'SEED': _('Seed'),
-    'SPOR': _('Spore'),
-    'SPRL': _('Sporeling'),
-    'TUBE': _('Tuber'),
-    'UNKN': _('Unknown'),
-    'URCU': _('Unrooted cutting'),
-    'BBIL': _('Bulbil'),
-    'VEGS': _('Vegetative spreading'),
-    'SCKR': _('Root sucker'),
-    None: ''
-    }
+    "ALAY": _("Air layer"),
+    "BBPL": _("Balled & burlapped plant"),
+    "BRPL": _("Bare root plant"),
+    "BUDC": _("Bud cutting"),
+    "BUDD": _("Budded"),
+    "BULB": _("Bulb"),
+    "CLUM": _("Clump"),
+    "CORM": _("Corm"),
+    "DIVI": _("Division"),
+    "GRAF": _("Graft"),
+    "LAYE": _("Layer"),
+    "PLNT": _("Planting"),
+    "PSBU": _("Pseudobulb"),
+    "RCUT": _("Rooted cutting"),
+    "RHIZ": _("Rhizome"),
+    "ROOC": _("Root cutting"),
+    "ROOT": _("Root"),
+    "SCIO": _("Scion"),
+    "SEDL": _("Seedling"),
+    "SEED": _("Seed"),
+    "SPOR": _("Spore"),
+    "SPRL": _("Sporeling"),
+    "TUBE": _("Tuber"),
+    "UNKN": _("Unknown"),
+    "URCU": _("Unrooted cutting"),
+    "BBIL": _("Bulbil"),
+    "VEGS": _("Vegetative spreading"),
+    "SCKR": _("Root sucker"),
+    None: "",
+}
 
 accession_type_to_plant_material = {
-    #u'Plant': _('Planting'),
-    'BBPL': 'Plant',
-    'BRPL': 'Plant',
-    'PLNT': 'Plant',
-    'SEDL': 'Plant',
-    #u'Seed': _('Seed/Spore'),
-    'SEED': 'Seed',
-    'SPOR': 'Seed',
-    'SPRL': 'Seed',
-    #u'Vegetative': _('Vegetative Part'),
-    'BUDC': 'Vegetative',
-    'BUDD': 'Vegetative',
-    'BULB': 'Vegetative',
-    'CLUM': 'Vegetative',
-    'CORM': 'Vegetative',
-    'DIVI': 'Vegetative',
-    'GRAF': 'Vegetative',
-    'LAYE': 'Vegetative',
-    'PSBU': 'Vegetative',
-    'RCUT': 'Vegetative',
-    'RHIZ': 'Vegetative',
-    'ROOC': 'Vegetative',
-    'ROOT': 'Vegetative',
-    'SCIO': 'Vegetative',
-    'TUBE': 'Vegetative',
-    'URCU': 'Vegetative',
-    'BBIL': 'Vegetative',
-    'VEGS': 'Vegetative',
-    'SCKR': 'Vegetative',
-    #u'Tissue': _('Tissue Culture'),
-    'ALAY': 'Tissue',
-    #u'Other': _('Other'),
-    'UNKN': 'Other',
-    None: None
-    }
+    # u'Plant': _('Planting'),
+    "BBPL": "Plant",
+    "BRPL": "Plant",
+    "PLNT": "Plant",
+    "SEDL": "Plant",
+    # u'Seed': _('Seed/Spore'),
+    "SEED": "Seed",
+    "SPOR": "Seed",
+    "SPRL": "Seed",
+    # u'Vegetative': _('Vegetative Part'),
+    "BUDC": "Vegetative",
+    "BUDD": "Vegetative",
+    "BULB": "Vegetative",
+    "CLUM": "Vegetative",
+    "CORM": "Vegetative",
+    "DIVI": "Vegetative",
+    "GRAF": "Vegetative",
+    "LAYE": "Vegetative",
+    "PSBU": "Vegetative",
+    "RCUT": "Vegetative",
+    "RHIZ": "Vegetative",
+    "ROOC": "Vegetative",
+    "ROOT": "Vegetative",
+    "SCIO": "Vegetative",
+    "TUBE": "Vegetative",
+    "URCU": "Vegetative",
+    "BBIL": "Vegetative",
+    "VEGS": "Vegetative",
+    "SCKR": "Vegetative",
+    # u'Tissue': _('Tissue Culture'),
+    "ALAY": "Tissue",
+    # u'Other': _('Other'),
+    "UNKN": "Other",
+    None: None,
+}
+
 
 def compute_serializable_fields(cls, session, keys):
-    result = {'accession': None}
+    result = {"accession": None}
 
     acc_keys = {}
     acc_keys.update(keys)
-    acc_keys['code'] = keys['accession']
+    acc_keys["code"] = keys["accession"]
     accession = Accession.retrieve_or_create(
-        session, acc_keys, create=(
-            'taxon' in acc_keys and 'rank' in acc_keys))
+        session, acc_keys, create=("taxon" in acc_keys and "rank" in acc_keys)
+    )
 
-    result['accession'] = accession
+    result["accession"] = accession
 
     return result
+
 
 class Accession(db.Base, db.Serializable, db.WithNotes):
     """
@@ -578,35 +604,45 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     :Constraints:
 
     """
-    __tablename__ = 'accession'
-    __mapper_args__ = {'order_by': text('accession.code')}
+
+    __tablename__ = "accession"
+    __mapper_args__ = {"order_by": text("accession.code")}
 
     # columns
     #: the accession code
     code = Column(Unicode(20), nullable=False, unique=True)
-    code_format = '%Y%PD####'
+    code_format = "%Y%PD####"
 
-    @validates('code')
+    @validates("code")
     def validate_stripping(self, key, value):
         if value is None:
             return None
         return value.strip()
 
-    prov_type = Column(types.Enum(values=[i[0] for i in prov_type_values],
-                                  translations=dict(prov_type_values)),
-                       default=None)
+    prov_type = Column(
+        types.Enum(
+            values=[i[0] for i in prov_type_values], translations=dict(prov_type_values)
+        ),
+        default=None,
+    )
 
     wild_prov_status = Column(
-        types.Enum(values=[i[0] for i in wild_prov_status_values],
-                   translations=dict(wild_prov_status_values)),
-        default=None)
+        types.Enum(
+            values=[i[0] for i in wild_prov_status_values],
+            translations=dict(wild_prov_status_values),
+        ),
+        default=None,
+    )
 
     date_accd = Column(types.Date)
     date_recvd = Column(types.Date)
     quantity_recvd = Column(Integer, autoincrement=False)
-    recvd_type = Column(types.Enum(values=list(recvd_type_values.keys()),
-                                   translations=recvd_type_values),
-                        default=None)
+    recvd_type = Column(
+        types.Enum(
+            values=list(recvd_type_values.keys()), translations=recvd_type_values
+        ),
+        default=None,
+    )
 
     # ITF2 - C24 - Rank Qualified Flag - Transfer code: rkql
     ## B: Below Family; F: Family; G: Genus; S: Species; I: first
@@ -614,41 +650,69 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     id_qual_rank = Column(Unicode(10))
 
     # ITF2 - C25 - Identification Qualifier - Transfer code: idql
-    id_qual = Column(types.Enum(values=['aff.', 'cf.', 'incorrect',
-                                        'forsan', 'near', '?', '']),
-                     nullable=False,
-                     default='')
+    id_qual = Column(
+        types.Enum(values=["aff.", "cf.", "incorrect", "forsan", "near", "?", ""]),
+        nullable=False,
+        default="",
+    )
 
     # "private" new in 0.8b2
     private = Column(Boolean, default=False)
-    species_id = Column(Integer, ForeignKey('species.id'), nullable=False)
+    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
 
     # intended location
-    intended_location_id = Column(Integer, ForeignKey('location.id'))
-    intended2_location_id = Column(Integer, ForeignKey('location.id'))
+    intended_location_id = Column(Integer, ForeignKey("location.id"))
+    intended2_location_id = Column(Integer, ForeignKey("location.id"))
 
     # the source of the accession
-    source = relationship('Source', uselist=False, cascade='all, delete-orphan',
-                      back_populates='accession', single_parent=True)
+    source = relationship(
+        "Source",
+        uselist=False,
+        cascade="all, delete-orphan",
+        back_populates="accession",
+        single_parent=True,
+    )
 
     # relations
-    species = relationship('Species', uselist=False,
-                       back_populates='accessions',
-                                       cascade='all, delete-orphan', single_parent=True)
+    species = relationship(
+        "Species",
+        uselist=False,
+        back_populates="accessions",
+        cascade="all, delete-orphan",
+        single_parent=True,
+    )
 
     # use Plant.code for the order_by to avoid ambiguous column names
-    plants = relationship('Plant', cascade='all, delete-orphan',
-                      #order_by='plant.code',
-                      back_populates='accession', uselist=False, single_parent=True)
-    verifications = relationship('Verification',  # order_by='date',
-                             cascade='all, delete-orphan',
-                             back_populates ='accession', single_parent=True) or []
-    vouchers = relationship('Voucher', cascade='all, delete-orphan',
-                        back_populates='accession', uselist=False, single_parent=True)
+    plants = relationship(
+        "Plant",
+        cascade="all, delete-orphan",
+        # order_by='plant.code',
+        back_populates="accession",
+        uselist=False,
+        single_parent=True,
+    )
+    verifications = (
+        relationship(
+            "Verification",  # order_by='date',
+            cascade="all, delete-orphan",
+            back_populates="accession",
+            single_parent=True,
+        )
+        or []
+    )
+    vouchers = relationship(
+        "Voucher",
+        cascade="all, delete-orphan",
+        back_populates="accession",
+        uselist=False,
+        single_parent=True,
+    )
     intended_location = relationship(
-        'Location', primaryjoin='Accession.intended_location_id==Location.id')
+        "Location", primaryjoin="Accession.intended_location_id==Location.id"
+    )
     intended2_location = relationship(
-        'Location', primaryjoin='Accession.intended2_location_id==Location.id')
+        "Location", primaryjoin="Accession.intended2_location_id==Location.id"
+    )
 
     @classmethod
     def get_next_code(cls, code_format=None):
@@ -665,24 +729,23 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         session = db.Session()
         if code_format is None:
             code_format = cls.code_format
-        format = code_format.replace('%PD', Plant.get_delimiter())
+        format = code_format.replace("%PD", Plant.get_delimiter())
         today = datetime.date.today()
-        if format.find('%{Y-1}') >= 0:
-            format = format.replace('%{Y-1}', str(today.year - 1))
+        if format.find("%{Y-1}") >= 0:
+            format = format.replace("%{Y-1}", str(today.year - 1))
         format = today.strftime(format)
-        start = format.rstrip('#')
+        start = format.rstrip("#")
         if start == format:
             # fixed value
             return start
         digits = len(format) - len(start)
-        format = start + '%%0%dd' % digits
-        q = session.query(Accession.code).\
-            filter(Accession.code.startswith(start))
+        format = start + "%%0%dd" % digits
+        q = session.query(Accession.code).filter(Accession.code.startswith(start))
         next = None
         try:
             if q.count() > 0:
-                codes = [safe_int(row[0][len(start):]) for row in q]
-                next = format % (max(codes)+1)
+                codes = [safe_int(row[0][len(start) :]) for row in q]
+                next = format % (max(codes) + 1)
             else:
                 next = format % 1
         except Exception as e:
@@ -693,16 +756,18 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         return str(next)
 
     def search_view_markup_pair(self):
-        """provide the two lines describing object for SearchView row.
-
-        """
-        first, second = (utils.xml_safe(str(self)),
-                         self.species_str(markup=True, authors=True))
+        """provide the two lines describing object for SearchView row."""
+        first, second = (
+            utils.xml_safe(str(self)),
+            self.species_str(markup=True, authors=True),
+        )
         suffix = _("%(1)s plant groups in %(2)s location(s)") % {
-            '1': len(set(self.plants)),
-            '2': len({p.location for p in self.plants})}
-        suffix = ('<span foreground="#555555" size="small" '
-                  'weight="light"> - %s</span>') % suffix
+            "1": len(set(self.plants)),
+            "2": len({p.location for p in self.plants}),
+        }
+        suffix = (
+            '<span foreground="#555555" size="small" ' 'weight="light"> - %s</span>'
+        ) % suffix
         return first + suffix, second
 
     @property
@@ -715,11 +780,13 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     @property
     def propagations(self):
         import operator
+
         return reduce(operator.add, [p.propagations for p in self.plants], [])
 
     @property
     def pictures(self):
         import operator
+
         return reduce(operator.add, [p.pictures for p in self.plants], [])
 
     def __init__(self, *args, **kwargs):
@@ -773,18 +840,26 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             self.__warned_about_id_qual
         except AttributeError:
             self.__warned_about_id_qual = False
-        if self.id_qual in ('aff.', 'cf.') and not self.id_qual_rank \
-                and not self.__warned_about_id_qual:
-            msg = _('If the id_qual is aff. or cf. '
-                    'then id_qual_rank is required. %s ') % self.code
+        if (
+            self.id_qual in ("aff.", "cf.")
+            and not self.id_qual_rank
+            and not self.__warned_about_id_qual
+        ):
+            msg = (
+                _("If the id_qual is aff. or cf. " "then id_qual_rank is required. %s ")
+                % self.code
+            )
             logger.warning(msg)
             self.__warned_about_id_qual = True
 
         if self.id_qual:
-            logger.debug('id_qual is %s' % self.id_qual)
+            logger.debug("id_qual is %s" % self.id_qual)
             sp_str = self.species.str(
-                authors, markup, remove_zws=True,
-                qualification=(self.id_qual_rank, self.id_qual))
+                authors,
+                markup,
+                remove_zws=True,
+                qualification=(self.id_qual_rank, self.id_qual),
+            )
         else:
             sp_str = self.species.str(authors, markup, remove_zws=True)
 
@@ -792,71 +867,73 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         return sp_str
 
     def markup(self):
-        return '{} ({})'.format(self.code, self.accession.species_str(markup=True, authors=True))
+        return "{} ({})".format(
+            self.code, self.accession.species_str(markup=True, authors=True)
+        )
 
     def as_dict(self):
         result = db.Serializable.as_dict(self)
-        result['species'] = self.species.str(remove_zws=True, authors=False)
+        result["species"] = self.species.str(remove_zws=True, authors=False)
         if self.source and self.source.source_detail:
-            result['contact'] = self.source.source_detail.name
+            result["contact"] = self.source.source_detail.name
         return result
 
     @classmethod
     def correct_field_names(cls, keys):
-        for internal, exchange in [('species', 'taxon')]:
+        for internal, exchange in [("species", "taxon")]:
             if exchange in keys:
                 keys[internal] = keys[exchange]
                 del keys[exchange]
 
     @classmethod
     def compute_serializable_fields(cls, session, keys):
-        logger.debug('compute_serializable_fields(session, %s)' % keys)
-        result = {'species': None}
+        logger.debug("compute_serializable_fields(session, %s)" % keys)
+        result = {"species": None}
         keys = dict(keys)  # make copy
-        if 'species' in keys:
-            keys['taxon'] = keys['species']
-            keys['rank'] = 'species'
-        if 'rank' in keys and 'taxon' in keys:
+        if "species" in keys:
+            keys["taxon"] = keys["species"]
+            keys["rank"] = "species"
+        if "rank" in keys and "taxon" in keys:
             ## now we must connect the accession to the species it refers to
-            if keys['rank'] == 'species':
-                genus_name, epithet = keys['taxon'].split(' ', 1)
-                sp_dict = {'ht-epithet': genus_name,
-                           'epithet': epithet}
-                result['species'] = Species.retrieve_or_create(
-                    session, sp_dict, create=False)
-            elif keys['rank'] == 'genus':
-                result['species'] = Species.retrieve_or_create(
-                    session, {'ht-epithet': keys['taxon'],
-                              'epithet': 'sp'})
-            elif keys['rank'] == 'familia':
-                unknown_genus = 'Zzz-' + keys['taxon'][:-1]
+            if keys["rank"] == "species":
+                genus_name, epithet = keys["taxon"].split(" ", 1)
+                sp_dict = {"ht-epithet": genus_name, "epithet": epithet}
+                result["species"] = Species.retrieve_or_create(
+                    session, sp_dict, create=False
+                )
+            elif keys["rank"] == "genus":
+                result["species"] = Species.retrieve_or_create(
+                    session, {"ht-epithet": keys["taxon"], "epithet": "sp"}
+                )
+            elif keys["rank"] == "familia":
+                unknown_genus = "Zzz-" + keys["taxon"][:-1]
                 Genus.retrieve_or_create(
-                    session, {'ht-epithet': keys['taxon'],
-                              'epithet': unknown_genus})
-                result['species'] = Species.retrieve_or_create(
-                    session, {'ht-epithet': unknown_genus,
-                              'epithet': 'sp'})
+                    session, {"ht-epithet": keys["taxon"], "epithet": unknown_genus}
+                )
+                result["species"] = Species.retrieve_or_create(
+                    session, {"ht-epithet": unknown_genus, "epithet": "sp"}
+                )
         return result
 
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.query(cls).filter(
-                cls.code == keys['code']).one()
+            return session.query(cls).filter(cls.code == keys["code"]).one()
         except:
             return None
 
     def top_level_count(self):
         sd = self.source and self.source.source_detail
-        return {(1, 'Accessions'): 1,
-                (2, 'Species'): {self.species.id},
-                (3, 'Genera'): {self.species.genus.id},
-                (4, 'Families'): {self.species.genus.family.id},
-                (5, 'Plantings'): len(self.plants),
-                (6, 'Living plants'): sum(p.quantity for p in self.plants),
-                (7, 'Locations'): {p.location.id for p in self.plants},
-                (8, 'Sources'): set(sd and [sd.id] or [])}
-
+        return {
+            (1, "Accessions"): 1,
+            (2, "Species"): {self.species.id},
+            (3, "Genera"): {self.species.genus.id},
+            (4, "Families"): {self.species.genus.family.id},
+            (5, "Plantings"): len(self.plants),
+            (6, "Living plants"): sum(p.quantity for p in self.plants),
+            (7, "Locations"): {p.location.id for p in self.plants},
+            (8, "Sources"): set(sd and [sd.id] or []),
+        }
 
 
 # invalidate an accessions string cache after it has been updated
@@ -865,8 +942,14 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
 def receive_after_update(mapper, connection, target):
     target.invalidate_str_cache()
 
-AccessionNote = db.make_note_class('Accession', Accession, compute_serializable_fields)
-Accession.notes = relationship('AccessionNote', back_populates='accession', cascade='all, delete-orphan', single_parent=True)
+
+AccessionNote = db.make_note_class("Accession", Accession, compute_serializable_fields)
+Accession.notes = relationship(
+    "AccessionNote",
+    back_populates="accession",
+    cascade="all, delete-orphan",
+    single_parent=True,
+)
 
 from bauble.plugins.garden.plant import Plant, PlantEditor
 
@@ -881,62 +964,74 @@ class AccessionEditorView(editor.GenericEditorView):
     interface that don't chage due to user interaction.  Although it
     also provides some utility methods for changing widget states.
     """
+
     expanders_pref_map = {
         # 'acc_notes_expander': 'editor.accession.notes.expanded',
         # 'acc_source_expander': 'editor.accession.source.expanded'
-        }
+    }
 
     _tooltips = {
-        'acc_species_entry': _(
+        "acc_species_entry": _(
             "The species must be selected from the list of completions. "
-            "To add a species use the Species editor."),
-        'acc_code_entry': _("The accession ID must be a unique code"),
-        'acc_id_qual_combo': (_("The ID Qualifier\n\n"
-                                "Possible values: %s")
-                              % utils.enum_values_str('accession.id_qual')),
-        'acc_id_qual_rank_combo': _('The part of the taxon name that the id '
-                                    'qualifier refers to.'),
-        'acc_date_accd_entry': _('The date this species was accessioned.'),
-        'acc_date_recvd_entry': _('The date this species was received.'),
-        'acc_recvd_type_comboentry': _(
-            'The type of the accessioned material.'),
-        'acc_quantity_recvd_entry': _('The amount of plant material at the '
-                                      'time it was accessioned.'),
-        'intended_loc_comboentry': _('The intended location for plant '
-                                     'material being accessioned.'),
-        'intended2_loc_comboentry': _('The intended location for plant '
-                                      'material being accessioned.'),
-        'intended_loc_create_plant_checkbutton': _('Immediately create a plant at this location, using all plant material.'),
-
-        'acc_prov_combo': (_('The origin or source of this accession.\n\n'
-                             'Possible values: %s') %
-                           ', '.join(i[1] for i in prov_type_values)),
-        'acc_wild_prov_combo': (_('The wild status is used to clarify the '
-                                  'provenance.\n\nPossible values: %s') %
-                                ', '.join(i[1]
-                                          for i in wild_prov_status_values)),
-        'acc_private_check': _('Indicates whether this accession record '
-                               'should be considered private.'),
-        'acc_cancel_button': _('Cancel your changes.'),
-        'acc_ok_button': _('Save your changes.'),
-        'acc_ok_and_add_button': _('Save your changes and add a '
-                                   'plant to this accession.'),
-        'acc_next_button': _('Save your changes and add another '
-                             'accession.'),
-
-        'sources_code_entry': "ITF2 - E7 - Donor's Accession Identifier - donacc",
-        }
+            "To add a species use the Species editor."
+        ),
+        "acc_code_entry": _("The accession ID must be a unique code"),
+        "acc_id_qual_combo": (
+            _("The ID Qualifier\n\n" "Possible values: %s")
+            % utils.enum_values_str("accession.id_qual")
+        ),
+        "acc_id_qual_rank_combo": _(
+            "The part of the taxon name that the id " "qualifier refers to."
+        ),
+        "acc_date_accd_entry": _("The date this species was accessioned."),
+        "acc_date_recvd_entry": _("The date this species was received."),
+        "acc_recvd_type_comboentry": _("The type of the accessioned material."),
+        "acc_quantity_recvd_entry": _(
+            "The amount of plant material at the " "time it was accessioned."
+        ),
+        "intended_loc_comboentry": _(
+            "The intended location for plant " "material being accessioned."
+        ),
+        "intended2_loc_comboentry": _(
+            "The intended location for plant " "material being accessioned."
+        ),
+        "intended_loc_create_plant_checkbutton": _(
+            "Immediately create a plant at this location, using all plant material."
+        ),
+        "acc_prov_combo": (
+            _("The origin or source of this accession.\n\n" "Possible values: %s")
+            % ", ".join(i[1] for i in prov_type_values)
+        ),
+        "acc_wild_prov_combo": (
+            _(
+                "The wild status is used to clarify the "
+                "provenance.\n\nPossible values: %s"
+            )
+            % ", ".join(i[1] for i in wild_prov_status_values)
+        ),
+        "acc_private_check": _(
+            "Indicates whether this accession record " "should be considered private."
+        ),
+        "acc_cancel_button": _("Cancel your changes."),
+        "acc_ok_button": _("Save your changes."),
+        "acc_ok_and_add_button": _(
+            "Save your changes and add a " "plant to this accession."
+        ),
+        "acc_next_button": _("Save your changes and add another " "accession."),
+        "sources_code_entry": "ITF2 - E7 - Donor's Accession Identifier - donacc",
+    }
 
     def __init__(self, parent=None):
-        """
-
-        """
-        super().__init__(os.path.join(paths.lib_dir(), 'plugins', 'garden',
-                                      'acc_editor.glade'),
-                         parent=parent)
-        self.attach_completion('acc_species_entry',
-                               cell_data_func=self.species_cell_data_func,
-                               match_func=self.species_match_func)
+        """ """
+        super().__init__(
+            os.path.join(paths.lib_dir(), "plugins", "garden", "acc_editor.glade"),
+            parent=parent,
+        )
+        self.attach_completion(
+            "acc_species_entry",
+            cell_data_func=self.species_cell_data_func,
+            match_func=self.species_match_func,
+        )
         self.set_accept_buttons_sensitive(False)
         self.restore_state()
 
@@ -944,21 +1039,21 @@ class AccessionEditorView(editor.GenericEditorView):
         # of child presenters like the CollectionPresenter, etc.
 
         # datum completions
-        completion = self.attach_completion('datum_entry',
-                                            minimum_key_length=1,
-                                            match_func=self.datum_match,
-                                            text_column=0)
+        completion = self.attach_completion(
+            "datum_entry",
+            minimum_key_length=1,
+            match_func=self.datum_match,
+            text_column=0,
+        )
         model = Gtk.ListStore(str)
         for abbr in sorted(datums.keys()):
             # TODO: should create a marked up string with the datum description
             model.append([abbr])
         completion.set_model(model)
 
-        self.init_translatable_combo('acc_prov_combo', prov_type_values)
-        self.init_translatable_combo('acc_wild_prov_combo',
-                                     wild_prov_status_values)
-        self.init_translatable_combo('acc_recvd_type_comboentry',
-                                     recvd_type_values)
+        self.init_translatable_combo("acc_prov_combo", prov_type_values)
+        self.init_translatable_combo("acc_wild_prov_combo", wild_prov_status_values)
+        self.init_translatable_combo("acc_recvd_type_comboentry", recvd_type_values)
         adjustment = self.widgets.source_sw.get_vadjustment()
         adjustment.props.value = 0.0
         self.widgets.source_sw.set_vadjustment(adjustment)
@@ -970,24 +1065,24 @@ class AccessionEditorView(editor.GenericEditorView):
         return self.widgets.accession_dialog
 
     def set_accept_buttons_sensitive(self, sensitive):
-        '''
+        """
         set the sensitivity of all the accept/ok buttons for the editor dialog
-        '''
+        """
         self.widgets.acc_ok_button.set_sensitive(sensitive)
         self.widgets.acc_ok_and_add_button.set_sensitive(sensitive)
         self.widgets.acc_next_button.set_sensitive(sensitive)
 
     def save_state(self):
-        '''
+        """
         save the current state of the gui to the preferences
-        '''
+        """
         for expander, pref in list(self.expanders_pref_map.items()):
             prefs.prefs[pref] = self.widgets[expander].get_expanded()
 
     def restore_state(self):
-        '''
+        """
         restore the state of the gui from the preferences
-        '''
+        """
         for expander, pref in list(self.expanders_pref_map.items()):
             expanded = prefs.prefs.get(pref, True)
             self.widgets[expander].set_expanded(expanded)
@@ -999,7 +1094,7 @@ class AccessionEditorView(editor.GenericEditorView):
     # staticmethod ensures the AccessionEditorView gets garbage collected.
     def datum_match(completion, key, treeiter, data=None):
         datum = completion.get_model()[treeiter][0]
-        words = datum.split(' ')
+        words = datum.split(" ")
         for w in words:
             if w.lower().startswith(key.lower()):
                 return True
@@ -1009,11 +1104,11 @@ class AccessionEditorView(editor.GenericEditorView):
     # staticmethod ensures the AccessionEditorView gets garbage collected.
     def species_match_func(completion, key, treeiter, data=None):
         species = completion.get_model()[treeiter][0]
-        epg, eps = (species.str(remove_zws=True).lower() + ' ').split(' ')[:2]
-        key_epg, key_eps = (key.replace('\u200b', '').lower() + ' ').split(' ')[:2]
+        epg, eps = (species.str(remove_zws=True).lower() + " ").split(" ")[:2]
+        key_epg, key_eps = (key.replace("\u200b", "").lower() + " ").split(" ")[:2]
         if not epg:
             epg = str(species.genus.epithet).lower()
-        if (epg.startswith(key_epg) and eps.startswith(key_eps)):
+        if epg.startswith(key_epg) and eps.startswith(key_eps):
             return True
         return False
 
@@ -1022,7 +1117,8 @@ class AccessionEditorView(editor.GenericEditorView):
     def species_cell_data_func(column, renderer, model, treeiter, data=None):
         v = model[treeiter][0]
         renderer.set_property(
-            'text', '{} ({})'.format(v.str(authors=True), v.genus.family))
+            "text", "{} ({})".format(v.str(authors=True), v.genus.family)
+        )
 
 
 class VoucherPresenter(editor.GenericEditorPresenter):
@@ -1032,37 +1128,47 @@ class VoucherPresenter(editor.GenericEditorPresenter):
         self.parent_ref = weakref.ref(parent)
         self.session = session
         self._dirty = False
-        #self.refresh_view()
-        self.view.connect('voucher_add_button', 'clicked', self.on_add_clicked)
-        self.view.connect('voucher_remove_button', 'clicked',
-                          self.on_remove_clicked)
-        self.view.connect('parent_voucher_add_button', 'clicked',
-                          self.on_add_clicked, True)
-        self.view.connect('parent_voucher_remove_button', 'clicked',
-                          self.on_remove_clicked, True)
+        # self.refresh_view()
+        self.view.connect("voucher_add_button", "clicked", self.on_add_clicked)
+        self.view.connect("voucher_remove_button", "clicked", self.on_remove_clicked)
+        self.view.connect(
+            "parent_voucher_add_button", "clicked", self.on_add_clicked, True
+        )
+        self.view.connect(
+            "parent_voucher_remove_button", "clicked", self.on_remove_clicked, True
+        )
 
         def _voucher_data_func(column, cell, model, treeiter, prop):
             v = model[treeiter][0]
-            cell.set_property('text', getattr(v, prop))
+            cell.set_property("text", getattr(v, prop))
 
         def setup_column(tree, column, cell, prop):
             column = self.view.widgets[column]
             cell = self.view.widgets[cell]
             column.clear_attributes(cell)  # get rid of some warnings
             cell.props.editable = True
-            self.view.connect(
-                cell, 'edited', self.on_cell_edited, (tree, prop))
+            self.view.connect(cell, "edited", self.on_cell_edited, (tree, prop))
             column.set_cell_data_func(cell, _voucher_data_func, prop)
 
-        setup_column('voucher_treeview', 'voucher_herb_column',
-                     'voucher_herb_cell', 'herbarium')
-        setup_column('voucher_treeview', 'voucher_code_column',
-                     'voucher_code_cell', 'code')
+        setup_column(
+            "voucher_treeview", "voucher_herb_column", "voucher_herb_cell", "herbarium"
+        )
+        setup_column(
+            "voucher_treeview", "voucher_code_column", "voucher_code_cell", "code"
+        )
 
-        setup_column('parent_voucher_treeview', 'parent_voucher_herb_column',
-                     'parent_voucher_herb_cell', 'herbarium')
-        setup_column('parent_voucher_treeview', 'parent_voucher_code_column',
-                     'parent_voucher_code_cell', 'code')
+        setup_column(
+            "parent_voucher_treeview",
+            "parent_voucher_herb_column",
+            "parent_voucher_herb_cell",
+            "herbarium",
+        )
+        setup_column(
+            "parent_voucher_treeview",
+            "parent_voucher_code_column",
+            "parent_voucher_code_cell",
+            "code",
+        )
 
         # intialize vouchers treeview
         treeview = self.view.widgets.voucher_treeview
@@ -1108,8 +1214,7 @@ class VoucherPresenter(editor.GenericEditorPresenter):
         self.parent_ref().refresh_sensitivity()
 
     def on_add_clicked(self, button, parent=False):
-        """
-        """
+        """ """
         if parent:
             treeview = self.view.widgets.parent_voucher_treeview
         else:
@@ -1125,7 +1230,6 @@ class VoucherPresenter(editor.GenericEditorPresenter):
 
 
 class VerificationPresenter(editor.GenericEditorPresenter):
-
     """
     VerificationPresenter
 
@@ -1134,13 +1238,14 @@ class VerificationPresenter(editor.GenericEditorPresenter):
     :param view:
     :param session:
     """
+
     PROBLEM_INVALID_DATE = random()
 
     def __init__(self, parent, model, view, session):
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
         self.session = session
-        self.view.connect('ver_add_button', 'clicked', self.on_add_clicked)
+        self.view.connect("ver_add_button", "clicked", self.on_add_clicked)
 
         # remove any verification boxes that would have been added to
         # the widget in a previous run
@@ -1157,8 +1262,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             self.add_verification_box()
 
         # expand the first verification expander
-        self.view.widgets.verifications_parent_box.get_children()[0].\
-            set_expanded(True)
+        self.view.widgets.verifications_parent_box.get_children()[0].set_expanded(True)
         self._dirty = False
 
     def is_dirty(self):
@@ -1193,13 +1297,14 @@ class VerificationPresenter(editor.GenericEditorPresenter):
                 self.model.prev_species = self.presenter().model.species
 
             # copy UI definitions from the accession editor glade file
-            filename = os.path.join(paths.lib_dir(), "plugins", "garden",
-                                    "acc_editor.glade")
+            filename = os.path.join(
+                paths.lib_dir(), "plugins", "garden", "acc_editor.glade"
+            )
             xml = etree.parse(filename)
             el = xml.find(".//object[@id='ver_box']")
             builder = Gtk.Builder()
-            s = '<interface>%s</interface>' % etree.tostring(el)
-            if sys.platform == 'win32':
+            s = "<interface>%s</interface>" % etree.tostring(el)
+            if sys.platform == "win32":
                 # NOTE: PyGTK for Win32 is broken so we have to include
                 # this little hack
                 #
@@ -1219,7 +1324,8 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             if self.model.verifier:
                 entry.props.text = self.model.verifier
             self.presenter().view.connect(
-                entry, 'changed', self.on_entry_changed, 'verifier')
+                entry, "changed", self.on_entry_changed, "verifier"
+            )
 
             # date entry
             self.date_entry = self.widgets.ver_date_entry
@@ -1228,59 +1334,72 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             else:
                 self.date_entry.props.text = utils.today_str()
             self.presenter().view.connect(
-                self.date_entry, 'changed', self.on_date_entry_changed)
+                self.date_entry, "changed", self.on_date_entry_changed
+            )
 
             # reference entry
             ref_entry = self.widgets.ver_ref_entry
             if self.model.reference:
                 ref_entry.props.text = self.model.reference
             self.presenter().view.connect(
-                ref_entry, 'changed', self.on_entry_changed, 'reference')
+                ref_entry, "changed", self.on_entry_changed, "reference"
+            )
 
             # species entries
             def sp_get_completions(text):
                 from utils import ilike
-                query = self.presenter().session.query(Species).join(Species.genus).\
-                    filter(ilike(Genus.genus, f'{text}%')).\
-                    filter(Species.id != self.model.id).\
-                    order_by(Species.sp)
+
+                query = (
+                    self.presenter()
+                    .session.query(Species)
+                    .join(Species.genus)
+                    .filter(ilike(Genus.genus, f"{text}%"))
+                    .filter(Species.id != self.model.id)
+                    .order_by(Species.sp)
+                )
                 return query
 
             def sp_cell_data_func(col, cell, model, treeiter, data=None):
                 v = model[treeiter][0]
-                cell.set_property('text', '%s (%s)' %
-                                  (v.str(authors=True),
-                                   v.genus.family))
+                cell.set_property(
+                    "text", "%s (%s)" % (v.str(authors=True), v.genus.family)
+                )
 
             ver_prev_taxon_entry = self.widgets.ver_prev_taxon_entry
 
             def on_prevsp_select(value):
-                self.set_model_attr('prev_species', value)
+                self.set_model_attr("prev_species", value)
 
             self.presenter().view.attach_completion(
-                ver_prev_taxon_entry, sp_cell_data_func)
+                ver_prev_taxon_entry, sp_cell_data_func
+            )
             if self.model.prev_species:
                 ver_prev_taxon_entry.props.text = "%s" % self.model.prev_species
             self.presenter().assign_completions_handler(
-                ver_prev_taxon_entry, sp_get_completions, on_prevsp_select)
+                ver_prev_taxon_entry, sp_get_completions, on_prevsp_select
+            )
 
             ver_new_taxon_entry = self.widgets.ver_new_taxon_entry
 
             def on_sp_select(value):
-                self.set_model_attr('species', value)
+                self.set_model_attr("species", value)
 
             self.presenter().view.attach_completion(
-                ver_new_taxon_entry, sp_cell_data_func)
+                ver_new_taxon_entry, sp_cell_data_func
+            )
             if self.model.species:
                 ver_new_taxon_entry.props.text = utils.utf8(self.model.species)
             self.presenter().assign_completions_handler(
-                ver_new_taxon_entry, sp_get_completions, on_sp_select)
+                ver_new_taxon_entry, sp_get_completions, on_sp_select
+            )
 
             ## add a taxon implies setting the ver_new_taxon_entry
             self.presenter().view.connect(
-                self.widgets.ver_taxon_add_button, 'clicked',
+                self.widgets.ver_taxon_add_button,
+                "clicked",
                 self.on_taxon_add_button_clicked,
-                ver_new_taxon_entry)
+                ver_new_taxon_entry,
+            )
 
             combo = self.widgets.ver_level_combo
             renderer = Gtk.CellRendererText()
@@ -1293,8 +1412,8 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             def cell_data_func(col, cell, model, treeiter, data=None):
                 level = model[treeiter][0]
                 descr = model[treeiter][1]
-                cell.set_property('markup', '<b>%s</b>  :  %s'
-                                  % (level, descr))
+                cell.set_property("markup", "<b>%s</b>  :  %s" % (level, descr))
+
             combo.set_cell_data_func(renderer, cell_data_func)
             model = Gtk.ListStore(int, str)
             for level, descr in list(ver_level_descriptions.items()):
@@ -1302,8 +1421,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             combo.set_model(model)
             if self.model.level:
                 utils.set_widget_value(combo, self.model.level)
-            self.presenter().view.connect(combo, 'changed',
-                                          self.on_level_combo_changed)
+            self.presenter().view.connect(combo, "changed", self.on_level_combo_changed)
 
             # notes text view
             textview = self.widgets.ver_notes_textview
@@ -1312,25 +1430,29 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             if self.model.notes:
                 buff.props.text = self.model.notes
             textview.set_buffer(buff)
-            self.presenter().view.connect(buff, 'changed',
-                                          self.on_entry_changed, 'notes')
+            self.presenter().view.connect(
+                buff, "changed", self.on_entry_changed, "notes"
+            )
 
             # remove button
             button = self.widgets.ver_remove_button
             self._sid = self.presenter().view.connect(
-                button, 'clicked', self.on_remove_button_clicked)
+                button, "clicked", self.on_remove_button_clicked
+            )
 
             # copy to general tab
             button = self.widgets.ver_copy_to_taxon_general
             self._sid = self.presenter().view.connect(
-                button, 'clicked', self.on_copy_to_taxon_general_clicked)
+                button, "clicked", self.on_copy_to_taxon_general_clicked
+            )
 
             self.update_label()
 
         def on_date_entry_changed(self, entry, data=None):
             from bauble.editor import ValidatorError
+
             value = None
-            PROBLEM = 'INVALID_DATE'
+            PROBLEM = "INVALID_DATE"
             try:
                 value = editor.DateValidator().to_python(entry.props.text)
             except ValidatorError as e:
@@ -1338,18 +1460,23 @@ class VerificationPresenter(editor.GenericEditorPresenter):
                 self.presenter().add_problem(PROBLEM, entry)
             else:
                 self.presenter().remove_problem(PROBLEM, entry)
-            self.set_model_attr('date', value)
+            self.set_model_attr("date", value)
 
         def on_copy_to_taxon_general_clicked(self, button):
             if self.model.species is None:
                 return
             parent = self.get_parent()
-            msg = _("Are you sure you want to copy this verification to the general taxon?")
+            msg = _(
+                "Are you sure you want to copy this verification to the general taxon?"
+            )
             if not utils.yes_no_dialog(msg):
                 return
             # copy verification species to general tab
             if self.model.accession:
-                safe_set_text(self.presenter().parent_ref().view.widgets.acc_species_entry, utils.utf8(self.model.species))
+                safe_set_text(
+                    self.presenter().parent_ref().view.widgets.acc_species_entry,
+                    utils.utf8(self.model.species),
+                )
                 self.presenter()._dirty = True
                 self.presenter().parent_ref().refresh_sensitivity()
 
@@ -1688,7 +1815,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
 
         :param on_select: called when an item is selected
         """
-        PROBLEM = 'unknown_source'
+        PROBLEM = "unknown_source"
 
         def cell_data_func(col, cell, model, treeiter, data=None):
             safe_set_props(cell, 'text', utils.utf8(model[treeiter][0]))

@@ -474,7 +474,7 @@ class CollectionPresenter(editor.ChildPresenter):
         value = None
         PROBLEM = "INVALID_DATE"
         try:
-            value = editor.DateValidator().to_python(entry.props.text)
+            value = editor.DateValidator().to_python(entry.set_text)
         except ValidatorError as e:
             logger.debug(e)
             self.parent_ref().add_problem(PROBLEM, entry)
@@ -740,7 +740,7 @@ class PropagationChooserPresenter(editor.ChildPresenter):
             # populate the propagation browser
             treeview = self.view.widgets.source_prop_treeview
             if not plant:
-                treeview.props.sensitive = False
+                treeview.set_sensitive = False
                 return
             utils.clear_model(treeview)
             model = Gtk.ListStore(object)
@@ -749,7 +749,7 @@ class PropagationChooserPresenter(editor.ChildPresenter):
                     continue
                 model.append([propagation])
             treeview.set_model(model)
-            treeview.props.sensitive = True
+            treeview.set_sensitive = True
 
         self.view.connect_after(
             self.view.widgets.source_prop_plant_combo, "changed", on_select
@@ -760,7 +760,7 @@ class PropagationChooserPresenter(editor.ChildPresenter):
         if not self.model.plant_propagation:
             self.view.widget_set_value("source_prop_plant_combo", "")
             utils.clear_model(treeview)
-            treeview.props.sensitive = False
+            treeview.set_sensitive = False
             return
 
         parent_plant = self.model.plant_propagation.plant
@@ -768,14 +768,14 @@ class PropagationChooserPresenter(editor.ChildPresenter):
         self.view.widget_set_value("source_prop_plant_combo", str(parent_plant))
 
         if not parent_plant.propagations:
-            treeview.props.sensitive = False
+            treeview.set_sensitive = False
             return
         utils.clear_model(treeview)
         model = Gtk.ListStore(object)
         for propagation in parent_plant.propagations:
             model.append([propagation])
         treeview.set_model(model)
-        treeview.props.sensitive = True
+        treeview.set_sensitive = True
 
     def toggle_cell_data_func(self, column, cell, model, treeiter, data=None):
         propagation = model[treeiter][0]
@@ -785,7 +785,7 @@ class PropagationChooserPresenter(editor.ChildPresenter):
 
     def summary_cell_data_func(self, column, cell, model, treeiter, data=None):
         propagation = model[treeiter][0]
-        cell.props.text = propagation.get_summary()
+        cell.set_text = propagation.get_summary()
         cell.set_sensitive(True)
 
     def dirty(self):

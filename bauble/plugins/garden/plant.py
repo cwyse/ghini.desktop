@@ -810,8 +810,8 @@ class PlantEditorPresenter(GenericEditorPresenter):
                 self.view.widgets.reason_combo, "changed", on_reason_changed
             )
             sensitive = True
-        self.view.widgets.reason_combo.props.sensitive = sensitive
-        self.view.widgets.reason_label.props.sensitive = sensitive
+        self.view.widgets.reason_combo.set_sensitive = sensitive
+        self.view.widgets.reason_label.set_sensitive = sensitive
 
         self.view.connect("plant_date_entry", "changed", self.on_date_entry_changed)
 
@@ -884,10 +884,10 @@ class PlantEditorPresenter(GenericEditorPresenter):
         )
 
     def on_date_entry_changed(self, entry, *args):
-        self.change.date = entry.props.text
+        self.change.date = entry.set_text
 
     def on_quantity_changed(self, entry, *args):
-        value = entry.props.text
+        value = entry.set_text
         try:
             value = int(value)
         except ValueError as e:
@@ -982,7 +982,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         )
         self.view.widgets.pad_ok_button.set_sensitive(sensitive)
         self.view.widgets.pad_next_button.set_sensitive(sensitive)
-        self.view.widgets.split_planting_button.props.visible = False
+        self.view.widgets.split_planting_button.set_visible = False
 
     def set_model_attr(self, field, value, validator=None):
         logger.debug("set_model_attr({}, {})".format(field, value))
@@ -1486,8 +1486,8 @@ class PropagationExpander(InfoExpander):
         sensitive = True
         if not row.propagations:
             sensitive = False
-        self.props.expanded = sensitive
-        self.props.sensitive = sensitive
+        self.set_expanded = sensitive
+        self.set_sensitive = sensitive
         self.vbox.foreach(self.vbox.remove)
         format = prefs.prefs[prefs.date_format_pref]
         for prop in row.propagations:
@@ -1580,11 +1580,11 @@ class PlantInfoBox(InfoBox):
 
         urls = [x for x in [utils.get_urls(note.note) for note in row.notes] if x != []]
         if not urls:
-            self.links.props.visible = False
-            self.links._sep.props.visible = False
+            self.links.set_visible = False
+            self.links._sep.set_visible = False
         else:
-            self.links.props.visible = True
-            self.links._sep.props.visible = True
+            self.links.set_visible = True
+            self.links._sep.set_visible = True
             self.links.update(row)
 
         self.mapinfo.update(row)

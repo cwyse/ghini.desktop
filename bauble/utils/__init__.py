@@ -19,13 +19,13 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
 # utils module
-# 
+#
 # A common set of utility functions used throughout Ghini.
 #
 
 import gi
 
-gi.require_version('Gtk', '3.0')
+gi.require_version("Gtk", "3.0")
 
 import datetime
 import logging
@@ -54,28 +54,8 @@ def safe_set_text(gtk_widget, text):
     :param text: The text to set, which may be None
     """
     if text is None:
-        text = ''
+        text = ""
     gtk_widget.set_text(text)
-
-
-def safe_set_props(widget, prop, value):
-    """
-    Safely set a property of a widget.
-
-    Args:
-        widget: The widget whose property needs to be set.
-        prop: The name of the property to set (e.g., 'text', 'label').
-        value: The value to set, can be a string, bytes, or None.
-    """
-    if value is None:
-        value = ''
-    elif isinstance(value, bytes):
-        value = value.decode('utf-8', errors='replace')
-    else:
-        value = str(value)
-
-    # Convert to UTF-8 and set the widget property
-    setattr(widget.props, prop, utils.utf8(value))
 
 
 def read_in_chunks(file_object, chunk_size=1024):
@@ -91,7 +71,7 @@ def read_in_chunks(file_object, chunk_size=1024):
 
 
 class Cache:
-    '''a simple class for caching images
+    """a simple class for caching images
 
     you instantiate a size 10 cache like this:
     >>> cache = ImageCache(10)
@@ -103,7 +83,7 @@ class Cache:
     internally, the cache is stored in a dictionary, the key is the name of
     the image, the value is a pair with first the timestamp of the last usage
     of that key and second the value.
-    '''
+    """
 
     def __init__(self, size):
         self.size = size
@@ -117,11 +97,15 @@ class Cache:
             value = getter()
             if len(self.storage) == self.size:
                 # remove the oldest entry
-                k = min(list(zip(list(self.storage.values()), list(self.storage.keys()))))[1]
+                k = min(
+                    list(zip(list(self.storage.values()), list(self.storage.keys())))
+                )[1]
                 del self.storage[k]
         import time
+
         self.storage[key] = time.time(), value
         return value
+
 
 def copy_picture_with_thumbnail(path, basename=None):
     """copy file from path to picture_root, and make thumbnail, preserving name
@@ -129,35 +113,42 @@ def copy_picture_with_thumbnail(path, basename=None):
     return base64 representation of thumbnail
     """
     import os.path
+
     if basename is None:
         filename = path
         path, basename = os.path.split(filename)
     else:
         filename = os.path.join(path, basename)
     from bauble import prefs
+
     if not filename.startswith(prefs.prefs[prefs.picture_root_pref]):
         import shutil
+
         shutil.copy(filename, prefs.prefs[prefs.picture_root_pref])
     ## make thumbnail in thumbs subdirectory
     from PIL import Image
-    full_dest_path = os.path.join(prefs.prefs[prefs.picture_root_pref],
-                                  'thumbs', basename)
+
+    full_dest_path = os.path.join(
+        prefs.prefs[prefs.picture_root_pref], "thumbs", basename
+    )
     result = ""
     try:
         im = Image.open(filename)
         im.thumbnail((400, 400))
-        logger.debug('copying {} to {}'.format(filename, full_dest_path))
+        logger.debug("copying {} to {}".format(filename, full_dest_path))
         im.save(full_dest_path)
         from io import BytesIO
+
         output = BytesIO()
-        im.save(output, format='JPEG')
+        im.save(output, format="JPEG")
         im_data = output.getvalue()
         result = base64.b64encode(im_data)
     except OSError as e:
         logger.warning("can't make thumbnail")
     except Exception as e:
-        logger.warning("unexpected exception making thumbnail: "
-                       "(%s)%s" % (type(e), e))
+        logger.warning(
+            "unexpected exception making thumbnail: " "(%s)%s" % (type(e), e)
+        )
     return result
 
 
@@ -172,12 +163,13 @@ class ImageLoader(threading.Thread):
         if url.find(self.inline_picture_marker) != -1:
             self.reader_function = self.read_base64
             self.url = url
-        elif url[:url.find('/')] in ['http:', 'https:', 'file:']:
+        elif url[: url.find("/")] in ["http:", "https:", "file:"]:
             self.reader_function = self.read_global_url
             self.url = url
         else:
             self.reader_function = self.read_local_url
             from bauble import prefs
+
             pfolder = prefs.prefs[prefs.picture_root_pref]
             self.url = os.path.join(pfolder, url)
 
@@ -198,15 +190,13 @@ class ImageLoader(threading.Thread):
                 self.box.add(image)
             image.set_from_pixbuf(scaled_buf)
         except (GLib.GError, AttributeError) as e:
-            logger.debug("picture %s caused %s %s" %
-                         (self.url, type(e).__name__, e))
-            text = _('picture file %s not found.') % self.url
+            logger.debug("picture %s caused %s %s" % (self.url, type(e).__name__, e))
+            text = _("picture file %s not found.") % self.url
             label = Gtk.Label()
             safe_set_text(label, text)
             self.box.add(label)
         except Exception as e:
-            logger.warning("picture %s caused Exception %s:%s" %
-                           (self.url, type(e), e))
+            logger.warning("picture %s caused Exception %s:%s" % (self.url, type(e), e))
             label = Gtk.Label()
             safe_set_text(label, "%s" % e)
             self.box.add(label)
@@ -217,18 +207,18 @@ class ImageLoader(threading.Thread):
 
     def run(self):
         self.loader.connect("closed", self.loader_notified)
-        self.cache.get(
-            self.url, self.reader_function, on_hit=self.loader.write)
+        self.cache.get(self.url, self.reader_function, on_hit=self.loader.write)
         try:
             self.loader.close()
         except GLib.GError as e:
-            logger.debug('broken picture %s' % self.url)
+            logger.debug("broken picture %s" % self.url)
 
     def read_base64(self):
         self.loader.connect("area-prepared", self.loader_notified)
         thumb64pos = self.url.find(self.inline_picture_marker)
         offset = thumb64pos + len(self.inline_picture_marker)
         import base64
+
         return base64.b64decode(self.url[offset:])
 
     def read_global_url(self):
@@ -237,12 +227,13 @@ class ImageLoader(threading.Thread):
         import urllib.error
         import urllib.parse
         import urllib.request
+
         pieces = []
         with contextlib.closing(urllib.request.urlopen(self.url)) as f:
             for piece in read_in_chunks(f, 4096):
                 self.loader.write(piece)
                 pieces.append(piece)
-        return b''.join(pieces)
+        return b"".join(pieces)
 
     def read_local_url(self):
         self.loader.connect("area-prepared", self.loader_notified)
@@ -253,13 +244,12 @@ class ImageLoader(threading.Thread):
                     self.loader.write(piece)
                     pieces.append(piece)
         except FileNotFoundError as e:
-            logger.debug("picture %s caused FileNotFoundError %s" %
-                         (self.url, e))
-        return b''.join(pieces)
+            logger.debug("picture %s caused FileNotFoundError %s" % (self.url, e))
+        return b"".join(pieces)
 
 
 def find_dependent_tables(table, metadata=None):
-    '''
+    """
     Return an iterator with all tables that depend on table.  The
     tables are returned in the order that they depend on each
     other. For example you know that table[0] does not depend on
@@ -270,23 +260,25 @@ def find_dependent_tables(table, metadata=None):
     :param metadata: The :class:`sqlalchemy.engine.MetaData` object
       that holds the tables to search through.  If None then use
       bauble.db.metadata
-    '''
+    """
     # NOTE: we can't use bauble.metadata.sorted_tables here because it
     # returns all the tables in the metadata even if they aren't
     # dependent on table at all
     from sqlalchemy.sql.util import sort_tables
+
     if metadata is None:
         import bauble.db as db
+
         metadata = db.metadata
     tables = []
 
     def _impl(t2):
         for tbl in metadata.sorted_tables:
             for fk in tbl.foreign_keys:
-                if fk.column.table == t2 and tbl not in tables \
-                        and tbl is not table:
+                if fk.column.table == t2 and tbl not in tables and tbl is not table:
                     tables.append(tbl)
                     _impl(tbl)
+
     _impl(table)
     return sort_tables(tables=tables)
 
@@ -298,9 +290,9 @@ class BuilderWidgets:
     """
 
     def __init__(self, ui):
-        '''
+        """
         :params filename: a Gtk.Builder XML UI file
-        '''
+        """
         if isinstance(ui, str):
             self.builder = Gtk.Builder()
             self.builder.add_from_file(ui)
@@ -308,30 +300,30 @@ class BuilderWidgets:
             self.builder = ui
 
     def __getitem__(self, name):
-        '''
+        """
         :param name:
-        '''
+        """
         w = self.builder.get_object(name)
         if not w:
             raise KeyError(
-                _('no widget named "%(widget_name)s" in glade file') %
-                {'widget_name': name})
+                _('no widget named "%(widget_name)s" in glade file')
+                % {"widget_name": name}
+            )
         return w
 
     def __getattr__(self, name):
-        if name == '_builder_':
+        if name == "_builder_":
             return self.builder
         w = self.builder.get_object(name)
         if not w:
             raise KeyError(
-                _('no widget named "%(widget_name)s" in glade file') %
-                {'widget_name': name})
+                _('no widget named "%(widget_name)s" in glade file')
+                % {"widget_name": name}
+            )
         return w
 
     def remove_parent(self, w):
-        """Remove widgets from its parent.
-
-        """
+        """Remove widgets from its parent."""
         if isinstance(w, str):
             w = self.builder.get_object(w)
         parent = w.get_parent()
@@ -366,6 +358,7 @@ def search_tree_model(parent, data, cmp=lambda row, data: row[0] == data):
         if cmp(model[iter], data):
             results.add(iter)
         return False
+
     parent.model.foreach(func)
     return tuple(results)
 
@@ -390,6 +383,7 @@ def clear_model(obj_with_model):
             v = model.get_value(iter, c)
             del v
         del iter
+
     model.foreach(del_cb)
     model.clear()
     del model
@@ -397,32 +391,33 @@ def clear_model(obj_with_model):
 
 
 def combo_set_active_text(combo, value):
-    '''
+    """
     does the same thing as set_combo_from_value but this looks more like a
     GTK+ method
-    '''
+    """
     set_combo_from_value(combo, value)
 
 
 def set_combo_from_value(combo, value, cmp=lambda row, value: row[0] == value):
-    '''
+    """
     Find value in combo model and set it as active, else raise ValueError
     cmp(row, value) is the a function to use for comparison
 
     .. note:: if more than one value is found in the combo then the
       first one in the list is set
-    '''
+    """
     model = combo.get_model()
     matches = search_tree_model(model, value, cmp)
     if len(matches) == 0:
-        raise ValueError('set_combo_from_value() - could not find value in '
-                         'combo: %s' % value)
+        raise ValueError(
+            "set_combo_from_value() - could not find value in " "combo: %s" % value
+        )
     combo.set_active_iter(matches[0])
-    combo.emit('changed')
+    combo.emit("changed")
 
 
 def combo_get_value_iter(combo, value, cmp=lambda row, value: row[0] == value):
-    '''
+    """
     Returns a Gtk.TreeIter that points to first matching value in the
     combo's model.
 
@@ -433,7 +428,7 @@ def combo_get_value_iter(combo, value, cmp=lambda row, value: row[0] == value):
 
     .. note:: if more than one value is found in the combo then the first one
       in the list is returned
-    '''
+    """
     model = combo.get_model()
     matches = search_tree_model(model, value, cmp)
     if len(matches) == 0:
@@ -442,19 +437,23 @@ def combo_get_value_iter(combo, value, cmp=lambda row, value: row[0] == value):
 
 
 def get_widget_value(w, index=0):
-    '''
+    """
     :param w: an instance of Gtk.Widget
     :param index: the row index to use for those widgets who use a model
 
     .. note:: any values passed in for widgets that expect a string will call
       the values __str__ method
-    '''
+    """
 
     if isinstance(w, Gtk.Label):
         return utf8(w.get_text())
     elif isinstance(w, Gtk.TextView):
         textbuffer = w.get_buffer()
-        return utf8(textbuffer.get_text(textbuffer.get_start_iter(), textbuffer.get_end_iter(), ''))
+        return utf8(
+            textbuffer.get_text(
+                textbuffer.get_start_iter(), textbuffer.get_end_iter(), ""
+            )
+        )
     elif isinstance(w, Gtk.Entry):
         return utf8(w.get_text())
     elif isinstance(w, Gtk.ComboBox):
@@ -463,20 +462,20 @@ def get_widget_value(w, index=0):
         if w.get_model() is None or w.get_active_iter() is None:
             return None
         return w.get_model()[w.get_active_iter()][0]
-    elif isinstance(w,
-                    (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)):
+    elif isinstance(w, (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)):
         return w.get_active()
     elif isinstance(w, Gtk.Button):
         return utf8(w.props.label)
 
     else:
-        raise TypeError('utils.set_widget_value(): Don\'t know how to handle '
-                        'the widget type %s with name %s' %
-                        (type(w), w.name))
+        raise TypeError(
+            "utils.set_widget_value(): Don't know how to handle "
+            "the widget type %s with name %s" % (type(w), w.name)
+        )
 
 
 def set_widget_value(widget, value, markup=False, default=None, index=0):
-    '''
+    """
     :param widget: an instance of Gtk.Widget
     :param value: the value to put in the widget
     :param markup: whether or not value is markup
@@ -485,21 +484,23 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
 
     .. note:: any values passed in for widgets that expect a string will call
       the values __str__ method
-    '''
+    """
 
-    logger.debug("(widget ›%s‹, value ›%s‹, markup ›%s‹, default ›%s‹, index ›%s‹)"
-                 % (widget, value, markup, default, index))
+    logger.debug(
+        "(widget ›%s‹, value ›%s‹, markup ›%s‹, default ›%s‹, index ›%s‹)"
+        % (widget, value, markup, default, index)
+    )
 
     if value is None:  # set the value from the default
-        if isinstance(widget, (Gtk.Label, Gtk.TextView, Gtk.Entry)) \
-                and default is None:
-            value = ''
+        if isinstance(widget, (Gtk.Label, Gtk.TextView, Gtk.Entry)) and default is None:
+            value = ""
         else:
             value = default
 
     # assume that if value is a date then we want to display it with
     # the default date format
     import bauble.prefs as prefs
+
     if isinstance(value, datetime.date):
         date_format = prefs.prefs[prefs.date_format_pref]
         value = value.strftime(date_format)
@@ -514,9 +515,9 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
         # or we should just catch the error(is there an error) and call
         # set_text if set_markup fails
         if markup:
-            widget.set_markup(utf8(value) or '')
+            widget.set_markup(utf8(value) or "")
         else:
-            safe_set_text(widget, utf8(value) or '')
+            safe_set_text(widget, utf8(value) or "")
     elif isinstance(widget, Gtk.TextView):
         safe_set_text(widget.get_buffer(), "%s" % value)
     elif isinstance(widget, Gtk.TextBuffer):
@@ -527,11 +528,13 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
         treeiter = None
         if not widget.get_model():
             logger.warning(
-                "utils.set_widget_value: impossible on ComboBox without a model: %s" %
-                Gtk.Buildable.get_name(widget))
+                "utils.set_widget_value: impossible on ComboBox without a model: %s"
+                % Gtk.Buildable.get_name(widget)
+            )
         else:
             treeiter = combo_get_value_iter(
-                widget, value, cmp=lambda row, value: row[index] == value)
+                widget, value, cmp=lambda row, value: row[index] == value
+            )
             if treeiter:
                 logger.debug("value found in model at %s" % treeiter)
                 widget.set_active_iter(treeiter)
@@ -539,35 +542,34 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
                 logger.debug("value not found in model")
                 widget.set_active(-1)
         if widget.get_child():
-            widget.get_child().text = value or ''
-    elif isinstance(widget,
-                    (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)):
-        if (isinstance(widget, Gtk.CheckButton)
-                and isinstance(value, str)):
-            value = (value == Gtk.Buildable.get_name(widget))
+            widget.get_child().text = value or ""
+    elif isinstance(widget, (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)):
+        if isinstance(widget, Gtk.CheckButton) and isinstance(value, str):
+            value = value == Gtk.Buildable.get_name(widget)
         if value is True:
             widget.set_inconsistent(False)
             widget.set_active(True)
         elif value is False:  # why do we need unset `inconsistent` for False?
             widget.set_inconsistent(False)
             widget.set_active(False)
-        else: # treat None as False, we do not handle inconsistent cases.
+        else:  # treat None as False, we do not handle inconsistent cases.
             widget.set_inconsistent(False)
             widget.set_active(False)
     elif isinstance(widget, Gtk.Button):
         if value is None:
-            widget.props.label = ''
+            widget.props.label = ""
         else:
             widget.props.label = utf8(value)
 
     else:
-        raise TypeError('utils.set_widget_value(): Don\'t know how to handle '
-                        'the widget type %s with name %s' %
-                        (type(widget), widget.name))
+        raise TypeError(
+            "utils.set_widget_value(): Don't know how to handle "
+            "the widget type %s with name %s" % (type(widget), widget.name)
+        )
 
 
 def none(function, *args):
-    '''invoke function but drop return value
+    """invoke function but drop return value
 
     meant to be used in GObject.idle_add, so that the function is not placed
     back in the queue.
@@ -578,15 +580,16 @@ def none(function, *args):
     use:
     GObject.idle_add(utils.none, f, a1, a2, a3)
 
-    '''
+    """
 
     function(*args)
     return None
 
 
-def create_message_dialog(msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK,
-                          parent=None):
-    ''' Create a message dialog, display and return it ready to be run.
+def create_message_dialog(
+    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+):
+    """Create a message dialog, display and return it ready to be run.
 
     :param msg: The markup to use for the message. The value should be
       escaped in case it contains any HTML entities.
@@ -596,16 +599,19 @@ def create_message_dialog(msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsTyp
     :param parent:  The parent window for the dialog
 
     Returns a :class:`Gtk.MessageDialog`
-    '''
+    """
     if parent is None:
         try:  # this might get called before bauble has started
             parent = bauble.gui.window
         except Exception:
             parent = None
-    d = Gtk.MessageDialog(flags=Gtk.DialogFlags.MODAL |
-                          Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                          parent=parent, message_type=type, buttons=buttons)
-    d.set_title('Ghini')
+    d = Gtk.MessageDialog(
+        flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+        parent=parent,
+        message_type=type,
+        buttons=buttons,
+    )
+    d.set_title("Ghini")
     d.set_markup(msg)
 
     if d.get_icon() is None:
@@ -614,31 +620,34 @@ def create_message_dialog(msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsTyp
             d.set_icon(pixbuf)
         except Exception:
             pass
-        d.set_property('skip-taskbar-hint', False)
+        d.set_property("skip-taskbar-hint", False)
     d.show_all()
     return d
 
 
-def idle_message(msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK,
-                 parent=None):
-    '''create and run message_dialog in GUI thread, once.
-    '''
+def idle_message(
+    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+):
+    """create and run message_dialog in GUI thread, once."""
+
     def run_me():
         d = create_message_dialog(msg, type, buttons, parent)
         d.run()
         d.destroy()
+
     GObject.idle_add(run_me)
 
 
-def message_dialog(msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK,
-                   parent=None):
-    '''Create and run a temporary MessageDialog.
- 
+def message_dialog(
+    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+):
+    """Create and run a temporary MessageDialog.
+
     Create a message dialog with :func:`bauble.utils.create_message_dialog`
     and run and destroy it.
 
     Returns the dialog's response.
-    '''
+    """
     d = create_message_dialog(msg, type, buttons, parent)
     r = d.run()
     d.destroy()
@@ -654,11 +663,13 @@ def create_yes_no_dialog(msg, parent=None, buttons=Gtk.ButtonsType.YES_NO):
             parent = bauble.gui.window
         except Exception:
             parent = None
-    d = Gtk.MessageDialog(flags=Gtk.DialogFlags.MODAL |
-                          Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                          parent=parent, message_type=Gtk.MessageType.QUESTION,
-                          buttons=buttons)
-    d.set_title('Ghini')
+    d = Gtk.MessageDialog(
+        flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+        parent=parent,
+        message_type=Gtk.MessageType.QUESTION,
+        buttons=buttons,
+    )
+    d.set_title("Ghini")
     d.set_markup(msg)
     if d.get_icon() is None:
         try:
@@ -666,7 +677,7 @@ def create_yes_no_dialog(msg, parent=None, buttons=Gtk.ButtonsType.YES_NO):
             d.set_icon(pixbuf)
         except Exception:
             pass
-        d.set_property('skip-taskbar-hint', False)
+        d.set_property("skip-taskbar-hint", False)
     d.show_all()
     return d
 
@@ -687,43 +698,50 @@ def yes_no_dialog(msg, parent=None, yes_delay=-1):
         d.set_response_sensitive(Gtk.ResponseType.YES, False)
 
         def on_timeout():
-            if d.get_property('visible'):  # conditional avoids GTK+ warning
+            if d.get_property("visible"):  # conditional avoids GTK+ warning
                 d.set_response_sensitive(Gtk.ResponseType.YES, True)
             return False
+
         from gi.repository import GObject
-        GObject.timeout_add(yes_delay*1000, on_timeout)
+
+        GObject.timeout_add(yes_delay * 1000, on_timeout)
     r = d.run()
     d.destroy()
     return r == Gtk.ResponseType.YES
 
 
-def create_message_details_dialog(msg, details, type=Gtk.MessageType.INFO,
-                                  buttons=Gtk.ButtonsType.OK, parent=None):
-    '''
+def create_message_details_dialog(
+    msg, details, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+):
+    """
     Create a message dialog with a details expander.
-    '''
+    """
     if parent is None:
         try:  # this might get called before bauble has started
             parent = bauble.gui.window
         except Exception:
             parent = None
 
-    d = Gtk.MessageDialog(flags=Gtk.DialogFlags.MODAL |
-                          Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                          parent=parent, message_type=type, buttons=buttons)
-    d.set_title('Ghini')
+    d = Gtk.MessageDialog(
+        flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+        parent=parent,
+        message_type=type,
+        buttons=buttons,
+    )
+    d.set_title("Ghini")
     d.set_markup(msg)
 
     # get the width of a character
     context = d.get_pango_context()
-    font_metrics = context.get_metrics(context.get_font_description(),
-                                       context.get_language())
+    font_metrics = context.get_metrics(
+        context.get_font_description(), context.get_language()
+    )
     width = font_metrics.get_approximate_char_width()
     from gi.repository import Pango
 
     # if the character width is less than 300 pixels then set the
     # message dialog's label to be 300 to avoid tiny dialogs
-    if width/Pango.SCALE*len(msg) < 300:
+    if width / Pango.SCALE * len(msg) < 300:
         d.set_size_request(300, -1)
 
     expand = Gtk.Expander()
@@ -731,7 +749,7 @@ def create_message_details_dialog(msg, details, type=Gtk.MessageType.INFO,
     text_view.set_editable(False)
     text_view.set_wrap_mode(Gtk.WrapMode.WORD)
     tb = Gtk.TextBuffer()
-    safe_set_text(tb, (details or '')[:4096])
+    safe_set_text(tb, (details or "")[:4096])
     text_view.set_buffer(tb)
     sw = Gtk.ScrolledWindow()
     sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -747,17 +765,18 @@ def create_message_details_dialog(msg, details, type=Gtk.MessageType.INFO,
             d.set_icon(pixbuf)
         except Exception:
             pass
-        d.set_property('skip-taskbar-hint', False)
+        d.set_property("skip-taskbar-hint", False)
 
     d.show_all()
     return d
 
 
-def message_details_dialog(msg, details, type=Gtk.MessageType.INFO,
-                           buttons=Gtk.ButtonsType.OK, parent=None):
-    '''
+def message_details_dialog(
+    msg, details, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+):
+    """
     Create and run a message dialog with a details expander.
-    '''
+    """
     d = create_message_details_dialog(msg, details, type, buttons, parent)
     r = d.run()
     d.destroy()
@@ -790,7 +809,7 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
     combo.set_model(model)
     renderer = Gtk.CellRendererText()
     combo.pack_start(renderer, True)
-    combo.add_attribute(renderer, 'text', 0)
+    combo.add_attribute(renderer, "text", 0)
 
     if cell_data_func:
         combo.set_cell_data_func(renderer, cell_data_func)
@@ -800,23 +819,25 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
 
     # enables things like scrolling through values with keyboard and
     # other goodies
-    #combo.props.text_column = 0
+    # combo.set_text_column = 0
 
     # if combo is a Gtk.ComboBoxEntry then setup completions
     def compl_cell_data_func(col, cell, model, treeiter, data=None):
         cell.props.text = utf8(model[treeiter][0])
+
     completion = Gtk.EntryCompletion()
     completion.set_model(model)
     cell = Gtk.CellRendererText()  # set up the completion renderer
     completion.pack_start(cell, True)
     completion.set_cell_data_func(cell, compl_cell_data_func)
     completion.props.text_column = 0
-    #combo.get_child().set_completion(completion)
+    # combo.get_child().set_completion(completion)
 
     def match_func(completion, key, treeiter, data=None):
         model = completion.get_model()
         value = model[treeiter][0]
         return utf8(value).lower().startswith(key.lower())
+
     completion.set_match_func(match_func)
 
     def on_match_select(completion, model, treeiter):
@@ -828,16 +849,16 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
             safe_set_props(combo.get_child(), 'text', '')
 
     # TODO: we should be able to disconnect this signal handler
-    completion.connect('match-selected', on_match_select)
+    completion.connect("match-selected", on_match_select)
 
 
 def prettify_format(format):
     """
     Return the date format in a more human readable form.
     """
-    f = format.replate('%Y', 'yyyy')
-    f = f.replace('%m', 'mm')
-    f = f.replace('%d', 'dd')
+    f = format.replate("%Y", "yyyy")
+    f = f.replace("%m", "mm")
+    f = f.replace("%d", "dd")
     return f
 
 
@@ -848,9 +869,11 @@ def today_str(format=None):
     If format=None then the format uses the prefs.date_format_pref
     """
     import bauble.prefs as prefs
+
     if not format:
         format = prefs.prefs[prefs.date_format_pref]
     import datetime
+
     today = datetime.date.today()
     return today.strftime(format)
 
@@ -873,25 +896,27 @@ def setup_date_button(view, entry, button, date_func=None):
         entry = view.widgets[entry]
     if isinstance(button, str):
         button = view.widgets[button]
-    icon = os.path.join(paths.lib_dir(), 'images', 'calendar.png')
+    icon = os.path.join(paths.lib_dir(), "images", "calendar.png")
     image = Gtk.Image()
     image.set_from_file(icon)
     button.set_tooltip_text(_("Today's date"))
     button.set_image(image)
 
     def on_clicked(b):
-        s = ''
+        s = ""
         if date_func:
             s = date_func()
         else:
             s = today_str()
         safe_set_text(entry, s)
-    if view and hasattr(view, 'connect'):
-        view.connect(button, 'clicked', on_clicked)
-    else:
-        button.connect('clicked', on_clicked)
 
-def to_unicode(obj, encoding='utf-8'):
+    if view and hasattr(view, "connect"):
+        view.connect(button, "clicked", on_clicked)
+    else:
+        button.connect("clicked", on_clicked)
+
+
+def to_unicode(obj, encoding="utf-8"):
     """
     Convert an object to a Unicode string.
 
@@ -905,7 +930,7 @@ def to_unicode(obj, encoding='utf-8'):
             return obj.encode(encoding).decode(encoding)
         elif isinstance(obj, bytes):
             # Convert bytes to string using the specified encoding.
-            return obj.decode(encoding, errors='replace')
+            return obj.decode(encoding, errors="replace")
         else:
             # Convert any other type to string.
             return str(obj)
@@ -915,10 +940,11 @@ def to_unicode(obj, encoding='utf-8'):
         # Return a fallback representation of the object's type.
         return type(obj).__name__
 
+
 def utf8(obj):
     """
     Convert an object to a UTF-8 encoded bytes object.
-    
+
     :param obj: The object to convert.
     :return: A UTF-8 encoded bytes object.
     """
@@ -928,11 +954,12 @@ def utf8(obj):
 def xml_safe(obj):
     """
     Convert an object to a string and escape XML special characters.
-    
+
     :param obj: The object to sanitize.
     :return: A string safe for use in XML.
     """
     import html
+
     return html.escape(to_unicode(obj))
 
 
@@ -940,13 +967,13 @@ def xml_safe_utf8(obj):
     """
     This method is deprecated and just returns xml_safe(obj)
     """
-    logger.warning('invoking deprecated function')
+    logger.warning("invoking deprecated function")
 
     return xml_safe(obj)
 
 
 def safe_numeric(s):
-    'evaluate the string as a number, or return zero'
+    "evaluate the string as a number, or return zero"
 
     try:
         return int(s)
@@ -960,7 +987,7 @@ def safe_numeric(s):
 
 
 def safe_int(s):
-    'evaluate the string as an integer, or return zero'
+    "evaluate the string as an integer, or return zero"
 
     try:
         return int(s)
@@ -969,7 +996,7 @@ def safe_int(s):
     return 0
 
 
-__natsort_rx = re.compile(r'(\d+(?:\.\d+)?)')
+__natsort_rx = re.compile(r"(\d+(?:\.\d+)?)")
 
 
 def natsort_key(obj):
@@ -982,11 +1009,11 @@ def natsort_key(obj):
     use like: sorted(some_list, key=utils.natsort_key)
     """
 
-    item = '%s' % obj
+    item = "%s" % obj
     chunks = __natsort_rx.split(item)
     for ii in range(len(chunks)):
-        if chunks[ii] and chunks[ii][0] in '0123456789':
-            if '.' in chunks[ii]:
+        if chunks[ii] and chunks[ii][0] in "0123456789":
+            if "." in chunks[ii]:
                 numtype = float
             else:
                 numtype = int
@@ -1003,14 +1030,15 @@ def delete_or_expunge(obj):
     session.  If not then session.delete it.
     """
     from sqlalchemy.orm import object_session
+
     session = object_session(obj)
     if session is None:
         return
     if obj not in session.new:
-        logger.debug('delete obj: {} -- {}'.format(obj, repr(obj)))
+        logger.debug("delete obj: {} -- {}".format(obj, repr(obj)))
         session.delete(obj)
     else:
-        logger.debug('expunge obj: {} -- {}'.format(obj, repr(obj)))
+        logger.debug("expunge obj: {} -- {}".format(obj, repr(obj)))
         session.expunge(obj)
         del obj
 
@@ -1031,26 +1059,29 @@ def reset_sequence(column):
     from sqlalchemy.types import Integer
 
     import bauble.db as db
-    if not db.engine.name == 'postgresql':
+
+    if not db.engine.name == "postgresql":
         return
 
     sequence_name = None
-    if (hasattr(column, 'default')
-        and isinstance(column.default, schema.Sequence)):
+    if hasattr(column, "default") and isinstance(column.default, schema.Sequence):
         sequence_name = column.default.name
-    elif ((isinstance(column.type, Integer) and column.autoincrement)
-          and (column.default is None or
-               (isinstance(column.default, schema.Sequence) and column.default.optional))
-          and len(column.foreign_keys) == 0):
-        sequence_name = '{}_{}_seq'.format(column.table.name, column.name)
+    elif (
+        (isinstance(column.type, Integer) and column.autoincrement)
+        and (
+            column.default is None
+            or (isinstance(column.default, schema.Sequence) and column.default.optional)
+        )
+        and len(column.foreign_keys) == 0
+    ):
+        sequence_name = "{}_{}_seq".format(column.table.name, column.name)
     else:
         return
     conn = db.engine.connect()
     trans = conn.begin()
     try:
         # the FOR UPDATE locks the table for the transaction
-        stmt = "SELECT {} from {} FOR UPDATE;".format(
-            column.name, column.table.name)
+        stmt = "SELECT {} from {} FOR UPDATE;".format(column.name, column.table.name)
         result = conn.execute(stmt)
         maxid = None
         vals = list(result)
@@ -1061,11 +1092,14 @@ def reset_sequence(column):
             # set the sequence to nextval()
             stmt = "SELECT nextval('%s');" % (sequence_name)
         else:
-            stmt = "SELECT setval('%s', max(%s)+1) from %s;" \
-                % (sequence_name, column.name, column.table.name)
+            stmt = "SELECT setval('%s', max(%s)+1) from %s;" % (
+                sequence_name,
+                column.name,
+                column.table.name,
+            )
         conn.execute(stmt)
     except Exception as e:
-        logger.warning('bauble.utils.reset_sequence(): %s' % utf8(e))
+        logger.warning("bauble.utils.reset_sequence(): %s" % utf8(e))
         trans.rollback()
     else:
         trans.commit()
@@ -1081,15 +1115,17 @@ def make_label_clickable(label, on_clicked, *args):
     """
     eventbox = label.get_parent()
 
-    check(eventbox is not None, 'label must have a parent')
-    check(isinstance(eventbox, Gtk.EventBox),
-          'label must have an Gtk.EventBox as its parent')
+    check(eventbox is not None, "label must have a parent")
+    check(
+        isinstance(eventbox, Gtk.EventBox),
+        "label must have an Gtk.EventBox as its parent",
+    )
     label.__pressed = False
     label.__on_clicked = on_clicked
 
     def on_enter_notify(widget, event, label, *args):
-        bg_color = Gdk.Color.parse('#FAF8F7')
-        fg_color = Gdk.Color.parse('blue')
+        bg_color = Gdk.Color.parse("#FAF8F7")
+        fg_color = Gdk.Color.parse("blue")
         widget.modify_bg(Gtk.StateType.NORMAL, bg_color.color)
         label.modify_fg(Gtk.StateType.NORMAL, fg_color.color)
 
@@ -1109,16 +1145,18 @@ def make_label_clickable(label, on_clicked, *args):
 
     try:
         eventbox.disconnect(label.__on_event)
-        logger.debug('disconnected previous release-event handler')
+        logger.debug("disconnected previous release-event handler")
         label.__on_event = eventbox.connect(
-            'button_release_event', on_release, label, *args)
+            "button_release_event", on_release, label, *args
+        )
     except AttributeError:
-        logger.debug('defining handlers')
+        logger.debug("defining handlers")
         label.__on_event = eventbox.connect(
-            'button_release_event', on_release, label, *args)
-        eventbox.connect('enter_notify_event', on_enter_notify, label)
-        eventbox.connect('leave_notify_event', on_leave_notify, label)
-        eventbox.connect('button_press_event', on_press, label)
+            "button_release_event", on_release, label, *args
+        )
+        eventbox.connect("enter_notify_event", on_enter_notify, label)
+        eventbox.connect("leave_notify_event", on_leave_notify, label)
+        eventbox.connect("button_press_event", on_press, label)
 
 
 def enum_values_str(col):
@@ -1128,12 +1166,13 @@ def enum_values_str(col):
     return a string with of the values on an enum type join by a comma
     """
     import bauble.db as db
-    table_name, col_name = col.split('.')
-    #debug('%s.%s' % (table_name, col_name))
+
+    table_name, col_name = col.split(".")
+    # debug('%s.%s' % (table_name, col_name))
     values = db.metadata.tables[table_name].c[col_name].type.values[:]
     if None in values:
-        values[values.index(None)] = '&lt;None&gt;'
-    return ', '.join(values)
+        values[values.index(None)] = "&lt;None&gt;"
+    return ", ".join(values)
 
 
 def which(filename, path=None):
@@ -1141,7 +1180,7 @@ def which(filename, path=None):
     Return first occurence of file on the path.
     """
     if not path:
-        path = os.environ['PATH'].split(os.pathsep)
+        path = os.environ["PATH"].split(os.pathsep)
     for dirname in path:
         candidate = os.path.join(dirname, filename)
         if os.path.isfile(candidate):
@@ -1154,20 +1193,28 @@ def ilike(col, val, engine=None):
     Return a cross platform ilike function.
     """
     from sqlalchemy import func
+
     if not engine:
         engine = bauble.db.engine
-    if engine.name == 'postgresql':
-        return col.op('ILIKE')(val)
+    if engine.name == "postgresql":
+        return col.op("ILIKE")(val)
     else:
         return func.lower(col).like(func.lower(val))
 
 
 def range_builder(text):
-    """Return a list of numbers from a string range of the form 1-3,4,5
-    """
-    from pyparsing import (Group, ParseException, ParseResults, Suppress, Word,
-                           delimitedList, nums)
-    rng = Group(Word(nums) + Suppress('-') + Word(nums))
+    """Return a list of numbers from a string range of the form 1-3,4,5"""
+    from pyparsing import (
+        Group,
+        ParseException,
+        ParseResults,
+        Suppress,
+        Word,
+        delimitedList,
+        nums,
+    )
+
+    rng = Group(Word(nums) + Suppress("-") + Word(nums))
     range_list = delimitedList(rng | Word(nums))
 
     token = None
@@ -1182,7 +1229,7 @@ def range_builder(text):
             # get here if the token is a range
             start = int(rng[0])
             end = int(rng[1]) + 1
-            check(start < end, 'start must be less than end')
+            check(start < end, "start must be less than end")
             values.update(list(range(start, end)))
         else:
             # get here if the token is an integer
@@ -1196,6 +1243,7 @@ def gc_objects_by_type(tipe):
     """
     import gc
     import inspect
+
     if isinstance(tipe, str):
         return [o for o in gc.get_objects() if type(o).__name__ == tipe]
     elif inspect.isclass(tipe):
@@ -1207,8 +1255,8 @@ def gc_objects_by_type(tipe):
 def mem(size="rss"):
     """Generalization; memory sizes: rss, rsz, vsz."""
     import os
-    return int(os.popen('ps -p %d -o %s | tail -1' %
-                        (os.getpid(), size)).read())
+
+    return int(os.popen("ps -p %d -o %s | tail -1" % (os.getpid(), size)).read())
 
 
 def topological_sort(items, partial_order):
@@ -1307,6 +1355,7 @@ class GenericMessageBox(Gtk.EventBox):
     """
     Abstract class for showing a message box at the top of an editor.
     """
+
     def __init__(self):
         super().__init__()
         self.box = Gtk.HBox()
@@ -1324,7 +1373,7 @@ class GenericMessageBox(Gtk.EventBox):
         requisition = self.size_request()
         height = requisition.height
         width = requisition.width
-        self.set_size_request(width, height+10)
+        self.set_size_request(width, height + 10)
 
     def show(self):
         self.show_all()
@@ -1368,23 +1417,27 @@ class MessageBox(GenericMessageBox):
         self.details_label = Gtk.Label()
         viewport.add(self.details_label)
 
-        self.details = (details or '')[:4096]
+        self.details = (details or "")[:4096]
         self.details_expander.add(sw)
 
         def on_expanded(*args):
             width, height = self.size_request()
             self.set_size_request(width, -1)
             self.queue_resize()
-        self.details_expander.connect('notify::expanded', on_expanded)
+
+        self.details_expander.connect("notify::expanded", on_expanded)
 
         def on_close(*args):
             parent = self.get_parent()
             if parent is not None:
                 parent.remove(self)
-        button.connect('clicked', on_close, True)
 
-        colors = [('bg', Gtk.StateType.NORMAL, Gdk.Color.parse('#FFFFFF').color),
-                  ('bg', Gtk.StateType.PRELIGHT, Gdk.Color.parse('#FFFFFF').color)]
+        button.connect("clicked", on_close, True)
+
+        colors = [
+            ("bg", Gtk.StateType.NORMAL, Gdk.Color.parse("#FFFFFF").color),
+            ("bg", Gtk.StateType.PRELIGHT, Gdk.Color.parse("#FFFFFF").color),
+        ]
         for color in colors:
             self.set_color(*color)
 
@@ -1397,7 +1450,7 @@ class MessageBox(GenericMessageBox):
         return self.buffer.text
 
     def _set_message(self, msg):
-        safe_set_text(self.buffer, msg or '')
+        safe_set_text(self.buffer, msg or "")
 
     message = property(_get_message, _set_message)
 
@@ -1406,10 +1459,11 @@ class MessageBox(GenericMessageBox):
 
     def _set_details(self, msg):
         if msg:
-            msg = '\n'.join(textwrap.wrap(msg, 100))
+            msg = "\n".join(textwrap.wrap(msg, 100))
             self.details_label.set_markup(msg)
         else:
-            self.details_label.set_markup('')
+            self.details_label.set_markup("")
+
     details = property(_get_details, _set_details)
 
 
@@ -1429,38 +1483,42 @@ class YesNoMessageBox(GenericMessageBox):
         self.label = Gtk.Label()
         if msg:
             self.label.set_markup(msg)
-        self.label.set_alignment(.1, .1)
+        self.label.set_alignment(0.1, 0.1)
         self.box.pack_start(self.label, True, True, 0)
 
         button_box = Gtk.VBox()
         self.box.pack_start(button_box, False, False, 0)
         self.yes_button = Gtk.Button(stock=Gtk.STOCK_YES)
         if on_response:
-            self.yes_button.connect('clicked', on_response, True)
+            self.yes_button.connect("clicked", on_response, True)
         button_box.pack_start(self.yes_button, False, False, 0)
 
         button_box = Gtk.VBox()
         self.box.pack_start(button_box, False, False, 0)
         self.no_button = Gtk.Button(stock=Gtk.STOCK_NO)
         if on_response:
-            self.no_button.connect('clicked', on_response, False)
+            self.no_button.connect("clicked", on_response, False)
         button_box.pack_start(self.no_button, False, False, 0)
 
-        colors = [('bg', Gtk.StateType.NORMAL, Gdk.Color.parse('#FFFFFF').color),
-                  ('bg', Gtk.StateType.PRELIGHT, Gdk.Color.parse('#FFFFFF').color)]
+        colors = [
+            ("bg", Gtk.StateType.NORMAL, Gdk.Color.parse("#FFFFFF").color),
+            ("bg", Gtk.StateType.PRELIGHT, Gdk.Color.parse("#FFFFFF").color),
+        ]
         for color in colors:
             self.set_color(*color)
 
     def _set_on_response(self, func):
-        self.yes_button.connect('clicked', func, True)
-        self.no_button.connect('clicked', func, False)
+        self.yes_button.connect("clicked", func, True)
+        self.no_button.connect("clicked", func, False)
+
     on_response = property(fset=_set_on_response)
 
     def _get_message(self, msg):
         return self.label.text
 
     def _set_message(self, msg):
-        self.label.set_markup(msg or '')
+        self.label.set_markup(msg or "")
+
     message = property(_get_message, _set_message)
 
 
@@ -1485,7 +1543,7 @@ def add_message_box(parent, type=MESSAGE_BOX_INFO):
     elif type == MESSAGE_BOX_YESNO:
         msg_box = YesNoMessageBox()
     else:
-        raise ValueError('unknown message box type: %s' % type)
+        raise ValueError("unknown message box type: %s" % type)
     parent.pack_start(msg_box, True, True, 0)
     return msg_box
 
@@ -1498,7 +1556,7 @@ def get_distinct_values(column, session):
     return [v[0] for v in q if v != (None,)]
 
 
-def get_invalid_columns(obj, ignore_columns=['id']):
+def get_invalid_columns(obj, ignore_columns=["id"]):
     """
     Return column names on a mapped object that have values
     which aren't valid for the model.
@@ -1515,7 +1573,7 @@ def get_invalid_columns(obj, ignore_columns=['id']):
     invalid_columns = []
     for column in [c for c in table.c if c.name not in ignore_columns]:
         v = getattr(obj, column.name)
-        #debug('%s.%s = %s' % (table.name, column.name, v))
+        # debug('%s.%s = %s' % (table.name, column.name, v))
         if v is None and not column.nullable:
             invalid_columns.append(column.name)
     return invalid_columns
@@ -1527,15 +1585,16 @@ def get_urls(text):
     label a link prefix it with [label text],
     e.g. [BBG]http://belizebotanic.org
     """
-    rx = re.compile(r'(?:\[(.+?)\])?((?:(?:http)|(?:https))://\S+)', re.I)
+    rx = re.compile(r"(?:\[(.+?)\])?((?:(?:http)|(?:https))://\S+)", re.I)
     matches = []
     for match in rx.finditer(text):
         matches.append(match.groups())
     return matches
 
+
 import re
 
-sloppy_iso8601 = re.compile('^[12][0-9][0-9][0-9]-[0-9][0-9]?-[0-9][0-9]?.*$')
+sloppy_iso8601 = re.compile("^[12][0-9][0-9][0-9]-[0-9][0-9]?-[0-9][0-9]?.*$")
 import dateutil.parser
 
 
@@ -1543,4 +1602,6 @@ def parse_date(value, dayfirst=True, yearfirst=False, **kwargs):
     if sloppy_iso8601.match(value) is not None:
         dayfirst = False
         yearfirst = True
-    return dateutil.parser.parse(value, dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
+    return dateutil.parser.parse(
+        value, dayfirst=dayfirst, yearfirst=yearfirst, **kwargs
+    )
