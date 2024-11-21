@@ -65,6 +65,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gir1.2-gtk-3.0 \
     gir1.2-gtkchamplain-0.12 \
     gir1.2-gtkclutter-1.0 \
+    glade \
+    gtk-update-icon-cache \
     krb5-user \
     libcairo2 \
     libcairo2-dev \
@@ -77,6 +79,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgirepository1.0-dev \
     libgdk-pixbuf2.0-dev \
     libgtk2.0-dev \
+    libgtk-3-dev \
     libjpeg-dev \
     libkrb5-dev \
     libpq-dev \
@@ -89,6 +92,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-gi \
     python3-pip \
     python3-venv \
+    shared-mime-info \
+    xdg-utils \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -141,6 +146,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gir1.2-gtkchamplain-0.12 \
     gir1.2-gtkclutter-1.0 \
     git \
+    glade \
+    gtk-update-icon-cache \
     krb5-user \
     libcairo2 \
     libcanberra-gtk-module \
@@ -152,6 +159,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-dev \
     libgirepository-1.0-1 \
     libgtk2.0-dev \
+    libglib2.0-dev \
+    libgtk-3-dev \
     libjpeg62-turbo \
     libkrb5-3 \
     libpq5 \
@@ -165,6 +174,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     shared-mime-info \
     vim \
+    xdg-utils \
     zlib1g \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
