@@ -836,7 +836,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
                                              cascade='all, delete-orphan', single_parent=True)
 
     def __str__(self):
-        return utils.utf8(self.name)
+        return str(self.name) if self.name is not None else ""
 
     def search_view_markup_pair(self):
         '''provide the two lines describing object for SearchView row.

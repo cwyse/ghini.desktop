@@ -872,31 +872,48 @@ def setup_date_button(view, entry, button, date_func=None):
         button.connect('clicked', on_clicked)
 
 def to_unicode(obj, encoding='utf-8'):
-    if isinstance(obj, bytes):
-        try:
-            return obj.decode(encoding)
-        except UnicodeDecodeError:
+    """
+    Convert an object to a Unicode string.
+
+    :param obj: The object to convert.
+    :param encoding: The encoding to use for conversion.
+    :return: A Unicode string representation of the object.
+    """
+    try:
+        if isinstance(obj, str):
+            # Normalize the string to ensure it adheres to the specified encoding.
+            return obj.encode(encoding).decode(encoding)
+        elif isinstance(obj, bytes):
+            # Convert bytes to string using the specified encoding.
             return obj.decode(encoding, errors='replace')
-    elif obj is None:
-        return ""
-    else:
-        return str(obj)
+        else:
+            # Convert any other type to string.
+            return str(obj)
+    except Exception as e:
+        # Log or print the error for debugging.
+        logging.warning(f"Failed to convert object to string: {e}")
+        # Return a fallback representation of the object's type.
+        return type(obj).__name__
 
 def utf8(obj):
     """
-    This function is an alias for to_unicode(obj, 'utf-8')
+    Convert an object to a UTF-8 encoded bytes object.
+    
+    :param obj: The object to convert.
+    :return: A UTF-8 encoded bytes object.
     """
-    return to_unicode(obj, 'utf-8')
+    return to_unicode(obj).encode("utf-8", errors="replace")
 
 
-def xml_safe(obj, encoding='utf-8'):
-    '''Return a string with character entities escaped safe for xml
-
-    '''
-    if obj is None:
-        return ''
-    obj = to_unicode(obj, encoding)
-    return saxutils.escape(obj)
+def xml_safe(obj):
+    """
+    Convert an object to a string and escape XML special characters.
+    
+    :param obj: The object to sanitize.
+    :return: A string safe for use in XML.
+    """
+    import html
+    return html.escape(to_unicode(obj))
 
 
 def xml_safe_utf8(obj):
