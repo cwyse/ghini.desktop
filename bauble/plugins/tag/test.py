@@ -37,8 +37,6 @@ from bauble.test import check_dupids
 from bauble.test import mockfunc
 from gi.repository import Gtk
 
-pass
-pass
 
 
 gi.require_version("Gtk", "3.0")
@@ -580,19 +578,15 @@ class TagCallbackTest(BaubleTestCase):
 
             def show_message_box(self, *args, **kwargs):
                 self.invoked.append((args, kwargs))
-                pass
 
             def add_accel_group(self, *args, **kwargs):
                 self.invoked.append(("window.add_accel_group", args, kwargs))
-                pass
 
             def add_to_insert_menu(self, *args, **kwargs):
                 self.invoked.append(("add_to_insert_menu", args, kwargs))
-                pass
 
             def add_menu(self, *args, **kwargs):
                 self.invoked.append(("add_menu", args, kwargs))
-                pass
 
         import bauble
 
@@ -622,19 +616,15 @@ class TagCallbackTest(BaubleTestCase):
 
             def show_message_box(self, *args, **kwargs):
                 self.invoked.append((args, kwargs))
-                pass
 
             def add_accel_group(self, *args, **kwargs):
                 self.invoked.append(("window.add_accel_group", args, kwargs))
-                pass
 
             def add_to_insert_menu(self, *args, **kwargs):
                 self.invoked.append(("add_to_insert_menu", args, kwargs))
-                pass
 
             def add_menu(self, *args, **kwargs):
                 self.invoked.append(("add_menu", args, kwargs))
-                pass
 
         import bauble
 

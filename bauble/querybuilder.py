@@ -31,7 +31,6 @@ from .querybuilderparser import BuiltQuery
 from .search import EmptyToken
 from .search import MapperSearch
 
-pass
 
 logger = logging.getLogger(__name__)
 

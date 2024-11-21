@@ -20,28 +20,28 @@
 #
 # ui.py
 #
-
-
 import logging
 import os
 import traceback
-
-from gi.repository import Gdk, GdkPixbuf, Gtk
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+from gettext import gettext as _
 
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
-import bauble.search as search
 import bauble.utils as utils
 import bauble.utils.desktop as desktop
 from bauble import querybuilder
-from bauble.editor import GenericEditorPresenter, GenericEditorView
+from bauble.editor import GenericEditorView
 from bauble.prefs import prefs
 from bauble.view import SearchView
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
+from gi.repository import Gtk
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def safe_set_text(gtk_widget, text):
@@ -143,7 +143,11 @@ def create_menu_item_with_image(label, icon_name=None, base_dir=None):
             label, icon_name, base_dir
         )
     )
-    if base_dir is not None and icon_name is not None and icon_name.endswith(".png"):
+    if (
+        base_dir is not None
+        and icon_name is not None
+        and icon_name.endswith(".png")
+    ):
         icon_name = os.path.join(base_dir, icon_name)
     if icon_name is None:
         image = None
@@ -168,9 +172,6 @@ def create_menu_item_with_image(label, icon_name=None, base_dir=None):
     else:
         item = Gtk.MenuItem(label)
     return item
-
-
-from bauble.db import engine
 
 
 class GUI:
@@ -373,7 +374,7 @@ class GUI:
         arg = None
         try:
             cmd = tokens["cmd"]
-        except KeyError as e:
+        except KeyError:
             pass
 
         try:
@@ -459,7 +460,9 @@ class GUI:
     def set_busy(self, busy):
         self.widgets.main_box.set_sensitive(not busy)
         if busy:
-            self.window.get_window().set_cursor(Gdk.Cursor.new(Gdk.CursorType.WATCH))
+            self.window.get_window().set_cursor(
+                Gdk.Cursor.new(Gdk.CursorType.WATCH)
+            )
         else:
             self.window.get_window().set_cursor(None)
 
@@ -659,7 +662,9 @@ class GUI:
         ui_filename = os.path.join(paths.lib_dir(), "bauble.ui")
         self.ui_manager.add_ui_from_file(ui_filename)
 
-        help_bug_item = self.ui_manager.get_widget("/MenuBar/help_menu/help_bug")
+        help_bug_item = self.ui_manager.get_widget(
+            "/MenuBar/help_menu/help_bug"
+        )
         try:
             icon_name = os.path.join(
                 paths.lib_dir(), "images", "menu-help-bug.png"
@@ -772,7 +777,9 @@ class GUI:
             menu.append(submenu_item)
             for tool in sorted(tools[category], key=lambda x: x.label):
                 item = create_menu_item_with_image(tool)
-                item.connect("activate", self.on_tools_menu_item_activate, tool)
+                item.connect(
+                    "activate", self.on_tools_menu_item_activate, tool
+                )
                 submenu.append(item)
                 if not tool.enabled:
                     item.set_sensitive(False)

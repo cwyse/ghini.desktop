@@ -38,7 +38,6 @@ from bauble.editor import GenericEditorView
 from gi.repository import GdkPixbuf
 from gi.repository import Gtk
 
-pass
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

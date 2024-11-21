@@ -38,7 +38,6 @@ from bauble.plugins.garden import Plant
 from bauble.plugins.garden import Source
 from bauble.test import BaubleTestCase
 
-pass
 
 
 logger = logging.getLogger(__name__)

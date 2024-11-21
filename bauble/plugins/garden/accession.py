@@ -20,39 +20,17 @@
 #
 # accessions module
 #
-
-
 import datetime
 import logging
 import os
 import sys
 import traceback
 import weakref
-from decimal import ROUND_DOWN, Decimal
+from decimal import Decimal
+from decimal import ROUND_DOWN
 from functools import reduce
+from gettext import gettext as _
 from random import random
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-import lxml.etree as etree
-from gi.repository import Gtk, Pango
-from sqlalchemy import (
-    Boolean,
-    Column,
-    ForeignKey,
-    Integer,
-    Unicode,
-    UnicodeText,
-    and_,
-    event,
-    func,
-    or_,
-    text,
-)
-from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import mapper, reconstructor, relationship, validates
-from sqlalchemy.orm.session import object_session
 
 import bauble
 import bauble.btypes as types
@@ -62,27 +40,51 @@ import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 import bauble.view as view
+import lxml.etree as etree
 from bauble import meta
 from bauble.error import check
-from bauble.plugins.garden.propagation import Propagation, SourcePropagationPresenter
-from bauble.plugins.garden.source import (
-    Collection,
-    CollectionPresenter,
-    Contact,
-    PropagationChooserPresenter,
-    Source,
-    create_contact,
-)
-from bauble.search import SearchStrategy
+from bauble.plugins.garden.plant import Plant
+from bauble.plugins.garden.plant import PlantEditor
+from bauble.plugins.garden.propagation import Propagation
+from bauble.plugins.garden.propagation import SourcePropagationPresenter
+from bauble.plugins.garden.source import Collection
+from bauble.plugins.garden.source import CollectionPresenter
+from bauble.plugins.garden.source import Contact
+from bauble.plugins.garden.source import create_contact
+from bauble.plugins.garden.source import PropagationChooserPresenter
+from bauble.plugins.garden.source import Source
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.species_model import Species
+from bauble.plugins.plants.species_model import SpeciesSynonym
 from bauble.utils import safe_int
-from bauble.view import (
-    Action,
-    InfoBox,
-    InfoExpander,
-    MapInfoExpander,
-    PropertiesExpander,
-    select_in_search_results,
-)
+from bauble.view import Action
+from bauble.view import InfoBox
+from bauble.view import InfoExpander
+from bauble.view import MapInfoExpander
+from bauble.view import PropertiesExpander
+from bauble.view import select_in_search_results
+from gi.repository import Gtk
+from gi.repository import Pango
+from sqlalchemy import Boolean
+from sqlalchemy import Column
+from sqlalchemy import event
+from sqlalchemy import ForeignKey
+from sqlalchemy import Integer
+from sqlalchemy import or_
+from sqlalchemy import text
+from sqlalchemy import Unicode
+from sqlalchemy import UnicodeText
+from sqlalchemy.exc import DBAPIError
+from sqlalchemy.orm import reconstructor
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm import validates
+from sqlalchemy.orm.session import object_session
+
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 # TODO: underneath the species entry create a label that shows information
 # about the family of the genus of the species selected as well as more
@@ -98,7 +100,9 @@ def get_species_instance(session, epithet, genus_epithet=None, create=False):
     keys = {"epithet": epithet}
     if genus_epithet:
         keys["ht-epithet"] = genus_epithet  # Application-level attribute
-    return Species.retrieve_or_create(session=session, keys=keys, create=create)
+    return Species.retrieve_or_create(
+        session=session, keys=keys, create=create
+    )
 
 
 def safe_set_text(gtk_widget, text):
@@ -179,7 +183,9 @@ def generic_taxon_add_action(
 
     from bauble.plugins.plants.species import edit_species
 
-    committed = edit_species(parent_view=view.get_window(), is_dependent_window=True)
+    committed = edit_species(
+        parent_view=view.get_window(), is_dependent_window=True
+    )
     if committed:
         if isinstance(committed, list):
             committed = committed[0]
@@ -187,7 +193,9 @@ def generic_taxon_add_action(
         # add the new taxon to the session and start using it
         presenter.session.add(committed)
         safe_set_text(taxon_entry, "%s" % committed)
-        presenter.remove_problem(hash(Gtk.Buildable.get_name(taxon_entry)), None)
+        presenter.remove_problem(
+            hash(Gtk.Buildable.get_name(taxon_entry)), None
+        )
         setattr(model, "species", committed)
         presenter._dirty = True
         top_presenter.refresh_sensitivity()
@@ -214,7 +222,9 @@ def remove_callback(accessions):
     if len(acc.plants) > 0:
         safe = utils.xml_safe
         plants = [str(plant) for plant in acc.plants]
-        values = dict(num_plants=len(acc.plants), plant_codes=safe(", ".join(plants)))
+        values = dict(
+            num_plants=len(acc.plants), plant_codes=safe(", ".join(plants))
+        )
         msg = _(
             "%(num_plants)s plants depend on this accession: "
             "<b>%(plant_codes)s</b>\n\n"
@@ -246,10 +256,16 @@ edit_action = Action(
     "acc_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
 )
 add_plant_action = Action(
-    "acc_add", _("_Add plants"), callback=add_plants_callback, accelerator="<ctrl>k"
+    "acc_add",
+    _("_Add plants"),
+    callback=add_plants_callback,
+    accelerator="<ctrl>k",
 )
 remove_action = Action(
-    "acc_remove", _("_Delete"), callback=remove_callback, accelerator="<ctrl>Delete"
+    "acc_remove",
+    _("_Delete"),
+    callback=remove_callback,
+    accelerator="<ctrl>Delete",
 )
 
 acc_context_menu = [edit_action, add_plant_action, remove_action]
@@ -257,7 +273,10 @@ acc_context_menu = [edit_action, add_plant_action, remove_action]
 
 ver_level_descriptions = {
     0: _("The name of the record has not been checked by any authority."),
-    1: _("The name of the record determined by comparison with other " "named plants."),
+    1: _(
+        "The name of the record determined by comparison with other "
+        "named plants."
+    ),
     2: _(
         "The name of the record determined by a taxonomist or by other "
         "competent persons using herbarium and/or library and/or "
@@ -333,7 +352,9 @@ class Verification(db.Base):
     # what it was verified from
     prev_species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
 
-    species = relationship("Species", primaryjoin="Verification.species_id==Species.id")
+    species = relationship(
+        "Species", primaryjoin="Verification.species_id==Species.id"
+    )
     prev_species = relationship(
         "Species", primaryjoin="Verification.prev_species_id==Species.id"
     )
@@ -621,7 +642,8 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
 
     prov_type = Column(
         types.Enum(
-            values=[i[0] for i in prov_type_values], translations=dict(prov_type_values)
+            values=[i[0] for i in prov_type_values],
+            translations=dict(prov_type_values),
         ),
         default=None,
     )
@@ -639,19 +661,22 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     quantity_recvd = Column(Integer, autoincrement=False)
     recvd_type = Column(
         types.Enum(
-            values=list(recvd_type_values.keys()), translations=recvd_type_values
+            values=list(recvd_type_values.keys()),
+            translations=recvd_type_values,
         ),
         default=None,
     )
 
     # ITF2 - C24 - Rank Qualified Flag - Transfer code: rkql
-    ## B: Below Family; F: Family; G: Genus; S: Species; I: first
-    ## Infraspecific Epithet; J: second Infraspecific Epithet; C: Cultivar;
+    # B: Below Family; F: Family; G: Genus; S: Species; I: first
+    # Infraspecific Epithet; J: second Infraspecific Epithet; C: Cultivar;
     id_qual_rank = Column(Unicode(10))
 
     # ITF2 - C25 - Identification Qualifier - Transfer code: idql
     id_qual = Column(
-        types.Enum(values=["aff.", "cf.", "incorrect", "forsan", "near", "?", ""]),
+        types.Enum(
+            values=["aff.", "cf.", "incorrect", "forsan", "near", "?", ""]
+        ),
         nullable=False,
         default="",
     )
@@ -740,11 +765,13 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             return start
         digits = len(format) - len(start)
         format = start + "%%0%dd" % digits
-        q = session.query(Accession.code).filter(Accession.code.startswith(start))
+        q = session.query(Accession.code).filter(
+            Accession.code.startswith(start)
+        )
         next = None
         try:
             if q.count() > 0:
-                codes = [safe_int(row[0][len(start) :]) for row in q]
+                codes = [safe_int(row[0][len(start):]) for row in q]
                 next = format % (max(codes) + 1)
             else:
                 next = format % 1
@@ -766,7 +793,8 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             "2": len({p.location for p in self.plants}),
         }
         suffix = (
-            '<span foreground="#555555" size="small" ' 'weight="light"> - %s</span>'
+            '<span foreground="#555555" size="small" '
+            'weight="light"> - %s</span>'
         ) % suffix
         return first + suffix, second
 
@@ -846,7 +874,10 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             and not self.__warned_about_id_qual
         ):
             msg = (
-                _("If the id_qual is aff. or cf. " "then id_qual_rank is required. %s ")
+                _(
+                    "If the id_qual is aff. or cf. "
+                    "then id_qual_rank is required. %s "
+                )
                 % self.code
             )
             logger.warning(msg)
@@ -894,7 +925,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             keys["taxon"] = keys["species"]
             keys["rank"] = "species"
         if "rank" in keys and "taxon" in keys:
-            ## now we must connect the accession to the species it refers to
+            # now we must connect the accession to the species it refers to
             if keys["rank"] == "species":
                 genus_name, epithet = keys["taxon"].split(" ", 1)
                 sp_dict = {"ht-epithet": genus_name, "epithet": epithet}
@@ -908,7 +939,8 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             elif keys["rank"] == "familia":
                 unknown_genus = "Zzz-" + keys["taxon"][:-1]
                 Genus.retrieve_or_create(
-                    session, {"ht-epithet": keys["taxon"], "epithet": unknown_genus}
+                    session,
+                    {"ht-epithet": keys["taxon"], "epithet": unknown_genus},
                 )
                 result["species"] = Species.retrieve_or_create(
                     session, {"ht-epithet": unknown_genus, "epithet": "sp"}
@@ -943,15 +975,15 @@ def receive_after_update(mapper, connection, target):
     target.invalidate_str_cache()
 
 
-AccessionNote = db.make_note_class("Accession", Accession, compute_serializable_fields)
+AccessionNote = db.make_note_class(
+    "Accession", Accession, compute_serializable_fields
+)
 Accession.notes = relationship(
     "AccessionNote",
     back_populates="accession",
     cascade="all, delete-orphan",
     single_parent=True,
 )
-
-from bauble.plugins.garden.plant import Plant, PlantEditor
 
 
 class AccessionEditorView(editor.GenericEditorView):
@@ -985,7 +1017,9 @@ class AccessionEditorView(editor.GenericEditorView):
         ),
         "acc_date_accd_entry": _("The date this species was accessioned."),
         "acc_date_recvd_entry": _("The date this species was received."),
-        "acc_recvd_type_comboentry": _("The type of the accessioned material."),
+        "acc_recvd_type_comboentry": _(
+            "The type of the accessioned material."
+        ),
         "acc_quantity_recvd_entry": _(
             "The amount of plant material at the " "time it was accessioned."
         ),
@@ -999,7 +1033,10 @@ class AccessionEditorView(editor.GenericEditorView):
             "Immediately create a plant at this location, using all plant material."
         ),
         "acc_prov_combo": (
-            _("The origin or source of this accession.\n\n" "Possible values: %s")
+            _(
+                "The origin or source of this accession.\n\n"
+                "Possible values: %s"
+            )
             % ", ".join(i[1] for i in prov_type_values)
         ),
         "acc_wild_prov_combo": (
@@ -1010,21 +1047,26 @@ class AccessionEditorView(editor.GenericEditorView):
             % ", ".join(i[1] for i in wild_prov_status_values)
         ),
         "acc_private_check": _(
-            "Indicates whether this accession record " "should be considered private."
+            "Indicates whether this accession record "
+            "should be considered private."
         ),
         "acc_cancel_button": _("Cancel your changes."),
         "acc_ok_button": _("Save your changes."),
         "acc_ok_and_add_button": _(
             "Save your changes and add a " "plant to this accession."
         ),
-        "acc_next_button": _("Save your changes and add another " "accession."),
+        "acc_next_button": _(
+            "Save your changes and add another " "accession."
+        ),
         "sources_code_entry": "ITF2 - E7 - Donor's Accession Identifier - donacc",
     }
 
     def __init__(self, parent=None):
         """ """
         super().__init__(
-            os.path.join(paths.lib_dir(), "plugins", "garden", "acc_editor.glade"),
+            os.path.join(
+                paths.lib_dir(), "plugins", "garden", "acc_editor.glade"
+            ),
             parent=parent,
         )
         self.attach_completion(
@@ -1052,8 +1094,12 @@ class AccessionEditorView(editor.GenericEditorView):
         completion.set_model(model)
 
         self.init_translatable_combo("acc_prov_combo", prov_type_values)
-        self.init_translatable_combo("acc_wild_prov_combo", wild_prov_status_values)
-        self.init_translatable_combo("acc_recvd_type_comboentry", recvd_type_values)
+        self.init_translatable_combo(
+            "acc_wild_prov_combo", wild_prov_status_values
+        )
+        self.init_translatable_combo(
+            "acc_recvd_type_comboentry", recvd_type_values
+        )
         adjustment = self.widgets.source_sw.get_vadjustment()
         adjustment.props.value = 0.0
         self.widgets.source_sw.set_vadjustment(adjustment)
@@ -1105,7 +1151,9 @@ class AccessionEditorView(editor.GenericEditorView):
     def species_match_func(completion, key, treeiter, data=None):
         species = completion.get_model()[treeiter][0]
         epg, eps = (species.str(remove_zws=True).lower() + " ").split(" ")[:2]
-        key_epg, key_eps = (key.replace("\u200b", "").lower() + " ").split(" ")[:2]
+        key_epg, key_eps = (key.replace("\u200b", "").lower() + " ").split(
+            " "
+        )[:2]
         if not epg:
             epg = str(species.genus.epithet).lower()
         if epg.startswith(key_epg) and eps.startswith(key_eps):
@@ -1130,12 +1178,17 @@ class VoucherPresenter(editor.GenericEditorPresenter):
         self._dirty = False
         # self.refresh_view()
         self.view.connect("voucher_add_button", "clicked", self.on_add_clicked)
-        self.view.connect("voucher_remove_button", "clicked", self.on_remove_clicked)
+        self.view.connect(
+            "voucher_remove_button", "clicked", self.on_remove_clicked
+        )
         self.view.connect(
             "parent_voucher_add_button", "clicked", self.on_add_clicked, True
         )
         self.view.connect(
-            "parent_voucher_remove_button", "clicked", self.on_remove_clicked, True
+            "parent_voucher_remove_button",
+            "clicked",
+            self.on_remove_clicked,
+            True,
         )
 
         def _voucher_data_func(column, cell, model, treeiter, prop):
@@ -1147,14 +1200,22 @@ class VoucherPresenter(editor.GenericEditorPresenter):
             cell = self.view.widgets[cell]
             column.clear_attributes(cell)  # get rid of some warnings
             cell.props.editable = True
-            self.view.connect(cell, "edited", self.on_cell_edited, (tree, prop))
+            self.view.connect(
+                cell, "edited", self.on_cell_edited, (tree, prop)
+            )
             column.set_cell_data_func(cell, _voucher_data_func, prop)
 
         setup_column(
-            "voucher_treeview", "voucher_herb_column", "voucher_herb_cell", "herbarium"
+            "voucher_treeview",
+            "voucher_herb_column",
+            "voucher_herb_cell",
+            "herbarium",
         )
         setup_column(
-            "voucher_treeview", "voucher_code_column", "voucher_code_cell", "code"
+            "voucher_treeview",
+            "voucher_code_column",
+            "voucher_code_cell",
+            "code",
         )
 
         setup_column(
@@ -1262,7 +1323,9 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             self.add_verification_box()
 
         # expand the first verification expander
-        self.view.widgets.verifications_parent_box.get_children()[0].set_expanded(True)
+        self.view.widgets.verifications_parent_box.get_children()[
+            0
+        ].set_expanded(True)
         self._dirty = False
 
     def is_dirty(self):
@@ -1279,7 +1342,9 @@ class VerificationPresenter(editor.GenericEditorPresenter):
         :param model:
         """
         box = VerificationPresenter.VerificationBox(self, model)
-        self.view.widgets.verifications_parent_box.pack_start(box, False, False, 0)
+        self.view.widgets.verifications_parent_box.pack_start(
+            box, False, False, 0
+        )
         self.view.widgets.verifications_parent_box.reorder_child(box, 0)
         box.show_all()
         return box
@@ -1393,7 +1458,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
                 ver_new_taxon_entry, sp_get_completions, on_sp_select
             )
 
-            ## add a taxon implies setting the ver_new_taxon_entry
+            # add a taxon implies setting the ver_new_taxon_entry
             self.presenter().view.connect(
                 self.widgets.ver_taxon_add_button,
                 "clicked",
@@ -1412,7 +1477,9 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             def cell_data_func(col, cell, model, treeiter, data=None):
                 level = model[treeiter][0]
                 descr = model[treeiter][1]
-                cell.set_property("markup", "<b>%s</b>  :  %s" % (level, descr))
+                cell.set_property(
+                    "markup", "<b>%s</b>  :  %s" % (level, descr)
+                )
 
             combo.set_cell_data_func(renderer, cell_data_func)
             model = Gtk.ListStore(int, str)
@@ -1421,7 +1488,9 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             combo.set_model(model)
             if self.model.level:
                 utils.set_widget_value(combo, self.model.level)
-            self.presenter().view.connect(combo, "changed", self.on_level_combo_changed)
+            self.presenter().view.connect(
+                combo, "changed", self.on_level_combo_changed
+            )
 
             # notes text view
             textview = self.widgets.ver_notes_textview
@@ -1465,7 +1534,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
         def on_copy_to_taxon_general_clicked(self, button):
             if self.model.species is None:
                 return
-            parent = self.get_parent()
+            self.get_parent()
             msg = _(
                 "Are you sure you want to copy this verification to the general taxon?"
             )
@@ -1474,7 +1543,9 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             # copy verification species to general tab
             if self.model.accession:
                 safe_set_text(
-                    self.presenter().parent_ref().view.widgets.acc_species_entry,
+                    self.presenter()
+                    .parent_ref()
+                    .view.widgets.acc_species_entry,
                     utils.utf8(self.model.species),
                 )
                 self.presenter()._dirty = True
@@ -1551,8 +1622,8 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             self.widgets.ver_expander.set_expanded = expanded
 
         def on_taxon_add_button_clicked(self, button, taxon_entry):
-            ## we come here when we are adding a Verification, and the
-            ## Verification wants to refer to a new taxon.
+            # we come here when we are adding a Verification, and the
+            # Verification wants to refer to a new taxon.
 
             generic_taxon_add_action(
                 self.model,
@@ -1608,7 +1679,9 @@ class SourcePresenter(editor.GenericEditorPresenter):
 
         if self.model.source:
             self.source = self.model.source
-            safe_set_props(self.view.widgets.sources_code_entry, 'text', self.source.sources_code)
+            self.view.widgets.sources_code_entry.set_text = (
+                self.source.sources_code
+            )
         else:
             self.source = Source()
             # self.model.source will be reset the None if the source
@@ -1678,16 +1751,24 @@ class SourcePresenter(editor.GenericEditorPresenter):
         self.view.connect("sources_code_entry", "changed", on_changed)
 
         self.view.connect(
-            "source_coll_add_button", "clicked", self.on_coll_add_button_clicked
+            "source_coll_add_button",
+            "clicked",
+            self.on_coll_add_button_clicked,
         )
         self.view.connect(
-            "source_coll_remove_button", "clicked", self.on_coll_remove_button_clicked
+            "source_coll_remove_button",
+            "clicked",
+            self.on_coll_remove_button_clicked,
         )
         self.view.connect(
-            "source_prop_add_button", "clicked", self.on_prop_add_button_clicked
+            "source_prop_add_button",
+            "clicked",
+            self.on_prop_add_button_clicked,
         )
         self.view.connect(
-            "source_prop_remove_button", "clicked", self.on_prop_remove_button_clicked
+            "source_prop_remove_button",
+            "clicked",
+            self.on_prop_remove_button_clicked,
         )
 
     def all_problems(self):
@@ -1848,7 +1929,9 @@ class SourcePresenter(editor.GenericEditorPresenter):
 
         def update_visible():
             widget_visibility = dict(
-                source_sw=False, source_garden_prop_box=False, source_none_label=False
+                source_sw=False,
+                source_garden_prop_box=False,
+                source_none_label=False,
             )
             if entry.set_text == self.garden_prop_str:
                 widget_visibility["source_garden_prop_box"] = True
@@ -1962,7 +2045,9 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
         # set the default code and add it to the top of the code formats
         self.populate_code_formats(model.code or "")
-        self.view.widget_set_value("acc_code_format_comboentry", model.code or "")
+        self.view.widget_set_value(
+            "acc_code_format_comboentry", model.code or ""
+        )
         if not model.code:
             model.code = model.get_next_code()
             if self.model.species:
@@ -1980,7 +2065,9 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
         notes_parent = self.view.widgets.notes_parent_box
         notes_parent.foreach(notes_parent.remove)
-        self.notes_presenter = editor.NotesPresenter(self, "notes", notes_parent)
+        self.notes_presenter = editor.NotesPresenter(
+            self, "notes", notes_parent
+        )
 
         self.init_enum_combo("acc_id_qual_combo", "id_qual")
 
@@ -2075,14 +2162,20 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                         f"Species '{value}' not found in the database with criteria {{'epithet': '{epithet}', 'ht-epithet': '{genus_name}'}}."
                     )
                     utils.message_dialog(
-                        _("Selected species not found. Please select a valid species.")
+                        _(
+                            "Selected species not found. Please select a valid species."
+                        )
                     )
                     self.set_model_attr("species", None)
                     return
             elif not isinstance(value, Species):
-                logger.error(f"Unexpected type for species: {type(value).__name__}")
+                logger.error(
+                    f"Unexpected type for species: {type(value).__name__}"
+                )
                 utils.message_dialog(
-                    _("Invalid species selection. Please select a valid species.")
+                    _(
+                        "Invalid species selection. Please select a valid species."
+                    )
                 )
                 self.set_model_attr("species", None)
                 return
@@ -2119,13 +2212,16 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                 self.view.widgets.remove_parent(box)
                 box.destroy()
                 if response:
-                    completion = self.view.widgets.acc_species_entry.get_completion()
+                    completion = (
+                        self.view.widgets.acc_species_entry.get_completion()
+                    )
                     utils.clear_model(completion)
                     model = Gtk.ListStore(object)
                     model.append([syn.species])
                     completion.set_model(model)
                     safe_set_text(
-                        self.view.widgets.acc_species_entry, utils.utf8(syn.species)
+                        self.view.widgets.acc_species_entry,
+                        utils.utf8(syn.species),
                     )
                     set_model(syn.species)
 
@@ -2150,11 +2246,16 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             self.on_recvd_type_entry_changed,
         )
 
-        self.view.connect("acc_code_entry", "changed", self.on_acc_code_entry_changed)
+        self.view.connect(
+            "acc_code_entry", "changed", self.on_acc_code_entry_changed
+        )
 
         # date received
         self.view.connect(
-            "acc_date_recvd_entry", "changed", self.on_date_entry_changed, "date_recvd"
+            "acc_date_recvd_entry",
+            "changed",
+            self.on_date_entry_changed,
+            "date_recvd",
         )
         utils.setup_date_button(
             self.view, "acc_date_recvd_entry", "acc_date_recvd_button"
@@ -2162,7 +2263,10 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
         # date accessioned
         self.view.connect(
-            "acc_date_accd_entry", "changed", self.on_date_entry_changed, "date_accd"
+            "acc_date_accd_entry",
+            "changed",
+            self.on_date_entry_changed,
+            "date_accd",
         )
         utils.setup_date_button(
             self.view, "acc_date_accd_entry", "acc_date_accd_button"
@@ -2184,7 +2288,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             "intended2_location",
         )
 
-        ## add a taxon implies setting the acc_species_entry
+        # add a taxon implies setting the acc_species_entry
         self.view.connect(
             self.view.widgets.acc_taxon_add_button,
             "clicked",
@@ -2216,7 +2320,9 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                 has_quantity and location_chosen,
             )
 
-        self.assign_simple_handler("acc_quantity_recvd_entry", "quantity_recvd")
+        self.assign_simple_handler(
+            "acc_quantity_recvd_entry", "quantity_recvd"
+        )
         self.view.connect_after(
             "acc_quantity_recvd_entry",
             "changed",
@@ -2260,7 +2366,9 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
     def on_acc_code_format_edit_btn_clicked(self, widget, *args):
         view = editor.GenericEditorView(
-            os.path.join(paths.lib_dir(), "plugins", "garden", "acc_editor.glade"),
+            os.path.join(
+                paths.lib_dir(), "plugins", "garden", "acc_editor.glade"
+            ),
             root_widget_name="acc_codes_dialog",
         )
         ls = view.widgets.acc_codes_liststore
@@ -2417,9 +2525,13 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
     def on_acc_code_entry_changed(self, entry, data=None):
         text = entry.get_text()
         query = self.session.query(Accession)
-        if text != self._original_code and query.filter_by(code=str(text)).count() > 0:
+        if (
+            text != self._original_code
+            and query.filter_by(code=str(text)).count() > 0
+        ):
             self.add_problem(
-                self.PROBLEM_DUPLICATE_ACCESSION, self.view.widgets.acc_code_entry
+                self.PROBLEM_DUPLICATE_ACCESSION,
+                self.view.widgets.acc_code_entry,
             )
             self.set_model_attr("code", None)
             return
@@ -2525,7 +2637,9 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             elif prop and prop.prop_type == "UnrootedCutting":
                 prop_model = prop._cutting
             else:
-                logger.debug("AccessionEditorPresenter.validate(): unknown prop_type")
+                logger.debug(
+                    "AccessionEditorPresenter.validate(): unknown prop_type"
+                )
                 return True  # let user save it anyway
 
             if utils.get_invalid_columns(prop_model, prop_ignore):
@@ -2557,7 +2671,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         """
         get the values from the model and put them in the view
         """
-        date_format = prefs.prefs[prefs.date_format_pref]
+        prefs.prefs[prefs.date_format_pref]
         for widget, field in list(self.widget_to_field_map.items()):
             if field == "species_id":
                 value = self.model.species
@@ -2571,7 +2685,9 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             index=1,
         )
         self.view.widget_set_value(
-            "acc_prov_combo", dict(prov_type_values)[self.model.prov_type], index=1
+            "acc_prov_combo",
+            dict(prov_type_values)[self.model.prov_type],
+            index=1,
         )
         self.view.widget_set_value(
             "acc_recvd_type_comboentry",
@@ -2580,7 +2696,9 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         )
 
         self.view.widgets.acc_private_check.set_inconsistent(False)
-        self.view.widgets.acc_private_check.set_active(self.model.private is True)
+        self.view.widgets.acc_private_check.set_active(
+            self.model.private is True
+        )
 
         sensitive = self.model.prov_type == "Wild"
         self.view.widgets.acc_wild_prov_combo.set_sensitive(sensitive)
@@ -2645,8 +2763,12 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
                     self.commit_changes()
                     self._committed.append(self.model)
             except DBAPIError as e:
-                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(str(e.orig))
-                utils.message_details_dialog(msg, str(e), Gtk.MessageType.ERROR)
+                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(
+                    str(e.orig)
+                )
+                utils.message_details_dialog(
+                    msg, str(e), Gtk.MessageType.ERROR
+                )
                 return False
             except Exception as e:
                 msg = _(
@@ -2719,7 +2841,9 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
             if (model.latitude is not None and model.longitude is None) or (
                 model.longitude is not None and model.latitude is None
             ):
-                msg = _("model must have both latitude and longitude or " "neither")
+                msg = _(
+                    "model must have both latitude and longitude or " "neither"
+                )
                 raise ValueError(msg)
             elif model.latitude is None and model.longitude is None:
                 model.geo_accy = None  # don't save
@@ -2735,16 +2859,22 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         if self.model.source:
 
             if not self.model.source.collection:
-                utils.delete_or_expunge(self.presenter.source_presenter.collection)
+                utils.delete_or_expunge(
+                    self.presenter.source_presenter.collection
+                )
 
             if self.model.source.propagation:
                 self.model.source.propagation.clean()
             else:
-                utils.delete_or_expunge(self.presenter.source_presenter.propagation)
+                utils.delete_or_expunge(
+                    self.presenter.source_presenter.propagation
+                )
         else:
             utils.delete_or_expunge(self.presenter.source_presenter.source)
             utils.delete_or_expunge(self.presenter.source_presenter.collection)
-            utils.delete_or_expunge(self.presenter.source_presenter.propagation)
+            utils.delete_or_expunge(
+                self.presenter.source_presenter.propagation
+            )
 
         if self.model.id_qual is None:
             self.model.id_qual_rank = None
@@ -2759,7 +2889,9 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
                 code="1",
                 quantity=accession.quantity_recvd,
                 location=location,
-                acc_type=accession_type_to_plant_material.get(self.model.recvd_type),
+                acc_type=accession_type_to_plant_material.get(
+                    self.model.recvd_type
+                ),
             )
             self.session.add(plant)
 
@@ -2767,8 +2899,6 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
 
 
 # import at the bottom to avoid circular dependencies
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.species_model import Species, SpeciesSynonym
 
 #
 # infobox for searchview
@@ -2798,7 +2928,9 @@ class GeneralAccessionExpander(InfoExpander):
         utils.make_label_clickable(self.widgets.name_data, on_species_clicked)
 
         def on_parent_plant_clicked(*args):
-            select_in_search_results(self.current_obj.source.plant_propagation.plant)
+            select_in_search_results(
+                self.current_obj.source.plant_propagation.plant
+            )
 
         utils.make_label_clickable(
             self.widgets.parent_plant_data, on_parent_plant_clicked
@@ -2808,7 +2940,9 @@ class GeneralAccessionExpander(InfoExpander):
             cmd = 'plant where accession.code="%s"' % self.current_obj.code
             bauble.gui.send_command(cmd)
 
-        utils.make_label_clickable(self.widgets.nplants_data, on_nplants_clicked)
+        utils.make_label_clickable(
+            self.widgets.nplants_data, on_nplants_clicked
+        )
 
     def update(self, row):
         """ """
@@ -2822,12 +2956,16 @@ class GeneralAccessionExpander(InfoExpander):
         acc_private = self.widgets.acc_private_data
         if row.private:
             if acc_private.get_parent() != self.widgets.acc_code_box:
-                self.widgets.acc_code_box.pack_start(acc_private, True, True, 0)
+                self.widgets.acc_code_box.pack_start(
+                    acc_private, True, True, 0
+                )
         else:
             self.widgets.remove_parent(acc_private)
 
         self.widget_set_value(
-            "name_data", row.species_str(markup=True, authors=True), markup=True
+            "name_data",
+            row.species_str(markup=True, authors=True),
+            markup=True,
         )
 
         session = object_session(row)
@@ -2889,7 +3027,9 @@ class GeneralAccessionExpander(InfoExpander):
             if location:
                 set_count = True
                 if location.name and location.code:
-                    location_str = "{} ({})".format(location.name, location.code)
+                    location_str = "{} ({})".format(
+                        location.name, location.code
+                    )
                 elif location.name and not location.code:
                     location_str = "%s" % location.name
                 elif not location.name and location.code:
@@ -3120,7 +3260,11 @@ class AccessionInfoBox(InfoBox):
 
         # self.vouchers.update(row)
 
-        urls = [x for x in [utils.get_urls(note.note) for note in row.notes] if x != []]
+        urls = [
+            x
+            for x in [utils.get_urls(note.note) for note in row.notes]
+            if x != []
+        ]
         if not urls:
             self.links.set_visible = False
             self.links._sep.set_visible = False

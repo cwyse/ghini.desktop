@@ -36,7 +36,6 @@ from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorView
 from gi.repository import GLib
 
-pass
 
 
 logger = logging.getLogger(__name__)

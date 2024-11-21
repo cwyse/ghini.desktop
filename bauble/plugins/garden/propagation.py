@@ -45,7 +45,6 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import object_session
 
-pass
 
 
 logger = logging.getLogger(__name__)

@@ -1013,7 +1013,6 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
                 return
             except AttributeError as e:
                 logger.debug("AttributeError %s" % e)
-                pass
             cell.set_property("active", False)
 
         cell = self.view.widgets.vn_default_cell

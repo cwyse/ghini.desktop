@@ -31,9 +31,7 @@ from bauble.editor import GenericEditorView
 from bauble.test import BaubleTestCase
 from pyparsing import ParseException
 
-pass
 
-pass
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

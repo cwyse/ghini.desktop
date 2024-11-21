@@ -52,7 +52,6 @@ from sqlalchemy import Column
 from sqlalchemy import select
 from sqlalchemy import Unicode
 
-pass
 
 
 logger = logging.getLogger(__name__)
@@ -492,7 +491,6 @@ class Plugin:
         """
         init() is run when Ghini is first started
         """
-        pass
 
     @classmethod
     def install(cls, import_defaults=True):
@@ -500,7 +498,6 @@ class Plugin:
         install() is run when a new plugin is installed, it is usually
         only run once for the lifetime of the plugin
         """
-        pass
 
 
 class EditorPlugin(Plugin):

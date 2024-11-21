@@ -40,7 +40,6 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import synonym
 
-pass
 
 
 logger = logging.getLogger(__name__)

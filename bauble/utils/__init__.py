@@ -1260,7 +1260,6 @@ def range_builder(text):
     rng = Group(Word(nums) + Suppress("-") + Word(nums))
     range_list = delimitedList(rng | Word(nums))
 
-    pass
     try:
         tokens = range_list.parseString(text)
     except (AttributeError, ParseException) as e:

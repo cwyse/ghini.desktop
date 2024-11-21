@@ -226,7 +226,6 @@ class StandalonePluginMgrTests(unittest.TestCase):
         Test that the command handlers get properly registered...this
         could probably just be included in test_init()
         """
-        pass
 
     def test_successfulinit(self):
         "bauble.pluginmgr.init() should be successful"

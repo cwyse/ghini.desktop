@@ -26,11 +26,8 @@ from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
 from gi.repository import GObject
 
-pass
 
-pass
 
-pass
 
 logger = logging.getLogger(__name__)
 

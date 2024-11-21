@@ -21,7 +21,6 @@ from unittest import TestCase
 from bauble import prefs
 from bauble.plugins.garden.picture_importer import decode_parts
 
-pass
 
 
 logger = logging.getLogger(__name__)

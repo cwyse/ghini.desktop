@@ -49,7 +49,6 @@ from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy.orm import relationship
 
-pass
 
 
 logger = logging.getLogger(__name__)

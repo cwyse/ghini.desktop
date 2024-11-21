@@ -35,7 +35,6 @@ from bauble.plugins.plants import Genus
 from bauble.plugins.plants import Species
 from dateutil.parser import parse
 
-pass
 
 
 logger = logging.getLogger(__name__)
@@ -305,7 +304,6 @@ if False:
     )
     zzz = q.one()
 
-    pass
     import sys
 
     header = ["timestamp", "location", "acc_code", "imei", "species"]

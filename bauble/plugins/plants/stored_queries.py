@@ -28,7 +28,6 @@ from bauble import paths
 from bauble import pluginmgr
 from gi.repository import Pango
 
-pass
 
 
 logger = logging.getLogger(__name__)

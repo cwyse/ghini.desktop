@@ -32,11 +32,8 @@ from nose import SkipTest
 from pyparsing import *
 from sqlalchemy import *
 
-pass
 
 
-pass
-pass
 
 
 class UtilsGTKTests(unittest.TestCase):
@@ -165,7 +162,6 @@ class UtilsDBTests(BaubleTestCase):
         super().setUp()
         from sqlalchemy.orm import configure_mappers
 
-        pass
 
         configure_mappers()
 
@@ -241,7 +237,6 @@ class ResetSequenceTests(BaubleTestCase):
         # self.metadata.bind = db.engine
         from sqlalchemy.orm import configure_mappers
 
-        pass
 
         configure_mappers()
 

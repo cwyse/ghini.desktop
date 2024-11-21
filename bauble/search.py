@@ -53,12 +53,8 @@ from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.properties import RelationshipProperty
 
-pass
 
 
-pass
-pass
-pass
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -903,7 +899,6 @@ class SearchStrategy:
         logger.debug(
             'SearchStrategy "{}"({})'.format(text, self.__class__.__name__)
         )
-        pass
 
 
 class MapperSearch(SearchStrategy):

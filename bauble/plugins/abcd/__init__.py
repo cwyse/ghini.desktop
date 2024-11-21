@@ -146,7 +146,6 @@ class ABCDAdapter:
         """
         Add extra non required elements
         """
-        pass
 
     def __init__(self, obj):
         self._object = obj
@@ -155,37 +154,31 @@ class ABCDAdapter:
         """
         Get a value for the UnitID
         """
-        pass
 
     def get_family(self):
         """
         Get a value for the family.
         """
-        pass
 
     def get_FullScientificNameString(self, authors=True):
         """
         Get the full scientific name string.
         """
-        pass
 
     def get_GenusOrMonomial(self):
         """
         Get the Genus string.
         """
-        pass
 
     def get_FirstEpithet(self):
         """
         Get the first epithet.
         """
-        pass
 
     def get_AuthorTeam(self):
         """
         Get the Author string.
         """
-        pass
 
     def get_InfraspecificAuthor(self):
         pass
@@ -212,7 +205,6 @@ class ABCDAdapter:
         """
         Get the common name string.
         """
-        pass
 
 
 def create_abcd(decorated_objects, authors=True, validate=True):

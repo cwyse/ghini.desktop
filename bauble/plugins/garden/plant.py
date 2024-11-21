@@ -68,10 +68,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
 
-pass
 
-pass
-pass
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
