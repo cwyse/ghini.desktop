@@ -20,6 +20,7 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 import os
@@ -27,17 +28,20 @@ import os
 # TURN OFF desktop.open for this module so that the test doesn't open
 # the report
 import bauble.utils.desktop as desktop
+
 desktop.open = lambda x: x
 
-import bauble
-from bauble.test import BaubleTestCase
 from unittest import TestCase
-from bauble.plugins.plants import Family, Genus, Species, \
-    SpeciesDistribution, VernacularName, GeographicArea
-from bauble.plugins.garden import Accession, Plant, Location
-from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
-from bauble.plugins.report import get_pertinent_objects
+
+import bauble
 from bauble import utils as butils
+from bauble.plugins.garden import Accession, Location, Plant
+from bauble.plugins.plants import (Family, Genus, GeographicArea, Species,
+                                   SpeciesDistribution, VernacularName)
+from bauble.plugins.report import get_pertinent_objects
+from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
+from bauble.test import BaubleTestCase
+
 
 class Jinja2FormatterTests(BaubleTestCase):
 

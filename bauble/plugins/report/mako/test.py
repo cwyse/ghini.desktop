@@ -20,6 +20,7 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 import os
@@ -27,19 +28,20 @@ import os
 # TURN OFF desktop.open for this module so that the test doesn't open
 # the report
 import bauble.utils.desktop as desktop
+
 desktop.open = lambda x: x
 
-from bauble.test import BaubleTestCase
 from unittest import TestCase
-from bauble.plugins.plants import Family, Genus, Species, \
-    SpeciesDistribution, VernacularName, GeographicArea
-from bauble.plugins.garden import Accession, Plant, Location
-from bauble.plugins.report.mako import MakoFormatterPlugin
-from bauble.plugins.report import get_pertinent_objects
-from bauble import utils
 
-from bauble.plugins.report import PS, SVG
+from bauble import utils
+from bauble.plugins.garden import Accession, Location, Plant
+from bauble.plugins.plants import (Family, Genus, GeographicArea, Species,
+                                   SpeciesDistribution, VernacularName)
+from bauble.plugins.report import PS, SVG, get_pertinent_objects
+from bauble.plugins.report.mako import MakoFormatterPlugin
 from bauble.plugins.report.utils import Code39
+from bauble.test import BaubleTestCase
+
 
 class MakoFormatterTests(BaubleTestCase):
 
@@ -141,6 +143,7 @@ class MakoFormatterTests(BaubleTestCase):
 
     def test_format_qr_svg_templates(self):
         from nose import SkipTest
+
         #raise SkipTest("related to issue #363")
         plants = self.session.query(Plant).all()
         # td is this module name, minus mako/test, plus templates

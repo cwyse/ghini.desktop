@@ -18,10 +18,11 @@
 #
 
 
-from bauble.test import BaubleTestCase
-from .taxonomy_check import species_to_fix
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
+from bauble.test import BaubleTestCase
+
+from .taxonomy_check import species_to_fix
 
 
 class TestOne(BaubleTestCase):

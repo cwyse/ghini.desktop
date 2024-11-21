@@ -21,36 +21,33 @@
 #
 # source.py
 #
+import logging
 import os
 import traceback
 import weakref
 from random import random
 
-import logging
 logger = logging.getLogger(__name__)
 
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GObject
-
-from sqlalchemy import Column, Unicode, Integer, ForeignKey,\
-    Float, UnicodeText, select
+from gi.repository import Gdk, GObject, Gtk
+from sqlalchemy import (Column, Float, ForeignKey, Integer, Unicode,
+                        UnicodeText, select, text)
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship
-from sqlalchemy import text
 
+import bauble.btypes as types
 import bauble.db as db
 import bauble.editor as editor
-from bauble.plugins.plants.geography import GeographicArea, GeographicAreaMenu
-import bauble.utils as utils
-import bauble.btypes as types
-import bauble.view as view
 import bauble.paths as paths
+import bauble.utils as utils
+import bauble.view as view
+from bauble.plugins.plants.geography import GeographicArea, GeographicAreaMenu
 from bauble.utils import safe_set_text
 from bauble.utils import safe_set_props
 
 def collection_edit_callback(coll):
     from bauble.plugins.garden.accession import edit_callback
+
     # TODO: set the tab to the source tab on the accession editor
     return edit_callback([coll[0].source.accession])
 
@@ -389,8 +386,8 @@ class CollectionPresenter(editor.ChildPresenter):
         return self._dirty
 
     def refresh_view(self):
-        from bauble.plugins.garden.accession import latitude_to_dms, \
-            longitude_to_dms
+        from bauble.plugins.garden.accession import (latitude_to_dms,
+                                                     longitude_to_dms)
         for widget, field in list(self.widget_to_field_map.items()):
             value = getattr(self.model, field)
             logger.debug('{}, {}, {}'.format(widget, field, value))
@@ -492,6 +489,7 @@ class CollectionPresenter(editor.ChildPresenter):
 
         import re
         from decimal import Decimal
+
         from bauble.plugins.garden.accession import dms_to_decimal
         parts = re.split(':| ', text.strip())
         if len(parts) == 1:

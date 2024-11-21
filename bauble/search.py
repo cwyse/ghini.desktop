@@ -19,28 +19,24 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 
+import logging
 import weakref
 
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from sqlalchemy import or_, and_
-from sqlalchemy import Unicode
-from sqlalchemy import UnicodeText
+from sqlalchemy import Unicode, UnicodeText, and_, or_
 from sqlalchemy.orm import class_mapper
-from sqlalchemy.orm.properties import (
-    ColumnProperty, RelationshipProperty)
+from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
+
 RelationProperty = RelationshipProperty
 
 import bauble
-from bauble.error import check
 import bauble.utils as utils
-
-from bauble.editor import (
-    GenericEditorView, GenericEditorPresenter)
+from bauble.editor import GenericEditorPresenter, GenericEditorView
+from bauble.error import check
 
 
 def search(text, session=None):
@@ -660,12 +656,11 @@ class ValueListAction:
         return result
 
 
-from pyparsing import (
-    Word, alphas8bit, removeQuotes, delimitedList, Regex,
-    ZeroOrMore, OneOrMore, oneOf, alphas, alphanums, Group, Literal,
-    CaselessLiteral, WordStart, WordEnd, srange,
-    stringEnd, Keyword, quotedString,
-    infixNotation, opAssoc, Forward)
+from pyparsing import (CaselessLiteral, Forward, Group, Keyword, Literal,
+                       OneOrMore, Regex, Word, WordEnd, WordStart, ZeroOrMore,
+                       alphanums, alphas, alphas8bit, delimitedList,
+                       infixNotation, oneOf, opAssoc, quotedString,
+                       removeQuotes, srange, stringEnd)
 
 wordStart, wordEnd = WordStart(), WordEnd()
 

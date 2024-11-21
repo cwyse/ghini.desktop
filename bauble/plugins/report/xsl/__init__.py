@@ -27,30 +27,29 @@ objects, converts them to the ABCD XML format, transforms the ABCD
 data to an XSL formatting stylesheet and uses a XSL-PDF renderer to
 convert the stylesheet to PDF.
 """
+import logging
+import os
+import re
 import shutil
 import sys
-import os
 import tempfile
-import re
 
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 
 #from sqlalchemy import *
 from sqlalchemy.orm import object_session
 
 import bauble.db as db
-from bauble.plugins.plants.species import Species
-from bauble.plugins.garden.plant import Plant
-from bauble.plugins.garden.accession import Accession
-from bauble.plugins.abcd import create_abcd, ABCDAdapter, ABCDElement
-from bauble.plugins.report import FormatterPlugin
+import bauble.paths as bpaths
 import bauble.prefs as prefs
 import bauble.utils as butils
-import bauble.paths as bpaths
-
+from bauble.plugins.abcd import ABCDAdapter, ABCDElement, create_abcd
+from bauble.plugins.garden.accession import Accession
+from bauble.plugins.garden.plant import Plant
+from bauble.plugins.plants.species import Species
+from bauble.plugins.report import FormatterPlugin
 
 if sys.platform == "win32":
     fop_cmd = 'fop.bat'

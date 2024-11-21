@@ -19,6 +19,7 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -28,6 +29,7 @@ consoleHandler.setLevel(logging.DEBUG)
 logging.getLogger().setLevel(logging.DEBUG)
 
 import os.path
+
 path = os.path.dirname(os.path.realpath(__file__))
 
 import json
@@ -37,11 +39,8 @@ with open(os.path.join(path, 'settings.json')) as f:
 
 import bauble.db
 import bauble.utils
-
-from bauble.plugins.garden import Plant
-from bauble.plugins.garden import Accession
-from bauble.plugins.plants import Species
-from bauble.plugins.plants import Genus
+from bauble.plugins.garden import Accession, Plant
+from bauble.plugins.plants import Genus, Species
 
 bauble.db.open(dburi, True, True)
 session = bauble.db.Session()
@@ -55,10 +54,13 @@ q = q.join(Genus).filter(Genus.epithet == 'Zzz')
 zzzsp = q.one()
 
 import sys
+
 conflicting = {}
 unknown = []
 
-import fileinput, re
+import fileinput
+import re
+
 for line in fileinput.input():
     sys.stdout.flush()
     text = str(line.strip())

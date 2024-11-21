@@ -18,28 +18,34 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 
-import gi
 import imp
+
+import gi
+
 gi.require_version('Gtk', '3.0')
 
 import os
 
-from sqlalchemy import or_
-#from sqlalchemy.exc import *
-
 from nose import SkipTest
+from sqlalchemy import or_
 
 from bauble import prefs
+
+#from sqlalchemy.exc import *
+
+
 prefs.testing = True
 
+from functools import partial
+
+from gi.repository import Gtk
+
 import bauble.plugins.tag as tag_plugin
+import bauble.utils as utils
+from bauble.editor import GenericEditorView, MockView
 from bauble.plugins.plants import Family
 from bauble.plugins.tag import Tag, TagEditorPresenter, TagInfoBox
 from bauble.test import BaubleTestCase, check_dupids, mockfunc
-from bauble.editor import GenericEditorView, MockView
-import bauble.utils as utils
-from functools import partial
-from gi.repository import Gtk
 
 try:
     from importlib import reload
@@ -50,8 +56,9 @@ def test_duplicate_ids():
     """
     Test for duplicate ids for all .glade files in the tag plugin.
     """
-    import bauble.plugins.tag as mod
     import glob
+
+    import bauble.plugins.tag as mod
     head, tail = os.path.split(mod.__file__)
     files = glob.glob(os.path.join(head, '*.glade'))
     for f in files:

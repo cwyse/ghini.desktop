@@ -19,18 +19,16 @@
 #
 
 import logging
+
 logger = logging.getLogger(__name__)
 
-from bauble.plugins.garden.plant import Plant
-from bauble.plugins.garden.accession import Accession
-
-from bauble import db
-from bauble import pluginmgr
-
-
-from gi.repository import Gtk
-from gi.repository import GObject
 import os
+
+from gi.repository import GObject, Gtk
+
+from bauble import db, pluginmgr
+from bauble.plugins.garden.accession import Accession
+from bauble.plugins.garden.plant import Plant
 
 
 def create_pocket(filename):
@@ -87,6 +85,7 @@ CREATE TABLE "plant" (
 
 
 import threading
+
 
 class ExportToPocketThread(threading.Thread):
     def __init__(self, filename, progressbar=None, callback=None, include_private=True):

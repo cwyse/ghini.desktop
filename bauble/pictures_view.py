@@ -17,9 +17,10 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
 
+import logging
+
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -51,6 +52,7 @@ class PicturesView(Gtk.HBox):
             return
         self.fake = False
         import os
+
         from bauble import paths
         glade_file = os.path.join(
             paths.lib_dir(), 'pictures_view.glade')

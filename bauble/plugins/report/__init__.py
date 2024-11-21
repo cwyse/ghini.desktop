@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 #
 # __init__.py
 #
@@ -27,33 +28,28 @@
 import os
 import traceback
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GObject
 
+gi.require_version('Gtk', '3.0')
 from threading import Thread
 
+from gi.repository import Gdk, GObject, Gtk
 from sqlalchemy import union
 
 import bauble
-
-from bauble.error import BaubleError
-import bauble.utils as butils
 import bauble.paths as bpaths
-from bauble.prefs import prefs
 import bauble.pluginmgr as pluginmgr
+import bauble.utils as butils
+from bauble.editor import GenericEditorPresenter, GenericEditorView
+from bauble.error import BaubleError
+from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
 from bauble.plugins.plants import Family, Genus, Species, VernacularName
-from bauble.plugins.garden import Accession, Plant, Location, Source, Contact
 from bauble.plugins.tag import Tag
+from bauble.prefs import prefs
 from bauble.utils import safe_set_text
-from bauble.editor import (
-    GenericEditorView, GenericEditorPresenter)
 
 from .flat_export import FlatFileExportTool
 from .utils import PS, SVG
@@ -900,15 +896,15 @@ class ReportToolPlugin(pluginmgr.Plugin):
 
 
 try:
-    import lxml.etree as etree
     import lxml._elementpath  # put this here so py2exe picks it up
+    import lxml.etree as etree
 except ImportError:
     butils.message_dialog('The <i>lxml</i> package is required for the '
                          'Report plugin')
 else:
     def plugin():
-        from bauble.plugins.report.xsl import XSLFormatterPlugin
-        from bauble.plugins.report.mako import MakoFormatterPlugin
         from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
+        from bauble.plugins.report.mako import MakoFormatterPlugin
+        from bauble.plugins.report.xsl import XSLFormatterPlugin
         return [ReportToolPlugin, XSLFormatterPlugin,
                 MakoFormatterPlugin, Jinja2FormatterPlugin]

@@ -23,54 +23,45 @@
 
 
 import datetime
-from decimal import Decimal, ROUND_DOWN
+import logging
 import os
-from random import random
 import sys
 import traceback
 import weakref
-
-import logging
+from decimal import ROUND_DOWN, Decimal
 from functools import reduce
+from random import random
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from gi.repository import Gtk
-
-
 import lxml.etree as etree
-from gi.repository import Pango
-from sqlalchemy import and_, or_, func
-from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
-    UnicodeText
-from sqlalchemy.orm import relationship, reconstructor, validates
-from sqlalchemy.orm.session import object_session
+from gi.repository import Gtk, Pango
+from sqlalchemy import (Boolean, Column, ForeignKey, Integer, Unicode,
+                        UnicodeText, and_, event, func, or_, text)
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy import text
+from sqlalchemy.orm import mapper, reconstructor, relationship, validates
+from sqlalchemy.orm.session import object_session
 
 import bauble
+import bauble.btypes as types
 import bauble.db as db
 import bauble.editor as editor
+import bauble.paths as paths
+import bauble.prefs as prefs
+import bauble.utils as utils
+import bauble.view as view
 from bauble import meta
 from bauble.error import check
-import bauble.paths as paths
-from bauble.plugins.garden.propagation import SourcePropagationPresenter, \
-    Propagation
-from bauble.plugins.garden.source import Contact, create_contact, \
-    Source, Collection, CollectionPresenter, PropagationChooserPresenter
-import bauble.prefs as prefs
-import bauble.btypes as types
-import bauble.utils as utils
-from bauble.utils import safe_set_text
-from bauble.utils import safe_set_props
-from bauble.view import (InfoBox, InfoExpander, PropertiesExpander,
-                         MapInfoExpander,
-                         select_in_search_results, Action)
-import bauble.view as view
+from bauble.plugins.garden.propagation import (Propagation,
+                                               SourcePropagationPresenter)
+from bauble.plugins.garden.source import (Collection, CollectionPresenter,
+                                          Contact, PropagationChooserPresenter,
+                                          Source, create_contact)
 from bauble.search import SearchStrategy
 from bauble.utils import safe_int
-from sqlalchemy import event
-from sqlalchemy.orm import mapper
+from bauble.view import (Action, InfoBox, InfoExpander, MapInfoExpander,
+                         PropertiesExpander, select_in_search_results)
 
 # TODO: underneath the species entry create a label that shows information
 # about the family of the genus of the species selected as well as more
@@ -2510,7 +2501,6 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
 # import at the bottom to avoid circular dependencies
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species_model import Species, SpeciesSynonym
-
 
 #
 # infobox for searchview

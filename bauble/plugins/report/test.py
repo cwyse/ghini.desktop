@@ -21,11 +21,11 @@
 
 import os
 
-from bauble.test import BaubleTestCase, check_dupids
-from bauble.plugins.report import get_pertinent_objects
+from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
 from bauble.plugins.plants import Family, Genus, Species, VernacularName
-from bauble.plugins.garden import Accession, Plant, Location, Source, Contact
-from bauble.plugins.tag import tag_objects, Tag
+from bauble.plugins.report import get_pertinent_objects
+from bauble.plugins.tag import Tag, tag_objects
+from bauble.test import BaubleTestCase, check_dupids
 
 
 def setUp_test_data():
@@ -40,8 +40,9 @@ def test_duplicate_ids():
     """
     Test for duplicate ids for all .glade files in the gardens plugin.
     """
-    import bauble.plugins.report as mod
     import glob
+
+    import bauble.plugins.report as mod
     head, tail = os.path.split(mod.__file__)
     files = []
     files.extend(glob.glob(os.path.join(head, '*.glade')))

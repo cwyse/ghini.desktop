@@ -23,19 +23,21 @@
 #
 
 import os
-import gi
 
-from gi.repository import Gtk, Gdk
+import gi
+from gi.repository import Gdk, Gtk
 
 # mapping stuff
 gi.require_version('GtkClutter', '1.0')
 gi.require_version('GtkChamplain', '0.12')
 gi.require_version('Champlain', '0.12')
-from gi.repository import GtkClutter, Clutter, GtkChamplain
+from gi.repository import Clutter, GtkChamplain, GtkClutter
+
 GtkClutter.init([])  # needed before importing Champlain
+import logging
+
 from gi.repository import Champlain
 
-import logging
 logger = logging.getLogger(__name__)
 
 import re

@@ -19,7 +19,7 @@
 #
 # meta.py
 #
-from sqlalchemy import Unicode, UnicodeText, Column
+from sqlalchemy import Column, Unicode, UnicodeText
 
 import bauble.db as db
 import bauble.utils as utils

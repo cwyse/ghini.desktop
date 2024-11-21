@@ -17,17 +17,17 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from gi.repository import Gtk
-from gi.repository import Pango
-
 import logging
+
+from gi.repository import Gtk, Pango
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-import bauble
-from bauble import db, meta, editor, paths, pluginmgr
-
 import os.path
+
+import bauble
+from bauble import db, editor, meta, paths, pluginmgr
 
 
 class StoredQueriesModel:

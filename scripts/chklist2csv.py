@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-import sys, re, csv
+import csv
+import re
+import sys
 
 data_dir = '/home/brett/devel/bauble/data/'
 families_file = data_dir + 'csv/Family.txt'

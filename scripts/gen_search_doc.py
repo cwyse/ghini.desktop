@@ -14,7 +14,8 @@
 Generate docs about search strategies, mapper properties, etc.
 """
 
-import os, sys
+import os
+import sys
 
 if 'PYTHONPATH' in os.environ:
     sys.path.insert(0, os.environ['PYTHONPATH'])
@@ -22,9 +23,9 @@ if 'PYTHONPATH' in os.environ:
 import sqlalchemy as sa
 
 import bauble
+import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 from bauble.prefs import prefs
-import bauble.paths as paths
 
 uri = 'sqlite:///:memory:'
 bauble.open_database(uri, verify=False)
@@ -51,7 +52,7 @@ for mod in modules:
 
 
 
-from sqlalchemy.orm.properties import PropertyLoader, ColumnProperty
+from sqlalchemy.orm.properties import ColumnProperty, PropertyLoader
 
 for item in classes:
     mapper = sa.orm.class_mapper(item)

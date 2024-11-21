@@ -32,11 +32,12 @@
 # database is created there should be a way to recreate everything from scratch
 
 
+import logging
 import os
 import sys
+
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -46,37 +47,34 @@ import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
-from bauble.plugins.plants.family import (
-    Familia, Family, FamilyInfoBox, FamilyEditor, FamilyNote,
-    family_context_menu)
-from bauble.plugins.plants.genus import (
-    Genus, GenusEditor, GenusInfoBox, GenusNote,
-    genus_context_menu,
-    )
-from bauble.plugins.plants.species import (
-    Species, SpeciesEditor, SpeciesInfoBox, SpeciesNote,
-    species_context_menu, add_accession_action,
-    SynonymSearch, SpeciesDistribution,
-    VernacularName, VernacularNameInfoBox,
-    vernname_context_menu,
-    )
-from bauble.plugins.plants.geography import (
-    GeographicArea, get_species_in_geographic_area)
-from .taxonomy_check import (
-    TaxonomyCheckTool)
-from .stored_queries import (
-    StoredQueryEditorTool)
 import bauble.search as search
-from bauble.view import SearchView
-from bauble.ui import DefaultView
-from bauble.utils import safe_set_text
 from bauble import utils
+from bauble.plugins.plants.family import (Familia, Family, FamilyEditor,
+                                          FamilyInfoBox, FamilyNote,
+                                          family_context_menu)
+from bauble.plugins.plants.genus import (Genus, GenusEditor, GenusInfoBox,
+                                         GenusNote, genus_context_menu)
+from bauble.plugins.plants.geography import (GeographicArea,
+                                             get_species_in_geographic_area)
+from bauble.plugins.plants.species import (Species, SpeciesDistribution,
+                                           SpeciesEditor, SpeciesInfoBox,
+                                           SpeciesNote, SynonymSearch,
+                                           VernacularName,
+                                           VernacularNameInfoBox,
+                                           add_accession_action,
+                                           species_context_menu,
+                                           vernname_context_menu)
+from bauble.ui import DefaultView
+from bauble.view import SearchView
 
+from .stored_queries import StoredQueryEditorTool
+from .taxonomy_check import TaxonomyCheckTool
 
 ## naming locally unused objects. will be imported by clients of the module
 Familia, SpeciesDistribution,
 
 from threading import Thread
+
 from gi.repository import GObject
 
 

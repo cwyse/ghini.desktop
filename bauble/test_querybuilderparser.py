@@ -16,9 +16,12 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 
-from .querybuilderparser import BuiltQuery
-from bauble.test import BaubleTestCase
 from nose import SkipTest
+
+from bauble.test import BaubleTestCase
+
+from .querybuilderparser import BuiltQuery
+
 
 class QBP(BaubleTestCase):
     def test_and_clauses(self):

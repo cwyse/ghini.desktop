@@ -21,10 +21,13 @@ if sys.platform != 'win32':
     sys.exit(1)
 
 import os
-import urllib.request, urllib.parse, urllib.error
-import zipfile
+import urllib.error
+import urllib.parse
+import urllib.request
 import winreg
+import zipfile
 from optparse import OptionParser
+
 parser = OptionParser()
 parser.add_option('-r', '--redl', action='store_true', dest='redl',
                   default=False, help="redownload existing files")

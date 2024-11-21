@@ -228,6 +228,5 @@ def open(url, desktop=None, wait=0, dialog_on_error=False):
     """Open the 'url' in the current desktop's preferred client. 
     """
 
-    from gi.repository import Gtk
-    from gi.repository import Gdk
+    from gi.repository import Gdk, Gtk
     Gtk.show_uri_on_window(None, url, Gdk.CURRENT_TIME)

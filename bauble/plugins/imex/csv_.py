@@ -25,27 +25,24 @@
 #
 
 
-import os
 import csv
+import logging
+import os
 import traceback
 
-import logging
 logger = logging.getLogger(__name__)
 
 from gi.repository import Gtk
-
-from sqlalchemy import ColumnDefault, Boolean
+from sqlalchemy import Boolean, ColumnDefault
+from sqlalchemy.orm import configure_mappers
 
 import bauble
 import bauble.db as db
-
-from bauble.error import BaubleError
-import bauble.utils as utils
 import bauble.pluginmgr as pluginmgr
 import bauble.task
-from bauble import pb_set_fraction
-from bauble import paths
-from sqlalchemy.orm import configure_mappers
+import bauble.utils as utils
+from bauble import paths, pb_set_fraction
+from bauble.error import BaubleError
 
 # TODO: i've also had a problem with bad insert statements, e.g. importing a
 # geography table after creating a new database and it doesn't use the

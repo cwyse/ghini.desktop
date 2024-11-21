@@ -22,31 +22,27 @@
 #
 
 
+import logging
 import os
 import traceback
 
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GdkPixbuf
+from gi.repository import Gdk, GdkPixbuf, Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 import bauble
 import bauble.db as db
-from bauble import querybuilder
-
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
-from bauble.prefs import prefs
 import bauble.search as search
 import bauble.utils as utils
 import bauble.utils.desktop as desktop
+from bauble import querybuilder
+from bauble.editor import GenericEditorPresenter, GenericEditorView
+from bauble.prefs import prefs
 from bauble.utils import safe_set_text
 from bauble.view import SearchView
-from bauble.editor import (
-    GenericEditorView, GenericEditorPresenter)
 
 
 class DefaultView(pluginmgr.View):
@@ -159,6 +155,7 @@ def create_menu_item_with_image(label, icon_name=None, base_dir=None):
 
 from bauble.db import engine
 
+
 class GUI:
 
     entry_history_pref = 'bauble.history'
@@ -248,8 +245,8 @@ class GUI:
         vbox.show()
         hbox.show()
 
-        from pyparsing import StringStart, Word, alphanums, restOfLine, \
-            StringEnd
+        from pyparsing import (StringEnd, StringStart, Word, alphanums,
+                               restOfLine)
         cmd = StringStart() + ':' + Word(
             alphanums + '-_').setResultsName('cmd')
         arg = restOfLine.setResultsName('arg')

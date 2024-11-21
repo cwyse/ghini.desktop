@@ -20,6 +20,7 @@
 
 import math
 
+
 class OutOfRangeError(ValueError):
     pass
 

@@ -10,9 +10,10 @@
 # create file to hold all the common db code
 
 
-import sys, os
-from optparse import OptionParser
+import os
+import sys
 from getpass import getpass
+from optparse import OptionParser
 
 usage = 'usage: %prog [options] dbname'
 parser = OptionParser(usage)

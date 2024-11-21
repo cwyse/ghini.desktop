@@ -19,23 +19,22 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 
+import logging
 from itertools import chain
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+from sqlalchemy import (Boolean, Column, ForeignKey, Integer, Unicode,
+                        UnicodeText, UniqueConstraint, func, text)
 from sqlalchemy.ext.associationproxy import association_proxy
-
-from sqlalchemy import Column, Boolean, Unicode, Integer, ForeignKey, \
-    UnicodeText, func, UniqueConstraint
-from sqlalchemy.orm import relationship, synonym
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship, synonym
+
+import bauble.btypes as types
 import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
-import bauble.btypes as types
-from sqlalchemy import text
 
 
 def _remove_zws(s):

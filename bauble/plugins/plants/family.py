@@ -20,36 +20,32 @@
 #
 # Family table definition
 #
+import logging
 import os
 import traceback
 import weakref
 
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 
-from sqlalchemy import Column, Unicode, Integer, ForeignKey, \
-    UnicodeText, func, and_, UniqueConstraint, String
-from sqlalchemy.orm import relationship, validates, synonym
-from sqlalchemy.orm.session import object_session
+from sqlalchemy import (Column, ForeignKey, Integer, String, Unicode,
+                        UnicodeText, UniqueConstraint, and_, func, text)
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy import text
-from sqlalchemy.orm import joinedload
-from sqlalchemy import text
+from sqlalchemy.orm import joinedload, relationship, synonym, validates
+from sqlalchemy.orm.session import object_session
 
 import bauble
+import bauble.btypes as types
 import bauble.db as db
-import bauble.pluginmgr as pluginmgr
 import bauble.editor as editor
+import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.utils.web as web
-import bauble.btypes as types
-from bauble.prefs import prefs
 import bauble.view as view
+from bauble.prefs import prefs
 from bauble.utils import safe_set_props
-
 
 def edit_callback(families):
     """
@@ -762,14 +758,14 @@ class FamilyEditor(editor.GenericModelViewPresenterEditor):
         return self._committed
 
 
+import bauble.paths as paths
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.species_model import Species
 #
 # Family infobox
 #
 from bauble.view import (InfoBox, InfoExpander, PropertiesExpander,
                          select_in_search_results)
-import bauble.paths as paths
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.species_model import Species
 
 
 class GeneralFamilyExpander(InfoExpander):

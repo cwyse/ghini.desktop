@@ -20,9 +20,10 @@
 #
 
 
+import logging
+
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 
 logger.setLevel(logging.INFO)
@@ -33,21 +34,23 @@ import traceback
 from sqlalchemy.orm.session import object_session
 
 import bauble
-import bauble.paths as paths
 import bauble.db as db
-
+import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
-from bauble.prefs import prefs
-import bauble.utils as utils
-from bauble.plugins.plants.species_editor import (
-    SpeciesDistribution, SpeciesEditorPresenter, SpeciesEditorView,
-    SpeciesEditor, edit_species)
-from bauble.plugins.plants.species_model import (
-    Species, SpeciesNote, VernacularName, SpeciesSynonym,
-    DefaultVernacularName)
 import bauble.search as search
-from bauble.view import PropertiesExpander, Action
+import bauble.utils as utils
 import bauble.view as view
+from bauble.plugins.plants.species_editor import (SpeciesDistribution,
+                                                  SpeciesEditor,
+                                                  SpeciesEditorPresenter,
+                                                  SpeciesEditorView,
+                                                  edit_species)
+from bauble.plugins.plants.species_model import (DefaultVernacularName,
+                                                 Species, SpeciesNote,
+                                                 SpeciesSynonym,
+                                                 VernacularName)
+from bauble.prefs import prefs
+from bauble.view import Action, PropertiesExpander
 
 SpeciesDistribution  # will be imported by clients of this module
 SpeciesEditorPresenter, SpeciesEditorView, SpeciesEditor, edit_species,
@@ -122,8 +125,8 @@ species_context_menu = [edit_action, remove_action]
 vernname_context_menu = [edit_action]
 
 
-from bauble.view import InfoBox, InfoBoxPage, InfoExpander, \
-    select_in_search_results
+from bauble.view import (InfoBox, InfoBoxPage, InfoExpander,
+                         select_in_search_results)
 
 
 class SynonymSearch(search.SearchStrategy):

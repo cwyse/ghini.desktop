@@ -22,8 +22,7 @@
 from operator import itemgetter
 
 from gi.repository import Gtk
-
-from sqlalchemy import select, Column, Unicode, String, Integer, ForeignKey
+from sqlalchemy import Column, ForeignKey, Integer, String, Unicode, select
 from sqlalchemy.orm import object_session, relationship
 
 import bauble.db as db
@@ -38,8 +37,9 @@ def get_species_in_geographic_area(geo):
         ValueError('get_species_in_geographic_area(): geographic_area is not in a session')
 
     # get all the geographic_area children under geo
-    from bauble.plugins.plants.species_model import SpeciesDistribution, \
-        Species
+    from bauble.plugins.plants.species_model import (Species,
+                                                     SpeciesDistribution)
+
     # get the children of geo
     geo_table = geo.__table__
     master_ids = {geo.id}

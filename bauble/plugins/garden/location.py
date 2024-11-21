@@ -19,27 +19,27 @@
 #
 # location.py
 #
+import logging
 import os
 import traceback
+
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from sqlalchemy import Column, Unicode, UnicodeText
+from sqlalchemy import Column, Unicode, UnicodeText, text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.orm.session import object_session
-from sqlalchemy.exc import DBAPIError
-from sqlalchemy import text
 
 import bauble
 import bauble.db as db
-from bauble.editor import (GenericModelViewPresenterEditor, GenericEditorView,
-                           GenericEditorPresenter, UnicodeOrNoneValidator,
-                           NotesPresenter)
-import bauble.utils as utils
 import bauble.paths as paths
+import bauble.utils as utils
+from bauble.editor import (GenericEditorPresenter, GenericEditorView,
+                           GenericModelViewPresenterEditor, NotesPresenter,
+                           UnicodeOrNoneValidator)
 from bauble.view import Action
 
 
@@ -435,7 +435,7 @@ class LocationEditor(GenericModelViewPresenterEditor):
             e = LocationEditor(parent=self.parent)
             more_committed = e.start()
         elif response == self.RESPONSE_OK_AND_ADD:
-            from bauble.plugins.garden.plant import PlantEditor, Plant
+            from bauble.plugins.garden.plant import Plant, PlantEditor
             e = PlantEditor(Plant(location=self.model), self.parent)
             more_committed = e.start()
         if more_committed is not None:
@@ -460,7 +460,8 @@ class LocationEditor(GenericModelViewPresenterEditor):
         return self._committed
 
 
-from bauble.view import InfoBox, InfoExpander, PropertiesExpander, MapInfoExpander
+from bauble.view import (InfoBox, InfoExpander, MapInfoExpander,
+                         PropertiesExpander)
 
 
 class GeneralLocationExpander(InfoExpander):

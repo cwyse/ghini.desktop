@@ -26,14 +26,14 @@
 import sys
 import unittest
 
+from nose import SkipTest
 from pyparsing import *
 from sqlalchemy import *
-from nose import SkipTest
 
 import bauble
 import bauble.db as db
-from bauble.error import check, CheckConditionError
 import bauble.utils as utils
+from bauble.error import CheckConditionError, check
 from bauble.test import BaubleTestCase
 
 
@@ -144,18 +144,19 @@ class UtilsDBTests(BaubleTestCase):
     def setUp(self):
         super().setUp()
         from sqlalchemy.orm import configure_mappers
-        from bauble.db import metadata, engine
+
+        from bauble.db import engine, metadata
         configure_mappers()
 
     def tearDown(self):
         super().tearDown()
-        from bauble.db import metadata, engine
+        from bauble.db import engine, metadata
         metadata.drop_all(engine)
 
     def test_find_dependent_tables(self):
-#        metadata = MetaData()
-#        metadata.bind = db.engine
-        from bauble.db import metadata, engine
+metadata = MetaData()
+         metadata.bind = db.engine
+        from bauble.db import engine, metadata
 
         # table1 does't depend on any tables
         table1 = Table('table1', metadata,
@@ -208,13 +209,14 @@ class ResetSequenceTests(BaubleTestCase):
         #self.metadata = MetaData()
         #self.metadata.bind = db.engine
         from sqlalchemy.orm import configure_mappers
-        from bauble.db import metadata, engine
+
+        from bauble.db import engine, metadata
         configure_mappers()
 
     def tearDown(self):
         super().tearDown()
         #self.metadata.drop_all()
-        from bauble.db import metadata, engine
+        from bauble.db import engine, metadata
         metadata.drop_all(engine)
 
     @staticmethod
@@ -234,7 +236,7 @@ class ResetSequenceTests(BaubleTestCase):
         # This only tests that reset_sequence() doesn't fail if there is
         # no sequence.
 
-        from bauble.db import metadata, engine
+        from bauble.db import engine, metadata
 
         # test that a column without an explicit sequence works
         table = Table('test_reset_sequence', self.metadata,
@@ -277,6 +279,7 @@ class ResetSequenceTests(BaubleTestCase):
         self.assertTrue(currval > rangemax, currval)
 
 from bauble.utils import topological_sort
+
 
 class TopologicalSortTests(unittest.TestCase):
     def test_empty_dependencies(self):

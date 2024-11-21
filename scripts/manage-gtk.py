@@ -1,7 +1,8 @@
 # rename gtk dir
 # copy gtk to dist dir and run gdk-query-pixbuf-loaders
 
-import os, sys
+import os
+import sys
 
 if sys.platform != 'win32':
     print('only for win32')
@@ -11,6 +12,7 @@ GTK_PATH = 'c:\\GTK'
 GTK_OFF_PATH = 'c:\\GTK.off'
 
 from optparse import OptionParser
+
 parser = OptionParser()
 (options, args) = parser.parse_args()
 
@@ -20,6 +22,7 @@ if len(args) < 1 or args[0] not in cmds:
     parser.error('expecting a command: %s' % str(cmds))
 
 import shutil
+
 if args[0] == 'off':
     if os.path.exists(GTK_OFF_PATH):
         print('%s already exists' % GTK_OFF_PATH)

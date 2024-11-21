@@ -20,22 +20,24 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import gi
+
 gi.require_version('Gtk', '3.0')
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from sqlalchemy.orm import class_mapper
-from sqlalchemy import text
-
 import datetime
+import json
 import os
 import re
-import bauble.error as error
-import json
-from bauble.utils import parse_date
 
+from sqlalchemy import text
+from sqlalchemy.orm import class_mapper
+
+import bauble.error as error
+from bauble.utils import parse_date
 
 try:
     import sqlalchemy as sa
@@ -53,10 +55,9 @@ except ImportError:
     raise
 
 
-from gi.repository import Gtk
-
 import sqlalchemy.orm as orm
-from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
+from gi.repository import Gtk
+from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
 
 import bauble.btypes as types
 import bauble.utils as utils
@@ -167,6 +168,7 @@ An instance of :class:`sqlalchemy.ext.declarative.Base`
 
 from sqlalchemy import event
 
+
 def add_history_entry(operation, instance):
     """Helper function to add history entry."""
     session = orm.object_session(instance)
@@ -263,11 +265,12 @@ def open(uri, verify=True, show_error_dialogs=False):
 
     # ** WARNING: this can print your passwd
     logger.debug('db.open(%s)' % uri)
-    from sqlalchemy.orm import sessionmaker, scoped_session
+    from sqlalchemy.orm import scoped_session, sessionmaker
     global engine
     new_engine = None
 
     import sqlalchemy.pool
+
     import bauble.prefs
     if bauble.prefs.testing:  # this causes trouble in production but works
                               # in testing.  who can explain?  #133, #425
@@ -335,10 +338,11 @@ def create(import_defaults=True):
     logger.debug('entered db.create()')
     if not engine:
         raise ValueError('engine is None, not connected to a database')
+    import datetime
+
     import bauble
     import bauble.meta as meta
     from bauble import pluginmgr
-    import datetime
 
     connection = engine.connect()
     transaction = connection.begin()
@@ -457,11 +461,13 @@ def verify_connection(engine, show_error_dialogs=False):
         raise error.EmptyDatabaseError()
 
     import bauble.meta as meta
+
     # check that the database we connected to has the bauble meta table
     if not engine.has_table(meta.BaubleMeta.__tablename__):
         raise error.MetaTableError()
 
     from sqlalchemy.orm import sessionmaker
+
     # if we don't close this session before raising an exception then we
     # will probably get deadlocks....i'm not really sure why
     session = sessionmaker(bind=engine)()

@@ -22,31 +22,29 @@
 
 
 import datetime
+import logging
 import os
-import weakref
 import traceback
+import weakref
 
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from sqlalchemy import Column, Integer, ForeignKey, UnicodeText, Unicode
+from sqlalchemy import Column, ForeignKey, Integer, Unicode, UnicodeText, text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import object_session
-from sqlalchemy.exc import DBAPIError
-from sqlalchemy import text
 
 import bauble
-import bauble.db as db
-import bauble.utils as utils
-import bauble.paths as paths
-import bauble.editor as editor
-import bauble.prefs as prefs
 import bauble.btypes as types
+import bauble.db as db
+import bauble.editor as editor
+import bauble.paths as paths
+import bauble.prefs as prefs
+import bauble.utils as utils
 from bauble.utils import parse_date
-
 
 prop_type_values = {
     'Seed': _("Seed"),
@@ -58,7 +56,7 @@ prop_type_results = {
     'UnrootedCutting': 'RCUT',
 }
 
-from sqlalchemy import Table, Column, Integer, ForeignKey
+from sqlalchemy import Column, ForeignKey, Integer, Table
 
 PlantPropagation = Table(
     'plant_prop',

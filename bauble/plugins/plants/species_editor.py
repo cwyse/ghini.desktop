@@ -21,10 +21,10 @@
 #
 
 
-from gi.repository import Gtk
-from gi.repository import GObject
-
 import logging
+
+from gi.repository import GObject, Gtk
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -32,21 +32,22 @@ import os
 import traceback
 import weakref
 
-from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy.orm.session import object_session
 
 import bauble
-
-from bauble.prefs import prefs
-import bauble.utils as utils
-import bauble.paths as paths
 import bauble.editor as editor
-from bauble.plugins.plants.geography import GeographicAreaMenu
+import bauble.paths as paths
+import bauble.utils as utils
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus, GenusSynonym
-from bauble.plugins.plants.species_model import (
-    Species, SpeciesDistribution, VernacularName, SpeciesSynonym, Habit,
-    infrasp_rank_values, compare_rank)
+from bauble.plugins.plants.geography import GeographicAreaMenu
+from bauble.plugins.plants.species_model import (Habit, Species,
+                                                 SpeciesDistribution,
+                                                 SpeciesSynonym,
+                                                 VernacularName, compare_rank,
+                                                 infrasp_rank_values)
+from bauble.prefs import prefs
 from bauble.utils import safe_set_text
 from bauble.utils import safe_set_props
 
@@ -1271,8 +1272,8 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
                 Species(genus=self.model.genus), self.parent)
             more_committed = e.start()
         elif response == self.RESPONSE_OK_AND_ADD:
-            from bauble.plugins.garden.accession import (
-                AccessionEditor, Accession)
+            from bauble.plugins.garden.accession import (Accession,
+                                                         AccessionEditor)
             e = AccessionEditor(Accession(species=self.model),
                                 parent=self.parent)
             more_committed = e.start()

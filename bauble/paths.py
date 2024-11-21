@@ -23,9 +23,10 @@
 """
 Access to standard paths used by Ghini.
 """
+import logging
 import os
 import sys
-import logging
+
 logger = logging.getLogger(__name__)
 
 

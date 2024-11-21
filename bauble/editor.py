@@ -25,35 +25,28 @@
 
 
 import datetime
+import logging
 import os
 import sys
 import weakref
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from gi.repository import GLib
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GObject
-from gi.repository import GdkPixbuf
-
 from random import random
+
 import lxml.etree as etree
-from gi.repository import Pango
+from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk, Pango
 from sqlalchemy.orm import object_mapper, object_session
 from sqlalchemy.orm.exc import UnmappedInstanceError
 
-
 import bauble
 import bauble.db as db
-from bauble.error import check
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
-from bauble.utils import safe_set_text
-from bauble.error import CheckConditionError
+from bauble.error import CheckConditionError, check
+
 
 # TODO: create a generic date entry that can take a mask for the date format
 # see the date entries for the accession and accession source presenters
@@ -78,6 +71,7 @@ class Validator:
 
 
 from bauble.utils import parse_date
+
 
 class DateValidator(Validator):
     """
@@ -347,7 +341,7 @@ class GenericEditorView:
         if isinstance(value, bytes):
             value = value.decode('utf-8')  # Convert bytes to string
         getattr(self.widgets, widget_name).set_markup(value)
-        
+
     def close_boxes(self):
         while self.boxes:
             logger.debug('box is being forcibly removed')

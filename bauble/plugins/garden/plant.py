@@ -23,43 +23,39 @@
 Defines the plant table and handled editing plants
 """
 
+import logging
 import os
 import traceback
 from random import random
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from gi.repository import Gtk
-
-
-from sqlalchemy import and_, func
-from sqlalchemy import ForeignKey, Column, Unicode, Integer, Boolean, \
-    UnicodeText, UniqueConstraint
-from sqlalchemy.orm import relationship, object_mapper, validates
-from sqlalchemy.orm.session import object_session
+from sqlalchemy import (Boolean, Column, ForeignKey, Integer, Unicode,
+                        UnicodeText, UniqueConstraint, and_, func, text)
 from sqlalchemy.exc import DBAPIError, OperationalError
-from sqlalchemy import text
+from sqlalchemy.orm import object_mapper, relationship, validates
+from sqlalchemy.orm.session import object_session
 
+import bauble.btypes as types
 import bauble.db as db
-from bauble.error import CheckConditionError
-from bauble.editor import GenericEditorView, GenericEditorPresenter, \
-    GenericModelViewPresenterEditor, NotesPresenter, PicturesPresenter
 import bauble.meta as meta
 import bauble.paths as paths
-from bauble.plugins.plants.species_model import Species
-from bauble.plugins.garden.location import Location, LocationEditor
-from bauble.plugins.garden.propagation import PlantPropagation
 import bauble.prefs as prefs
-from bauble.search import SearchStrategy
-import bauble.btypes as types
 import bauble.utils as utils
 from bauble.utils import safe_set_text
-from bauble.view import (InfoBox, InfoExpander, PropertiesExpander, 
-                         MapInfoExpander,
-                         select_in_search_results, Action)
 import bauble.view as view
+from bauble.editor import (GenericEditorPresenter, GenericEditorView,
+                           GenericModelViewPresenterEditor, NotesPresenter,
+                           PicturesPresenter)
+from bauble.error import CheckConditionError
+from bauble.plugins.garden.location import Location, LocationEditor
+from bauble.plugins.garden.propagation import PlantPropagation
+from bauble.plugins.plants.species_model import Species
+from bauble.search import SearchStrategy
+from bauble.view import (Action, InfoBox, InfoExpander, MapInfoExpander,
+                         PropertiesExpander, select_in_search_results)
 
 # TODO: might be worthwhile to have a label or textview next to the
 # location combo that shows the description of the currently selected
@@ -165,8 +161,9 @@ def is_code_unique(plant, code):
     # setting the accession on the model doesn't set the
     # accession_id until the session is flushed
     session = db.Session()
-    from bauble.plugins.garden import Accession
     from sqlalchemy import bindparam
+
+    from bauble.plugins.garden import Accession
     count = session.query(Plant).join(Accession, Plant.accession_id == Accession.id).\
         filter(and_(Accession.id == plant.accession.id, Plant.code.in_(bindparam('codes', expanding=True)))).count()
     session.close()

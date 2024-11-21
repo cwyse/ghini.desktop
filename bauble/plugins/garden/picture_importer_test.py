@@ -17,13 +17,14 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 
-from unittest import TestCase
 import logging
+from unittest import TestCase
+
 logger = logging.getLogger(__name__)
 from nose import SkipTest
 
-from bauble.plugins.garden.picture_importer import decode_parts
 from bauble import prefs
+from bauble.plugins.garden.picture_importer import decode_parts
 
 prefs.testing = True
 

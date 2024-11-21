@@ -20,14 +20,16 @@
 
 
 
-import os
 import datetime
+import logging
+import os
 from unittest import TestCase
 
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
+
+from functools import partial
 
 from nose import SkipTest
 from sqlalchemy import and_
@@ -36,32 +38,35 @@ from sqlalchemy.orm import object_session
 
 #import bauble
 import bauble.db as db
-from bauble.test import BaubleTestCase, update_gui, check_dupids, mockfunc
+import bauble.plugins.plants.test as plants_test
 import bauble.utils as utils
-from bauble.plugins.garden.accession import Accession, AccessionEditor, \
-    AccessionNote, Voucher, SourcePresenter, Verification, dms_to_decimal, \
-    latitude_to_dms, longitude_to_dms, AccessionEditorView
-from bauble.plugins.garden.source import Source, Collection, Contact, \
-    create_contact, CollectionPresenter, ContactPresenter
-from bauble.plugins.garden.plant import Plant, PlantNote, \
-    PlantChange, PlantEditor, is_code_unique, branch_callback
+from bauble import prefs
+from bauble.meta import BaubleMeta
+from bauble.plugins.garden.accession import (Accession, AccessionEditor,
+                                             AccessionEditorView,
+                                             AccessionNote, SourcePresenter,
+                                             Verification, Voucher,
+                                             dms_to_decimal, latitude_to_dms,
+                                             longitude_to_dms)
+from bauble.plugins.garden.institution import Institution, InstitutionPresenter
 from bauble.plugins.garden.location import Location, LocationEditor
-from bauble.plugins.garden.propagation import Propagation, PropCuttingRooted, \
-    PropCutting, PropSeed, PropagationEditor
-from bauble.plugins.plants.geography import GeographicArea
+from bauble.plugins.garden.plant import (Plant, PlantChange, PlantEditor,
+                                         PlantNote, branch_callback,
+                                         is_code_unique)
+from bauble.plugins.garden.propagation import (Propagation, PropagationEditor,
+                                               PropCutting, PropCuttingRooted,
+                                               PropSeed)
+from bauble.plugins.garden.source import (Collection, CollectionPresenter,
+                                          Contact, ContactPresenter, Source,
+                                          create_contact)
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.geography import GeographicArea
 from bauble.plugins.plants.species_model import Species
-import bauble.plugins.plants.test as plants_test
-from bauble.plugins.garden.institution import Institution, InstitutionPresenter
-from bauble import prefs
+from bauble.plugins.plants.species_model import _remove_zws as remove_zws
+from bauble.test import BaubleTestCase, check_dupids, mockfunc, update_gui
 from bauble.utils import safe_set_props
 
-from functools import partial
-
-from bauble.meta import BaubleMeta
-
-from bauble.plugins.plants.species_model import _remove_zws as remove_zws
 prefs.testing = True
 
 
@@ -159,8 +164,9 @@ def setUp_data():
 
 class DuplicateIdsGlade(TestCase):
     def test_duplicate_ids(self):
-        import bauble.plugins.garden as mod
         import glob
+
+        import bauble.plugins.garden as mod
         head, tail = os.path.split(mod.__file__)
         files = glob.glob(os.path.join(head, '*.glade'))
         for f in files:
@@ -354,7 +360,6 @@ class PlantTests(GardenTestCase):
         #
         # self.assert_(PlantEditor())
         # self.assertRaises(CheckConditionError, PlantEditor, branch_mode=True)
-
         # plant = Plant(accession=self.accession, location=self.location,
         #               code=u'33', quantity=5)
         # self.assertRaises(CheckConditionError, PlantEditor, model=plant,
@@ -1777,9 +1782,10 @@ class InstitutionPresenterTests(GardenTestCase):
         self.assertTrue(view.widget_get_sensitive('inst_register'))
 
     def test_when_user_registers_info_is_logged(self):
-        from bauble.utils import desktop
-        from bauble.test import mockfunc
         from functools import partial
+
+        from bauble.test import mockfunc
+        from bauble.utils import desktop
         self.invoked = []
         desktop.open = partial(mockfunc, name='desktop.open', caller=self)
         from bauble.editor import MockView
@@ -1817,6 +1823,7 @@ UTM = 3  # Datum(wgs84/nad83 or nad27), UTM Zone, Easting, Northing
 # 6 +/- 0.08m
 
 from decimal import Decimal
+
 dec = Decimal
 conversion_test_data = (((('N', 17, 21, dec(59)), ('W', 89, 1, 41)),  # dms
                          ((dec(17), dec('21.98333333')), (dec(-89), dec('1.68333333'))),  # deg min_dec
@@ -1918,6 +1925,7 @@ class FromAndToDictTest(GardenTestCase):
 
     def test_set_create_timestamp_european(self):
         from datetime import datetime
+
         ## insert an object with a timestamp
         Location.retrieve_or_create(
             self.session, {'code': '1',
@@ -1929,6 +1937,7 @@ class FromAndToDictTest(GardenTestCase):
 
     def test_set_create_timestamp_iso8601(self):
         from datetime import datetime
+
         ## insert an object with a timestamp
         Location.retrieve_or_create(
             self.session, {'code': '1',
@@ -2410,6 +2419,8 @@ class ContactPresenterTests(BaubleTestCase):
 
 
 import bauble.search
+
+
 class BaubleSearchSearchTest(BaubleTestCase):
     def test_search_search_uses_Plant_Search(self):
         bauble.search.logger.setLevel(logging.DEBUG)
@@ -2426,7 +2437,9 @@ class BaubleSearchSearchTest(BaubleTestCase):
                    self.handler.messages['bauble.search']['debug'])
 
 
-from bauble.plugins.garden.exporttopocket import create_pocket, ExportToPocketThread
+from bauble.plugins.garden.exporttopocket import (ExportToPocketThread,
+                                                  create_pocket)
+
 
 class TestExportToPocket(GardenTestCase):
 

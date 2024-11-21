@@ -23,21 +23,22 @@
 # Description: test the ABCD (Access to Biological Collection Data) plugin
 #
 import datetime
-import lxml.etree as etree
+import logging
 import os
 import tempfile
 
-import logging
+import lxml.etree as etree
+
 logger = logging.getLogger(__name__)
 
-import bauble.paths as paths
-from bauble.test import BaubleTestCase
-from bauble.plugins.garden import Plant, Accession, Source, Collection
-import bauble.plugins.plants.test as plants_test
-import bauble.plugins.garden.test as garden_test
 from nose import SkipTest
 
+import bauble.paths as paths
+import bauble.plugins.garden.test as garden_test
+import bauble.plugins.plants.test as plants_test
 from bauble.plugins.abcd import *
+from bauble.plugins.garden import Accession, Collection, Plant, Source
+from bauble.test import BaubleTestCase
 
 # TODO: the ABCD tests need to be completely reworked
 

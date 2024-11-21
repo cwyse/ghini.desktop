@@ -17,12 +17,11 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
-from bauble.test import BaubleTestCase
-import bauble.plugins.plants.genus
 import bauble.plugins.garden.accession
+import bauble.plugins.plants.genus
+from bauble import db, prefs
+from bauble.test import BaubleTestCase
 
-from bauble import db
-from bauble import prefs
 prefs.testing = True
 
 db.sqlalchemy_debug(True)

@@ -18,14 +18,17 @@
 #
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-import re
-from babel.messages.pofile import read_po
-import unittest
 import glob
 import os
+import re
+import unittest
+
+from babel.messages.pofile import read_po
+
 
 class PoTests(unittest.TestCase):
     def test_same_keys(self):

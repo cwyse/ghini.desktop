@@ -26,21 +26,18 @@
 The connection manager provides a GUI for creating and opening
 connections. This is the first thing displayed when Ghini starts.
 """
-import os
 import copy
-
 import logging
+import os
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from gi.repository import Gtk
-from gi.repository import GdkPixbuf
+from gi.repository import GdkPixbuf, Gtk
 
 import bauble
 from bauble import paths, prefs, utils
-
-from bauble.editor import (
-    GenericEditorView, GenericEditorPresenter)
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 
 
 def is_package_name(name):
@@ -131,9 +128,12 @@ def retrieve_latest_release_date():
         '/ghini-%s.%s/bauble/version.py') % bauble.version_tuple[:2]
 
     try:
-        import urllib.request, urllib.error, urllib.parse
-        import ssl
         import json
+        import ssl
+        import urllib.error
+        import urllib.parse
+        import urllib.request
+
         ## from github retrieve the date of the latest release
         stream = urllib.request.urlopen(
             "https://api.github.com/repos/Ghini/ghini.desktop/branches/ghini-%s.%s" % bauble.version_tuple[:2],
@@ -171,8 +171,10 @@ def check_and_notify_new_version(view):
         'https://raw.githubusercontent.com/Ghini/ghini' +
         '.desktop/ghini-%s.%s/bauble/version.py') % bauble.version_tuple[:2]
     try:
-        import urllib.request, urllib.error, urllib.parse
         import ssl
+        import urllib.error
+        import urllib.parse
+        import urllib.request
         github_version_stream = urllib.request.urlopen(
             version_on_github, timeout=5)
         remote = newer_version_on_github(github_version_stream)
@@ -273,6 +275,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             pass
 
         from bauble.paths import main_is_frozen
+
         # Don't check for new versions if we are in a py2exe environment
         if not main_is_frozen():
             from threading import Thread

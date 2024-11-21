@@ -54,6 +54,7 @@ column_equivalence = {
     }
 
 import openpyxl
+
 wb = openpyxl.load_workbook(workbook_name)
 sheet = wb.get_sheet_by_name(sheet_name)
 max_column = max(i for i in range(sheet.max_column) if sheet.cell(row=1, column=i+1).value is not None) + 1

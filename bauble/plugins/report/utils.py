@@ -19,12 +19,13 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-import re
 import math
 import os.path
+import re
 
 
 class SVG:
@@ -588,8 +589,8 @@ def get_caller_template_location():
 
     '''
     try:
-        import sys
         import os.path
+        import sys
         here = sys._getframe()
         # Mako names it 'render_body', Jinja2 'block_body'
         while here.f_code.co_name not in ['render_body', 'block_body']:

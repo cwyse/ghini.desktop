@@ -8,13 +8,13 @@
 
 import csv
 import glob
-from optparse import OptionParser
 import os
 import shutil
 import sys
-
+from optparse import OptionParser
 
 import bauble
+
 if bauble.version_tuple[0] != '1' and bauble.version_tuple[1] != '0':
     print("Bauble 1.0 must be installed")
     print(bauble.version)
@@ -23,7 +23,6 @@ if bauble.version_tuple[0] != '1' and bauble.version_tuple[1] != '0':
 
 import bauble.utils as utils
 from bauble.plugins.imex.csv_ import UnicodeReader, UnicodeWriter
-
 
 parser = OptionParser()
 #parser.add_option('-s', '--src', dest='src', help='the source path',

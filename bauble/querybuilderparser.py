@@ -23,10 +23,10 @@
 #
 # if the query does not follow the grammar, start from scratch.
 
-from pyparsing import (Word, alphas, alphanums, delimitedList, Group,
-                       alphas8bit, removeQuotes, quotedString, Regex, oneOf,
-                       Forward, CaselessLiteral, WordStart, WordEnd,
-                       ZeroOrMore)
+from pyparsing import (CaselessLiteral, Forward, Group, Regex, Word, WordEnd,
+                       WordStart, ZeroOrMore, alphanums, alphas, alphas8bit,
+                       delimitedList, oneOf, quotedString, removeQuotes)
+
 
 class BuiltQuery:
 

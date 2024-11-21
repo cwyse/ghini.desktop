@@ -18,19 +18,18 @@
 
 
 import logging
+
 logger = logging.getLogger(__name__)
 
-from gi.repository import Gtk
-from gi.repository import GObject
-from gi.repository import GdkPixbuf
-from gi.repository import GLib
-import threading
-import re
 import os.path
-from bauble import pluginmgr, db, utils
+import re
+import threading
+
+from gi.repository import GdkPixbuf, GLib, GObject, Gtk
 from sqlalchemy.orm.exc import NoResultFound
 
-from bauble.editor import (GenericEditorView, GenericEditorPresenter)
+from bauble import db, pluginmgr, utils
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 
 accno_re = re.compile(r'([12][0-9][0-9][0-9]\.[0-9][0-9][0-9][0-9])(?:\.([0-9]+))?')
 species_re = re.compile(r'([A-Z][a-z]+(?: [a-z-]*)?)')
@@ -150,7 +149,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         self.view.widgets.binomial_tvc.set_sort_column_id(binomial_col)
         self.view.widgets.iseditable_tvc.set_sort_column_id(iseditable_col)
 
-        from bauble.plugins.garden import init_location_comboentry, Location
+        from bauble.plugins.garden import Location, init_location_comboentry
         def on_location_select(location):
             self.model.location = location.code
 
@@ -232,8 +231,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
         handler = ListStoreHandler(self.view.widgets.log_liststore)
         logger.addHandler(handler)
         self.view.widgets.log_treeview.scroll_to_point(0, 0)
-        from bauble.plugins.plants import (Genus, Species)
-        from bauble.plugins.garden import (Location, Accession, Plant, PlantNote)
+        from bauble.plugins.garden import Accession, Location, Plant, PlantNote
+        from bauble.plugins.plants import Genus, Species
+
         # make sure selected location exists
         if self.model.location is None:
             self.model.location = 'imported'
@@ -392,6 +392,7 @@ class PictureImporterTool(pluginmgr.Tool):
                   'rows': [],
                   'log': []})
     import os.path
+
     from bauble import paths
     glade_path = os.path.join(paths.lib_dir(), "plugins", "garden",
                               "picture_importer.glade")

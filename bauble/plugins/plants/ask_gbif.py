@@ -17,10 +17,11 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import difflib
-import requests
 import json
-
 import logging
+
+import requests
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
