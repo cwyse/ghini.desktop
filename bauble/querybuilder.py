@@ -190,6 +190,7 @@ class ExpressionRow(object):
             self.and_or_combo.append_text("and")
             self.and_or_combo.append_text("or")
             self.and_or_combo.set_active(0)
+            self.and_or_combo.set_hexpand(False)
             self.table.attach(self.and_or_combo, 0, row_number, 1, 1)
 
         self.prop_button = Gtk.Button(_('Choose a property…'))
