@@ -46,6 +46,7 @@ import bauble.pluginmgr as pluginmgr
 import bauble.task
 from bauble import pb_set_fraction
 from bauble import paths
+from sqlalchemy.orm import configure_mappers
 
 # TODO: i've also had a problem with bad insert statements, e.g. importing a
 # geography table after creating a new database and it doesn't use the
@@ -163,6 +164,7 @@ class CSVImporter(Importer):
         '''
         if metadata is None:
             metadata = db.metadata  # use the default metadata
+            configure_mappers()
 
         if filenames is None:
             filenames = self._get_filenames()
@@ -293,6 +295,7 @@ class CSVImporter(Importer):
         created_tables = []
 
         def create_table(table):
+            configure_mappers()
             table.create(bind=connection)
             if table.name not in created_tables:
                 created_tables.append(table.name)
@@ -325,6 +328,7 @@ class CSVImporter(Importer):
                 if response and len(depends) > 0:
                     logger.debug('dropping: %s'
                                  % ', '.join([d.name for d in depends]))
+                    configure_mappers()
                     metadata.drop_all(bind=connection, tables=depends)
                 else:
                     # user doesn't want to drop dependencies so we just quit
@@ -494,6 +498,7 @@ class CSVImporter(Importer):
                 transaction = connection.begin()
 
             logger.debug('creating: %s' % ', '.join([d.name for d in depends]))
+            configure_mappers()
             # TODO: need to get those tables from depends that need to
             # be created but weren't created already
             metadata.create_all(connection, depends, checkfirst=True)

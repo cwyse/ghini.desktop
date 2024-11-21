@@ -313,6 +313,11 @@ def open(uri, verify=True, show_error_dialogs=False):
 
     verify_connection(new_engine, show_error_dialogs)
     _bind()
+
+    # Ensure mappers are configured
+    from sqlalchemy.orm import configure_mappers
+    configure_mappers()
+    
     return engine
 
 
@@ -339,6 +344,10 @@ def create(import_defaults=True):
     connection = engine.connect()
     transaction = connection.begin()
     try:
+        # Ensure all mappers are configured before creating tables
+        from sqlalchemy.orm import configure_mappers
+        configure_mappers()
+
         # TODO: here we are dropping/creating all the tables in the
         # metadata whether they are in the registry or not, we should
         # really only be creating those tables from registered
