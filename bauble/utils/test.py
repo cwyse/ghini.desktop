@@ -142,9 +142,21 @@ class UtilsTests(unittest.TestCase):
 
 class UtilsDBTests(BaubleTestCase):
 
+    def setUp(self):
+        super().setUp()
+        from sqlalchemy.orm import configure_mappers
+        from bauble.db import metadata, engine
+        configure_mappers()
+
+    def tearDown(self):
+        super().tearDown()
+        from bauble.db import metadata, engine
+        metadata.drop_all(engine)
+
     def test_find_dependent_tables(self):
-        metadata = MetaData()
-        metadata.bind = db.engine
+#        metadata = MetaData()
+#        metadata.bind = db.engine
+        from bauble.db import metadata, engine
 
         # table1 does't depend on any tables
         table1 = Table('table1', metadata,
@@ -166,6 +178,8 @@ class UtilsDBTests(BaubleTestCase):
         table4 = Table('table4', metadata,
                        Column('id', Integer, primary_key=True),
                        Column('table2', Integer, ForeignKey('table2.id')))
+
+        metadata.create_all(engine)
 
         # tables that depend on table 1 are 3, 4, 2
         depends = list(utils.find_dependent_tables(table1, metadata))
@@ -192,14 +206,17 @@ class ResetSequenceTests(BaubleTestCase):
 
     def setUp(self):
         super().setUp()
-        self.metadata = MetaData()
-        self.metadata.bind = db.engine
-
+        #self.metadata = MetaData()
+        #self.metadata.bind = db.engine
+        from sqlalchemy.orm import configure_mappers
+        from bauble.db import metadata, engine
+        configure_mappers()
 
     def tearDown(self):
         super().tearDown()
-        self.metadata.drop_all()
-
+        #self.metadata.drop_all()
+        from bauble.db import metadata, engine
+        metadata.drop_all(engine)
 
     @staticmethod
     def get_currval(col):
@@ -218,10 +235,13 @@ class ResetSequenceTests(BaubleTestCase):
         # This only tests that reset_sequence() doesn't fail if there is
         # no sequence.
 
+        from bauble.db import metadata, engine
+
         # test that a column without an explicit sequence works
         table = Table('test_reset_sequence', self.metadata,
                       Column('id', Integer, primary_key=True))
-        self.metadata.create_all()
+#        self.metadata.create_all()
+        metadata.create_all(engine)
         self.insert = table.insert()#.compile()
         db.engine.execute(self.insert, values=[{'id': 1}])
         utils.reset_sequence(table.c.id)
