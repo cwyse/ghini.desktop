@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015-2017 Mario Frasca <mario@anche.no>.
@@ -241,7 +240,7 @@ class Propagation(db.Base, db.WithNotes):
                 values.append(_('Rooted: %s%%') % c.rooted_pct)
 
             if c.rooted:
-                values.append(_('Rooted: %s') % sum((i.quantity for i in c.rooted)))
+                values.append(_('Rooted: %s') % sum(i.quantity for i in c.rooted))
         elif self.prop_type == 'Seed':
             seed = self._seed
             values.append(_('Seed'))
@@ -763,7 +762,7 @@ class CuttingPresenter(editor.GenericEditorPresenter):
         return self._dirty
 
     def set_model_attr(self, field, value, validator=None):
-        logger.debug('%s = %s' % (field, value))
+        logger.debug('{} = {}'.format(field, value))
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
@@ -954,7 +953,7 @@ class PropagationPresenter(editor.ChildPresenter):
                         'UnrootedCutting': self.view.widgets.cutting_box,
                         }
         for type_, box in list(prop_box_map.items()):
-            box.set_visible((prop_type == type_))
+            box.set_visible(prop_type == type_)
 
         self.view.widgets.prop_details_box.set_visible(True)
 
@@ -973,7 +972,7 @@ class PropagationPresenter(editor.ChildPresenter):
         """
         Set attributes on the model and update the GUI as expected.
         """
-        logging.debug('%s = %s' % (field, value))
+        logging.debug('{} = {}'.format(field, value))
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.refresh_sensitivity()
@@ -1045,7 +1044,7 @@ class SourcePropagationPresenter(PropagationPresenter):
         self._dirty = False
 
     def set_model_attr(self, attr, value, validator=None):
-        logger.debug('set_model_attr(%s, %s)' % (attr, value))
+        logger.debug('set_model_attr({}, {})'.format(attr, value))
         super().set_model_attr(attr, value)
         self._dirty = True
         self.refresh_sensitivity()

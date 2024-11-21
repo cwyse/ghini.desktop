@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2015 Mario Frasca <mario@anche.no>
@@ -296,7 +295,7 @@ class AccessionABCDAdapter(SpeciesABCDAdapter):
             if collection.elevation:
                 altitude = ABCDElement(gathering, 'Altitude')
                 if collection.elevation_accy:
-                    text = '%sm (+/- %sm)' % (collection.elevation,
+                    text = '{}m (+/- {}m)'.format(collection.elevation,
                                               collection.elevation_accy)
                 else:
                     text = '%sm' % collection.elevation
@@ -358,7 +357,7 @@ class XSLFormatterPlugin(FormatterPlugin):
     option_pattern = re.compile(r"^\s*<!--\s*OPTION ([a-z_]*): \("
                                 "type: ([a-z_]*), "
                                 "default: '(.*)', "
-                                "tooltip: '(.*)'\)\s*-->\s*$")
+                                r"tooltip: '(.*)'\)\s*-->\s*$")
 
     @classmethod
     def install(cls, import_defaults=True):

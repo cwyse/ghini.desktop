@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015,2017 Mario Frasca <mario@anche.no>.
@@ -383,12 +382,12 @@ class PlantTests(GardenTestCase):
         self.session.refresh(self.plant)
         # test the quantity is updated on the original plant
         assert self.plant.quantity == quantity - new_plant.quantity, \
-            "%s == %s - %s" % (self.plant.quantity, quantity,
+            "{} == {} - {}".format(self.plant.quantity, quantity,
                                new_plant.quantity)
         # test the quantity for the change is the same as the quantity
         # for the plant
         assert new_plant.changes[0].quantity == new_plant.quantity, \
-            "%s == %s" % (new_plant.changes[0].quantity, new_plant.quantity)
+            "{} == {}".format(new_plant.changes[0].quantity, new_plant.quantity)
         # test the parent_plant for the change is the same as the
         # original plant
         assert new_plant.changes[0].parent_plant == self.plant, \
@@ -756,7 +755,7 @@ class PropagationTests(GardenTestCase):
         cutting_presenter = self.editor.presenter._cutting_presenter
         # we set values simulating user action;
         for widget, attr in list(cutting_presenter.widget_to_field_map.items()):
-            logger.debug('attribute %s in widget %s is now set to %s' % (attr, widget, default_cutting_values[attr]))
+            logger.debug('attribute {} in widget {} is now set to {}'.format(attr, widget, default_cutting_values[attr]))
             view.widget_set_value(widget, default_cutting_values[attr])
         # without a real GUI we manually force all events;
         update_gui()
@@ -772,8 +771,8 @@ class PropagationTests(GardenTestCase):
         raise SkipTest("related to issue #375")
         for attr, value in list(default_cutting_values.items()):
             v = getattr(model._cutting, attr)
-            self.assertEqual(v, value, 'attribute %s in model is %s, not %s' % (attr, v, value))
-            logger.debug('attribute %s in model is %s, equal to %s' % (attr, v, value))
+            self.assertEqual(v, value, 'attribute {} in model is {}, not {}'.format(attr, v, value))
+            logger.debug('attribute {} in model is {}, equal to {}'.format(attr, v, value))
         self.editor.session.close()
 
     def test_seed_editor_commit(self):
@@ -1398,7 +1397,7 @@ class AccessionTests(GardenTestCase):
         self.session.commit()
         # import datetime again since sometimes i get an weird error
         import datetime
-        acc_code = '%s%s1' % (
+        acc_code = '{}{}1'.format(
             datetime.date.today().year, Plant.get_delimiter())
         acc = self.create(Accession, species=self.species, code=acc_code)
         voucher = Voucher(herbarium='abcd', code='123')
@@ -1706,9 +1705,9 @@ class InstitutionTests(GardenTestCase):
         o.write()
         fieldObjects = self.session.query(BaubleMeta).filter(
             utils.ilike(BaubleMeta.name, 'inst_%')).all()
-        fields = dict((i.name[5:], i.value)
+        fields = {i.name[5:]: i.value
                       for i in fieldObjects
-                      if i.value is not None)
+                      if i.value is not None}
         self.assertEqual(fields['name'], 'Ghini')
         self.assertEqual(fields['email'], 'bauble@anche.no')
         self.assertEqual(len(fields), 2)
@@ -2179,14 +2178,14 @@ class PlantSearchTest(GardenTestCase):
         a = results.pop()
         expect = self.session.query(Accession).filter(
             Accession.id == 1).first()
-        logger.debug("%s, %s" % (a, expect))
+        logger.debug("{}, {}".format(a, expect))
         self.assertEqual(a, expect)
         results = mapper_search.search('2001.2', self.session)
         self.assertEqual(len(results), 1)
         a = results.pop()
         expect = self.session.query(Accession).filter(
             Accession.id == 2).first()
-        logger.debug("%s, %s" % (a, expect))
+        logger.debug("{}, {}".format(a, expect))
         self.assertEqual(a, expect)
 
     def test_plant_from_dict(self):

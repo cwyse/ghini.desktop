@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2014-2015 Mario Frasca <mario@anche.no>.
@@ -274,20 +273,20 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         pass
 
     def top_level_count(self):
-        genera = set(g for g in self.genera if g.species)
+        genera = {g for g in self.genera if g.species}
         species = [s for g in genera for s in g.species]
         accessions = [a for s in species for a in s.accessions]
         plants = [p for a in accessions for p in a.plants]
-        return {(1, 'Families'): set([self.id]),
+        return {(1, 'Families'): {self.id},
                 (2, 'Genera'): genera,
                 (3, 'Species'): set(species),
                 (4, 'Accessions'): len(accessions),
                 (5, 'Plantings'): len(plants),
                 (6, 'Living plants'): sum(p.quantity for p in plants),
-                (7, 'Locations'): set(p.location.id for p in plants),
-                (8, 'Sources'): set([a.source.source_detail.id
+                (7, 'Locations'): {p.location.id for p in plants},
+                (8, 'Sources'): {a.source.source_detail.id
                                      for a in accessions
-                                     if a.source and a.source.source_detail])}
+                                     if a.source and a.source.source_detail}}
 
 
 ## defining the latin alias to the class.

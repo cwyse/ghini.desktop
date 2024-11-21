@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2015 Mario Frasca <mario@anche.no>.
 #
@@ -164,7 +163,7 @@ class JSONExporter(editor.GenericEditorPresenter):
             ).params(acc_note_ids=[j.id for j in accessions]).all()
             
             # All unique contacts, no bindparam needed as it's a set operation
-            contacts = list(set(a.source.source_detail for a in accessions if a.source))
+            contacts = list({a.source.source_detail for a in accessions if a.source})
             
             # Extend results with non-further-used objects
             result.extend(locations)
@@ -184,7 +183,7 @@ class JSONExporter(editor.GenericEditorPresenter):
             ).params(acc_note_ids=[j.id for j in accessions]).all()
             
             # Unique contacts without repetition
-            contacts = list(set(a.source.source_detail for a in accessions if a.source))
+            contacts = list({a.source.source_detail for a in accessions if a.source})
         else:
             contacts = []
 

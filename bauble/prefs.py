@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015 Mario Frasca <mario@anche.no>.
@@ -211,7 +210,7 @@ class _prefs(dict):
             return i
 
     def items(self):
-        return [('%s.%s' % (section, name), value)
+        return [('{}.{}'.format(section, name), value)
                 for section in sorted(prefs.config.sections())
                 for name, value in prefs.config.items(section)]
 

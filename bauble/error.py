@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2015 Mario Frasca <mario@anche.no>
@@ -30,7 +29,7 @@ class BaubleError(Exception):
         if self.msg is None:
             return str(type(self).__name__)
         else:
-            return '%s: %s' % (type(self).__name__, self.msg)
+            return '{}: {}'.format(type(self).__name__, self.msg)
         return self.msg
 
 

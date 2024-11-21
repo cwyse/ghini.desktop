@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2015 Mario Frasca <mario@anche.no>
@@ -38,7 +37,7 @@ class BaubleTests(BaubleTestCase):
     def test_create_generic_view(self):
         filename = os.path.join(paths.lib_dir(), 'bauble.glade')
         view = GenericEditorView(filename)
-        print((type(view.widgets)))
+        print(type(view.widgets))
         self.assertTrue(type(view.widgets) is utils.BuilderWidgets)
 
     def test_set_title_ok(self):

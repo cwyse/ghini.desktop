@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright 2012-2015 Mario Frasca <mario@anche.no>.
 #
@@ -55,4 +54,4 @@ for i in values:
                   '"ht-rank": "genus", "rank": "species"}' % obj)
     sys.stderr.write('ok\n')
 
-print(("[" + ",\n  ".join(result) + "]"))
+print("[" + ",\n  ".join(result) + "]")

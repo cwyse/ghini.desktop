@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2017 Mario Frasca <mario@anche.no>
@@ -136,7 +135,7 @@ def _create_role(name, password=None, login=False, admin=False):
             stmt += ' PASSWORD \'%s\'' % password
         conn.execute(stmt)
     except Exception as e:
-        logger.error('users._create_role(): %s %s' % (type(e), utils.utf8(e)))
+        logger.error('users._create_role(): {} {}'.format(type(e), utils.utf8(e)))
         trans.rollback()
         raise
     else:
@@ -157,7 +156,7 @@ def create_user(name, password=None, admin=False, groups=None):
     trans = conn.begin()
     try:
         for group in groups:
-            stmt = 'grant %s to %s;' % (group, name)
+            stmt = 'grant {} to {};'.format(group, name)
             db.engine.execute(stmt)
         # allow the new role to connect to the database
         stmt = 'grant connect on database %s to %s' % \
@@ -165,7 +164,7 @@ def create_user(name, password=None, admin=False, groups=None):
         logger.debug(stmt)
         conn.execute(stmt)
     except Exception as e:
-        logger.error('users.create_user(): %s %s' % (type(e), utils.utf8(e)))
+        logger.error('users.create_user(): {} {}'.format(type(e), utils.utf8(e)))
         trans.rollback()
         raise
     else:
@@ -191,7 +190,7 @@ def add_member(name, groups=None):
     trans = conn.begin()
     try:
         for group in groups:
-            stmt = 'grant "%s" to %s;' % (group, name)
+            stmt = 'grant "{}" to {};'.format(group, name)
             conn.execute(stmt)
     except:
         trans.rollback()
@@ -211,7 +210,7 @@ def remove_member(name, groups=None):
     trans = conn.begin()
     try:
         for group in groups:
-            stmt = 'revoke %s from %s;' % (group, name)
+            stmt = 'revoke {} from {};'.format(group, name)
             conn.execute(stmt)
     except:
         trans.rollback()
@@ -264,7 +263,7 @@ def drop(role, revoke=False):
         stmt = 'drop role %s;' % role
         conn.execute(stmt)
     except Exception as e:
-        logger.error("users.drop(): %s %s" % (type(e), utils.utf8(e)))
+        logger.error("users.drop(): {} {}".format(type(e), utils.utf8(e)))
         trans.rollback()
         raise
     else:
@@ -302,7 +301,7 @@ def _parse_acl(acl):
     """
     returns a list of acls of (role, privs, granter)
     """
-    rx = re.compile('[{]?(.*?)=(.*?)\/(.*?)[,}]')
+    rx = re.compile(r'[{]?(.*?)=(.*?)\/(.*?)[,}]')
     return rx.findall(acl)
 
 
@@ -394,7 +393,7 @@ def set_privilege(role, privilege):
     try:
         # revoke everything first
         for table in db.metadata.sorted_tables:
-            stmt = 'revoke all on table %s from %s;' % (table.name, role)
+            stmt = 'revoke all on table {} from {};'.format(table.name, role)
             conn.execute(stmt)
             for col in table.c:
                 if hasattr(col, 'sequence'):
@@ -430,7 +429,7 @@ def set_privilege(role, privilege):
             logger.debug('granting privileges on table %s' % table)
             tbl_privs = [x for x in privs if x.lower() in _table_privs]
             for priv in tbl_privs:
-                stmt = 'grant %s on %s to %s' % (priv, table.name, role)
+                stmt = 'grant {} on {} to {}'.format(priv, table.name, role)
                 if privilege == 'admin':
                     stmt += ' with grant option'
                 logger.debug(stmt)
@@ -439,8 +438,8 @@ def set_privilege(role, privilege):
                 seq_privs = [x for x in privs if x.lower() in __sequence_privs]
                 for priv in seq_privs:
                     if has_implicit_sequence(col):
-                        sequence_name = "%s_%s_seq" % (table.name, col.name)
-                        logger.debug('column %s of table %s has associated sequence %s' % (col, table, sequence_name))
+                        sequence_name = "{}_{}_seq".format(table.name, col.name)
+                        logger.debug('column {} of table {} has associated sequence {}'.format(col, table, sequence_name))
                         stmt = 'grant %s on sequence %s to %s' % \
                             (priv, sequence_name, role)
                         logger.debug(stmt)
@@ -448,7 +447,7 @@ def set_privilege(role, privilege):
                             stmt += ' with grant option'
                         conn.execute(stmt)
     except Exception as e:
-        logger.error('users.set_privilege(): %s %s' % (type(e), utils.utf8(e)))
+        logger.error('users.set_privilege(): {} {}'.format(type(e), utils.utf8(e)))
         trans.rollback()
         raise
     else:
@@ -474,10 +473,10 @@ def set_password(password, user=None):
     conn = db.engine.connect()
     trans = conn.begin()
     try:
-        stmt = "alter role %s with encrypted password '%s'" % (user, password)
+        stmt = "alter role {} with encrypted password '{}'".format(user, password)
         conn.execute(stmt)
     except Exception as e:
-        logger.error('users.set_password(): %s %s' % (type(e), utils.utf8(e)))
+        logger.error('users.set_password(): {} {}'.format(type(e), utils.utf8(e)))
         trans.rollback()
     else:
         trans.commit()
@@ -535,7 +534,7 @@ class UsersEditor(editor.GenericEditorView):
             role = self.get_selected_user()
             active = button.get_active()
             if active and not has_privileges(role, priv):
-                logger.debug('grant %s to %s' % (priv, role))
+                logger.debug('grant {} to {}'.format(priv, role))
                 try:
                     set_privilege(role, priv)
                 except Exception as e:
@@ -682,7 +681,7 @@ class UsersEditor(editor.GenericEditorView):
         """
 
         def _set_buttons(mode):
-            logger.debug('%s: %s' % (role, mode))
+            logger.debug('{}: {}'.format(role, mode))
             if mode:
                 self.widgets[self.buttons[mode]].set_active(True)
             not_modes = [p for p in list(self.buttons.keys()) if p != mode]

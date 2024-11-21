@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2012-2015 Mario Frasca <mario@anche.no>.
@@ -76,7 +75,7 @@ QUOTE_STYLE = csv.QUOTE_MINIMAL
 QUOTE_CHAR = '"'
 
 
-class UnicodeReader(object):
+class UnicodeReader:
 
     def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
         self.reader = csv.DictReader(f, dialect=dialect, **kwds)
@@ -97,7 +96,7 @@ class UnicodeReader(object):
         return self
 
 
-class UnicodeWriter(object):
+class UnicodeWriter:
 
     def __init__(self, f, fields=None, dialect=csv.excel, encoding="utf-8", **kwds):
         self.writer = csv.writer(f, dialect=dialect, **kwds)
@@ -115,7 +114,7 @@ class UnicodeWriter(object):
             self.writerow(row)
 
 
-class Importer(object):
+class Importer:
 
     def start(self, **kwargs):
         '''
@@ -184,7 +183,7 @@ class CSVImporter(Importer):
         foreign_key column and child is usually the column that the
         foreign key points to, e.g ('parent_id', 'id')
         """
-        f = open(filename, 'r')
+        f = open(filename)
         reader = UnicodeReader(f, quotechar=QUOTE_CHAR,
                                quoting=QUOTE_STYLE)
 
@@ -395,7 +394,7 @@ class CSVImporter(Importer):
 
                 # open a temporary reader to get the column keys so we
                 # can later precompile our insert statement
-                f = open(filename, "r")
+                f = open(filename)
                 tmp = UnicodeReader(f, quotechar=QUOTE_CHAR,
                                     quoting=QUOTE_STYLE)
                 next(tmp)
@@ -442,7 +441,7 @@ class CSVImporter(Importer):
 
                 isempty = lambda v: v in ('', None)
 
-                f = open(filename, "r")
+                f = open(filename)
                 reader = UnicodeReader(f, quotechar=QUOTE_CHAR,
                                        quoting=QUOTE_STYLE)
                 # NOTE: we shouldn't get this far if the file doesn't
@@ -492,7 +491,7 @@ class CSVImporter(Importer):
                 # or Postgres will complain if two tables that are
                 # being imported have a foreign key relationship
                 transaction.commit()
-                logger.debug('%s: %s' % (
+                logger.debug('{}: {}'.format(
                     table.name,
                     table.select().alias().count().execute().fetchone()[0]))
                 transaction = connection.begin()
@@ -572,7 +571,7 @@ class CSVImporter(Importer):
 
 # TODO: add support for exporting only specific tables
 
-class CSVExporter(object):
+class CSVExporter:
 
     def start(self, path=None):
         if path is None:
@@ -594,7 +593,7 @@ class CSVExporter(object):
             # besides db.metadata
             bauble.task.queue(self.__export_task(path))
         except Exception as e:
-            logger.debug("%s(%s)" % (type(e).__name__, e))
+            logger.debug("{}({})".format(type(e).__name__, e))
 
     def __export_task(self, path):
         filename_template = os.path.join(path, "%s.txt")

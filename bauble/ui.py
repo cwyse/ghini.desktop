@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015,2018 Mario Frasca <mario@anche.no>.
@@ -130,7 +129,7 @@ def create_menu_item_with_image(label, icon_name=None, base_dir=None):
         if path_to_module[-2] != 'plugins':
             path_to_module = path_to_module[:-1]
         base_dir = os.path.join(paths.lib_dir(), *path_to_module)
-    logger.debug("create_menu_item_with_image %s %s %s" % (label, icon_name, base_dir))
+    logger.debug("create_menu_item_with_image {} {} {}".format(label, icon_name, base_dir))
     if base_dir is not None and icon_name is not None and icon_name.endswith(".png"):
         icon_name = os.path.join(base_dir, icon_name)
     if icon_name is None:
@@ -160,7 +159,7 @@ def create_menu_item_with_image(label, icon_name=None, base_dir=None):
 
 from bauble.db import engine
 
-class GUI(object):
+class GUI:
 
     entry_history_pref = 'bauble.history'
     history_size_pref = 'bauble.history_size'
@@ -413,9 +412,9 @@ class GUI(object):
 
     def __get_title(self):
         if bauble.conn_name is None:
-            return '%s %s' % ('Ghini', bauble.version)
+            return '{} {}'.format('Ghini', bauble.version)
         else:
-            return '%s %s - %s' % ('Ghini', bauble.version,
+            return '{} {} - {}'.format('Ghini', bauble.version,
                                    bauble.conn_name)
     title = property(__get_title)
 
@@ -554,7 +553,7 @@ class GUI(object):
             image = Gtk.Image.new_from_pixbuf(pb)
             help_bug_item.set_image(image)
         except Exception as e:
-            logger.debug("can't set icon %s: %s(%s)" % (icon_name, type(e).__name__, e))
+            logger.debug("can't set icon {}: {}({})".format(icon_name, type(e).__name__, e))
 
         # get menu bar from ui manager
         self.menubar = self.ui_manager.get_widget("/MenuBar")
@@ -705,15 +704,15 @@ class GUI(object):
         # check for leaks
         obj = utils.gc_objects_by_type(editor_cls)
         if obj != []:
-            logger.warning('%s leaked: %s' % (editor_cls.__name__, obj))
+            logger.warning('{} leaked: {}'.format(editor_cls.__name__, obj))
 
         if presenter_cls:
             obj = utils.gc_objects_by_type(presenter_cls)
             if obj != []:
-                logger.warning('%s leaked: %s' % (presenter_cls.__name__, obj))
+                logger.warning('{} leaked: {}'.format(presenter_cls.__name__, obj))
             obj = utils.gc_objects_by_type(view_cls)
             if obj != []:
-                logger.warning('%s leaked: %s' % (view_cls.__name__, obj))
+                logger.warning('{} leaked: {}'.format(view_cls.__name__, obj))
 
     def on_edit_menu_cut(self, widget, data=None):
         self.widgets.main_comboentry.get_child().cut_clipboard()

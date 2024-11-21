@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2018 Mario Frasca <mario@anche.no>
@@ -154,7 +153,7 @@ class MakoFormatterTests(BaubleTestCase):
             if not tn.endswith('.svg'):
                 continue
             filename = os.path.join(td, tn)
-            options = dict((n, d) for (n, t, d, p) in  MakoFormatterPlugin.get_options(filename))
+            options = {n: d for (n, t, d, p) in  MakoFormatterPlugin.get_options(filename)}
             report = MakoFormatterPlugin.format(plants, template=filename, **options)
             self.assertEqual((filename, type(report)), (filename, bytes))
 

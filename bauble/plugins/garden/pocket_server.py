@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2018 Mario Frasca <mario@anche.no>.
 # Copyright 2018 Tanager Botanical Garden <tanagertourism@gmail.com>
@@ -95,7 +94,7 @@ class PocketServer(Thread):
                 self.presenter = presenter
                 self.log = presenter.view.widgets.log_ls
                 self.clients = presenter.view.widgets.clients_ls
-                self.imei_to_user_name = dict((v[1], v[2]) for v in self.clients)
+                self.imei_to_user_name = {v[1]: v[2] for v in self.clients}
 
             def verify(self, client_id):
                 self.log.append(("verify ›%s‹" % (client_id), ))
@@ -107,7 +106,7 @@ class PocketServer(Thread):
 
             def register(self, client_id, user_name, security_code):
                 self.presenter._dirty = True
-                self.log.append(("register ›%s‹ ›%s‹" % (client_id, security_code), ))
+                self.log.append(("register ›{}‹ ›{}‹".format(client_id, security_code), ))
                 if not isinstance(client_id, str) or not isinstance(user_name, str):
                     return self.WRONG_TYPE_IN_PARAMETERS
                 elif security_code != self.presenter.model.code:
@@ -120,10 +119,10 @@ class PocketServer(Thread):
                     return self.OK
 
             def get_snapshot(self, client_id):
-                self.log.append(("get_snapshot ›%s‹ ›%s‹" % (client_id, self.presenter.pocket_fn), ))
+                self.log.append(("get_snapshot ›{}‹ ›{}‹".format(client_id, self.presenter.pocket_fn), ))
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
-                elif client_id not in set((i[1] for i in self.clients)):
+                elif client_id not in {i[1] for i in self.clients}:
                     return self.USER_NOT_REGISTERED
                 elif not isinstance(client_id, str):
                     return self.WRONG_TYPE_IN_PARAMETERS
@@ -138,10 +137,10 @@ class PocketServer(Thread):
             def put_change(self, client_id, log_lines, baseline):
                 user_name = self.imei_to_user_name.get(client_id, None)
                 from .import_pocket_log import process_line
-                self.log.append(("put_change ›%s‹ ›%s‹" % (client_id, len(log_lines)), ))
+                self.log.append(("put_change ›{}‹ ›{}‹".format(client_id, len(log_lines)), ))
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
-                elif client_id not in set((i[1] for i in self.clients)):
+                elif client_id not in {i[1] for i in self.clients}:
                     return self.USER_NOT_REGISTERED
                 elif not isinstance(client_id, str) or not isinstance(log_lines, list):
                     return self.WRONG_TYPE_IN_PARAMETERS
@@ -156,10 +155,10 @@ class PocketServer(Thread):
                 return self.OK
 
             def put_picture(self, client_id, name, base64_content):
-                self.log.append(("put_picture ›%s‹ ›%s‹" % (client_id, name, ), ))
+                self.log.append(("put_picture ›{}‹ ›{}‹".format(client_id, name), ))
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
-                elif client_id not in set((i[1] for i in self.clients)):
+                elif client_id not in {i[1] for i in self.clients}:
                     return self.USER_NOT_REGISTERED
                 elif not isinstance(client_id, str) or not isinstance(name, str) or not isinstance(base64_content, str):
                     return self.WRONG_TYPE_IN_PARAMETERS
@@ -178,10 +177,10 @@ class PocketServer(Thread):
                     return self.GENERIC_ERROR
 
             def put_picture_chunk(self, client_id, name, chunk_no, chunk_count, base64_content):
-                self.log.append(("put_picture ›%s‹ ›%s‹" % (client_id, name, ), ))
+                self.log.append(("put_picture ›{}‹ ›{}‹".format(client_id, name), ))
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
-                elif client_id not in set((i[1] for i in self.clients)):
+                elif client_id not in {i[1] for i in self.clients}:
                     return self.USER_NOT_REGISTERED
                 elif not isinstance(client_id, str) or not isinstance(name, str) or not isinstance(base64_content, str):
                     return self.WRONG_TYPE_IN_PARAMETERS
@@ -283,7 +282,7 @@ class PocketServerPresenter(GenericEditorPresenter):
         if row is None:
             row = meta.BaubleMeta(name='pocket-clients')
             self.session.add(row)
-        row.value = str(dict((i[1], i[2]) for i in self.clients_ls))
+        row.value = str({i[1]: i[2] for i in self.clients_ls})
         self.session.commit()
 
     def treeview_changed(self, widget, event, data=None):

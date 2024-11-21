@@ -126,7 +126,7 @@ if sys.platform == 'win32' and sys.argv[1] in ('nsis', 'py2exe'):
             if matches != []:
                 index = p.rfind('/')
                 if index != -1:
-                    install_dir = '%s/%s' % (pkg_dir, p[:index])
+                    install_dir = '{}/{}'.format(pkg_dir, p[:index])
                 else:
                     install_dir = pkg_dir
                 data_files.append((install_dir,
@@ -164,8 +164,8 @@ if sys.platform == 'win32' and sys.argv[1] in ('nsis', 'py2exe'):
             exe = '%s\\bin\\gdk-pixbuf-query-loaders.exe' % dist_gtk
             dest1 = '%s\\etc\\gtk-2.0\\gdk-pixbuf.loaders' % dist_gtk
             dest2 = '%s\\lib\\gdk-pixbuf-2.0\\2.10.0\\loaders.cache' % dist_gtk
-            cmd1 = 'call "%s" > "%s"' % (exe, dest1)
-            cmd2 = 'call "%s" > "%s"' % (exe, dest2)
+            cmd1 = 'call "{}" > "{}"'.format(exe, dest1)
+            cmd2 = 'call "{}" > "{}"'.format(exe, dest2)
             print(cmd1)
             print(cmd2)
             os.system(cmd1)
@@ -223,8 +223,8 @@ if sys.platform == 'win32' and sys.argv[1] in ('nsis', 'py2exe'):
                                 % self.nsis_script)
 
         def run(self):
-            print(('using %s to build %s' % (self.makensis, self.nsis_script)))
-            os.system('"%s" %s' % (self.makensis, self.nsis_script))
+            print('using {} to build {}'.format(self.makensis, self.nsis_script))
+            os.system('"{}" {}'.format(self.makensis, self.nsis_script))
 
 else:
     py2exe_options = {}
@@ -242,7 +242,7 @@ else:
 
         def run(self):
             print("**Error: Can't run this command.")
-            print((sys.exit(1)))
+            print(sys.exit(1))
 
     class py2exe_cmd(_empty_cmd):
         description = 'build Windows executable *ONLY AVAILABLE IN WINDOWS'
@@ -281,7 +281,7 @@ class build(_build):
             loc, ext = os.path.splitext(os.path.basename(po))
             localedir = dest_tmpl % loc
 
-            mo = '%s/%s.mo' % (localedir, TEXT_DOMAIN)
+            mo = '{}/{}.mo'.format(localedir, TEXT_DOMAIN)
             if not os.path.exists(localedir):
                 dir_util.mkpath(localedir)
             if not os.path.exists(mo) or dep_util.newer(po, mo):
@@ -307,7 +307,7 @@ class build(_build):
             file_util.copy_file('data/ghini.svg', pixmaps_dir)
 
             # copy .png icons
-            dimension = lambda s: '%sx%s' % (s, s)
+            dimension = lambda s: '{}x{}'.format(s, s)
             for size in icon_sizes:
                 img = 'data/ghini-%s.png' % size
                 dest = os.path.join(icon_root, '%s/apps/ghini.png'
@@ -418,7 +418,7 @@ class clean(Command):
                 matches = fnmatch.filter(files, pattern)
                 if matches:
                     def delete(p):
-                        print(('removing %s' % p))
+                        print('removing %s' % p)
                         os.remove(p)
                     list(map(delete, [os.path.join(path, m) for m in matches]))
         if os.path.exists('dist'):
@@ -476,7 +476,7 @@ print("Executing generate_pyproject complete\n")
 
 # Load data from pyproject.toml
 
-with open("pyproject.toml", "r") as f:
+with open("pyproject.toml") as f:
     pyproject = toml.load(f)
 project_info = pyproject.get("project", {})
 project_urls = pyproject.get("project.urls", {})
@@ -490,7 +490,7 @@ if homepage in project_urls.values():
 # Load long_description directly from pyproject.toml
 readme_file = project_info.get("readme", {}).get("file", "")
 if readme_file and os.path.exists(readme_file):
-    with open(readme_file, "r") as fh:
+    with open(readme_file) as fh:
         long_description_content = fh.read()
 else:
     long_description_content = ""

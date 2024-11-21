@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 workbook_name = '/home/mario/Dropbox/SharedWithMario/PvdT/DenHelder_for_Ghini.xlsx'
 sheet_name = 'Den Helder'

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2018 Mario Frasca <mario@anche.no>.
 # Copyright 2018 Tanager Botanical Garden <tanagertourism@gmail.com>
@@ -66,7 +65,7 @@ class Jinja2FormatterPlugin(TemplateFormatterPlugin):
             template = env.get_template(name)
         except RuntimeError as e:
             import traceback
-            utils.idle_message("Reading template %s\n%s(%s)\n%s" % (name, type(e).__name__, e, traceback.format_exc()), type=Gtk.MessageType.ERROR)
+            utils.idle_message("Reading template {}\n{}({})\n{}".format(name, type(e).__name__, e, traceback.format_exc()), type=Gtk.MessageType.ERROR)
             return False
 
         return template

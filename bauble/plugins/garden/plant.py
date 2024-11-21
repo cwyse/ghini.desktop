@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015-2017 Mario Frasca <mario@anche.no>.
@@ -196,7 +195,7 @@ class PlantSearch(SearchStrategy):
             logger.debug("delimiter not found, can't split the code")
             return []
         acc_code, plant_code = text.rsplit(delimiter, 1)
-        logger.debug("ac: %s, pl: %s" % (acc_code, plant_code))
+        logger.debug("ac: {}, pl: {}".format(acc_code, plant_code))
 
         try:
             from bauble.plugins.garden import Accession
@@ -204,7 +203,7 @@ class PlantSearch(SearchStrategy):
                 filter(Plant.code == str(plant_code), utils.ilike(Accession.code, f"%{acc_code}%"))
             return query.all()
         except Exception as e:
-            logger.debug("%s %s" % (e.__class__.name, e))
+            logger.debug("{} {}".format(e.__class__.name, e))
             return []
 
 
@@ -237,7 +236,7 @@ def compute_serializable_fields(cls, session, keys):
 
     acc_code, plant_code = keys['plant'].rsplit(
         Plant.get_delimiter(), 1)
-    logger.debug("acc-plant: %s-%s" % (acc_code, plant_code))
+    logger.debug("acc-plant: {}-{}".format(acc_code, plant_code))
     q = session.query(Plant).filter(
         Plant.code == str(plant_code)).join(
         Accession).filter(Accession.code == str(acc_code))
@@ -420,7 +419,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         '''provide the two lines describing object for SearchView row.
         '''
         import inspect
-        logger.debug('entering search_view_markup_pair %s, %s' % (
+        logger.debug('entering search_view_markup_pair {}, {}'.format(
             self, str(inspect.stack()[1])))
         sp_str = self.accession.species_str(markup=True, authors=True)
         dead_color = "#9900ff"
@@ -462,7 +461,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     delimiter = property(lambda self: self._get_delimiter())
 
     def __str__(self):
-        return "%s%s%s" % (self.accession, self.delimiter, self.code)
+        return "{}{}{}".format(self.accession, self.delimiter, self.code)
 
     def duplicate(self, code=None, session=None):
         """Return a Plant that is a flat (not deep) duplicate of self. For notes,
@@ -484,7 +483,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         return plant
 
     def markup(self):
-        return "%s%s%s (%s)" % (self.accession, self.delimiter, self.code,
+        return "{}{}{} ({})".format(self.accession, self.delimiter, self.code,
                                 self.accession.species_str(markup=True, authors=True))
 
     def as_dict(self):
@@ -530,12 +529,12 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     def top_level_count(self):
         sd = self.accession.source and self.accession.source.source_detail
         return {(1, 'Plantings'): 1,
-                (2, 'Accessions'): set([self.accession.id]),
-                (3, 'Species'): set([self.accession.species.id]),
-                (4, 'Genera'): set([self.accession.species.genus.id]),
-                (5, 'Families'): set([self.accession.species.genus.family.id]),
+                (2, 'Accessions'): {self.accession.id},
+                (3, 'Species'): {self.accession.species.id},
+                (4, 'Genera'): {self.accession.species.genus.id},
+                (5, 'Families'): {self.accession.species.genus.family.id},
                 (6, 'Living plants'): self.quantity,
-                (7, 'Locations'): set([self.location.id]),
+                (7, 'Locations'): {self.location.id},
                 (8, 'Sources'): set(sd and [sd.id] or []),
                 }
 
@@ -581,7 +580,7 @@ class PlantEditorView(GenericEditorView):
 
         def acc_cell_data_func(column, renderer, model, treeiter, data=None):
             v = model[treeiter][0]
-            renderer.set_property('text', '%s (%s)' % (str(v), str(v.species)))
+            renderer.set_property('text', '{} ({})'.format(str(v), str(v.species)))
 
         self.attach_completion('plant_acc_entry', acc_cell_data_func,
                                minimum_key_length=2)
@@ -822,7 +821,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
                           self.is_dirty(),
                           len(self.problems) == 0))
         except OperationalError as e:
-            logger.debug('(%s)%s' % (type(e), e))
+            logger.debug('({}){}'.format(type(e), e))
             return
         logger.debug(self.problems)
 
@@ -844,7 +843,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         self.view.widgets.split_planting_button.props.visible = False
 
     def set_model_attr(self, field, value, validator=None):
-        logger.debug('set_model_attr(%s, %s)' % (field, value))
+        logger.debug('set_model_attr({}, {})'.format(field, value))
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.refresh_sensitivity()
@@ -874,7 +873,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         for widget, field in list(self.widget_to_field_map.items()):
             value = getattr(self.model, field)
             self.view.widget_set_value(widget, value)
-            logger.debug('%s: %s = %s' % (widget, field, value))
+            logger.debug('{}: {} = {}'.format(widget, field, value))
 
         self.view.widget_set_value('plant_acc_type_combo',
                                    acc_type_values[self.model.acc_type],
@@ -1261,7 +1260,7 @@ class ChangesExpander(InfoExpander):
                 s = '%(quantity)s Added to %(location)s' % \
                     dict(quantity=change.quantity, location=change.to_location)
             else:
-                s = '%s: %s -> %s' % (change.quantity, change.from_location,
+                s = '{}: {} -> {}'.format(change.quantity, change.from_location,
                                       change.to_location)
             if change.reason is not None:
                 s += '\n%s' % change_reasons[change.reason]

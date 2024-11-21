@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2015-2016 Mario Frasca <mario@anche.no>
@@ -152,14 +151,14 @@ def copy_picture_with_thumbnail(path, basename=None):
     try:
         im = Image.open(filename)
         im.thumbnail((400, 400))
-        logger.debug('copying %s to %s' % (filename, full_dest_path))
+        logger.debug('copying {} to {}'.format(filename, full_dest_path))
         im.save(full_dest_path)
         from io import BytesIO
         output = BytesIO()
         im.save(output, format='JPEG')
         im_data = output.getvalue()
         result = base64.b64encode(im_data)
-    except IOError as e:
+    except OSError as e:
         logger.warning("can't make thumbnail")
     except Exception as e:
         logger.warning("unexpected exception making thumbnail: "
@@ -972,7 +971,7 @@ def safe_int(s):
     return 0
 
 
-__natsort_rx = re.compile('(\d+(?:\.\d+)?)')
+__natsort_rx = re.compile(r'(\d+(?:\.\d+)?)')
 
 
 def natsort_key(obj):
@@ -1010,10 +1009,10 @@ def delete_or_expunge(obj):
     if session is None:
         return
     if obj not in session.new:
-        logger.debug('delete obj: %s -- %s' % (obj, repr(obj)))
+        logger.debug('delete obj: {} -- {}'.format(obj, repr(obj)))
         session.delete(obj)
     else:
-        logger.debug('expunge obj: %s -- %s' % (obj, repr(obj)))
+        logger.debug('expunge obj: {} -- {}'.format(obj, repr(obj)))
         session.expunge(obj)
         del obj
 
@@ -1044,14 +1043,14 @@ def reset_sequence(column):
           and (column.default is None or
                (isinstance(column.default, schema.Sequence) and column.default.optional))
           and len(column.foreign_keys) == 0):
-        sequence_name = '%s_%s_seq' % (column.table.name, column.name)
+        sequence_name = '{}_{}_seq'.format(column.table.name, column.name)
     else:
         return
     conn = db.engine.connect()
     trans = conn.begin()
     try:
         # the FOR UPDATE locks the table for the transaction
-        stmt = "SELECT %s from %s FOR UPDATE;" % (
+        stmt = "SELECT {} from {} FOR UPDATE;".format(
             column.name, column.table.name)
         result = conn.execute(stmt)
         maxid = None
@@ -1529,7 +1528,7 @@ def get_urls(text):
     label a link prefix it with [label text],
     e.g. [BBG]http://belizebotanic.org
     """
-    rx = re.compile('(?:\[(.+?)\])?((?:(?:http)|(?:https))://\S+)', re.I)
+    rx = re.compile(r'(?:\[(.+?)\])?((?:(?:http)|(?:https))://\S+)', re.I)
     matches = []
     for match in rx.finditer(text):
         matches.append(match.groups())

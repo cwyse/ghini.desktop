@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2017,2018 Mario Frasca <mario@anche.no>.
 # Copyright 2017 Jardín Botánico de Quito
@@ -91,7 +90,7 @@ import threading
 
 class ExportToPocketThread(threading.Thread):
     def __init__(self, filename, progressbar=None, callback=None, include_private=True):
-        super(ExportToPocketThread, self).__init__(target=None, name=None)
+        super().__init__(target=None, name=None)
         self.filename = filename
         self.callback = callback
         self.progressbar = progressbar
@@ -129,7 +128,7 @@ class ExportToPocketThread(threading.Thread):
                         i.infraspecific_rank, i.infraspecific_epithet,
                         i.infraspecific_author or i.author or ''))
             except Exception as e:
-                logger.info("error exporting species %s: %s %s" % (i.id, type(e), e))
+                logger.info("error exporting species {}: {} {}".format(i.id, type(e), e))
             count += 1
             if self.progressbar:
                 GObject.idle_add(self.progressbar.set_fraction, 0.05 * count / len(species))
@@ -147,7 +146,7 @@ class ExportToPocketThread(threading.Thread):
                            'VALUES (?, ?, ?, ?, ?);',
                            (i.id, i.code, i.species_id, source_name, i.date_accd))
             except Exception as e:
-                logger.info("error exporting accession %s: %s %s" % (i.id, type(e), e))
+                logger.info("error exporting accession {}: {} {}".format(i.id, type(e), e))
             count += 1
             if self.progressbar:
                 GObject.idle_add(self.progressbar.set_fraction, 0.05 + 0.40 * count / len(accessions))
@@ -161,7 +160,7 @@ class ExportToPocketThread(threading.Thread):
                            'VALUES (?, ?, ?, ?, ?, ?, ?);',
                            (i.id, i.accession_id, "." + i.code, i.location.code, i.date_of_death, len(i.pictures), i.quantity))
             except Exception as e:
-                logger.info("error exporting plant %s: %s %s" % (i.id, type(e), e))
+                logger.info("error exporting plant {}: {} {}".format(i.id, type(e), e))
             count += 1
             if self.progressbar:
                 GObject.idle_add(self.progressbar.set_fraction, 0.45 + 0.55 * count / len(plants))

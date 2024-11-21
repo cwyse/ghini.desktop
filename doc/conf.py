@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Bauble documentation build configuration file, created by
 # sphinx-quickstart on Sun Oct 19 13:24:19 2008.

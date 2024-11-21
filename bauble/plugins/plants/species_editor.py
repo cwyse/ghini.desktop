@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2012-2015 Mario Frasca <mario@anche.no>.
@@ -140,15 +139,15 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
 
             self.view.close_boxes()
             if found:
-                found = dict((k, utils.to_unicode(v))
-                             for k, v in list(found.items()))
-                found_s = dict((k, utils.xml_safe(utils.to_unicode(v)))
-                               for k, v in list(found.items()))
+                found = {k: utils.to_unicode(v)
+                             for k, v in list(found.items())}
+                found_s = {k: utils.xml_safe(utils.to_unicode(v))
+                               for k, v in list(found.items())}
             if accepted:
-                accepted = dict((k, utils.to_unicode(v))
-                                for k, v in list(accepted.items()))
-                accepted_s = dict((k, utils.xml_safe(utils.to_unicode(v)))
-                                  for k, v in list(accepted.items()))
+                accepted = {k: utils.to_unicode(v)
+                                for k, v in list(accepted.items())}
+                accepted_s = {k: utils.xml_safe(utils.to_unicode(v))
+                                  for k, v in list(accepted.items())}
 
             msg_box_msg = _('No match found on ThePlantList.org')
 
@@ -248,7 +247,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
                 kid = self.species_check_messages.pop()
                 self.view.widgets.remove_parent(kid)
 
-            binomial = '%s %s' % (self.model.genus, self.model.epithet)
+            binomial = '{} {}'.format(self.model.genus, self.model.epithet)
             timeout = prefs.get('network_timeout', 4)
             AskTPL(binomial, sp_species_TPL_callback, timeout=timeout, gui=True
                    ).start()
@@ -559,7 +558,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             self.view.widgets.add_infrasp_button.props.sensitive = False
         return row
 
-    class Row(object):
+    class Row:
 
         def __init__(self, presenter, level):
             """
@@ -648,7 +647,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             self.presenter.parent_ref().refresh_sensitivity()
 
         def on_rank_combo_changed(self, combo, *args):
-            logger.info("on_rank_combo_changed(%s, %s)" % (combo, args))
+            logger.info("on_rank_combo_changed({}, {})".format(combo, args))
             model = combo.get_model()
             it = combo.get_active_iter()
             value = model[it][0]
@@ -658,7 +657,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
                 self.set_model_attr('rank', None)
 
         def on_epithet_entry_changed(self, entry, *args):
-            logger.info("on_epithet_entry_changed(%s, %s)" % (entry, args))
+            logger.info("on_epithet_entry_changed({}, {})".format(entry, args))
             value = utils.utf8(entry.props.text)
             if not value:  # if None or ''
                 value = None
@@ -666,7 +665,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             ## now warn if same binomial is already in database
 
         def on_author_entry_changed(self, entry, *args):
-            logger.info("on_author_entry_changed(%s, %s)" % (entry, args))
+            logger.info("on_author_entry_changed({}, {})".format(entry, args))
             value = utils.utf8(entry.props.text)
             if not value:  # if None or ''
                 value = None
@@ -723,12 +722,12 @@ class DistributionPresenter(editor.GenericEditorPresenter):
         self.remove_menu.popup(None, None, None, None, event.button, event.time)
 
     def on_activate_add_menu_item(self, widget, geoid=None):
-        logger.debug('on_activate_add_menu_item %s %s' % (widget, geoid))
+        logger.debug('on_activate_add_menu_item {} {}'.format(widget, geoid))
         from bauble.plugins.plants.geography import GeographicArea
         geo = self.session.query(GeographicArea).filter_by(id=geoid).one()
         # check that this geography isn't already in the distributions
         if geo in [d.geographic_area for d in self.model.distribution]:
-            logger.debug('%s already in %s' % (geo, self.model))
+            logger.debug('{} already in {}'.format(geo, self.model))
             return
         dist = SpeciesDistribution(geographic_area=geo)
         self.model.distribution.append(dist)
@@ -1161,7 +1160,7 @@ class SpeciesEditorView(editor.GenericEditorView):
         '''
         '''
         v = model[treeiter][0]
-        renderer.set_property('text', '%s (%s)' % (Genus.str(v),
+        renderer.set_property('text', '{} ({})'.format(Genus.str(v),
                                                    Family.str(v.family)))
 
     @staticmethod

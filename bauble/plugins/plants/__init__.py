@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2012-2015 Mario Frasca <mario@anche.no>.
@@ -200,9 +199,9 @@ class SplashInfoBox(pluginmgr.View):
         ssn = db.Session()
         q = ssn.query(bauble.meta.BaubleMeta)
         q = q.filter(bauble.meta.BaubleMeta.name.startswith('stqr'))
-        name_tooltip_query = dict(
-            (int(i.name[5:]), (i.value.split(':', 2)))
-            for i in q.all())
+        name_tooltip_query = {
+            int(i.name[5:]): (i.value.split(':', 2))
+            for i in q.all()}
         ssn.close()
 
         for i in range(1, 11):
@@ -394,7 +393,7 @@ class PlantsPlugin(pluginmgr.Plugin):
                     (9, _('history'), _('the history in this database'), ':history'),
                     (10, _('preferences'), _('your user preferences'), ':prefs')]:
                 meta.get_default('stqr_%02d' % index,
-                                 "%s:%s:%s" % (name, tooltip, query),
+                                 "{}:{}:{}".format(name, tooltip, query),
                                  session)
             session.commit()
         session.close()

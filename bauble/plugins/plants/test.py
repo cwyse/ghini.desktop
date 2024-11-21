@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015 Mario Frasca <mario@anche.no>.
@@ -409,7 +408,7 @@ class FamilyTests(PlantTestCase):
         self.session.flush()
 
         # effect
-        print((self.invoked))
+        print(self.invoked)
         self.assertFalse('message_details_dialog' in
                          [f for (f, m) in self.invoked])
         self.assertTrue(('yes_no_dialog', 'Are you sure you want to '
@@ -437,7 +436,7 @@ class FamilyTests(PlantTestCase):
         self.session.flush()
 
         # effect
-        print((self.invoked))
+        print(self.invoked)
         self.assertFalse('message_details_dialog' in
                          [f for (f, m) in self.invoked])
         self.assertTrue(('yes_no_dialog', 'Are you sure you want to '
@@ -469,7 +468,7 @@ class FamilyTests(PlantTestCase):
         self.session.flush()
 
         # effect
-        print((self.invoked))
+        print(self.invoked)
         self.assertFalse('message_details_dialog' in
                          [f for (f, m) in self.invoked])
         self.assertTrue(('message_dialog', 'The family <i>Arecaceae</i> has 1 genera.\n\nYou cannot remove a family with genera.')
@@ -647,7 +646,7 @@ class GenusTests(PlantTestCase):
         self.session.flush()
 
         # effect
-        print((self.invoked))
+        print(self.invoked)
         self.assertFalse('message_details_dialog' in
                          [f for (f, m) in self.invoked])
         self.assertTrue(('yes_no_dialog', 'Are you sure you want to '
@@ -680,7 +679,7 @@ class GenusTests(PlantTestCase):
         self.session.flush()
 
         # effect
-        print((self.invoked))
+        print(self.invoked)
         self.assertFalse('message_details_dialog' in
                          [f for (f, m) in self.invoked])
         self.assertTrue(('message_dialog', 'The genus <i>Carica</i> has 1 species.\n\nYou cannot remove a genus with species.')
@@ -817,7 +816,7 @@ class SpeciesTests(PlantTestCase):
 
         for sid, expect in list(species_str_map.items()):
             sp = self.session.query(Species).get(sid)
-            print(("»%s« »%s« »%s« »%s« " % (sp.genus.epithet, sp.epithet, sp.genus, sp)))
+            print("»{}« »{}« »{}« »{}« ".format(sp.genus.epithet, sp.epithet, sp.genus, sp))
             printable_name = remove_zws("%s" % sp)
             self.assertEqual(expect, printable_name)
             spstr = get_sp_str(sid)
@@ -1105,7 +1104,7 @@ class SpeciesTests(PlantTestCase):
         # effect
         self.assertFalse('message_details_dialog' in
                          [f for (f, m) in self.invoked])
-        print((self.invoked))
+        print(self.invoked)
         self.assertTrue(('yes_no_dialog', 'Are you sure you want to remove the species <i>Carica \u200bpapaya</i>?')
                         in self.invoked)
         self.assertEqual(result, None)
@@ -1132,7 +1131,7 @@ class SpeciesTests(PlantTestCase):
         self.session.flush()
 
         # effect
-        print((self.invoked))
+        print(self.invoked)
         self.assertFalse('message_details_dialog' in
                          [f for (f, m) in self.invoked])
         self.assertTrue(('yes_no_dialog', 'Are you sure you want to remove the species <i>Carica \u200bpapaya</i>?')
@@ -1166,7 +1165,7 @@ class SpeciesTests(PlantTestCase):
         self.session.flush()
 
         # effect
-        print((self.invoked))
+        print(self.invoked)
         self.assertFalse('message_details_dialog' in
                          [f for (f, m) in self.invoked])
         self.assertTrue(('message_dialog', 'The species <i>Carica \u200bpapaya</i> has 1 accessions.\n\nYou cannot remove a species with accessions.')
@@ -1267,7 +1266,7 @@ class FromAndToDictTest(PlantTestCase):
         sol = Family.retrieve_or_create(
             self.session, {'rank': 'family',
                            'epithet': 'Solanaceae'})
-        self.assertEqual(set(all_families), set([orc, pol, leg, sol]))
+        self.assertEqual(set(all_families), {orc, pol, leg, sol})
 
     def test_grabbing_same_params_same_output_existing(self):
         orc1 = Family.retrieve_or_create(

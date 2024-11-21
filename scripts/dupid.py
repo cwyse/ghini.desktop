@@ -29,7 +29,7 @@ random.seed()
 ids = set()
 
 filename = sys.argv[filename_arg]
-print(("duplicates in %s: " % filename))
+print("duplicates in %s: " % filename)
 tree = etree.parse(filename)
 for el in tree.getiterator():
     elid = el.get('id')
@@ -39,10 +39,10 @@ for el in tree.getiterator():
         newid = None
         if overwrite:
             while newid in ids:
-                newid = '%s%s' % (elid, str(random.randint(0, 99)))
+                newid = '{}{}'.format(elid, str(random.randint(0, 99)))
             ids.add(newid)
             el.set('id', newid)
-            print(('%s = %s' % (elid, newid)))
+            print('{} = {}'.format(elid, newid))
         else:
             print(elid)
 if overwrite:

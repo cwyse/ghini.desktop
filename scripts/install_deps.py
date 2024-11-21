@@ -35,7 +35,7 @@ parser.add_option('-r', '--redl', action='store_true', dest='redl',
 parser.add_option('-e', '--noeggs', action='store_true', dest='noeggs',
                   default=False, help="don't use easy_install")
 parser.add_option('-d', '--download_path', dest="download_path", metavar="DIR",
-                  help="directory to download files, default is .\install_deps")
+                  help=r"directory to download files, default is .\install_deps")
 (options, args) = parser.parse_args()
 
 
@@ -73,7 +73,7 @@ def get_subkey_names(reg_key):
     while True:
         try:
             name = winreg.EnumKey(reg_key, index)
-        except EnvironmentError:
+        except OSError:
             break
         index += 1
         L.append(name)
@@ -97,7 +97,7 @@ def get_python_versions():
                       winreg.HKEY_CURRENT_USER):
         try:
             python_key = winreg.OpenKey(reg_hive, python_path)
-        except EnvironmentError:
+        except OSError:
             continue
         for version_name in get_subkey_names(python_key):
             key = winreg.OpenKey(python_key, version_name)
@@ -125,14 +125,14 @@ try:
     PYTHON_HOME = python_versions[supported_python_version]
     PYTHON_EXE = os.path.join(PYTHON_HOME, 'python.exe')
     if os.path.exists(PYTHON_EXE):
-        print(('Using Python %s' % supported_python_version))
+        print('Using Python %s' % supported_python_version)
         #print 'Python %s seems to be installed correctly' % version
     else:
-        print(('Python %s NOT installed correctly' % version))
+        print('Python %s NOT installed correctly' % version)
         sys.exit(1)
 
 except KeyError:
-    print(('This script only supports Python %s' % supported_python_version))
+    print('This script only supports Python %s' % supported_python_version)
     sys.exit(1)
 
 
@@ -141,7 +141,7 @@ if options.download_path:
 else:
     DL_PATH = os.path.join(os.getcwd(), 'install_deps')
 
-print(('using download path: %s' % DL_PATH))
+print('using download path: %s' % DL_PATH)
 if not os.path.exists(DL_PATH):
     os.makedirs(DL_PATH)
 
@@ -152,12 +152,12 @@ for url in ALL_FILES:
     dest_file = os.path.join(DL_PATH, filename)
     if os.path.exists(dest_file) and not options.redl:
         continue
-    print(('downloading %s...' % filename))
+    print('downloading %s...' % filename)
     try:
         urllib.request.urlretrieve(url, os.path.join(DL_PATH, filename))
     except Exception as e:
         print(e)
-        print(('ERROR: Could not download %s' % url))
+        print('ERROR: Could not download %s' % url)
         sys.exit(1)
 
 
@@ -178,14 +178,14 @@ if not options.noeggs:
         EZ_SETUP_DL_PATH = os.path.join(DL_PATH, 'ez_setup.py')
         if not os.path.exists(EZ_SETUP_DL_PATH):
             urllib.request.urlretrieve(EZ_SETUP_PATH, EZ_SETUP_DL_PATH)
-        cmd = '%s "%s"' % (PYTHON_EXE, EZ_SETUP_DL_PATH)
+        cmd = '{} "{}"'.format(PYTHON_EXE, EZ_SETUP_DL_PATH)
         #print cmd
         os.system(cmd)
 
     # install the eggs
     for egg, version in list(eggs_install.items()):
         #cmd = '%s -Z "%s%s"' % (EASY_INSTALL_EXE, egg, version)
-        cmd = '%s -Z -U "%s%s"' % (EASY_INSTALL_EXE, egg, version)
+        cmd = '{} -Z -U "{}{}"'.format(EASY_INSTALL_EXE, egg, version)
         os.system(cmd)
 
 print('done.')

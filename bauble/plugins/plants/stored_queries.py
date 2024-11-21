@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2016 Mario Frasca <mario@anche.no>.
 #
@@ -31,7 +30,7 @@ from bauble import db, meta, editor, paths, pluginmgr
 import os.path
 
 
-class StoredQueriesModel(object):
+class StoredQueriesModel:
     def __init__(self):
         self.__label = [''] * 11
         self.__tooltip = [''] * 11
@@ -67,7 +66,7 @@ class StoredQueriesModel(object):
         ssn.close()
 
     def __getitem__(self, index):
-        return '%s:%s:%s' % (self.__label[index],
+        return '{}:{}:{}'.format(self.__label[index],
                               self.__tooltip[index],
                               self.__query[index])
 

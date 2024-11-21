@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015-2017 Mario Frasca <mario@anche.no>.
@@ -267,7 +266,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             self, model=self, view=view, refresh_view=True)
         logo_path = os.path.join(paths.lib_dir(), "images", "bauble_logo.png")
         view.image_set_from_file('logo_image', logo_path)
-        view.set_title('%s %s' % ('Ghini', bauble.version))
+        view.set_title('{} {}'.format('Ghini', bauble.version))
         try:
             view.set_icon(GdkPixbuf.Pixbuf.new_from_file(bauble.default_icon))
         except:

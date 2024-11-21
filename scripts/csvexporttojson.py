@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Copyright 2015 Mario Frasca <mario@anche.no>.
 #
@@ -66,7 +65,7 @@ def split_and_apply(s):
 
     if s.find('|') == -1:
         return s
-    v, fs = [i.strip() for i in s.split('|', 1)]
+    v, fs = (i.strip() for i in s.split('|', 1))
     for f in [i.strip() for i in fs.split('|')]:
         f = getattr(v, f)
         v = f()

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2004-2010 Brett Adams
 # Copyright 2015 Mario Frasca <mario@anche.no>.
@@ -576,7 +575,7 @@ class JSONExportTests(BaubleTestCase):
         date_dict = result[1]['date']
         del result[1]['date']
         self.assertEqual(result[1], {'category': '<coords>', 'note': '{1: 1, 2: 2}', 'species': 'Calopogon tuberosus', 'object': 'species_note'})
-        self.assertEqual(set(date_dict.keys()), set(['millis', '__class__']))
+        self.assertEqual(set(date_dict.keys()), {'millis', '__class__'})
 
     def test_export_single_species_with_vernacular_name(self):
         selection = self.session.query(

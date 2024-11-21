@@ -173,5 +173,5 @@ copy_list = ['donor.txt', 'family_synonym.txt', 'family.txt',
              'plant_history.txt', 'vernacular_name.txt', 'donation.txt',
              'plant.txt']
 for f in copy_list:
-    print(('copying %s' % f))
+    print('copying %s' % f)
     shutil.copy(os.path.join(src_path, f), dst_path)

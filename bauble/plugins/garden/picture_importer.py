@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2018 Mario Frasca <mario@anche.no>.
 #
@@ -67,8 +66,8 @@ def decode_parts(name, acc_format=None):
     if acc_format is None:
         use_accno_re = accno_re
     else:
-        exp_str = acc_format.replace('.', '\.').replace('#', "[0-9]")
-        exp_str = "(%s)(?:\.([0-9]+))?" % exp_str
+        exp_str = acc_format.replace('.', r'\.').replace('#', "[0-9]")
+        exp_str = r"(%s)(?:\.([0-9]+))?" % exp_str
         use_accno_re = re.compile(exp_str)
     for key, exp in [('accession', use_accno_re),
                      ('species', species_re),
@@ -240,11 +239,11 @@ class PictureImporterPresenter(GenericEditorPresenter):
             self.model.location = 'imported'
         location = session.query(Location).filter_by(code=self.model.location).first()
         if location is not None:
-            logger.log(11, 'location %s already in database' % (location, ))
+            logger.log(11, 'location {} already in database'.format(location))
         else:
             location = Location(code=self.model.location)
             session.add(location)
-            logger.log(13, 'created new location %s' % (location, ))
+            logger.log(13, 'created new location {}'.format(location))
 
         # iterate over liststore content
         for row in self.review_liststore:
@@ -262,15 +261,15 @@ class PictureImporterPresenter(GenericEditorPresenter):
             genus = session.query(Genus).filter_by(epithet=epgn).one()
             species = session.query(Species).filter_by(genus=genus, epithet=epsp).first()
             if species is not None:
-                logger.log(11, 'species %s %s already in database' % (epgn, epsp))
+                logger.log(11, 'species {} {} already in database'.format(epgn, epsp))
             else:
                 species = query_session_new(session, Species, genus=genus, epithet=epsp)
                 if species is None:
                     species = Species(genus=genus, epithet=epsp)
                     session.add(species)
-                    logger.log(13, 'created species %s %s' % (epgn, epsp))
+                    logger.log(13, 'created species {} {}'.format(epgn, epsp))
                 else:
-                    logger.log(12, 'reusing new species %s %s' % (epgn, epsp))
+                    logger.log(12, 'reusing new species {} {}'.format(epgn, epsp))
 
             # create or retrieve accession (needs species)
             accession = session.query(Accession).filter_by(code=accession_code).first()
@@ -281,7 +280,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
                 if accession is None:
                     accession = Accession(species=species, code=accession_code, quantity_recvd=1)
                     session.add(accession)
-                    logger.log(13, 'created accession %s for species %s %s' % (accession_code, epgn, epsp))
+                    logger.log(13, 'created accession {} for species {} {}'.format(accession_code, epgn, epsp))
                 else:
                     logger.log(12, 'reusing new accession %s' % (accession_code))
 
@@ -304,15 +303,15 @@ class PictureImporterPresenter(GenericEditorPresenter):
             # add picture note
             note = session.query(PlantNote).filter_by(plant=plant, note=filename, category='<picture>').first()
             if note is not None:
-                logger.log(11, 'picture %s already in plant %s' % (filename, complete_plant_code))
+                logger.log(11, 'picture {} already in plant {}'.format(filename, complete_plant_code))
             else:
                 note = query_session_new(session, PlantNote, plant=plant, note=filename, category='<picture>')
                 if note is None:
                     note = PlantNote(plant=plant, note=filename, category='<picture>', user='initial-import')
                     session.add(note)
-                    logger.log(13, 'picture %s added to plant %s' % (filename, complete_plant_code))
+                    logger.log(13, 'picture {} added to plant {}'.format(filename, complete_plant_code))
                 else:
-                    logger.log(12, 'reusing new picture %s in plant %s' % (filename, complete_plant_code))
+                    logger.log(12, 'reusing new picture {} in plant {}'.format(filename, complete_plant_code))
         logger.removeHandler(handler)
         self.view.widgets.button_ok.set_sensitive(self.keep_running is True)
         self.lock.acquire()

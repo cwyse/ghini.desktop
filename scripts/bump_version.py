@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Copyright 2004-2010 Brett Adams <brett@bauble.io>
 # Copyright 2015 Mario Frasca <mario@anche.no>.
@@ -55,16 +54,15 @@ if version in ['+', '++', '+++']:
     inc_patch = version == '+'
     inc_minor = version == '++'
     inc_major = version == '+++'
-    rx = re.compile("^version\s*=\s*(?:\'|\")(.*)\.(.*)\.(.*)(?:\'|\").*%s.*$"
+    rx = re.compile("^version\\s*=\\s*(?:\'|\")(.*)\\.(.*)\\.(.*)(?:\'|\").*%s.*$"
                     % bump_tag)
 
     matches = [rx.match(l).groups()
                for l in open(
-                   os.path.join(root_of_clone(), "bauble/version.py"),
-                   'r')
+                   os.path.join(root_of_clone(), "bauble/version.py"))
                if rx.match(l)]
     if matches:
-        major, minor, patch = [int(i) for i in matches[0]]
+        major, minor, patch = (int(i) for i in matches[0])
         if inc_major:
             major += 1
             minor = 0
@@ -74,9 +72,9 @@ if version in ['+', '++', '+++']:
             patch = 0
         elif inc_patch:
             patch += 1
-        version = "%s.%s.%s" % (major, minor, patch)
+        version = "{}.{}.{}".format(major, minor, patch)
 
-if not re.match('.*?\..*?\..*?', version):
+if not re.match(r'.*?\..*?\..*?', version):
     usage_and_exit('bad version string')
 
 
@@ -95,12 +93,12 @@ def bump_file(filename, rx):
 
     from io import StringIO
     buf = StringIO()
-    for line in open(filename, 'r'):
+    for line in open(filename):
         match = rx.match(line)
         if match:
             s = rx.sub(r'\1%s\2', line)
             line = s % version
-            print(('%s: %s' % (filename, line)).strip())
+            print(('{}: {}'.format(filename, line)).strip())
         buf.write(line)
 
     f = open(filename, 'w')
@@ -113,7 +111,7 @@ def bump_py_file(filename, varname='version'):
     bump python files
     """
 
-    rx = "^(%s\s*=\s*(?:\'|\")).*((?:\'|\").*%s.*)$" % (varname, bump_tag)
+    rx = "^({}\\s*=\\s*(?:\'|\")).*((?:\'|\").*{}.*)$".format(varname, bump_tag)
     bump_file(filename, rx)
 
 
@@ -121,7 +119,7 @@ def bump_desktop_file(filename):
     """
     bump xdf .desktop files
     """
-    rx = "(^Version=).*?\..*?\..*?(\s+?.*?%s.*?$)" % bump_tag
+    rx = r"(^Version=).*?\..*?\..*?(\s+?.*?%s.*?$)" % bump_tag
     bump_file(filename, rx)
 
 
@@ -129,7 +127,7 @@ def bump_nsi_file(filename, varname='VERSION'):
     """
     bump NSIS installer files
     """
-    rx = '(^!define %s ").*?\..*?\..*?(".*?%s.*?$)' % (varname, bump_tag)
+    rx = r'(^!define {} ").*?\..*?\..*?(".*?{}.*?$)'.format(varname, bump_tag)
     bump_file(filename, rx)
 
 # bump and grind
@@ -138,13 +136,13 @@ bump_py_file(os.path.join(root_of_clone(), 'doc/conf.py'), 'release')
 bump_desktop_file(os.path.join(root_of_clone(), 'data/ghini.desktop'))
 bump_nsi_file(os.path.join(root_of_clone(), 'scripts/build-multiuser.nsi'))
 
-rx = "(^VERSION=\").*?\..*?\..*?(\".*?%s.*?$)" % bump_tag
+rx = "(^VERSION=\").*?\\..*?\\..*?(\".*?%s.*?$)" % bump_tag
 bump_file(os.path.join(root_of_clone(), 'packages/builddeb.sh'), rx)
 
-rx = "(^version=)[0-9]*\.[0-9]*\.[0-9]*(.*?%s.*$)" % bump_tag
+rx = r"(^version=)[0-9]*\.[0-9]*\.[0-9]*(.*?%s.*$)" % bump_tag
 bump_file(os.path.join(root_of_clone(), 'scripts/installer.cfg'), rx)
 
-rx = "(^  release: \'v).*?\..*?\..*?(\'.*?%s.*?$)" % (bump_tag)
+rx = "(^  release: \'v).*?\\..*?\\..*?(\'.*?%s.*?$)" % (bump_tag)
 bump_file(os.path.join(root_of_clone(), '.appveyor.yml'), rx)
 
 # TODO: commit the changes

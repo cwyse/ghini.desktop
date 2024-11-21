@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2012-2018 Mario Frasca <mario@anche.no>.
@@ -367,7 +366,7 @@ class FormatterPlugin(pluginmgr.Plugin):
             else:
                 return False
         except Exception as e:
-            logger.debug("%s can't handle template %s - %s(%s)" % (cls.title, name, type(e).__name__, e))
+            logger.debug("{} can't handle template {} - {}({})".format(cls.title, name, type(e).__name__, e))
             return False
 
     @classmethod
@@ -408,10 +407,10 @@ class FormatterPlugin(pluginmgr.Plugin):
                 try:
                     domain = domains[0]
                 except IndexError as e:
-                    logger.debug("template %s(%s) contains no %s DOMAIN declaration" % (template, filename, cls.title, ))
+                    logger.debug("template {}({}) contains no {} DOMAIN declaration".format(template, filename, cls.title))
                     domain = ''
         except Exception as e:
-            logger.debug("template %s can't be read - %s(%s)" % (name, type(e).__name__, e))
+            logger.debug("template {} can't be read - {}({})".format(name, type(e).__name__, e))
             domain = ''
 
         return domain
@@ -524,7 +523,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         signaller = view.widgets.choose_thaw
         handler_id = signaller.connect('clicked', self.thaw_templates)
 
-        names = set([i[0] + i[3] for i in self.view.widgets.names_ls])
+        names = {i[0] + i[3] for i in self.view.widgets.names_ls}
         while True:
             if view.get_window().run() != Gtk.ResponseType.OK:
                 break
@@ -568,7 +567,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             try:
                 os.unlink(fullpath)
             except Exception as e:
-                logger.debug("%s(%s)" % (type(e).__name__, e))
+                logger.debug("{}({})".format(type(e).__name__, e))
 
         # also mark any corresponding package template as hidden
         self.options['__is_frozen__'] = True
@@ -628,7 +627,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             self.view.widget_set_sensitive('ok_button', True)
             self.view.widget_set_value('is_package_template', is_package_template)
         except Exception as e:
-            logger.debug('Template %s raised %s(%s).' % (name, type(e).__name__, e))
+            logger.debug('Template {} raised {}({}).'.format(name, type(e).__name__, e))
             return
 
         self.set_prefs_for(name, settings)
@@ -732,7 +731,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         self.view.widgets.names_ls.clear()
         for title in sorted(self.formatter_class_map):  # sort templates by plugin
             plugin = self.formatter_class_map[title]
-            logger.debug("scanning %s templates for %s" % (title, plugin))
+            logger.debug("scanning {} templates for {}".format(title, plugin))
             for candidate, index, path in basenames_fullnames:  # then by name
                 name = candidate[:-len(plugin.extension)]
                 if options.get(name, {}).get('__is_frozen__'):
@@ -741,12 +740,12 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
                     # user template overrides homonymous package template
                     continue
                 if plugin.can_handle(candidate):
-                    logger.debug('%s accepts %s-template %s' % (
-                        title, index==1 and 'package' or 'user', candidate, ))
+                    logger.debug('{} accepts {}-template {}'.format(
+                        title, index==1 and 'package' or 'user', candidate))
                     self.view.widgets.names_ls.append((name, title, index==1, plugin.extension))
                     names.add(candidate)
                 else:
-                    logger.debug('%s refuses %s' % (title, candidate, ))
+                    logger.debug('{} refuses {}'.format(title, candidate))
         GObject.idle_add(butils.none, self.view.widget_set_sensitive, 'names_combo', True)
 
     def save_formatter_settings(self):
@@ -841,7 +840,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         try:
             formatter.format(todo, **settings)
         except Exception as e:
-            butils.idle_message("formatting %s objects of type %s\n%s(%s)\n%s" % (len(todo), type((todo+[None])[0]).__name__, type(e).__name__, e, traceback.format_exc()), type=Gtk.MessageType.ERROR)
+            butils.idle_message("formatting {} objects of type {}\n{}({})\n{}".format(len(todo), type((todo+[None])[0]).__name__, type(e).__name__, e, traceback.format_exc()), type=Gtk.MessageType.ERROR)
                              
         session.close()
         GObject.idle_add(self.stop_progress)

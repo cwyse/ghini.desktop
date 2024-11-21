@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2014-2017 Mario Frasca <mario@anche.no>.
@@ -33,7 +32,7 @@ import bauble.utils.desktop as desktop
 
 def _open_link(data=None, *args, **kwargs):
     """Open a web link"""
-    logger.debug("_open_link received data=%s, args=%s, kwargs=%s" % (data, args, kwargs))
+    logger.debug("_open_link received data={}, args={}, kwargs={}".format(data, args, kwargs))
     desktop.open(data)
 
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2015 Mario Frasca <mario@anche.no>.
 #
@@ -93,7 +92,7 @@ class AskTPL(threading.Thread):
                 for item in candidates:
                     g, s = item['Genus'], item['Species']
                     seq = difflib.SequenceMatcher(a=self.binomial,
-                                                  b='%s %s' % (g, s))
+                                                  b='{} {}'.format(g, s))
                     item['_score_'] = seq.ratio()
 
                 found = sorted(candidates, key=lambda a: (a['_score_'], a['Taxonomic status in TPL']))[-1]

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2017 Mario Frasca <mario@anche.no>
@@ -164,7 +163,7 @@ def command_handler(cmd, arg):
     :param arg: The arg to pass to the command handler
     :type arg: list
     """
-    logger.debug('entering ui.command_handler %s %s' % (cmd, arg))
+    logger.debug('entering ui.command_handler {} {}'.format(cmd, arg))
     from gi.repository import Gtk
     import bauble.utils as utils
     import bauble.pluginmgr as pluginmgr
@@ -219,10 +218,10 @@ dbengine.html#create-engine-url-arguments>`_
         from gi.repository import Gtk
         from gi.repository import GObject
     except ImportError as e:
-        print((_('** Error: could not import gtk and/or gobject')))
+        print(_('** Error: could not import gtk and/or gobject'))
         print(e)
         if sys.platform == 'win32':
-            print((_('Please make sure that GTK_ROOT\\bin is in your PATH.')))
+            print(_('Please make sure that GTK_ROOT\\bin is in your PATH.'))
         sys.exit(1)
 
     # create the user directory
@@ -275,7 +274,7 @@ dbengine.html#create-engine-url-arguments>`_
 
     except Exception as e:
         logger.warning("can't configure sentry client")
-        logger.debug('%s - %s' % (type(e), e))
+        logger.debug('{} - {}'.format(type(e), e))
 
     import gi
     from gi.repository import Gdk
@@ -284,7 +283,7 @@ dbengine.html#create-engine-url-arguments>`_
 
     display = Gdk.Display.get_default()
     if display is None:
-        print((_("**Error: Ghini must be run in a windowed environment.")))
+        print(_("**Error: Ghini must be run in a windowed environment."))
         sys.exit(1)
 
     import bauble.pluginmgr as pluginmgr
@@ -320,20 +319,20 @@ dbengine.html#create-engine-url-arguments>`_
                 else:
                     uri = conn_name = None
             except err.VersionError as e:
-                logger.warning("%s(%s)" % (type(e), e))
+                logger.warning("{}({})".format(type(e), e))
                 db.open(uri, False)
                 break
             except (err.EmptyDatabaseError, err.MetaTableError,
                     err.VersionError, err.TimestampError,
                     err.RegistryError) as e:
-                logger.info("%s(%s)" % (type(e), e))
+                logger.info("{}({})".format(type(e), e))
                 open_exc = e
                 # reopen without verification so that db.Session and
                 # db.engine, db.metadata will be bound to an engine
                 db.open(uri, False)
                 break
             except err.DatabaseError as e:
-                logger.debug("%s(%s)" % (type(e), e))
+                logger.debug("{}({})".format(type(e), e))
                 # traceback.format_exc()
                 open_exc = e
                 # break
@@ -400,7 +399,7 @@ dbengine.html#create-engine-url-arguments>`_
                         utils.message_details_dialog(utils.xml_safe(e),
                                                      traceback.format_exc(),
                                                      Gtk.MessageType.ERROR)
-                        logger.error("%s(%s)" % (type(e), e))
+                        logger.error("{}({})".format(type(e), e))
             else:
                 pluginmgr.init()
         except Exception as e:

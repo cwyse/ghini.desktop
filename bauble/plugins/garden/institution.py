@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015,2018 Mario Frasca <mario@anche.no>.
@@ -188,7 +187,7 @@ class MapViewer(Gtk.Dialog):
         y0, x0 = self.clutter_view.latitude_to_y(lat), self.clutter_view.longitude_to_x(lon)
         # get the destination marker position
         if event.source == self.place_button:
-            x1, y1 = [i/2 for i in self.clutter_view.get_size()]
+            x1, y1 = (i/2 for i in self.clutter_view.get_size())
         else:
             y1, x1 = event.y, event.x
         lon = self.clutter_view.x_to_longitude(x1)
@@ -325,7 +324,7 @@ class MapViewer(Gtk.Dialog):
             self.plant_layer.set_child_above_sibling(self.plant_highlighted)
         plant_marker.connect("button-release-event", on_select_this)
 
-class Institution(object):
+class Institution:
     '''
     Institution is a "live" object. When properties are changed the changes
     are immediately reflected in the database.
@@ -368,10 +367,10 @@ class Institution(object):
             # and do an insert and then catching the exception if it exists
             # and then updating the value is too slow
             if not row:
-                logger.debug('insert: %s = %s' % (prop, value))
+                logger.debug('insert: {} = {}'.format(prop, value))
                 self.table.insert().execute(name=db_prop, value=value)
             else:
-                logger.debug('update: %s = %s' % (prop, value))
+                logger.debug('update: {} = {}'.format(prop, value))
                 self.table.update(
                     self.table.c.name == db_prop).execute(value=value)
 
