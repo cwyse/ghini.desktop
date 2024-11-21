@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015 Mario Frasca <mario@anche.no>.
@@ -488,7 +487,7 @@ class CountResultsTask(threading.Thread):
             item = session.query(klass).filter(klass.id == ndx).first()
             if item is None:
                 self.__cancel = True
-                logger.warning('object %s(%s) disappeared' % (klass.__name__, ndx))
+                logger.warning('object {}({}) disappeared'.format(klass.__name__, ndx))
                 break             
             if self.__cancel:  # check whether caller asks to cancel
                 break
@@ -575,7 +574,7 @@ class PopulateResults(threading.Thread):
         sbcontext_id = statusbar.get_context_id('searchview.nresults')
         statusbar.pop(sbcontext_id)
         statusbar.push(sbcontext_id, _('counting results'))
-        if len(set(item[2].__class__ for item in results)) == 1:
+        if len({item[2].__class__ for item in results}) == 1:
             dots_thread = self.view.start_thread(AddOneDot())
             self.view.start_thread(CountResultsTask(
                 results[0][2].__class__, [i[2].id for i in results],
@@ -599,7 +598,7 @@ class SearchView(pluginmgr.View):
         the meta for the SearchView with the
         :class:`bauble.view.SearchView`'s row_meta property.
         """
-        class Meta(object):
+        class Meta:
             def __init__(self):
                 self.children = None
                 self.infobox = None
@@ -712,12 +711,12 @@ class SearchView(pluginmgr.View):
             # retrieve the activated row
             row = tree.get_model()[path]
             # construct the query
-            query = "%s where notes[category='%s'].note='%s'" % (domain, row[2], row[3])
+            query = "{} where notes[category='{}'].note='{}'".format(domain, row[2], row[3])
             # fire it
             safe_set_text(bauble.gui.widgets.main_comboentry.child, query)
             bauble.gui.widgets.go_button.emit("clicked")            
         except Exception as e:
-            logger.debug("%s(%s)" % (type(e), e))
+            logger.debug("{}({})".format(type(e), e))
         pass
         
     def add_page_to_bottom_notebook(self, bottom_info):
@@ -761,11 +760,11 @@ class SearchView(pluginmgr.View):
 
         self.view.widget_set_visible('bottom_notebook', True)
         row = values[0]  # the selected row
-        logger.debug('update_bottom_notebook - for %s(%s)' % (type(row).__name__, row))
+        logger.debug('update_bottom_notebook - for {}({})'.format(type(row).__name__, row))
 
         ## loop over bottom_info plugin classes (eg: Tag)
         for klass, bottom_info in list(self.bottom_info.items()):
-            logger.debug('update_bottom_notebook - for %s(%s)' % (klass.__name__, bottom_info))
+            logger.debug('update_bottom_notebook - for {}({})'.format(klass.__name__, bottom_info))
             if 'label' not in bottom_info:  # late initialization
                 self.add_page_to_bottom_notebook(bottom_info)
             label = bottom_info['label']
@@ -784,7 +783,7 @@ class SearchView(pluginmgr.View):
                 for obj in objs:
                     model.append(["%s" % getattr(obj, k)
                                   for k in bottom_info['fields_used']])
-            logger.debug('done %s for %s' % (len(objs), klass.__name__))
+            logger.debug('done {} for {}'.format(len(objs), klass.__name__))
         logger.debug('update_bottom_notebook - exiting')
 
     def update_infobox(self):
@@ -796,7 +795,7 @@ class SearchView(pluginmgr.View):
         def set_infobox_from_row(row):
             '''implement the logic for update_infobox'''
 
-            logger.debug('set_infobox_from_row: %s --  %s' % (row, repr(row)))
+            logger.debug('set_infobox_from_row: {} --  {}'.format(row, repr(row)))
             # remove the current infobox if there is one and it is not needed
             if row is None:
                 if self.infobox is not None and \
@@ -1419,7 +1418,7 @@ class HistoryView(pluginmgr.View):
         d = eval(item.values)
         del d['_created']
         del d['_last_updated']
-        friendly = ', '.join("%s: %s" % (k, self.show_typed_value(v))
+        friendly = ', '.join("{}: {}".format(k, self.show_typed_value(v))
                              for k, v in sorted(list(d.items()), key=HistoryView.key_for_item)
                              )
         self.liststore.append([
@@ -1449,7 +1448,7 @@ class HistoryView(pluginmgr.View):
                 obj_id = int(dic[key])
         mapper_search = search.get_strategy('MapperSearch')
         if table in mapper_search._domains:
-            query = '%s where id=%s' % (table, obj_id)
+            query = '{} where id={}'.format(table, obj_id)
             safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), query)
             bauble.gui.widgets.go_button.emit("clicked")
 

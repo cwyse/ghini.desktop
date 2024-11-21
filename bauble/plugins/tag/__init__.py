@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2018 Mario Frasca <mario@anche.no>
@@ -231,7 +230,7 @@ def remove_callback(tags):
     :param tags: a list of :class:`Tag` objects.
     """
     tag = tags[0]
-    s = '%s: %s' % (tag.__class__.__name__, utils.xml_safe(tag))
+    s = '{}: {}'.format(tag.__class__.__name__, utils.xml_safe(tag))
     msg = _("Are you sure you want to remove %s?") % s
     if not utils.yes_no_dialog(msg):
         return
@@ -546,7 +545,7 @@ class Tag(db.Base, db.WithNotes):
             return []
         modname = type(obj).__module__
         clsname = type(obj).__name__
-        full_cls_name = '%s.%s' % (modname, clsname)
+        full_cls_name = '{}.{}'.format(modname, clsname)
         qto = session.query(TaggedObj).filter(
             TaggedObj.obj_class == full_cls_name,
             TaggedObj.obj_id == obj.id)
@@ -556,10 +555,10 @@ class Tag(db.Base, db.WithNotes):
         '''provide the two lines describing object for SearchView row.
         '''
         import inspect
-        logging.debug('entering search_view_markup_pair %s, %s' % (
+        logging.debug('entering search_view_markup_pair {}, {}'.format(
             self, str(inspect.stack()[1])))
         objects = self.objects
-        classes = set(type(o) for o in objects)
+        classes = {type(o) for o in objects}
         if len(classes) == 1:
             fine_prints = _("tagging %(1)s objects of type %(2)s") % {
                 '1': len(objects),
@@ -573,9 +572,9 @@ class Tag(db.Base, db.WithNotes):
             if len(classes) < 4:
                 fine_prints += ': ' + (', '.join(
                     sorted(t.__name__ for t in classes)))
-        first = '%s - <span weight="light">%s</span>' % (
+        first = '{} - <span weight="light">{}</span>'.format(
             utils.xml_safe(self), fine_prints)
-        second = '(%s) - <span weight="light">%s</span>' % (
+        second = '({}) - <span weight="light">{}</span>'.format(
             type(self).__name__,
             (self.description or '').replace('\n', ' ')[:256])
         return first, second
@@ -604,7 +603,7 @@ class TaggedObj(db.Base):
     tag = relationship('Tag', cascade='all, delete-orphan',
                         back_populates='_objects', single_parent=True)
     def __str__(self):
-        return '%s: %s' % (self.obj_class, self.obj_id)
+        return '{}: {}'.format(self.obj_class, self.obj_id)
 
 
 def _get_tagged_object_pairs(tag):
@@ -646,7 +645,7 @@ def create_named_empty_tag(name):
     try:
         tag = session.query(Tag).filter_by(tag=name).one()
     except InvalidRequestError as e:
-        logger.debug("%s - %s" % (type(e), e))
+        logger.debug("{} - {}".format(type(e), e))
         tag = Tag(tag=name)
         session.add(tag)
         session.commit()
@@ -675,7 +674,7 @@ def untag_objects(name, objs):
                     "%s - %s" % (type(e), e))
         return
     # same = lambda item, y: item.obj_class == _classname(y) and item.obj_id == y.id
-    objs = set((_classname(y), y.id) for y in objs)
+    objs = {(_classname(y), y.id) for y in objs}
     for item in tag._objects:
         if (item.obj_class, item.obj_id) not in objs:
             continue
@@ -685,7 +684,7 @@ def untag_objects(name, objs):
 
 
 # create the classname stored in the tagged_obj table
-_classname = lambda x: '%s.%s' % (type(x).__module__, type(x).__name__)
+_classname = lambda x: '{}.{}'.format(type(x).__module__, type(x).__name__)
 
 
 def tag_objects(name, objects):
@@ -706,7 +705,7 @@ def tag_objects(name, objects):
     try:
         tag = session.query(Tag).filter_by(tag=name).one()
     except InvalidRequestError as e:
-        logger.debug("%s - %s" % (type(e), e))
+        logger.debug("{} - {}".format(type(e), e))
         tag = Tag(tag=name)
         session.add(tag)
     tag.tag_objects(objects)
@@ -729,7 +728,7 @@ def get_tag_ids(objs):
     starting_now = True
     s_all = set()
     s_some = set()
-    s_none = set(i[0] for i in tag_id_query)  # per default none apply
+    s_none = {i[0] for i in tag_id_query}  # per default none apply
     for obj in objs:
         clause = and_(TaggedObj.obj_class == _classname(obj),
                       TaggedObj.obj_id == obj.id)
@@ -786,7 +785,7 @@ class GeneralTagExpander(InfoExpander):
         self.widget_set_value('ib_name_label', row.tag)
         self.widget_set_value('ib_description_label', row.description)
         objects = row.objects
-        classes = set(type(o) for o in objects)
+        classes = {type(o) for o in objects}
         row_no = 1
         table = self.widgets.tag_ib_general_table
         for w in self.table_cells:
@@ -809,7 +808,7 @@ class GeneralTagExpander(InfoExpander):
             safe_set_text(leb, " %s " % len(obj_ids))
             utils.make_label_clickable(
                 leb, on_label_clicked,
-                '%s where id in %s' % (c.__name__.lower(), ', '.join(obj_ids)))
+                '{} where id in {}'.format(c.__name__.lower(), ', '.join(obj_ids)))
 
             self.table_cells.append(lab)
             self.table_cells.append(eb)

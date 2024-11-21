@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright 2012-2015 Mario Frasca <mario@anche.no>.
 #
@@ -28,12 +27,12 @@ def getTropicos(epithet):
               "ctl00$MainContentPlaceHolder$ctl01": "Match Names"},
         files={"ctl00$MainContentPlaceHolder$fileUploadControl":
                "FullNameNoAuthors\n%s" % epithet})
-    header, row = [i.split('\t') for i in r.text.strip().split("\n")]
-    return dict((k[6:].strip(), v.strip())
+    header, row = (i.split('\t') for i in r.text.strip().split("\n"))
+    return {k[6:].strip(): v.strip()
                 for (k, v) in zip(header + ['OutputQuery'], row + [epithet])
-                if k.startswith('Output') and not k == 'OutputHowMatched')
+                if k.startswith('Output') and not k == 'OutputHowMatched'}
 
 
 if __name__ == '__main__':
     import sys
-    print((getTropicos(' '.join(sys.argv[1:]))))
+    print(getTropicos(' '.join(sys.argv[1:])))

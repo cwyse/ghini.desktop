@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008, 2009, 2010 Brett Adams
 # Copyright 2014-2015 Mario Frasca <mario@anche.no>.
@@ -53,7 +52,7 @@ def search(text, session=None):
     return list(results)
 
 
-class NoneToken(object):
+class NoneToken:
     def __init__(self, t=None):
         pass
 
@@ -64,7 +63,7 @@ class NoneToken(object):
         return None
 
 
-class EmptyToken(object):
+class EmptyToken:
     def __init__(self, t=None):
         pass
 
@@ -82,14 +81,14 @@ class EmptyToken(object):
         return NotImplemented
 
 
-class ValueABC(object):
+class ValueABC:
     ## abstract base class.
 
     def express(self):
         return self.value
 
 
-class ValueToken(object):
+class ValueToken:
 
     def __init__(self, t):
         self.value = t[0]
@@ -166,7 +165,7 @@ class TypedValueToken(ValueABC):
         return "%s" % (self.value)
 
 
-class IdentifierAction(object):
+class IdentifierAction:
     def __init__(self, t):
         logger.debug('IdentifierAction::__init__(%s)' % t)
         self.steps = t[0][:-2:2]
@@ -199,7 +198,7 @@ class IdentifierAction(object):
         return self.steps
 
 
-class FilteredIdentifierAction(object):
+class FilteredIdentifierAction:
     def __init__(self, t):
         logger.debug('FilteredIdentifierAction::__init__(%s)' % t)
         self.steps = t[0][:-7:2]
@@ -230,7 +229,7 @@ class FilteredIdentifierAction(object):
             }.get(self.filter_op)
 
     def __repr__(self):
-        return "%s[%s%s%s].%s" % ('.'.join(self.steps),
+        return "{}[{}{}{}].{}".format('.'.join(self.steps),
                                   self.filter_attr, self.filter_op, self.filter_value,
                                   self.leaf)
 
@@ -242,7 +241,7 @@ class FilteredIdentifierAction(object):
         cls = query._joinpoint['_joinpoint_entity']
         attr = getattr(cls, self.filter_attr)
         clause = lambda x: self.operation(attr, x)
-        logger.debug('filtering on %s(%s)' % (type(attr), attr))
+        logger.debug('filtering on {}({})'.format(type(attr), attr))
         query = query.filter(clause(self.filter_value.express()))
         attr = getattr(cls, self.leaf)
         logger.debug('IdentifierToken for %s, %s evaluates to %s'
@@ -253,7 +252,7 @@ class FilteredIdentifierAction(object):
         return self.steps
 
 
-class IdentExpression(object):
+class IdentExpression:
     def __init__(self, t):
         logger.debug('IdentExpression::__init__(%s)' % t)
         self.op = t[0][1]
@@ -281,7 +280,7 @@ class IdentExpression(object):
         self.operands = t[0][0::2]  # every second object is an operand
 
     def __repr__(self):
-        return "(%s %s %s)" % (self.operands[0], self.op, self.operands[1])
+        return "({} {} {})".format(self.operands[0], self.op, self.operands[1])
 
     def evaluate(self, env):
         q, a = self.operands[0].evaluate(env)
@@ -292,7 +291,7 @@ class IdentExpression(object):
             elif self.op in ('not', '<>', '!='):
                 return q.filter(a.any())
         clause = lambda x: self.operation(a, x)
-        logger.debug('filtering on %s(%s)' % (type(a), a))
+        logger.debug('filtering on {}({})'.format(type(a), a))
         return q.filter(clause(self.operands[1].express()))
 
     def needs_join(self, env):
@@ -334,12 +333,12 @@ class AggregatedExpression(IdentExpression):
         # apply having
         main_table = q.column_descriptions[0]['type']
         mta = getattr(main_table, 'id')
-        logger.debug('filtering on %s(%s)' % (type(mta), mta))
+        logger.debug('filtering on {}({})'.format(type(mta), mta))
         result = q.group_by(mta).having(clause(self.operands[1].express()))
         return result
 
 
-class BetweenExpressionAction(object):
+class BetweenExpressionAction:
     def __init__(self, t):
         self.operands = t[0][0::2]  # every second object is an operand
 
@@ -357,26 +356,26 @@ class BetweenExpressionAction(object):
         return [self.operands[0].needs_join(env)]
 
 
-class UnaryLogical(object):
+class UnaryLogical:
     ## abstract base class. `name` is defined in derived classes
     def __init__(self, t):
         self.op, self.operand = t[0]
 
     def __repr__(self):
-        return "%s %s" % (self.name, str(self.operand))
+        return "{} {}".format(self.name, str(self.operand))
 
     def needs_join(self, env):
         return self.operand.needs_join(env)
 
 
-class BinaryLogical(object):
+class BinaryLogical:
     ## abstract base class. `name` is defined in derived classes
     def __init__(self, t):
         self.op = t[0][1]
         self.operands = t[0][0::2]  # every second object is an operand
 
     def __repr__(self):
-        return "(%s %s %s)" % (self.operands[0], self.name, self.operands[1])
+        return "({} {} {})".format(self.operands[0], self.name, self.operands[1])
 
     def needs_join(self, env):
         return self.operands[0].needs_join(env) + \
@@ -413,7 +412,7 @@ class SearchNotAction(UnaryLogical):
         return q.except_(self.operand.evaluate(env))
 
 
-class ParenthesisedQuery(object):
+class ParenthesisedQuery:
     def __init__(self, t):
         self.content = t[1]
 
@@ -427,13 +426,13 @@ class ParenthesisedQuery(object):
         return self.content.needs_join(env)
 
 
-class QueryAction(object):
+class QueryAction:
     def __init__(self, t):
         self.domain = t[0]
         self.filter = t[1][0]
 
     def __repr__(self):
-        return "SELECT * FROM %s WHERE %s" % (self.domain, self.filter)
+        return "SELECT * FROM {} WHERE {}".format(self.domain, self.filter)
 
     def invoke(self, search_strategy):
         """
@@ -465,11 +464,11 @@ class QueryAction(object):
 
         if None in result:
             logger.warning('removing None from result set')
-            result = set(i for i in result if i is not None)
+            result = {i for i in result if i is not None}
         return result
 
 
-class StatementAction(object):
+class StatementAction:
     def __init__(self, t):
         self.content = t[0]
         self.invoke = lambda x: self.content.invoke(x)
@@ -478,7 +477,7 @@ class StatementAction(object):
         return repr(self.content)
 
 
-class BinomialNameAction(object):
+class BinomialNameAction:
     """created when the parser hits a binomial_name token.
 
     Searching using binomial names returns one or more species objects.
@@ -489,7 +488,7 @@ class BinomialNameAction(object):
         self.species_epithet = t[1]
 
     def __repr__(self):
-        return "%s %s" % (self.genus_epithet, self.species_epithet)
+        return "{} {}".format(self.genus_epithet, self.species_epithet)
 
     def invoke(self, search_strategy):
         logger.debug('BinomialNameAction:invoke')
@@ -502,11 +501,11 @@ class BinomialNameAction(object):
         result = set(result)
         if None in result:
             logger.warning('removing None from result set')
-            result = set(i for i in result if i is not None)
+            result = {i for i in result if i is not None}
         return result
 
 
-class DomainExpressionAction(object):
+class DomainExpressionAction:
     """created when the parser hits a domain_expression token.
 
     Searching using domain expressions is a little more magical than an
@@ -522,7 +521,7 @@ class DomainExpressionAction(object):
         self.values = t[2]
 
     def __repr__(self):
-        return "%s %s %s" % (self.domain, self.cond, self.values)
+        return "{} {} {}".format(self.domain, self.cond, self.values)
 
     def invoke(self, search_strategy):
         logger.debug('DomainExpressionAction:invoke')
@@ -567,11 +566,11 @@ class DomainExpressionAction(object):
 
         if None in result:
             logger.warning('removing None from result set')
-            result = set(i for i in result if i is not None)
+            result = {i for i in result if i is not None}
         return result
 
 
-class AggregatingAction(object):
+class AggregatingAction:
 
     def __init__(self, t):
         logger.debug("AggregatingAction::__init__(%s)" % t)
@@ -579,7 +578,7 @@ class AggregatingAction(object):
         self.identifier = t[2]
 
     def __repr__(self):
-        return "(%s %s)" % (self.function, self.identifier)
+        return "({} {})".format(self.function, self.identifier)
 
     def needs_join(self, env):
         return [self.identifier.needs_join(env)]
@@ -597,7 +596,7 @@ class AggregatingAction(object):
         return self.identifier.evaluate(env)
 
 
-class ValueListAction(object):
+class ValueListAction:
 
     def __init__(self, t):
         logger.debug("ValueListAction::__init__(%s)" % t)
@@ -653,11 +652,11 @@ class ValueListAction(object):
                 return replacement
             except:
                 return i
-        result = set([replace(i) for i in result])
+        result = {replace(i) for i in result}
         logger.debug("result is now %s" % result)
         if None in result:
             logger.warning('removing None from result set')
-            result = set(i for i in result if i is not None)
+            result = {i for i in result if i is not None}
         return result
 
 
@@ -671,7 +670,7 @@ from pyparsing import (
 wordStart, wordEnd = WordStart(), WordEnd()
 
 
-class SearchParser(object):
+class SearchParser:
     """The parser for bauble.search.MapperSearch
     """
 
@@ -775,7 +774,7 @@ class SearchParser(object):
         return self.statement.parseString(text)
 
 
-class SearchStrategy(object):
+class SearchStrategy:
     """
     Interface for adding search strategies to a view.
     """
@@ -788,7 +787,7 @@ class SearchStrategy(object):
         Return an iterator that iterates over mapped classes retrieved
         from the search.
         '''
-        logger.debug('SearchStrategy "%s"(%s)' % (text, self.__class__.__name__))
+        logger.debug('SearchStrategy "{}"({})'.format(text, self.__class__.__name__))
         pass
 
 
@@ -866,7 +865,7 @@ class MapperSearch(SearchStrategy):
 
         self._results.clear()
         statement = self.parser.parse_string(text).statement
-        logger.debug("statement : %s(%s)" % (type(statement), statement))
+        logger.debug("statement : {}({})".format(type(statement), statement))
         self._results.update(statement.invoke(self))
         logger.debug('search returns %s(%s)'
                      % (type(self._results), self._results))

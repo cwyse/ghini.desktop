@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2015 Mario Frasca <mario@anche.no>
@@ -129,21 +128,21 @@ class BaubleTests(BaubleTestCase):
         s = '12-30-2008'
         v = dt.process_bind_param(s, None)
         self.assertTrue(v.month == 12 and v.day == 30 and v.year == 2008,
-                     '%s == %s' % (v, s))
+                     '{} == {}'.format(v, s))
 
         bauble.btypes.Date._dayfirst = True
         bauble.btypes.Date._yearfirst = False
         s = '30-12-2008'
         v = dt.process_bind_param(s, None)
         self.assertTrue(v.month == 12 and v.day == 30 and v.year == 2008,
-                     '%s == %s' % (v, s))
+                     '{} == {}'.format(v, s))
 
         bauble.btypes.Date._dayfirst = False
         bauble.btypes.Date._yearfirst = True
         s = '2008-12-30'
         v = dt.process_bind_param(s, None)
         self.assertTrue(v.month == 12 and v.day == 30 and v.year == 2008,
-                     '%s == %s' % (v, s))
+                     '{} == {}'.format(v, s))
 
     def test_datetime_type(self):
         dt = bauble.btypes.DateTime()
@@ -158,13 +157,13 @@ class BaubleTests(BaubleTestCase):
         s = '2008-12-1 11:50:01.001+05:00'
         result = '2008-12-01 11:50:01.001000+05:00'
         v = dt.process_bind_param(s, None)
-        self.assertTrue(str(v) == result, '%s == %s' % (v, result))
+        self.assertTrue(str(v) == result, '{} == {}'.format(v, result))
 
         # test with no timezone
         s = '2008-12-1 11:50:01.001'
         result = '2008-12-01 11:50:01.001000'
         v = dt.process_bind_param(s, None)
-        self.assertTrue(str(v) == result, '%s == %s' % (v, result))
+        self.assertTrue(str(v) == result, '{} == {}'.format(v, result))
 
         # test with no milliseconds
         s = '2008-12-1 11:50:01'
@@ -207,7 +206,7 @@ class BaubleTests(BaubleTestCase):
         files = glob.glob(os.path.join(head, '*.glade'))
         for f in files:
             ids = check_dupids(f)
-            self.assertTrue(ids == [], "%s has duplicate ids: %s" % (f, str(ids)))
+            self.assertTrue(ids == [], "{} has duplicate ids: {}".format(f, str(ids)))
 
 
 class HistoryTests(BaubleTestCase):

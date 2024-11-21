@@ -27,19 +27,19 @@ class Plant:
         self.hybrid = ''
 
     def match(self, species):
-        partsList = re.split("(?:subsp\.)+|(?:var\.)+", species)
+        partsList = re.split(r"(?:subsp\.)+|(?:var\.)+", species)
         speciesPart = partsList[0].strip()
 
         # ** match species part
         # look for .sp, meaning it is not identified and should only
         # set the genus
         if speciesPart.find(" sp.") != -1:
-            self.genus = re.match("(?P<genus>[\w]*)\s+",
+            self.genus = re.match(r"(?P<genus>[\w]*)\s+",
                                   speciesPart).group("genus");
             return
 
         m = re.match(
-            """(?P<genus>[\w]*)\s+     # match the genus
+            r"""(?P<genus>[\w]*)\s+     # match the genus
             (?P<hybrid>x?)\s?          # hybrid sign
             (?P<species>[\w-]*)\s?     # match the species
             (?P<author>.*)""",
@@ -59,7 +59,7 @@ class Plant:
         if self.infrasp_rank != "":
             infraspPart = partsList[1].strip();
             m = re.match(
-                """\A(?P<infrasp>[\w]*)\s?
+                r"""\A(?P<infrasp>[\w]*)\s?
                 (?P<infrasp_author>.*)""", infraspPart, re.VERBOSE)
             self.infrasp = m.group("infrasp")
             self.infrasp_author = m.group("infrasp_author")
@@ -88,7 +88,7 @@ class Plant:
                     #dict[elem] = self.__dict__[elem].encode("latin-1")
                     dict[elem] = self.__dict__[elem]
                 except Exception:
-                    print((dict[elem]))
+                    print(dict[elem])
 
                 #dict[elem] = str(self.__dict__[elem]).encode("latin-1")
         return dict
@@ -117,7 +117,7 @@ class Plant:
         csv = ""
         ft = "," # field terminated
         enclosed = '"' # field enclosed
-        field = lambda x: '%s%s%s' % (enclosed, x, enclosed)
+        field = lambda x: '{}{}{}'.format(enclosed, x, enclosed)
         if with_family is True:
             csvStr += field(self.family) + ft
         if isinstance(self.genus, int):
@@ -130,7 +130,7 @@ class Plant:
                    field(self.infrasp_rank)  + ft + \
                    field(self.infrasp) + ft + field(self.infrasp_author)
         except UnicodeDecodeError as e:
-            print((sys.stderr.write(e)))
+            print(sys.stderr.write(e))
             raise
 
         # there are no cultivars in the belize checklist
@@ -186,13 +186,13 @@ for line in open(checklist_file).readlines():
         continue # skip Prescottia sp. style names
     else:
         p.genus = int(gen_dict[p.genus])
-        print((p.csv()))
+        print(p.csv())
 
 
 if len(missing) > 0:
     sys.stderr.write("******* could not find the following genera *******\n")
 for gen, sp in list(missing.items()):
-    sys.stderr.write('%s: %s\n' % (gen, sp))
+    sys.stderr.write('{}: {}\n'.format(gen, sp))
 
 
 if len(bad_lines) > 0:

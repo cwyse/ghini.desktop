@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015-2016 Mario Frasca <mario@anche.no>.
@@ -689,7 +688,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
                          self.species_str(markup=True, authors=True))
         suffix = _("%(1)s plant groups in %(2)s location(s)") % {
             '1': len(set(self.plants)),
-            '2': len(set(p.location for p in self.plants))}
+            '2': len({p.location for p in self.plants})}
         suffix = ('<span foreground="#555555" size="small" '
                   'weight="light"> - %s</span>') % suffix
         return first + suffix, second
@@ -781,7 +780,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         return sp_str
 
     def markup(self):
-        return '%s (%s)' % (self.code, self.accession.species_str(markup=True, authors=True))
+        return '{} ({})'.format(self.code, self.accession.species_str(markup=True, authors=True))
 
     def as_dict(self):
         result = db.Serializable.as_dict(self)
@@ -838,12 +837,12 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     def top_level_count(self):
         sd = self.source and self.source.source_detail
         return {(1, 'Accessions'): 1,
-                (2, 'Species'): set([self.species.id]),
-                (3, 'Genera'): set([self.species.genus.id]),
-                (4, 'Families'): set([self.species.genus.family.id]),
+                (2, 'Species'): {self.species.id},
+                (3, 'Genera'): {self.species.genus.id},
+                (4, 'Families'): {self.species.genus.family.id},
                 (5, 'Plantings'): len(self.plants),
                 (6, 'Living plants'): sum(p.quantity for p in self.plants),
-                (7, 'Locations'): set([p.location.id for p in self.plants]),
+                (7, 'Locations'): {p.location.id for p in self.plants},
                 (8, 'Sources'): set(sd and [sd.id] or [])}
 
 
@@ -1011,7 +1010,7 @@ class AccessionEditorView(editor.GenericEditorView):
     def species_cell_data_func(column, renderer, model, treeiter, data=None):
         v = model[treeiter][0]
         renderer.set_property(
-            'text', '%s (%s)' % (v.str(authors=True), v.genus.family))
+            'text', '{} ({})'.format(v.str(authors=True), v.genus.family))
 
 
 class VoucherPresenter(editor.GenericEditorPresenter):
@@ -2001,7 +2000,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         self.initializing = False
 
     def populate_code_formats(self, entry_one=None, values=None):
-        logger.debug('populate_code_formats %s %s' % (entry_one, values))
+        logger.debug('populate_code_formats {} {}'.format(entry_one, values))
         ls = self.view.widgets.acc_code_format_liststore
         if entry_one is None:
             entry_one = ls.get_value(ls.get_iter_first(), 0)
@@ -2621,7 +2620,7 @@ class GeneralAccessionExpander(InfoExpander):
             if location:
                 set_count = True
                 if location.name and location.code:
-                    location_str = '%s (%s)' % (location.name,
+                    location_str = '{} ({})'.format(location.name,
                                                 location.code)
                 elif location.name and not location.code:
                     location_str = '%s' % location.name
@@ -2765,7 +2764,7 @@ class VouchersExpander(InfoExpander):
 
         parents = [v for v in row.vouchers if v.parent_material]
         for voucher in parents:
-            s = '%s %s (parent)' % (voucher.herbarium, voucher.code)
+            s = '{} {} (parent)'.format(voucher.herbarium, voucher.code)
             label = Gtk.Label(label=s)
             label.set_alignment(0.0, 0.5)
             self.vbox.pack_start(label, True, True, 0)
@@ -2773,7 +2772,7 @@ class VouchersExpander(InfoExpander):
 
         not_parents = [v for v in row.vouchers if not v.parent_material]
         for voucher in not_parents:
-            s = '%s %s' % (voucher.herbarium, voucher.code)
+            s = '{} {}'.format(voucher.herbarium, voucher.code)
             label = Gtk.Label(label=s)
             label.set_alignment(0.0, 0.5)
             self.vbox.pack_start(label, True, True, 0)

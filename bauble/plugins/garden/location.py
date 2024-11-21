@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015 Mario Frasca <mario@anche.no>.
@@ -61,7 +60,7 @@ def add_plants_callback(locations):
 
 def remove_callback(locations):
     loc = locations[0]
-    s = '%s: %s' % (loc.__class__.__name__, str(loc))
+    s = '{}: {}'.format(loc.__class__.__name__, str(loc))
     if len(loc.plants) > 0:
         msg = _('Please remove the plants from <b>%(location)s</b> '
                 'before deleting it.') % {'location': loc}
@@ -147,7 +146,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
 
     def __str__(self):
         if self.name:
-            return '(%s) %s' % (self.code, self.name)
+            return '({}) {}'.format(self.code, self.name)
         else:
             return str(self.code)
 
@@ -166,19 +165,19 @@ class Location(db.Base, db.Serializable, db.WithNotes):
             return None
 
     def top_level_count(self):
-        accessions = set(p.accession for p in self.plants)
-        species = set(a.species for a in accessions)
-        genera = set(s.genus for s in species)
+        accessions = {p.accession for p in self.plants}
+        species = {a.species for a in accessions}
+        genera = {s.genus for s in species}
         return {(1, 'Locations'): 1,
                 (2, 'Plantings'): len(self.plants),
                 (3, 'Living plants'): sum(p.quantity for p in self.plants),
-                (4, 'Accessions'): set(a.id for a in accessions),
-                (5, 'Species'): set(s.id for s in species),
-                (6, 'Genera'): set(g.id for g in genera),
-                (7, 'Families'): set(g.family.id for g in genera),
-                (8, 'Sources'): set([a.source.source_detail.id
+                (4, 'Accessions'): {a.id for a in accessions},
+                (5, 'Species'): {s.id for s in species},
+                (6, 'Genera'): {g.id for g in genera},
+                (7, 'Families'): {g.family.id for g in genera},
+                (8, 'Sources'): {a.source.source_detail.id
                                      for a in accessions
-                                     if a.source and a.source.source_detail])}
+                                     if a.source and a.source.source_detail}}
 
 
 LocationNote = db.make_note_class('Location', Location, compute_serializable_fields)

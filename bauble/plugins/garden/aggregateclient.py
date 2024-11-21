@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2017 Mario Frasca <mario@anche.no>.
 # Copyright 2017 Jardín Botánico de Quito
@@ -53,7 +52,7 @@ def get_submissions(user, pw, host, form_id, to_skip=[]):
         root = ET.fromstring(reply.text)
         data = root[0]  # media may follow
         form = data[0]
-        item = dict([(re.sub(r'{.*}(.*)', r'\1', i.tag), i.text) for i in form])
+        item = {re.sub(r'{.*}(.*)', r'\1', i.tag): i.text for i in form}
         item['meta:uuid'] = uuid
         result.append(item)
         for key in list(item.keys()):

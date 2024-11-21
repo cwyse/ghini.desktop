@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015-2016 Mario Frasca <mario@anche.no>.
@@ -246,7 +245,7 @@ class Collection(db.Base):
         acc = self.source.accession
         safe = utils.xml_safe
         return (
-            '%s - <small>%s</small>' % (safe(acc), safe(acc.species_str())),
+            '{} - <small>{}</small>'.format(safe(acc), safe(acc.species_str())),
             safe(self))
 
     def __str__(self):
@@ -394,9 +393,9 @@ class CollectionPresenter(editor.ChildPresenter):
             longitude_to_dms
         for widget, field in list(self.widget_to_field_map.items()):
             value = getattr(self.model, field)
-            logger.debug('%s, %s, %s' % (widget, field, value))
+            logger.debug('{}, {}, {}'.format(widget, field, value))
             if value is not None and field == 'date':
-                value = '%s/%s/%s' % (value.day, value.month,
+                value = '{}/{}/{}'.format(value.day, value.month,
                                       '%04d' % value.year)
             self.view.widget_set_value(widget, value)
 
@@ -456,7 +455,7 @@ class CollectionPresenter(editor.ChildPresenter):
             # integer before toggling
             int(lon_text.split(' ')[0])
         except Exception as e:
-            logger.warning("east-west %s(%s)" % (type(e), e))
+            logger.warning("east-west {}({})".format(type(e), e))
             return
 
         if direction == 'W' and lon_text[0] != '-':
@@ -768,7 +767,7 @@ def source_detail_edit_callback(details, parent=None):
 
 def source_detail_remove_callback(details):
     detail = details[0]
-    s = '%s: %s' % (detail.__class__.__name__, str(detail))
+    s = '{}: {}'.format(detail.__class__.__name__, str(detail))
     msg = _("Are you sure you want to remove %s?") % utils.xml_safe(s)
     if not utils.yes_no_dialog(msg):
         return

@@ -38,7 +38,7 @@ if not options.directory:
 cwd, _dummy = os.path.split(__file__)
 src_dir = options.directory
 
-class Reader(object):
+class Reader:
 
     def __init__(self, filename, encoding='utf8'):
         self.file = codecs.open(filename, "r", encoding)
@@ -47,7 +47,7 @@ class Reader(object):
         # sanitize the column headers
         for h in self.headers:
             h2 = h.replace(' ', '_')
-            s += '(?P<%s>.*?)\*' % h2
+            s += r'(?P<%s>.*?)\*' % h2
         s = s[:-2] + '$'#        print s
         self.line_rx = re.compile(s)
 
@@ -80,7 +80,7 @@ class Row(dict):
 
     def __init__(self, id=None, name=None, tdwg_code=None, iso_code=None,
                  parent_id=None):
-        super(Row, self).__init__(id=id, name=name, tdwg_code=tdwg_code,
+        super().__init__(id=id, name=name, tdwg_code=tdwg_code,
                                   iso_code=iso_code, parent_id=parent_id)
 
     columns = ['id', 'name', 'tdwg_code', 'iso_code', 'parent_id']
@@ -114,7 +114,7 @@ def convert_level1():
         r = Row(id=str(id_ctr), name=line['L1_continent'],
                 tdwg_code=line['L1_code'])
         converted_rows[line['L1_code']] = r
-        print((r.csv()))
+        print(r.csv())
         id_ctr+=1
 
 
@@ -126,7 +126,7 @@ def convert_level2():
                 tdwg_code=line['L2_code'], iso_code=line['L2_ISOcode'])
         r.parent_id = converted_rows[line['L1_code']]['id']
         converted_rows[line['L2_code']] = r
-        print((r.csv()))
+        print(r.csv())
         id_ctr+=1
 
 
@@ -139,7 +139,7 @@ def convert_level3():
         #r.parent_id = converted_rows[line['L2_code']]['id']
         r['parent_id'] = converted_rows[line['L2_code']]['id']
         converted_rows[line['L3_code']] = r
-        print((r.csv()))
+        print(r.csv())
         id_ctr+=1
 
 
@@ -154,7 +154,7 @@ def convert_level4():
                 tdwg_code=line['L4_code'], iso_code=line['L4_ISOcode'])
         r.parent_id = converted_rows[line['L3_code']]['id']
         converted_rows[line['L4_code']] = r
-        print((r.csv()))
+        print(r.csv())
         id_ctr+=1
 
 
@@ -199,21 +199,21 @@ def convert_gazetteer():
 
         # add the converted rows and print out the csv line
         converted_rows[line['ID']] = r
-        print((r.csv()))
+        print(r.csv())
         id_ctr+=1
 
 
 def main():
     global id_ctr, converted_rows
 
-    print((','.join(['"%s"' % c for c in Row.columns])))
+    print(','.join(['"%s"' % c for c in Row.columns]))
     convert_level1()
     convert_level2()
     convert_level3()
     convert_level4()
     convert_gazetteer()
 
-    print((Row(id='%s' % id_ctr, name='Cultivated').csv()))
+    print(Row(id='%s' % id_ctr, name='Cultivated').csv())
     id_ctr +=1
 
 

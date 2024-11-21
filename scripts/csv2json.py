@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Copyright 2016,2017 Mario Frasca <mario@anche.no>.
 #
@@ -156,7 +155,7 @@ def make_accession_code(obj):
             return int(v)
         except:
             return 0
-    obj = dict((k, smart_int(v)) for (k, v) in list(obj.items()))
+    obj = {k: smart_int(v) for (k, v) in list(obj.items())}
     return accession_code_def % obj
 
 # now accessions, plants, and relative notes.

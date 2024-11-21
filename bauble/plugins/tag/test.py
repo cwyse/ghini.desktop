@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2015 Mario Frasca <mario@anche.no>
@@ -230,7 +229,7 @@ class TagTests(BaubleTestCase):
         self.session.flush()
 
         # effect
-        print((self.invoked))
+        print(self.invoked)
         self.assertFalse('message_details_dialog' in
                          [f for (f, m) in self.invoked])
         self.assertTrue(('yes_no_dialog', 'Are you sure you want to '
@@ -260,7 +259,7 @@ class TagTests(BaubleTestCase):
         self.session.flush()
 
         # effect
-        print((self.invoked))
+        print(self.invoked)
         self.assertTrue('_reset_tags_menu' in
                          [f for (f, m) in self.invoked])
         self.assertTrue(('yes_no_dialog', 'Are you sure you want to '
@@ -295,36 +294,36 @@ class GetTagIdsTests(BaubleTestCase):
 
     def test_get_tag_ids1(self):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1, self.fam2])
-        self.assertEqual(s_all, set([1]))
-        self.assertEqual(s_some, set([2, 3]))
+        self.assertEqual(s_all, {1})
+        self.assertEqual(s_some, {2, 3})
 
     def test_get_tag_ids2(self):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1])
-        self.assertEqual(s_all, set([1, 2]))
-        self.assertEqual(s_some, set([]))
+        self.assertEqual(s_all, {1, 2})
+        self.assertEqual(s_some, set())
 
     def test_get_tag_ids3(self):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam2])
-        test_id = set([1, 3])
+        test_id = {1, 3}
         self.assertEqual(s_all, test_id)
-        self.assertEqual(s_some, set([]))
+        self.assertEqual(s_some, set())
 
     def test_get_tag_ids4(self):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam3])
-        test_id = set([3])
+        test_id = {3}
         self.assertEqual(s_all, test_id)
-        self.assertEqual(s_some, set([]))
+        self.assertEqual(s_some, set())
 
     def test_get_tag_ids5(self):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1, self.fam3])
-        test_id = set([])
+        test_id = set()
         self.assertEqual(s_all, test_id)
-        self.assertEqual(s_some, set([1, 2, 3]))
+        self.assertEqual(s_some, {1, 2, 3})
 
     def test_get_tag_ids6(self):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1, self.fam4])
-        self.assertEqual(s_all, set([]))
-        self.assertEqual(s_some, set([1, 2]))
+        self.assertEqual(s_all, set())
+        self.assertEqual(s_some, {1, 2})
 
     def test_get_tag_ids7(self):
         self.session.query(Tag).delete()
@@ -334,8 +333,8 @@ class GetTagIdsTests(BaubleTestCase):
         tag_plugin.tag_objects('test3', [self.fam2, self.fam4])
         self.session.commit()
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1, self.fam2, self.fam3, self.fam4])
-        self.assertEqual(s_all, set([]))
-        self.assertEqual(s_some, set([1, 2, 3]))
+        self.assertEqual(s_all, set())
+        self.assertEqual(s_some, {1, 2, 3})
 
 
 import bauble.db as db

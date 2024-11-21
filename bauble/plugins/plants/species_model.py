@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2012-2016 Mario Frasca <mario@anche.no>.
@@ -457,7 +456,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             return ''
         else:
             dist = ['%s' % d for d in self.distribution]
-            return str(', ').join(sorted(dist))
+            return ', '.join(sorted(dist))
 
     def markup(self, authors=False, genus=True):
         '''returns this object as a string with markup
@@ -600,7 +599,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     @accepted.setter
     def accepted(self, value):
         'Name that should be used if name of self should be rejected'
-        logger.debug("Accepted taxon: %s %s" % (type(value), value))
+        logger.debug("Accepted taxon: {} {}".format(type(value), value))
         assert isinstance(value, self.__class__)
         if self in value.synonyms:
             return
@@ -656,12 +655,12 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         setattr(self, self.infrasp_attr[level]['author'], author)
 
     def as_dict(self, recurse=True):
-        result = dict((col, getattr(self, col))
+        result = {col: getattr(self, col)
                       for col in list(self.__table__.columns.keys())
                       if col not in ['id']
                       and col[0] != '_'
                       and getattr(self, col) is not None
-                      and not col.endswith('_id'))
+                      and not col.endswith('_id')}
         result['object'] = 'taxon'
         result['rank'] = 'species'
         result['ht-rank'] = 'genus'
@@ -701,15 +700,15 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     def top_level_count(self):
         plants = [p for a in self.accessions for p in a.plants]
         return {(1, 'Species'): 1,
-                (2, 'Genera'): set([self.genus.id]),
-                (3, 'Families'): set([self.genus.family.id]),
+                (2, 'Genera'): {self.genus.id},
+                (3, 'Families'): {self.genus.family.id},
                 (4, 'Accessions'): len(self.accessions),
                 (5, 'Plantings'): len(plants),
                 (6, 'Living plants'): sum(p.quantity for p in plants),
-                (7, 'Locations'): set(p.location.id for p in plants),
-                (8, 'Sources'): set([a.source.source_detail.id
+                (7, 'Locations'): {p.location.id for p in plants},
+                (8, 'Sources'): {a.source.source_detail.id
                                      for a in self.accessions
-                                     if a.source and a.source.source_detail])}
+                                     if a.source and a.source.source_detail}}
 
 
 def as_dict(self):
@@ -938,7 +937,7 @@ class Habit(db.Base):
 
     def __str__(self):
         if self.name:
-            return '%s (%s)' % (self.name, self.code)
+            return '{} ({})'.format(self.name, self.code)
         else:
             return str(self.code)
 
@@ -956,7 +955,7 @@ class Color(db.Base):
 
     def __str__(self):
         if self.name:
-            return '%s (%s)' % (self.name, self.code)
+            return '{} ({})'.format(self.name, self.code)
         else:
             return str(self.code)
 

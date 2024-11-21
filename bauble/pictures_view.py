@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2015 Mario Frasca <mario@anche.no>.
 #
@@ -76,7 +75,7 @@ class PicturesView(Gtk.HBox):
                 logger.debug('object %s does not know of pictures' % o)
                 pics = []
             for p in pics:
-                logger.debug('object %s has picture %s' % (o, p))
+                logger.debug('object {} has picture {}'.format(o, p))
                 expander = Gtk.HBox()
                 expander.add(p)
                 self.ghini_box.pack_end(expander, False, False, 0)

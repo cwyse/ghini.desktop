@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008, 2009, 2010 Brett Adams
 # Copyright 2014-2018 Mario Frasca <mario@anche.no>.
@@ -164,7 +163,7 @@ class SchemaMenu(Gtk.Menu):
             target.append(item)
 
 
-class ExpressionRow(object):
+class ExpressionRow:
     """
     """
 
@@ -438,7 +437,7 @@ class QueryBuilder(GenericEditorPresenter):
         try:
             index = sorted(self.domain_map.keys()).index(parsed.domain)
         except ValueError as e:
-            logger.debug('cannot restore query, %s(%s)' % (type(e), e))
+            logger.debug('cannot restore query, {}({})'.format(type(e), e))
             return
         # and set the domain_combo correspondently
         self.view.widgets.domain_combo.set_active(index)

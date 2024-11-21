@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Simple desktop integration for Python. This module provides desktop
+r"""Simple desktop integration for Python. This module provides desktop
 environment detection and resource opening support for a selection of common
 and standardised desktop environments.
 

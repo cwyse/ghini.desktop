@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015 Mario Frasca <mario@anche.no>.
@@ -350,16 +349,16 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         accessions = [a for s in self.species if s.accessions for a in s.accessions]
         #accessions = [a for s in self.species for a in s.accessions]
         plants = [p for a in accessions for p in a.plants]
-        return {(1, 'Genera'): set([self.id]),
-                (2, 'Families'): set([self.family.id]),
+        return {(1, 'Genera'): {self.id},
+                (2, 'Families'): {self.family.id},
                 (3, 'Species'): len(self.species),
                 (4, 'Accessions'): len(accessions),
                 (5, 'Plantings'): len(plants),
                 (6, 'Living plants'): sum(p.quantity for p in plants),
-                (7, 'Locations'): set(p.location.id for p in plants),
-                (8, 'Sources'): set([a.source.source_detail.id
+                (7, 'Locations'): {p.location.id for p in plants},
+                (8, 'Sources'): {a.source.source_detail.id
                                      for a in accessions
-                                     if a.source and a.source.source_detail])}
+                                     if a.source and a.source.source_detail}}
 
 
 def compute_serializable_fields(cls, session, keys):

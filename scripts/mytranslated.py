@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 from optparse import OptionParser
 import imp
 usage = 'usage: %prog [options]'
@@ -24,7 +23,7 @@ import requests
 
 def translate(s):
     try:
-        r = requests.get('http://api.mymemory.translated.net/get?q=%s&langpair=%s|%s' % (s, translation_from, translation_to), timeout=6)
+        r = requests.get('http://api.mymemory.translated.net/get?q={}&langpair={}|{}'.format(s, translation_from, translation_to), timeout=6)
     except requests.exceptions.ReadTimeout as e:
         print(type(e), e, file=sys.stderr)
         return ""

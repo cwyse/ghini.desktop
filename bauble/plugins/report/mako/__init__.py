@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2012-2016 Mario Frasca <mario@anche.no>.
@@ -45,10 +44,10 @@ class MakoFormatterPlugin(TemplateFormatterPlugin):
     title = 'Mako'
     extension = '.mako'
     domain_pattern = re.compile(r"^##\s*DOMAIN\s+([a-z_]*)\s*$")
-    option_pattern = re.compile("^## OPTION ([a-z_]*): \("
+    option_pattern = re.compile(r"^## OPTION ([a-z_]*): \("
                                 "type: ([a-z_]*), "
                                 "default: '(.*)', "
-                                "tooltip: '(.*)'\)$")
+                                r"tooltip: '(.*)'\)$")
     paths = []
 
     @classmethod
@@ -69,7 +68,7 @@ class MakoFormatterPlugin(TemplateFormatterPlugin):
             return template
         except Exception as e:
             import traceback
-            butils.idle_message("Reading template %s\n%s(%s)\n%s" % (name, type(e).__name__, e, traceback.format_exc()), type=Gtk.MessageType.ERROR)
+            butils.idle_message("Reading template {}\n{}({})\n{}".format(name, type(e).__name__, e, traceback.format_exc()), type=Gtk.MessageType.ERROR)
             return False
 
 

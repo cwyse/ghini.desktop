@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015 Mario Frasca <mario@anche.no>.
@@ -43,7 +42,7 @@ parser = search.SearchParser()
 
 
 class SearchParserTests(unittest.TestCase):
-    error_msg = lambda me, s, v, e:  '%s: %s == %s' % (s, v, e)
+    error_msg = lambda me, s, v, e:  '{}: {} == {}'.format(s, v, e)
 
     def test_query_expression_token_UPPER(self):
         s = 'domain where col=value'
@@ -467,7 +466,7 @@ class SearchTests(BaubleTestCase):
         s = 'genus where id>0 AND id<3'
         results = list(mapper_search.search(s, self.session))
         self.assertEqual(len(results), 2)
-        self.assertEqual(set(i.id for i in results), set([1, 2]))
+        self.assertEqual({i.id for i in results}, {1, 2})
 
     def test_search_by_query21(self):
         "query with MapperSearch, joined tables, one predicate"
@@ -534,12 +533,12 @@ class SearchTests(BaubleTestCase):
 
         s = 'genus where family.family=fam3 AND family.qualifier=""'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([]))
+        self.assertEqual(results, set())
 
         # sqlite3 stores None as the empty string.
         s = 'genus where family.qualifier=""'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([g2]))
+        self.assertEqual(results, {g2})
 
         # test where the column is ambiguous so make sure we choose
         # the right one, in this case we want to make sure we get the
@@ -547,7 +546,7 @@ class SearchTests(BaubleTestCase):
         s = 'plant where accession.species.genus.family.family="Orchidaceae" '\
             'AND accession.species.genus.family.qualifier=""'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([]))
+        self.assertEqual(results, set())
 
     def test_search_by_query22Symbolic(self):
         "query with &&, ||, !"
@@ -600,13 +599,13 @@ class SearchTests(BaubleTestCase):
 
         s = 'genus where family.qualifier is None'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([]))
+        self.assertEqual(results, set())
 
         # make sure None isn't treated as the string 'None' and that
         # the query picks up the is operator
         s = 'genus where author is None'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([]))
+        self.assertEqual(results, set())
 
         s = 'genus where author is not None'
         resultsNone = mapper_search.search(s, self.session)
@@ -667,7 +666,7 @@ class SearchTests(BaubleTestCase):
         # test partial string matches on a query
         s = 'genus where family.family like family%'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(set(results), set([self.genus, genus21]))
+        self.assertEqual(set(results), {self.genus, genus21})
 
     def test_search_by_query22_underscore(self):
         """can use fields starting with an underscore"""
@@ -700,7 +699,7 @@ class SearchTests(BaubleTestCase):
 
         s = 'plant where _last_updated > |datetime|2000,1,1|'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([pp]))
+        self.assertEqual(results, {pp})
 
     def test_between_evaluate(self):
         'use BETWEEN value and value'
@@ -724,7 +723,7 @@ class SearchTests(BaubleTestCase):
 
         s = 'accession where code between "1978" and "1980"'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([ac]))
+        self.assertEqual(results, {ac})
         s = 'accession where code between "1980" and "1980"'
         results = mapper_search.search(s, self.session)
         self.assertEqual(results, set())
@@ -790,7 +789,7 @@ class SearchTests(BaubleTestCase):
 
         s = "rojo"
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([sp]))
+        self.assertEqual(results, {sp})
 
 
 class InOperatorSearch(BaubleTestCase):
@@ -819,7 +818,7 @@ class InOperatorSearch(BaubleTestCase):
 
         s = 'genus where id in 1'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.g1]))
+        self.assertEqual(results, {self.g1})
 
     def test_in_list(self):
         mapper_search = search.get_strategy('MapperSearch')
@@ -827,7 +826,7 @@ class InOperatorSearch(BaubleTestCase):
 
         s = 'genus where id in 1,2,3'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.g1, self.g2, self.g3]))
+        self.assertEqual(results, {self.g1, self.g2, self.g3})
 
     def test_in_list_no_result(self):
         mapper_search = search.get_strategy('MapperSearch')
@@ -843,7 +842,7 @@ class InOperatorSearch(BaubleTestCase):
 
         s = 'genus where id in 1,2 or id>8'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.g1, self.g2]))
+        self.assertEqual(results, {self.g1, self.g2})
 
     def test_in_composite_expression_excluding(self):
         mapper_search = search.get_strategy('MapperSearch')
@@ -851,7 +850,7 @@ class InOperatorSearch(BaubleTestCase):
 
         s = 'genus where id in 1,2,4 and id<3'
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.g1, self.g2]))
+        self.assertEqual(results, {self.g1, self.g2})
 
 
 class BinomialSearchTests(BaubleTestCase):
@@ -889,7 +888,7 @@ class BinomialSearchTests(BaubleTestCase):
 
         s = 'Ixora coccinea'  # matches Ixora coccinea
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.ic]))
+        self.assertEqual(results, {self.ic})
 
     def test_binomial_incomplete(self):
         mapper_search = search.get_strategy('MapperSearch')
@@ -897,7 +896,7 @@ class BinomialSearchTests(BaubleTestCase):
 
         s = 'Ix cocc'  # matches Ixora coccinea
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.ic]))
+        self.assertEqual(results, {self.ic})
 
     def test_binomial_no_match(self):
         mapper_search = search.get_strategy('MapperSearch')
@@ -913,7 +912,7 @@ class BinomialSearchTests(BaubleTestCase):
 
         s = 'ixora coccinea'  # matches Ixora, I.coccinea, P.coccinea
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.ixora, self.ic, self.pc]))
+        self.assertEqual(results, {self.ixora, self.ic, self.pc})
 
     def test_cultivar_also_matched(self):
         mapper_search = search.get_strategy('MapperSearch')
@@ -928,7 +927,7 @@ class BinomialSearchTests(BaubleTestCase):
         self.session.commit()
         s = 'Ixora coccinea'  # matches I.coccinea and Nora Grant
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.ic, sp5]))
+        self.assertEqual(results, {self.ic, sp5})
 
 
 class QueryBuilderTests(BaubleTestCase):
@@ -1132,19 +1131,19 @@ class FilterThenMatchTests(BaubleTestCase):
 
         s = "genus where notes.note='olim'"
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.genus1, self.genus3]))
+        self.assertEqual(results, {self.genus1, self.genus3})
 
         s = "genus where notes[category='test'].note='olim'"
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.genus3]))
+        self.assertEqual(results, {self.genus3})
 
         s = "genus where notes.category='commentarii'"
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.genus1, self.genus2]))
+        self.assertEqual(results, {self.genus1, self.genus2})
 
         s = "genus where notes[note='verbum'].category='commentarii'"
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.genus2]))
+        self.assertEqual(results, {self.genus2})
 
     def test_can_find_empty_set(self):
         mapper_search = search.get_strategy('MapperSearch')
@@ -1152,7 +1151,7 @@ class FilterThenMatchTests(BaubleTestCase):
 
         s = "genus where notes=Empty"
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.genus4]))
+        self.assertEqual(results, {self.genus4})
 
     def test_can_find_non_empty_set(self):
         mapper_search = search.get_strategy('MapperSearch')
@@ -1160,7 +1159,7 @@ class FilterThenMatchTests(BaubleTestCase):
 
         s = "genus where notes!=Empty"
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.genus1, self.genus2, self.genus3]))
+        self.assertEqual(results, {self.genus1, self.genus2, self.genus3})
 
     def test_can_match_list_of_values(self):
         mapper_search = search.get_strategy('MapperSearch')
@@ -1168,11 +1167,11 @@ class FilterThenMatchTests(BaubleTestCase):
 
         s = "genus where notes.note in 'olim', 'erat', 'verbum'"
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.genus1, self.genus2, self.genus3]))
+        self.assertEqual(results, {self.genus1, self.genus2, self.genus3})
 
         s = "genus where notes[category='test'].note in 'olim', 'erat', 'verbum'"
         results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set([self.genus3]))
+        self.assertEqual(results, {self.genus3})
 
     def test_parenthesised_search(self):
         mapper_search = search.get_strategy('MapperSearch')
@@ -1222,7 +1221,7 @@ class EmptySetEqualityTest(unittest.TestCase):
         self.assertFalse(et1 is None)
         self.assertFalse(et1 == 0)
         self.assertFalse(et1 == '')
-        self.assertFalse(et1 == set([1, 2, 3]))
+        self.assertFalse(et1 == {1, 2, 3})
 
     def test_EmptyToken_representation(self):
         et1 = search.EmptyToken()

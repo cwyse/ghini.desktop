@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2015 Mario Frasca <mario@anche.no>
@@ -86,7 +85,7 @@ addasdadadad"""
 class UtilsTests(unittest.TestCase):
 
     def test_xml_safe(self):
-        class test(object):
+        class test:
             def __str__(self):
                 return repr(self)
             def __unicode__(self):
@@ -183,22 +182,22 @@ class UtilsDBTests(BaubleTestCase):
 
         # tables that depend on table 1 are 3, 4, 2
         depends = list(utils.find_dependent_tables(table1, metadata))
-        print(('table1: %s' % [table.name for table in depends]))
+        print('table1: %s' % [table.name for table in depends])
         self.assertTrue(list(depends) == [table2, table4, table3])
 
         # tables that depend on table 2 are 3, 4
         depends = list(utils.find_dependent_tables(table2, metadata))
-        print(('table2: %s' % [table.name for table in depends]))
+        print('table2: %s' % [table.name for table in depends])
         self.assertTrue(depends == [table4, table3])
 
         # no tables depend on table 3
         depends = list(utils.find_dependent_tables(table3, metadata))
-        print(('table3: %s' % [table.name for table in depends]))
+        print('table3: %s' % [table.name for table in depends])
         self.assertTrue(depends == [])
 
         # table that depend on table 4 are 3
         depends = list(utils.find_dependent_tables(table4, metadata))
-        print(('table4: %s' % [table.name for table in depends]))
+        print('table4: %s' % [table.name for table in depends])
         self.assertTrue(depends == [table3])
 
 
@@ -221,11 +220,11 @@ class ResetSequenceTests(BaubleTestCase):
     @staticmethod
     def get_currval(col):
         if db.engine.name == 'postgresql':
-            name = '%s_%s_seq' % (col.table.name, col.name)
+            name = '{}_{}_seq'.format(col.table.name, col.name)
             stmt = "select currval('%s');" % name
             return db.engine.execute(stmt).fetchone()[0]
         elif db.engine.name == 'sqlite':
-            stmt = 'select max(%s) from %s' % (col.name, col.table.name)
+            stmt = 'select max({}) from {}'.format(col.name, col.table.name)
             return db.engine.execute(stmt).fetchone()[0] + 1
 
 
@@ -300,8 +299,8 @@ class TopologicalSortTests(unittest.TestCase):
         print(r)
         self.assertTrue('e' in r)
         r.remove('e')
-        any = set([r.pop(), r.pop()])
-        self.assertEqual(any, set(['c', 'd']))
+        any = {r.pop(), r.pop()}
+        self.assertEqual(any, {'c', 'd'})
         self.assertEqual(r.pop(), 'b')
         #self.assertEquals(r, [])
 

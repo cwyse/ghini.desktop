@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright 2016-2018 Mario Frasca <mario@anche.no>.
 # Copyright 2017 Jardín Botánico de Quito
@@ -181,7 +180,7 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
         session.query(PlantNote).filter_by(plant=plant, category='<coords>').delete()
         # add new one
         lat, lon = (float(i) for i in coordinates[1:-1].split(';'))
-        value = "{lat:%0.6f,lon:%0.6f}" % (lat, lon)
+        value = "{{lat:{:0.6f},lon:{:0.6f}}}".format(lat, lon)
         note = lookup(session, PlantNote, plant=plant, category='<coords>', note=value)
 
     for picture in pictures:

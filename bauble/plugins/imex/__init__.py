@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2015,2018 Mario Frasca <mario@anche.no>.
 #

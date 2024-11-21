@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright 2017 Mario Frasca <mario@anche.no>.
 # Copyright 2017 Jardín Botánico de Quito
@@ -113,13 +112,13 @@ path = os.path.dirname(os.path.realpath(__file__))
 
 # read settings from file
 
-with open(os.path.join(path, 'settings.json'), 'r') as f:
+with open(os.path.join(path, 'settings.json')) as f:
     (user, pw, filename, imei2user, dburi, pic_path) = json.load(f)
 
 # avoid querying already seen submitted forms: 'to_skip' is a list of uuids.
 
 try:
-    with open(os.path.join(path, 'odk-seen.json'), 'r') as f:
+    with open(os.path.join(path, 'odk-seen.json')) as f:
         to_skip = json.load(f)
 except:
     to_skip = []
@@ -178,7 +177,7 @@ for item in sorted(items, key=lambda x: x['acc_no_scan'] or x['acc_no_typed']):
         if species_epithet == '':
             species_epithet = 'sp'
 
-        accession['species'] = item['species'] = "%s %s" % (genus_epithet, species_epithet)
+        accession['species'] = item['species'] = "{} {}".format(genus_epithet, species_epithet)
 
     # add a default quantity=1 for plants relative to new accessions,
     # add a default species=Zzz sp for new accessions,

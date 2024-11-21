@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2012-2015 Mario Frasca <mario@anche.no>.
@@ -102,7 +101,7 @@ def _create_dependency_pairs(plugs):
             try:
                 depends.append((plugins[dep], p))
             except KeyError:
-                logger.debug('no dependency %s for %s' % (dep, p.__name__))
+                logger.debug('no dependency {} for {}'.format(dep, p.__name__))
                 u = unmet.setdefault(p.__name__, [])
                 u.append(dep)
     return depends, unmet
@@ -128,7 +127,7 @@ def load(path=None):
             path = os.path.join(paths.lib_dir(), 'plugins')
     logger.debug('pluginmgr.load(%s)' % path)
     found, errors = _find_plugins(path)
-    logger.debug('found=%s, errors=%s' % (found, errors))
+    logger.debug('found={}, errors={}'.format(found, errors))
 
     # show error dialog for plugins that couldn't be loaded...we only
     # give details for the first error and assume the others are the
@@ -250,7 +249,7 @@ def init(force=False):
                    % dict(plugin_name=plugin.__class__.__name__))
             logger.warning(msg)
         except Exception as e:
-            logger.error("%s: %s" % (type(e), e))
+            logger.error("{}: {}".format(type(e), e))
             ordered.remove(plugin)
             logger.debug(traceback.print_exc())
             safe = utils.xml_safe
@@ -422,7 +421,7 @@ class PluginRegistry(db.Base):
             session.close()
 
 
-class Plugin(object):
+class Plugin:
     """
     commands:
       a map of commands this plugin handled with callbacks,
@@ -473,7 +472,7 @@ class EditorPlugin(Plugin):
     editors = []
 
 
-class Tool(object):
+class Tool:
     category = None
     label = None
     enabled = True
@@ -530,7 +529,7 @@ class View(Gtk.VBox):
         pass
 
 
-class CommandHandler(object):
+class CommandHandler:
 
     command = None
 
@@ -622,16 +621,16 @@ def _find_plugins(path):
         if isinstance(mod_plugin, (list, tuple)):
             for p in mod_plugin:
                 if is_plugin_class(p):
-                    logger.debug('append plugin class %s:%s' % (name, p))
+                    logger.debug('append plugin class {}:{}'.format(name, p))
                     plugins.append(p())
                 elif is_plugin_instance(p):
-                    logger.debug('append plugin instance %s:%s' % (name, p))
+                    logger.debug('append plugin instance {}:{}'.format(name, p))
                     plugins.append(p)
         elif is_plugin_class(mod_plugin):
-            logger.debug('append plugin class %s:%s' % (name, mod_plugin))
+            logger.debug('append plugin class {}:{}'.format(name, mod_plugin))
             plugins.append(mod_plugin())
         elif is_plugin_instance(mod_plugin):
-            logger.debug('append plugin instance %s:%s' % (name, mod_plugin))
+            logger.debug('append plugin instance {}:{}'.format(name, mod_plugin))
             plugins.append(mod_plugin)
         else:
             logger.warning(

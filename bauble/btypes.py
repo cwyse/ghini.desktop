@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2017 Mario Frasca <mario@anche.no>
@@ -54,14 +53,14 @@ class Enum(types.TypeDecorator):
         # create the translations from the values and set those from
         # the translations argument, this way if some translations are
         # missing then the translation will be the same as value
-        logger.debug('Enum::init %s %s %s' % (type(self).__name__, values, empty_to_none))
+        logger.debug('Enum::init {} {} {}'.format(type(self).__name__, values, empty_to_none))
         if values is None or len(values) == 0:
             raise EnumError(_('Enum requires a list of values'))
-        if not set(type(x) for x in values).issubset({type(None), str}):
+        if not {type(x) for x in values}.issubset({type(None), str}):
             raise EnumError(_('Enum requires string values (or None)'))
         if len(values) != len(set(values)):
             raise EnumError(_('Enum requires the values to be different'))
-        self.translations = dict((v, v) for v in values)
+        self.translations = {v: v for v in values}
         if empty_to_none and (None not in values):
             raise EnumError(_('You have configured empty_to_none=True but '
                               'None is not in the values lists'))
@@ -77,7 +76,7 @@ class Enum(types.TypeDecorator):
         """
         Process the value going into the database.
         """
-        logger.debug('Enum::process_bind_param %s %s(%s)' % (type(self).__name__, type(value).__name__, value))
+        logger.debug('Enum::process_bind_param {} {}({})'.format(type(self).__name__, type(value).__name__, value))
         if (self.empty_to_none) and (not value):
             value = None
         if value is None and None not in self.values and '' in self.values:

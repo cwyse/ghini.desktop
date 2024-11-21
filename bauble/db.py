@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2005-2010 Brett Adams <brett@belizebotanic.org>
 # Copyright 2015-2017 Mario Frasca <mario@anche.no>.
@@ -646,13 +645,13 @@ class Serializable:
     link_keys = []
 
     def as_dict(self):
-        result = dict((col, getattr(self, col))
+        result = {col: getattr(self, col)
                       for col in list(self.__table__.columns.keys())
                       if col not in ['id']
                       and col[0] != '_'
                       and getattr(self, col) is not None
                       and getattr(self, col) != ''
-                      and not col.endswith('_id'))
+                      and not col.endswith('_id')}
         result['object'] = self.single_cap_re.sub(
             r'_\1', self.__class__.__name__).lower()[1:]
         return result
@@ -743,7 +742,7 @@ class Serializable:
         # early construct object before building links
         if not is_in_session and create:
             ## completing the task of building the links
-            logger.debug("links? %s, %s" % (cls.link_keys, list(keys.keys())))
+            logger.debug("links? {}, {}".format(cls.link_keys, list(keys.keys())))
             for key in cls.link_keys:
                 d = link_values.get(key)
                 if d is None:
@@ -751,7 +750,7 @@ class Serializable:
                 logger.debug('recursive call to construct_from_dict %s' % d)
                 obj = construct_from_dict(session, d)
                 keys[key] = obj
-            logger.debug("going to create new %s with %s" % (cls, keys))
+            logger.debug("going to create new {} with {}".format(cls, keys))
             result = cls(**keys)
             session.add(result)
 
@@ -760,7 +759,7 @@ class Serializable:
             result = is_in_session
 
             ## completing the task of building the links
-            logger.debug("links? %s, %s" % (cls.link_keys, list(keys.keys())))
+            logger.debug("links? {}, {}".format(cls.link_keys, list(keys.keys())))
             for key in cls.link_keys:
                 d = link_values.get(key)
                 if d is None:
@@ -769,7 +768,7 @@ class Serializable:
                 obj = construct_from_dict(session, d)
                 keys[key] = obj
 
-        logger.debug("going to update %s with %s" % (result, keys))
+        logger.debug("going to update {} with {}".format(result, keys))
         if 'id' in keys:
             del keys['id']
         for k, v in list(keys.items()):

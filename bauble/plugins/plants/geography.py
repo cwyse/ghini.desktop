@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2012-2015 Mario Frasca <mario@anche.no>.
@@ -43,7 +42,7 @@ def get_species_in_geographic_area(geo):
         Species
     # get the children of geo
     geo_table = geo.__table__
-    master_ids = set([geo.id])
+    master_ids = {geo.id}
     # populate master_ids with all the geographic_area ids that represent
     # the children of particular geographic_area id
 

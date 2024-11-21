@@ -110,7 +110,7 @@ def ABCDElement(parent, name, text=None, attrib=None):
     else:
         text = str(text)
     
-    el = SubElement(parent, '{%s}%s' % (namespaces['abcd'], name),
+    el = SubElement(parent, '{{{}}}{}'.format(namespaces['abcd'], name),
                     nsmap=namespaces, attrib=attrib)
     el.text = text
     return el
@@ -122,7 +122,7 @@ def DataSets():
     return Element('{%s}DataSets' % namespaces['abcd'], nsmap=namespaces)
 
 
-class ABCDAdapter(object):
+class ABCDAdapter:
     """
     An abstract base class for creating ABCD adapters.
     """
@@ -337,7 +337,7 @@ def plants_to_abcd(plants):
                        validate=False)
 
 
-class ABCDExporter(object):
+class ABCDExporter:
     """
     Export Plants to an ABCD file.
     """

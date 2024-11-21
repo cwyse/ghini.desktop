@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2012 Tobias Bieniek <Tobias.Bieniek@gmx.de>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a

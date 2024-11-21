@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2012-2015 Mario Frasca <mario@anche.no>.
@@ -464,7 +463,7 @@ class SpeciesInfoBox(InfoBox):
 class VernacularNameInfoBox(SpeciesInfoBox):
 
     def update(self, row):
-        logger.info("VernacularNameInfoBox.update %s(%s)" % (
+        logger.info("VernacularNameInfoBox.update {}({})".format(
             row.__class__.__name__, row))
         if isinstance(row, VernacularName):
             super().update(row.species)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright 2017 Mario Frasca <mario@anche.no>.
 # Copyright 2017 Jardín Botánico de Quito
@@ -33,7 +32,7 @@ path = os.path.dirname(os.path.realpath(__file__))
 
 import json
 
-with open(os.path.join(path, 'settings.json'), 'r') as f:
+with open(os.path.join(path, 'settings.json')) as f:
     (user, pw, filename, imei2user, dburi, pic_path) = json.load(f)
 
 import bauble.db

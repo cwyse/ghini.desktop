@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015 Mario Frasca <mario@anche.no>.
@@ -163,7 +162,7 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
 
     """
     PROBLEM = 'UNKNOWN_LOCATION'
-    re_code_name_splitter = re.compile('\(([^)]+)\) ?(.*)')
+    re_code_name_splitter = re.compile(r'\(([^)]+)\) ?(.*)')
 
     def cell_data_func(col, cell, model, treeiter, data=None):
         safe_set_props(cell, 'text', utils.utf8(model[treeiter][0]))

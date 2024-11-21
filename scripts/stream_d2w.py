@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright 2018 Mario Frasca <mario@anche.no>.
 #
@@ -135,7 +134,7 @@ path = os.path.dirname(os.path.realpath(__file__))
 
 # read settings from file
 
-with open(os.path.join(path, 'settings.json'), 'r') as f:
+with open(os.path.join(path, 'settings.json')) as f:
     (user, pw, filename, imei2user, dburi, pic_path) = json.load(f)
 
 bauble.db.open(dburi, True, True)
@@ -202,17 +201,17 @@ for k, plants in list(species.items()):
              'lon': v.coords['lon']}
         result['plants'].append(d)
 
-print(('db.gardens.update({uuid: "%s"}, {$set: %s}, {upsert: true});' % (garden['uuid'], json.dumps(garden))))
+print('db.gardens.update({{uuid: "{}"}}, {{$set: {}}}, {{upsert: true}});'.format(garden['uuid'], json.dumps(garden)))
 for i in result['species']:
-    print(('db.taxa.update({name: %s}, {$set: %s}, {upsert: true});' % (json.dumps(i['name']), json.dumps(i))))
-print(('db.plants.deleteMany({garden: %s});' % json.dumps(garden['name'])))
-print(('db.plants.insertMany(%s);' % json.dumps(result['plants'])))
+    print('db.taxa.update({{name: {}}}, {{$set: {}}}, {{upsert: true}});'.format(json.dumps(i['name']), json.dumps(i)))
+print('db.plants.deleteMany({garden: %s});' % json.dumps(garden['name']))
+print('db.plants.insertMany(%s);' % json.dumps(result['plants']))
 
-print(('''\
+print('''\
 db.gardens.find().sort({id:-1}).limit(1).forEach(function(g){
     db.gardens.updateOne({uuid: "%(uuid)s", id: {$exists: false}}, {$set: {id: g.id + 1}});
 });
 db.gardens.find({uuid: "%(uuid)s"}).forEach(function (elem) {
     db.plants.updateMany({garden_uuid: elem.uuid}, {$set: {garden_id: elem.id}})
 });
-''' % garden))
+''' % garden)

@@ -17,8 +17,8 @@ import sys
 import bauble
 if bauble.version_tuple[0] != '1' and bauble.version_tuple[1] != '0':
     print("Bauble 1.0 must be installed")
-    print((bauble.version))
-    print((bauble.version_tuple))
+    print(bauble.version)
+    print(bauble.version_tuple)
     sys.exit(1)
 
 import bauble.utils as utils
@@ -33,7 +33,7 @@ parser.add_option('-f', '--force', dest='force', action='store_true',
 (options, args) = parser.parse_args()
 
 if not args:
-    print((parser.error('a directory with a dumped CSV files is required')))
+    print(parser.error('a directory with a dumped CSV files is required'))
 
 
 
@@ -78,7 +78,7 @@ def create_writer(filename, columns):
     return writer
 
 
-class NoteWriter(object):
+class NoteWriter:
 
     def __init__(self, filename, parent_id_column, id_start=1):
         self.id_ctr = id_start
@@ -448,7 +448,7 @@ for f in glob.glob(os.path.join(src_path, "*.txt")):
     basename = os.path.basename(f)
     print(basename)
     if basename not in file_map:
-        print(("** don't know what to do with: %s" % f))
+        print("** don't know what to do with: %s" % f)
         sys.exit(1)
     if not file_map[basename]:
         shutil.copy(f, dst_path)

@@ -28,7 +28,7 @@ from pyparsing import (Word, alphas, alphanums, delimitedList, Group,
                        Forward, CaselessLiteral, WordStart, WordEnd,
                        ZeroOrMore)
 
-class BuiltQuery(object):
+class BuiltQuery:
 
     wordStart, wordEnd = WordStart(), WordEnd()
 

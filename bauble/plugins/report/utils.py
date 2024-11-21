@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2015-2018 Mario Frasca <mario@anche.no>.
 # Copyright 2017 Jardín Botánico de Quito
@@ -123,7 +122,7 @@ class SVG:
         cumulative_x -= 1
         shift = -align * cumulative_x
         result_list.insert(
-            0, ('<g transform="translate(%s,%s)scale(%s,1)translate(%s,0)">' % (x, y, unit, shift)))
+            0, ('<g transform="translate({},{})scale({},1)translate({},0)">'.format(x, y, unit, shift)))
         result_list.append('</g>')
         return ''.join(result_list), x + cumulative_x + shift, y
 
@@ -361,13 +360,13 @@ class PS:
         else:
             hfactor = 1
         x -= totalwidth * align
-        result = ["%0.1f %0.1f moveto" % (x, y, ),
+        result = ["{:0.1f} {:0.1f} moveto".format(x, y),
                   ''.join(glyphs),
                   ' '.join(widths),
                   "xshow"]
         if hfactor != 1 or stretch != 1:
             result.insert(1, "gsave")
-            result.insert(2, "%0.3f %0.1f scale" % (hfactor, stretch, ))
+            result.insert(2, "{:0.3f} {:0.1f} scale".format(hfactor, stretch))
             result.append("grestore")
 
         return '\n'.join(result)
@@ -523,11 +522,11 @@ class Code39:
             transform_text = ' transform="translate(%s,%s)"' % translate
         else:
             transform_text = ''
-        return '<path%(transform)s d="%(path)s" style="stroke:%(colour)s;stroke-width:1"/>' % {
-            'transform': transform_text,
-            'path': cls.path(letter, height),
-            'colour': colour,
-        }
+        return '<path{transform} d="{path}" style="stroke:{colour};stroke-width:1"/>'.format(
+            transform=transform_text,
+            path=cls.path(letter, height),
+            colour=colour,
+        )
 
     
 class add_qr_functor:
@@ -557,13 +556,13 @@ class add_qr_functor:
         transform = []
         if x != 0 or y != 0:
             if format == 'ps':
-                transform.append("%s %s translate" % (x, y))
+                transform.append("{} {} translate".format(x, y))
             else:
-                transform.append("translate(%s,%s)" % (x, y))
+                transform.append("translate({},{})".format(x, y))
         if side is not None:
             orig_side = float(match.group(1))
             if format == 'ps':
-                transform.append("%s %s scale" % (side / orig_side, side / orig_side))
+                transform.append("{} {} scale".format(side / orig_side, side / orig_side))
             else:
                 transform.append("scale(%s)" % (side / orig_side))
         if transform:
@@ -575,7 +574,7 @@ class add_qr_functor:
         if format == 'ps':
             result_list = ['gsave'] + result_list + ["grestore"]
         result = '\n'.join(result_list)
-        logger.debug("qr-svg: %s(%s)" % (type(result).__name__, result))
+        logger.debug("qr-svg: {}({})".format(type(result).__name__, result))
         return result
 
 add_qr = add_qr_functor()
@@ -602,5 +601,5 @@ def get_caller_template_location():
             template_name = info.template_filename
         return os.path.dirname(template_name)
     except Exception as e:
-        logger.debug("%s(%s)" % (type(e).__name__, e))
+        logger.debug("{}({})".format(type(e).__name__, e))
         return ''

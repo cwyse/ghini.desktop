@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2008-2010 Brett Adams
 # Copyright 2015-2017 Mario Frasca <mario@anche.no>.
@@ -69,7 +68,7 @@ class ValidatorError(Exception):
         return self.msg
 
 
-class Validator(object):
+class Validator:
     """
     The interface that other validators should implement.
     """
@@ -202,7 +201,7 @@ def default_completion_match_func(completion, key_string, treeiter):
     return str(value).lower().startswith(key_string.lower())
 
 
-class GenericEditorView(object):
+class GenericEditorView:
     """
     A generic class meant (not) to be subclassed, to provide the view
     for the Ghini Model-View-Presenter pattern. The idea is that you
@@ -1060,7 +1059,7 @@ class DontCommitException(Exception):
     pass
 
 
-class GenericEditorPresenter(object):
+class GenericEditorPresenter:
     """
     The presenter of the Model View Presenter Pattern
 
@@ -1099,7 +1098,7 @@ class GenericEditorPresenter(object):
             try:
                 self.session = object_session(model)
             except Exception as e:
-                logger.debug("GenericEditorPresenter::__init__ - %s, %s" % (type(e), e))
+                logger.debug("GenericEditorPresenter::__init__ - {}, {}".format(type(e), e))
 
             if self.session is None:  # object_session gave None without error
                 if db.Session is not None:
@@ -1159,7 +1158,7 @@ class GenericEditorPresenter(object):
                     container = container.get_parent()
                 if current_page_widget == container:
                     value = presenter.view.widget_get_value(name)
-                    logger.debug('writing »%s« in clipboard %s for %s' % (value, presenter.__class__.__name__, name))
+                    logger.debug('writing »{}« in clipboard {} for {}'.format(value, presenter.__class__.__name__, name))
                     presenter.clipboard[name] = value
 
     def on_window_clip_paste(self, widget, *args, **kwargs):
@@ -1179,13 +1178,13 @@ class GenericEditorPresenter(object):
                     container = container.get_parent()
                 if current_page_widget == container:
                     if presenter.view.widget_get_value(name):
-                        logger.debug('skipping %s in clipboard %s because widget has value' % (name, presenter.__class__.__name__))
+                        logger.debug('skipping {} in clipboard {} because widget has value'.format(name, presenter.__class__.__name__))
                         continue
                     clipboard_value = presenter.clipboard.get(name)
                     if not clipboard_value:
-                        logger.debug('skipping %s because clipboard %s has no value' % (name, presenter.__class__.__name__))
+                        logger.debug('skipping {} because clipboard {} has no value'.format(name, presenter.__class__.__name__))
                         continue
-                    logger.debug('setting »%s« from clipboard %s for %s' % (clipboard_value, presenter.__class__.__name__, name))
+                    logger.debug('setting »{}« from clipboard {} for {}'.format(clipboard_value, presenter.__class__.__name__, name))
                     presenter.view.widget_set_value(name, clipboard_value)
 
     def refresh_sensitivity(self):
@@ -1361,7 +1360,7 @@ class GenericEditorPresenter(object):
         "handle 'changed' signal on datetime entry widgets."
 
         attr = self.__get_widget_attr(widget)
-        logger.debug("on_datetime_entry_changed(%s, %s)" % (widget, attr))
+        logger.debug("on_datetime_entry_changed({}, {})".format(widget, attr))
         if value is None:
             value = widget.props.text
             value = value and utils.utf8(value) or None
@@ -1376,7 +1375,7 @@ class GenericEditorPresenter(object):
         if attr is not None:
             self.__set_model_attr(attr, value)
         else:
-            logging.debug("presenter %s does not know widget %s" % (
+            logging.debug("presenter {} does not know widget {}".format(
                 self.__class__.__name__, self.__get_widget_name(widget)))
 
     on_chkbx_toggled = on_check_toggled
@@ -1545,7 +1544,7 @@ class GenericEditorPresenter(object):
         :param value: the value the attribute will be set to
         :param validator: validates the value before setting it
         """
-        logger.debug('editor.set_model_attr(%s, %s)' % (attr, value))
+        logger.debug('editor.set_model_attr({}, {})'.format(attr, value))
         if validator:
             try:
                 # Safely retrieve the 'wrapped' attribute if it exists
@@ -1556,14 +1555,14 @@ class GenericEditorPresenter(object):
                 else:
                     log_validator = validator
 
-                logger.debug("validating %s(%s) for %s using %s" % (type(value).__name__, value, attr, log_validator))
+                logger.debug("validating {}({}) for {} using {}".format(type(value).__name__, value, attr, log_validator))
                 value = validator.to_python(value)
                 self.remove_problem('BAD_VALUE_%s' % attr)
             except ValidatorError as e:
                 logger.debug("GenericEditorPresenter.set_model_attr %s" % e)
                 self.add_problem('BAD_VALUE_%s' % attr)
             else:
-                logger.debug("validated %s(%s) for %s" % (type(value).__name__, value, attr))
+                logger.debug("validated {}({}) for {}".format(type(value).__name__, value, attr))
                 setattr(self.model, attr, value)
         else:
             setattr(self.model, attr, value)
@@ -1641,7 +1640,7 @@ class GenericEditorPresenter(object):
                                  Gtk.RadioButton)):
             def toggled(button, data=None):
                 active = button.get_active()
-                logger.debug('toggled %s: %s' % (widget_name, active))
+                logger.debug('toggled {}: {}'.format(widget_name, active))
                 button.set_inconsistent(False)
                 self.set_model_attr(model_attr, active, validator)
             self.view.connect(widget, 'toggled', toggled)
@@ -1708,7 +1707,7 @@ class GenericEditorPresenter(object):
                 comp_model = comp.get_model()
                 found = []
                 if comp_model:
-                    comp_model.foreach(lambda m, p, i, ud: logger.debug("item(%s) of comp_model: %s" % (p, m[p][0])), None)
+                    comp_model.foreach(lambda m, p, i, ud: logger.debug("item({}) of comp_model: {}".format(p, m[p][0])), None)
                     # search the tree model to see if the text in the
                     # entry matches one of the completions, if so then
                     # emit the match-selected signal, this allows us to
@@ -1822,7 +1821,7 @@ class ChildPresenter(GenericEditorPresenter):
     view = property(_get_view, _set_view)
 
 
-class GenericModelViewPresenterEditor(object):
+class GenericModelViewPresenterEditor:
     '''
     GenericModelViewPresenterEditor assume that model is an instance
     of object mapped to a SQLAlchemy table
@@ -1858,7 +1857,7 @@ class GenericModelViewPresenterEditor(object):
             except Exception as e:
                 pass
         except Exception as e:
-            logger.warning("can't commit changes: (%s) %s" % (type(e), e))
+            logger.warning("can't commit changes: ({}) {}".format(type(e), e))
             self.session.rollback()
             self.session.add_all(objs)
             raise
@@ -2123,7 +2122,7 @@ class PictureBox(NoteBox):
                 im = Gtk.Label()
                 safe_set_text(im, label)
             except Exception as e:
-                logger.warning("can't commit changes: (%s) %s" % (type(e), e))
+                logger.warning("can't commit changes: ({}) {}".format(type(e), e))
                 im = Gtk.Label()
                 safe_set_text(im, e)
         else:

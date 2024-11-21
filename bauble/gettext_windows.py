@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2006, 2007, 2010 Alexander Belchenko
 #
