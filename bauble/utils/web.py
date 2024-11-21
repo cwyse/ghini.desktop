@@ -32,7 +32,9 @@ import bauble.utils.desktop as desktop
 
 def _open_link(data=None, *args, **kwargs):
     """Open a web link"""
-    logger.debug("_open_link received data={}, args={}, kwargs={}".format(data, args, kwargs))
+    logger.debug(
+        "_open_link received data={}, args={}, kwargs={}".format(data, args, kwargs)
+    )
     desktop.open(data)
 
 
@@ -42,7 +44,7 @@ class BaubleLinkButton(Gtk.LinkButton):
     _space = "_"
     title = _("Search")
     tooltip = None
-    pt = re.compile(r'%\(([a-z_\.]*)\)s')
+    pt = re.compile(r"%\(([a-z_\.]*)\)s")
 
     def __init__(self, title=_("Search"), tooltip=None):
         super().__init__("", self.title)
@@ -52,12 +54,12 @@ class BaubleLinkButton(Gtk.LinkButton):
     def set_string(self, row):
         if self.fields == []:
             s = str(row)
-            self.set_uri(self._base_uri % s.replace(' ', self._space))
+            self.set_uri(self._base_uri % s.replace(" ", self._space))
         else:
             values = {}
             for key in self.fields:
                 value = row
-                for step in key.split('.'):
-                    value = getattr(value, step, '-')
-                values[key] = (value == str(value)) and value or ''
+                for step in key.split("."):
+                    value = getattr(value, step, "-")
+                values[key] = (value == str(value)) and value or ""
             self.set_uri(self._base_uri % values)

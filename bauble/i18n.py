@@ -47,7 +47,7 @@ bauble.gettext_windows.setup_env()
 
 __all__ = ["_"]
 
-TEXT_DOMAIN = 'ghini-%s' % '.'.join(version_tuple[0:2])
+TEXT_DOMAIN = "ghini-%s" % ".".join(version_tuple[0:2])
 
 #
 # most of the following code was adapted from:
@@ -55,13 +55,13 @@ TEXT_DOMAIN = 'ghini-%s' % '.'.join(version_tuple[0:2])
 # translating-your-pythonpygtk-application/
 
 langs = []
-#Check the default locale
+# Check the default locale
 lang_code, encoding = locale.getdefaultlocale()
 if lang_code:
     # If we have a default, it's the first in the list
     langs = [lang_code]
 # Now lets get all of the supported languages on the system
-language = os.environ.get('LANGUAGE', None)
+language = os.environ.get("LANGUAGE", None)
 if language:
     # language comes back something like en_CA:en_US:en_GB:en on linuxy
     # systems, on Win32 it's nothing, so we need to split it up into a list
@@ -76,15 +76,16 @@ langs += ["en"]
 
 import sys
 
-if sys.platform in ['win32', 'darwin']:
+if sys.platform in ["win32", "darwin"]:
     locale = gettext
 
 locale.bindtextdomain(TEXT_DOMAIN, paths.locale_dir())
 locale.textdomain(TEXT_DOMAIN)
 
 # Get the language to use
-lang = gettext.translation(TEXT_DOMAIN, paths.locale_dir(), languages=langs,
-                           fallback=True)
+lang = gettext.translation(
+    TEXT_DOMAIN, paths.locale_dir(), languages=langs, fallback=True
+)
 # associate this module's as well as the global `_` functions (we marked our
 # translatable strings with it) to lang.gettext(), which translates them.
 _ = lang.gettext

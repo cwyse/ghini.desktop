@@ -40,11 +40,13 @@ class Enum(types.TypeDecorator):
     """A database independent Enum type. The value is stored in the
     database as a Unicode string.
     """
+
     impl = types.Unicode
     cache_ok = True
 
-    def __init__(self, values, empty_to_none=False, strict=True,
-                 translations={}, **kwargs):
+    def __init__(
+        self, values, empty_to_none=False, strict=True, translations={}, **kwargs
+    ):
         """
         : param values: A list of valid values for column.
         :param empty_to_none: Treat the empty string '' as None.  None
@@ -55,17 +57,23 @@ class Enum(types.TypeDecorator):
         # create the translations from the values and set those from
         # the translations argument, this way if some translations are
         # missing then the translation will be the same as value
-        logger.debug('Enum::init {} {} {}'.format(type(self).__name__, values, empty_to_none))
+        logger.debug(
+            "Enum::init {} {} {}".format(type(self).__name__, values, empty_to_none)
+        )
         if values is None or len(values) == 0:
-            raise EnumError(_('Enum requires a list of values'))
+            raise EnumError(_("Enum requires a list of values"))
         if not {type(x) for x in values}.issubset({type(None), str}):
-            raise EnumError(_('Enum requires string values (or None)'))
+            raise EnumError(_("Enum requires string values (or None)"))
         if len(values) != len(set(values)):
-            raise EnumError(_('Enum requires the values to be different'))
+            raise EnumError(_("Enum requires the values to be different"))
         self.translations = {v: v for v in values}
         if empty_to_none and (None not in values):
-            raise EnumError(_('You have configured empty_to_none=True but '
-                              'None is not in the values lists'))
+            raise EnumError(
+                _(
+                    "You have configured empty_to_none=True but "
+                    "None is not in the values lists"
+                )
+            )
         self.values = values[:]  # copy, not reference
         self.strict = strict
         self.empty_to_none = empty_to_none
@@ -78,16 +86,24 @@ class Enum(types.TypeDecorator):
         """
         Process the value going into the database.
         """
-        logger.debug('Enum::process_bind_param {} {}({})'.format(type(self).__name__, type(value).__name__, value))
+        logger.debug(
+            "Enum::process_bind_param {} {}({})".format(
+                type(self).__name__, type(value).__name__, value
+            )
+        )
         if (self.empty_to_none) and (not value):
             value = None
-        if value is None and None not in self.values and '' in self.values:
-            value = ''
+        if value is None and None not in self.values and "" in self.values:
+            value = ""
         if value not in self.values:
-            raise EnumError(_('%(type_name)s(%(value)s) not in Enum.values: %(all_values)s'
-                              ) % {'value': value,
-                                   'type_name': type(value).__name__,
-                                   'all_values': self.values})
+            raise EnumError(
+                _("%(type_name)s(%(value)s) not in Enum.values: %(all_values)s")
+                % {
+                    "value": value,
+                    "type_name": type(value).__name__,
+                    "all_values": self.values,
+                }
+            )
         return value
 
     def process_result_value(self, value, dialect):
@@ -109,11 +125,13 @@ class DateTime(types.TypeDecorator):
     """
     A DateTime type that allows strings
     """
+
     impl = types.DateTime
     cache_ok = True
 
     import re
-    _rx_tz = re.compile('[+-]')
+
+    _rx_tz = re.compile("[+-]")
 
     def process_bind_param(self, value, dialect):
         if not isinstance(value, str):
@@ -123,10 +141,12 @@ class DateTime(types.TypeDecorator):
             DateTime._yearfirst
         except AttributeError:
             import bauble.prefs as prefs
+
             DateTime._dayfirst = prefs.prefs[prefs.parse_dayfirst_pref]
             DateTime._yearfirst = prefs.prefs[prefs.parse_yearfirst_pref]
         result = parse_date(
-            value, dayfirst=DateTime._dayfirst, yearfirst=DateTime._yearfirst)
+            value, dayfirst=DateTime._dayfirst, yearfirst=DateTime._yearfirst
+        )
         return result
 
     def process_result_value(self, value, dialect):
@@ -140,6 +160,7 @@ class Date(types.TypeDecorator):
     """
     A Date type that allows Date strings
     """
+
     impl = types.Date
     cache_ok = True
 
@@ -151,14 +172,15 @@ class Date(types.TypeDecorator):
             Date._yearfirst
         except AttributeError:
             import bauble.prefs as prefs
+
             Date._dayfirst = prefs.prefs[prefs.parse_dayfirst_pref]
             Date._yearfirst = prefs.prefs[prefs.parse_yearfirst_pref]
         return parse_date(
-            value, dayfirst=Date._dayfirst, yearfirst=Date._yearfirst).date()
+            value, dayfirst=Date._dayfirst, yearfirst=Date._yearfirst
+        ).date()
 
     def process_result_value(self, value, dialect):
         return value
 
     def copy(self):
         return Date()
-

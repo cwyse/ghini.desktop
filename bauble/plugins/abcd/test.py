@@ -42,6 +42,7 @@ from bauble.test import BaubleTestCase
 
 # TODO: the ABCD tests need to be completely reworked
 
+
 class ABCDTestCase(BaubleTestCase):
 
     def __init__(self, *args):
@@ -52,40 +53,45 @@ class ABCDTestCase(BaubleTestCase):
         plants_test.setUp_data()
         garden_test.setUp_data()
 
-        schema_file = os.path.join(
-            paths.lib_dir(), 'plugins', 'abcd', 'abcd_2.06.xsd')
+        schema_file = os.path.join(paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd")
         xmlschema_doc = etree.parse(schema_file)
         self.abcd_schema = etree.XMLSchema(xmlschema_doc)
         from bauble.plugins.garden import Institution
+
         inst = Institution()
-        inst.name = inst.code = inst.contact = \
-            inst.technical_contact = inst.email = 'test'
+        inst.name = inst.code = inst.contact = inst.technical_contact = inst.email = (
+            "test"
+        )
         inst.write()
         self.session.commit()
 
     def test_abcd(self):
         datasets = DataSets()
-        ds = ABCDElement(datasets, 'DataSet')
-        tech_contacts = ABCDElement( ds, 'TechnicalContacts')
-        tech_contact = ABCDElement(tech_contacts, 'TechnicalContact')
-        ABCDElement(tech_contact, 'Name', text='Brett')
-        ABCDElement(tech_contact, 'Email', text='brett@belizebotanic.org')
-        cont_contacts = ABCDElement(ds, 'ContentContacts')
-        cont_contact = ABCDElement(cont_contacts, 'ContentContact')
-        ABCDElement(cont_contact, 'Name', text='Brett')
-        ABCDElement(cont_contact, 'Email', text='brett@belizebotanic.org')
-        metadata = ABCDElement(ds, 'Metadata', )
-        description = ABCDElement(metadata, 'Description')
-        representation = ABCDElement(description, 'Representation',
-                                        attrib={'language': 'en'})
-        revision = ABCDElement(metadata, 'RevisionData')
-        ABCDElement(revision, 'DateModified', text='2001-03-01T00:00:00')
-        title = ABCDElement(representation, 'Title', text='TheTitle')
-        units = ABCDElement(ds, 'Units')
-        unit = ABCDElement(units, 'Unit')
-        ABCDElement(unit, 'SourceInstitutionID', text='BBG')
-        ABCDElement(unit, 'SourceID', text='1111')
-        unit_id = ABCDElement(unit, 'UnitID', text='2222')
+        ds = ABCDElement(datasets, "DataSet")
+        tech_contacts = ABCDElement(ds, "TechnicalContacts")
+        tech_contact = ABCDElement(tech_contacts, "TechnicalContact")
+        ABCDElement(tech_contact, "Name", text="Brett")
+        ABCDElement(tech_contact, "Email", text="brett@belizebotanic.org")
+        cont_contacts = ABCDElement(ds, "ContentContacts")
+        cont_contact = ABCDElement(cont_contacts, "ContentContact")
+        ABCDElement(cont_contact, "Name", text="Brett")
+        ABCDElement(cont_contact, "Email", text="brett@belizebotanic.org")
+        metadata = ABCDElement(
+            ds,
+            "Metadata",
+        )
+        description = ABCDElement(metadata, "Description")
+        representation = ABCDElement(
+            description, "Representation", attrib={"language": "en"}
+        )
+        revision = ABCDElement(metadata, "RevisionData")
+        ABCDElement(revision, "DateModified", text="2001-03-01T00:00:00")
+        title = ABCDElement(representation, "Title", text="TheTitle")
+        units = ABCDElement(ds, "Units")
+        unit = ABCDElement(units, "Unit")
+        ABCDElement(unit, "SourceInstitutionID", text="BBG")
+        ABCDElement(unit, "SourceID", text="1111")
+        unit_id = ABCDElement(unit, "UnitID", text="2222")
 
         self.assertTrue(self.abcd_schema.validate(datasets), self.abcd_schema.error_log)
 
@@ -97,14 +103,20 @@ class ABCDTestCase(BaubleTestCase):
         accession = self.session.query(Accession).first()
         source = Source()
         accession.source = source
-        source.sources_code = '1'
-        collection = Collection(collector='Bob', collectors_code='1',
-                                geographic_area_id=1, locale='locale',
-                                date=datetime.date.today(),
-                                latitude='1.1', longitude='1.1',
-                                habitat='habitat description',
-                                elevation=1, elevation_accy=1,
-                                notes='some notes')
+        source.sources_code = "1"
+        collection = Collection(
+            collector="Bob",
+            collectors_code="1",
+            geographic_area_id=1,
+            locale="locale",
+            date=datetime.date.today(),
+            latitude="1.1",
+            longitude="1.1",
+            habitat="habitat description",
+            elevation=1,
+            elevation_accy=1,
+            notes="some notes",
+        )
         source.collection = collection
         dummy, filename = tempfile.mkstemp()
         ABCDExporter().start(filename)

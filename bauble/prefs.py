@@ -51,35 +51,35 @@ using a dictionary like interface. e.g. ::
 # another dependency and we would have to change the prefs interface
 # throughout bauble
 
-default_filename = 'config'
+default_filename = "config"
 default_prefs_file = os.path.join(paths.appdata_dir(), default_filename)
 """
 The default file for the preference settings file.
 """
 
-config_version_pref = 'bauble.config.version'
+config_version_pref = "bauble.config.version"
 """
 The preferences key for the bauble version of the preferences file.
 """
 
 config_version = bauble.version_tuple[0], bauble.version_tuple[1]
 
-date_format_pref = 'bauble.default_date_format'
+date_format_pref = "bauble.default_date_format"
 """
 The preferences key for the default data format.
 """
 
-picture_root_pref = 'bauble.picture_root'
+picture_root_pref = "bauble.picture_root"
 """
 The preferences key for the default data format.
 """
 
-ask_timeout_pref = 'bauble.network_timeout'
+ask_timeout_pref = "bauble.network_timeout"
 """
 The preferences key for remote server querying timeout.
 """
 
-parse_dayfirst_pref = 'bauble.parse_dayfirst'
+parse_dayfirst_pref = "bauble.parse_dayfirst"
 """
 The preferences key for to determine whether the date should come
 first when parsing date string.  For more information see the
@@ -88,7 +88,7 @@ first when parsing date string.  For more information see the
 Values: True, False
 """
 
-parse_yearfirst_pref = 'bauble.parse_yearfirst'
+parse_yearfirst_pref = "bauble.parse_yearfirst"
 """
 The preferences key for to determine whether the date should come
 first when parsing date string.  For more information see the
@@ -97,14 +97,14 @@ first when parsing date string.  For more information see the
 Values: True, False
 """
 
-units_pref = 'bauble.units'
+units_pref = "bauble.units"
 """
 The preferences key for the default units for Ghini.
 
 Values: metric, imperial
 """
 
-use_sentry_client_pref = 'bauble.use_sentry_client'
+use_sentry_client_pref = "bauble.use_sentry_client"
 """
 During normal usage, Ghini produces a log file which contains
 invaluable information for tracking down errors. This information is
@@ -133,17 +133,17 @@ class _prefs(dict):
         self._filename = filename
 
     def init(self):
-        '''
+        """
         initialize the preferences, should only be called from app.main
-        '''
+        """
         # create directory tree of filename if it doesn't yet exist
         head, tail = os.path.split(self._filename)
         if not os.path.exists(head):
             os.makedirs(head)
 
         # also make sure the templates and resources directories exists
-        if not os.path.exists(os.path.join(head, 'res', 'templates')):
-            os.makedirs(os.path.join(head, 'res', 'templates'))
+        if not os.path.exists(os.path.join(head, "res", "templates")):
+            os.makedirs(os.path.join(head, "res", "templates"))
 
         self.config = RawConfigParser()
 
@@ -154,26 +154,25 @@ class _prefs(dict):
             self.config.read(self._filename)
         version = self[config_version_pref]
         if version is None:
-            logger.warning('%s has no config version pref' % self._filename)
-            logger.warning('setting the config version to %s.%s'
-                           % (config_version))
+            logger.warning("%s has no config version pref" % self._filename)
+            logger.warning("setting the config version to %s.%s" % (config_version))
             self[config_version_pref] = config_version
 
         # set some defaults if they don't exist
         self.setdefault(use_sentry_client_pref, False)
-        self.setdefault(picture_root_pref, '')
-        self.setdefault(date_format_pref, '%d-%m-%Y')
-        self.setdefault(units_pref, 'metric')
+        self.setdefault(picture_root_pref, "")
+        self.setdefault(date_format_pref, "%d-%m-%Y")
+        self.setdefault(units_pref, "metric")
         self.setdefault(ask_timeout_pref, 4)
         if parse_dayfirst_pref not in self:
             format = self[date_format_pref]
-            if format.find('%d') < format.find('%m'):
+            if format.find("%d") < format.find("%m"):
                 self[parse_dayfirst_pref] = True
             else:
                 self[parse_dayfirst_pref] = False
         if parse_yearfirst_pref not in self:
             format = self[date_format_pref]
-            if format.find('%Y') == 0 or format.find('%y') == 0:
+            if format.find("%Y") == 0 or format.find("%y") == 0:
                 self[parse_yearfirst_pref] = True
             else:
                 self[parse_yearfirst_pref] = False
@@ -181,12 +180,12 @@ class _prefs(dict):
     @staticmethod
     def _parse_key(name):
         index = name.rfind(".")
-        return name[:index], name[index+1:]
+        return name[:index], name[index + 1 :]
 
     def get(self, key, default):
-        '''
+        """
         get value for key else return default
-        '''
+        """
         value = self[key]
         if value is None:
             return default
@@ -195,24 +194,27 @@ class _prefs(dict):
     def __getitem__(self, key):
         section, option = _prefs._parse_key(key)
         # this doesn't allow None values for preferences
-        if not self.config.has_section(section) or \
-                not self.config.has_option(section, option):
+        if not self.config.has_section(section) or not self.config.has_option(
+            section, option
+        ):
             return None
         else:
             i = self.config.get(section, option)
-            eval_chars = '{[('
-            if i == '':
+            eval_chars = "{[("
+            if i == "":
                 return i
             elif i[0] in eval_chars:  # then the value is a dict, list or tuple
                 return eval(i)
-            elif i == 'True' or i == 'False':
+            elif i == "True" or i == "False":
                 return eval(i)
             return i
 
     def items(self):
-        return [('{}.{}'.format(section, name), value)
-                for section in sorted(prefs.config.sections())
-                for name, value in prefs.config.items(section)]
+        return [
+            ("{}.{}".format(section, name), value)
+            for section in sorted(prefs.config.sections())
+            for name, value in prefs.config.items(section)
+        ]
 
     def setdefault(self, key, default=None):
         if key not in self:
@@ -227,8 +229,7 @@ class _prefs(dict):
 
     def __contains__(self, key):
         section, option = _prefs._parse_key(key)
-        if self.config.has_section(section) and \
-           self.config.has_option(section, option):
+        if self.config.has_section(section) and self.config.has_option(section, option):
             return True
         return False
 
@@ -240,13 +241,19 @@ class _prefs(dict):
             self.config.write(f)
             f.close()
         except Exception:
-            msg = _("Ghini can't save your user preferences. \n\nPlease "
-                    "check the file permissions of your config file:\n %s") \
+            msg = (
+                _(
+                    "Ghini can't save your user preferences. \n\nPlease "
+                    "check the file permissions of your config file:\n %s"
+                )
                 % self._filename
+            )
             if bauble.gui is not None and bauble.gui.window is not None:
                 import bauble.utils as utils
-                utils.message_dialog(msg, type=Gtk.MessageType.ERROR,
-                                     parent=bauble.gui.window)
+
+                utils.message_dialog(
+                    msg, type=Gtk.MessageType.ERROR, parent=bauble.gui.window
+                )
             else:
                 logger.error(msg)
 
@@ -256,13 +263,14 @@ class PrefsView(pluginmgr.View):
     The PrefsView displays the values of in the preferences and the registry.
     """
 
-    pane_size_pref = 'bauble.prefs.pane_position'
+    pane_size_pref = "bauble.prefs.pane_position"
 
     def __init__(self):
-        logger.debug('PrefsView::__init__')
+        logger.debug("PrefsView::__init__")
         super().__init__(
-            filename=os.path.join(paths.lib_dir(), 'bauble.glade'),
-            root_widget_name='prefs_window')
+            filename=os.path.join(paths.lib_dir(), "bauble.glade"),
+            root_widget_name="prefs_window",
+        )
         self.view.connect_signals(self)
         self.prefs_ls = self.view.widgets.prefs_prefs_ls
         self.plugins_ls = self.view.widgets.prefs_plugins_ls
@@ -271,7 +279,7 @@ class PrefsView(pluginmgr.View):
     def on_prefs_prefs_tv_row_activated(self, tv, path, column):
         global prefs
         key, repr_str, type_str = self.prefs_ls[path]
-        if type_str == 'bool':
+        if type_str == "bool":
             prefs[key] = not prefs[key]
             self.prefs_ls[path][1] = str(prefs[key])
             prefs.save()
@@ -280,11 +288,11 @@ class PrefsView(pluginmgr.View):
         self.prefs_ls.clear()
         global prefs
         for key, value in sorted(prefs.items()):
-            self.prefs_ls.append(
-                (key, value, prefs[key].__class__.__name__))
+            self.prefs_ls.append((key, value, prefs[key].__class__.__name__))
 
         self.plugins_ls.clear()
         from bauble.pluginmgr import PluginRegistry
+
         session = db.Session()
         plugins = session.query(PluginRegistry.name, PluginRegistry.version)
         for name, version in plugins:
@@ -295,7 +303,7 @@ class PrefsView(pluginmgr.View):
 
 class PrefsCommandHandler(pluginmgr.CommandHandler):
 
-    command = ('prefs', 'config')
+    command = ("prefs", "config")
     view = None
 
     def __call__(self, cmd, arg):

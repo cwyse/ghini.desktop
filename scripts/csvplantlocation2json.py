@@ -24,22 +24,21 @@ import csv
 import json
 
 header = ["Numeración", "Condición fitosanitaria", "Notas"]
-input_file_name = '/tmp/plants.csv'
+input_file_name = "/tmp/plants.csv"
 
 result = []
 
 for r in csv.reader(open(input_file_name)):
     obj = dict(list(zip(header, [i.strip() for i in r])))
-    code = obj['Numeración']
+    code = obj["Numeración"]
     plant = {"accession": code, "code": "1", "location": "INV4", "object": "plant"}
-    if obj['Condición fitosanitaria'] == 'Muerta':
-        plant['quantity'] = 0
+    if obj["Condición fitosanitaria"] == "Muerta":
+        plant["quantity"] = 0
     result.append(plant)
 
 formatted_json = [json.dumps(plant) for plant in result]
 
 with open("/tmp/out.json", "w") as out:
-    out.write('[\n ')
-    out.write(',\n '.join(formatted_json))
-    out.write(']')
-    
+    out.write("[\n ")
+    out.write(",\n ".join(formatted_json))
+    out.write("]")

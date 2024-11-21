@@ -24,9 +24,9 @@ from sqlalchemy import Column, Unicode, UnicodeText
 import bauble.db as db
 import bauble.utils as utils
 
-VERSION_KEY = 'version'
-CREATED_KEY = 'created'
-REGISTRY_KEY = 'registry'
+VERSION_KEY = "version"
+CREATED_KEY = "created"
+REGISTRY_KEY = "registry"
 
 # date format strings:
 # yy - short year
@@ -35,7 +35,7 @@ REGISTRY_KEY = 'registry'
 # d - number day, two digits when necessary
 # mm -number month, always two digits
 # m - number month, two digits when necessary
-DATE_FORMAT_KEY = 'date_format'
+DATE_FORMAT_KEY = "date_format"
 
 
 def get_default(name, default=None, session=None):
@@ -85,6 +85,7 @@ class BaubleMeta(db.Base):
         The value.
 
     """
-    __tablename__ = 'bauble'
+
+    __tablename__ = "bauble"
     name = Column(Unicode(64), unique=True)
     value = Column(UnicodeText)

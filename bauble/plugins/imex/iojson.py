@@ -32,8 +32,7 @@ from bauble.plugins.garden.accession import Accession, AccessionNote
 from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.plant import Plant, PlantNote
 from bauble.plugins.garden.source import Contact, Source
-from bauble.plugins.plants import (Familia, Genus, Species, SpeciesNote,
-                                   VernacularName)
+from bauble.plugins.plants import Familia, Genus, Species, SpeciesNote, VernacularName
 
 
 def serializedatetime(obj):
@@ -51,190 +50,275 @@ def serializedatetime(obj):
         millis += int(obj.microsecond / 1000)
     except AttributeError:
         pass
-    return {'__class__': 'datetime', 'millis': millis}
+    return {"__class__": "datetime", "millis": millis}
 
 
 class JSONExporter(editor.GenericEditorPresenter):
-    '''Export taxonomy and plants in JSON format.
+    """Export taxonomy and plants in JSON format.
 
-    the Presenter ((M)VP)'''
+    the Presenter ((M)VP)"""
 
-    last_folder = ''
+    last_folder = ""
     widget_to_field_map = {
-        'sbo_selection': 'selection_based_on',
-        'sbo_taxa': 'selection_based_on',
-        'sbo_accessions': 'selection_based_on',
-        'sbo_plants': 'selection_based_on',
-        'ei_referred': 'export_includes',
-        'ei_referring': 'export_includes',
-        'chkincludeprivate': 'include_private',
-        'filename': 'filename',
-        }
+        "sbo_selection": "selection_based_on",
+        "sbo_taxa": "selection_based_on",
+        "sbo_accessions": "selection_based_on",
+        "sbo_plants": "selection_based_on",
+        "ei_referred": "export_includes",
+        "ei_referring": "export_includes",
+        "chkincludeprivate": "include_private",
+        "filename": "filename",
+    }
 
-    view_accept_buttons = ['sed-button-ok', 'sed-button-cancel', ]
+    view_accept_buttons = [
+        "sed-button-ok",
+        "sed-button-cancel",
+    ]
 
     def __init__(self, view):
-        self.selection_based_on = 'sbo_selection'
-        self.export_includes = 'ei_referred'
+        self.selection_based_on = "sbo_selection"
+        self.export_includes = "ei_referred"
         self.include_private = True
-        self.filename = ''
-        super().__init__(
-            model=self, view=view, refresh_view=True)
+        self.filename = ""
+        super().__init__(model=self, view=view, refresh_view=True)
 
     from sqlalchemy import bindparam
 
     def get_objects(self):
-        '''return the list of objects to be exported
+        """return the list of objects to be exported
 
         if "based_on" is "selection", return the top level selection only.
 
         if "based_on" is something else, return all that is needed to create
         a complete export.
-        '''
-        if self.selection_based_on == 'sbo_selection':
+        """
+        if self.selection_based_on == "sbo_selection":
             if self.include_private:
-                logger.info('exporting selection overrides `include_private`')
+                logger.info("exporting selection overrides `include_private`")
             result = self.view.get_selection()
             if result is None:
                 return result
-            
+
             vernacular = speciesnotes = plantnotes = accessionnotes = []
-            
+
             # Handle species
             species = [j.id for j in result if isinstance(j, Species)]
             if species:
-                vernacular = self.session.query(VernacularName).filter(
-                    VernacularName.species_id.in_(bindparam('species_ids', expanding=True))
-                ).params(species_ids=species).all()
-                speciesnotes = self.session.query(SpeciesNote).filter(
-                    SpeciesNote.species_id.in_(bindparam('species_ids', expanding=True))
-                ).params(species_ids=species).all()
-            
+                vernacular = (
+                    self.session.query(VernacularName)
+                    .filter(
+                        VernacularName.species_id.in_(
+                            bindparam("species_ids", expanding=True)
+                        )
+                    )
+                    .params(species_ids=species)
+                    .all()
+                )
+                speciesnotes = (
+                    self.session.query(SpeciesNote)
+                    .filter(
+                        SpeciesNote.species_id.in_(
+                            bindparam("species_ids", expanding=True)
+                        )
+                    )
+                    .params(species_ids=species)
+                    .all()
+                )
+
             # Handle plants
             plants = [j.id for j in result if isinstance(j, Plant)]
             if plants:
-                plantnotes = self.session.query(PlantNote).filter(
-                    PlantNote.plant_id.in_(bindparam('plant_ids', expanding=True))
-                ).params(plant_ids=plants).all()
-            
+                plantnotes = (
+                    self.session.query(PlantNote)
+                    .filter(
+                        PlantNote.plant_id.in_(bindparam("plant_ids", expanding=True))
+                    )
+                    .params(plant_ids=plants)
+                    .all()
+                )
+
             # Handle accessions
             accessions = [j.id for j in result if isinstance(j, Accession)]
             if accessions:
-                accessionnotes = self.session.query(AccessionNote).filter(
-                    AccessionNote.accession_id.in_(bindparam('accession_ids', expanding=True))
-                ).params(accession_ids=accessions).all()
-            
+                accessionnotes = (
+                    self.session.query(AccessionNote)
+                    .filter(
+                        AccessionNote.accession_id.in_(
+                            bindparam("accession_ids", expanding=True)
+                        )
+                    )
+                    .params(accession_ids=accessions)
+                    .all()
+                )
+
             return result + vernacular + plantnotes + accessionnotes + speciesnotes
 
         ## export disregarding selection
         result = []
-        if self.selection_based_on == 'sbo_plants':
-            plant_query = self.session.query(
-                Plant).order_by(Plant.code).join(
-                Accession).order_by(Accession.code)
-            
+        if self.selection_based_on == "sbo_plants":
+            plant_query = (
+                self.session.query(Plant)
+                .order_by(Plant.code)
+                .join(Accession)
+                .order_by(Accession.code)
+            )
+
             if self.include_private is False:
                 plant_query = plant_query.filter(
-                    Accession.private == False)  # `is` does not work
-            
+                    Accession.private == False
+                )  # `is` does not work
+
             plants = plant_query.all()
-            
+
             # Plant notes with bindparam for dynamic expansion
-            plantnotes = self.session.query(PlantNote).filter(
-                PlantNote.plant_id.in_(bindparam('plant_ids', expanding=True))
-            ).params(plant_ids=[j.id for j in plants]).all()
-            
+            plantnotes = (
+                self.session.query(PlantNote)
+                .filter(PlantNote.plant_id.in_(bindparam("plant_ids", expanding=True)))
+                .params(plant_ids=[j.id for j in plants])
+                .all()
+            )
+
             # Locations with bindparam for dynamic expansion
-            locations = self.session.query(Location).filter(
-                Location.id.in_(bindparam('location_ids', expanding=True))
-            ).params(location_ids=[j.location_id for j in plants]).all()
-            
+            locations = (
+                self.session.query(Location)
+                .filter(Location.id.in_(bindparam("location_ids", expanding=True)))
+                .params(location_ids=[j.location_id for j in plants])
+                .all()
+            )
+
             # Accessions with bindparam for dynamic expansion
-            accessions = self.session.query(Accession).filter(
-                Accession.id.in_(bindparam('accession_ids', expanding=True))
-            ).params(accession_ids=[j.accession_id for j in plants]).order_by(
-                Accession.code).all()
-            
+            accessions = (
+                self.session.query(Accession)
+                .filter(Accession.id.in_(bindparam("accession_ids", expanding=True)))
+                .params(accession_ids=[j.accession_id for j in plants])
+                .order_by(Accession.code)
+                .all()
+            )
+
             # Accession notes with bindparam for dynamic expansion
-            accessionnotes = self.session.query(AccessionNote).filter(
-                AccessionNote.accession_id.in_(bindparam('acc_note_ids', expanding=True))
-            ).params(acc_note_ids=[j.id for j in accessions]).all()
-            
+            accessionnotes = (
+                self.session.query(AccessionNote)
+                .filter(
+                    AccessionNote.accession_id.in_(
+                        bindparam("acc_note_ids", expanding=True)
+                    )
+                )
+                .params(acc_note_ids=[j.id for j in accessions])
+                .all()
+            )
+
             # All unique contacts, no bindparam needed as it's a set operation
             contacts = list({a.source.source_detail for a in accessions if a.source})
-            
+
             # Extend results with non-further-used objects
             result.extend(locations)
             result.extend(plants)
             result.extend(plantnotes)
 
-        elif self.selection_based_on == 'sbo_accessions':
-            accessions = self.session.query(Accession).order_by(
-                Accession.code).all()
-            
+        elif self.selection_based_on == "sbo_accessions":
+            accessions = self.session.query(Accession).order_by(Accession.code).all()
+
             if self.include_private is False:
                 accessions = [j for j in accessions if j.private is False]
-            
+
             # Accession notes with bindparam for dynamic expansion
-            accessionnotes = self.session.query(AccessionNote).filter(
-                AccessionNote.accession_id.in_(bindparam('acc_note_ids', expanding=True))
-            ).params(acc_note_ids=[j.id for j in accessions]).all()
-            
+            accessionnotes = (
+                self.session.query(AccessionNote)
+                .filter(
+                    AccessionNote.accession_id.in_(
+                        bindparam("acc_note_ids", expanding=True)
+                    )
+                )
+                .params(acc_note_ids=[j.id for j in accessions])
+                .all()
+            )
+
             # Unique contacts without repetition
             contacts = list({a.source.source_detail for a in accessions if a.source})
         else:
             contacts = []
 
         ## now the taxonomy, based either on all species or on the ones used
-        if self.selection_based_on == 'sbo_taxa':
-            species = self.session.query(Species).order_by(
-                Species.sp).all()
+        if self.selection_based_on == "sbo_taxa":
+            species = self.session.query(Species).order_by(Species.sp).all()
         else:
             # Prepend results with accession data
             result = accessions + accessionnotes + result
 
             # Species query with dynamic expansion for the list of species IDs
-            species = self.session.query(Species).filter(
-                Species.id.in_(bindparam('species_ids', expanding=True))
-            ).params(species_ids=[j.species_id for j in accessions]).order_by(
-                Species.sp).all()
+            species = (
+                self.session.query(Species)
+                .filter(Species.id.in_(bindparam("species_ids", expanding=True)))
+                .params(species_ids=[j.species_id for j in accessions])
+                .order_by(Species.sp)
+                .all()
+            )
 
         # Vernacular names with dynamic list expansion
-        vernacular = self.session.query(VernacularName).filter(
-            VernacularName.species_id.in_(bindparam('vernacular_species_ids', expanding=True))
-        ).params(vernacular_species_ids=[j.id for j in species]).all()
+        vernacular = (
+            self.session.query(VernacularName)
+            .filter(
+                VernacularName.species_id.in_(
+                    bindparam("vernacular_species_ids", expanding=True)
+                )
+            )
+            .params(vernacular_species_ids=[j.id for j in species])
+            .all()
+        )
 
         ## All used genera with dynamic list expansion
-        genera = self.session.query(Genus).filter(
-            Genus.id.in_(bindparam('genus_ids', expanding=True))
-        ).params(genus_ids=[j.genus_id for j in species]).order_by(
-            Genus.genus).all()
+        genera = (
+            self.session.query(Genus)
+            .filter(Genus.id.in_(bindparam("genus_ids", expanding=True)))
+            .params(genus_ids=[j.genus_id for j in species])
+            .order_by(Genus.genus)
+            .all()
+        )
 
         # Families with dynamic list expansion
-        families = self.session.query(Familia).filter(
-            Familia.id.in_(bindparam('family_ids', expanding=True))
-        ).params(family_ids=[j.family_id for j in genera]).order_by(
-            Familia.family).all()
+        families = (
+            self.session.query(Familia)
+            .filter(Familia.id.in_(bindparam("family_ids", expanding=True)))
+            .params(family_ids=[j.family_id for j in genera])
+            .order_by(Familia.family)
+            .all()
+        )
 
         # Species notes with dynamic list expansion
-        speciesnotes = self.session.query(SpeciesNote).filter(
-            SpeciesNote.species_id.in_(bindparam('species_note_ids', expanding=True))
-        ).params(species_note_ids=[j.id for j in species]).all()
+        speciesnotes = (
+            self.session.query(SpeciesNote)
+            .filter(
+                SpeciesNote.species_id.in_(
+                    bindparam("species_note_ids", expanding=True)
+                )
+            )
+            .params(species_note_ids=[j.id for j in species])
+            .all()
+        )
 
         ## prepend the result with the taxonomic information
-        result = families + genera + species + speciesnotes + vernacular + contacts + result
+        result = (
+            families + genera + species + speciesnotes + vernacular + contacts + result
+        )
 
         ## done, return the result
         return result
 
     def on_btnbrowse_clicked(self, button):
         self.view.run_file_chooser_dialog(
-            _("Choose a file…"), parent=self,
+            _("Choose a file…"),
+            parent=self,
             action=Gtk.FileChooserAction.SAVE,
-            buttons=(Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
-                     Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL),
-            last_folder=self.last_folder, target='filename')
-        filename = self.view.widget_get_value('filename')
+            buttons=(
+                Gtk.STOCK_OK,
+                Gtk.ResponseType.ACCEPT,
+                Gtk.STOCK_CANCEL,
+                Gtk.ResponseType.CANCEL,
+            ),
+            last_folder=self.last_folder,
+            target="filename",
+        )
+        filename = self.view.widget_get_value("filename")
         JSONExporter.last_folder, bn = os.path.split(filename)
 
     def on_btnok_clicked(self, widget):
@@ -248,8 +332,7 @@ class JSONExporter(editor.GenericEditorPresenter):
 
         filename = self.filename
         if os.path.exists(filename) and not os.path.isfile(filename):
-            raise ValueError("%s exists and is not a a regular file"
-                             % filename)
+            raise ValueError("%s exists and is not a a regular file" % filename)
 
         objects = self.get_objects()
         # if objects is None then export all objects under classes Familia,
@@ -266,58 +349,76 @@ class JSONExporter(editor.GenericEditorPresenter):
 
         count = len(objects)
         if count > 3000:
-            msg = _('You are exporting %(nplants)s objects to JSON format.  '
-                    'Exporting this many objects may take several minutes.  '
-                    '\n\n<i>Would you like to continue?</i>') \
-                % ({'nplants': count})
+            msg = _(
+                "You are exporting %(nplants)s objects to JSON format.  "
+                "Exporting this many objects may take several minutes.  "
+                "\n\n<i>Would you like to continue?</i>"
+            ) % ({"nplants": count})
             if not self.view.run_yes_no_dialog(msg):
                 return
 
         import codecs
+
         with codecs.open(filename, "wb", "utf-8") as output:
-            output.write('[')
-            output.write(',\n '.join(
-                [json.dumps(obj.as_dict(),
-                            default=serializedatetime, sort_keys=True)
-                 for obj in objects]))
-            output.write(']')
+            output.write("[")
+            output.write(
+                ",\n ".join(
+                    [
+                        json.dumps(
+                            obj.as_dict(), default=serializedatetime, sort_keys=True
+                        )
+                        for obj in objects
+                    ]
+                )
+            )
+            output.write("]")
 
 
 class JSONImporter(editor.GenericEditorPresenter):
-    '''The import process will be queued as a bauble task. there is no callback
+    """The import process will be queued as a bauble task. there is no callback
     informing whether it is successfully completed or not.
 
     the Presenter ((M)VP)
     Model (attributes container) is the Presenter itself.
-    '''
+    """
 
-    widget_to_field_map = {'chk_create': 'create',
-                           'chk_update': 'update',
-                           'input_filename': 'filename',
-                           }
-    last_folder = ''
+    widget_to_field_map = {
+        "chk_create": "create",
+        "chk_update": "update",
+        "input_filename": "filename",
+    }
+    last_folder = ""
 
-    view_accept_buttons = ['sid-button-ok', 'sid-button-cancel', ]
+    view_accept_buttons = [
+        "sid-button-ok",
+        "sid-button-cancel",
+    ]
 
     def __init__(self, view):
-        self.filename = ''
+        self.filename = ""
         self.update = True
         self.create = True
-        super().__init__(
-            model=self, view=view, refresh_view=True)
-        self.__error = False   # flag to indicate error on import
+        super().__init__(model=self, view=view, refresh_view=True)
+        self.__error = False  # flag to indicate error on import
         self.__cancel = False  # flag to cancel importing
-        self.__pause = False   # flag to pause importing
+        self.__pause = False  # flag to pause importing
         self.__error_exc = False
 
     def on_btnbrowse_clicked(self, button):
         self.view.run_file_chooser_dialog(
-            _("Choose a file…"), parent=self,
+            _("Choose a file…"),
+            parent=self,
             action=Gtk.FileChooserAction.OPEN,
-            buttons=(Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
-                     Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL),
-            last_folder=self.last_folder, target='input_filename')
-        filename = self.view.widget_get_value('input_filename')
+            buttons=(
+                Gtk.STOCK_OK,
+                Gtk.ResponseType.ACCEPT,
+                Gtk.STOCK_CANCEL,
+                Gtk.ResponseType.CANCEL,
+            ),
+            last_folder=self.last_folder,
+            target="input_filename",
+        )
+        filename = self.view.widget_get_value("input_filename")
         JSONImporter.last_folder, bn = os.path.split(filename)
 
     def on_btnok_clicked(self, widget):
@@ -339,13 +440,15 @@ class JSONImporter(editor.GenericEditorPresenter):
                 session.commit()
             except Exception as e:
                 session.rollback()
-                logger.warning("could not import %s (%s: %s)" %
-                               (obj, type(e).__name__, e.args))
+                logger.warning(
+                    "could not import %s (%s: %s)" % (obj, type(e).__name__, e.args)
+                )
             pb_set_fraction(float(i) / n)
             yield
         session.commit()
         try:
             from bauble import gui
+
             gui.get_view().update()
         except:
             pass
@@ -355,9 +458,10 @@ class JSONImporter(editor.GenericEditorPresenter):
 # plugin classes
 #
 
+
 class JSONImportTool(pluginmgr.Tool):
-    category = (_('Import'), "edit-undo")
-    label = _('JSON')
+    category = (_("Import"), "edit-undo")
+    label = _("JSON")
 
     @classmethod
     def start(cls):
@@ -367,17 +471,21 @@ class JSONImportTool(pluginmgr.Tool):
         """
         s = db.Session()
         filename = os.path.join(
-            paths.lib_dir(), 'plugins', 'imex', 'select_export.glade')
-        presenter = JSONImporter(view=editor.GenericEditorView(
-            filename, root_widget_name='select_import_dialog'))
+            paths.lib_dir(), "plugins", "imex", "select_export.glade"
+        )
+        presenter = JSONImporter(
+            view=editor.GenericEditorView(
+                filename, root_widget_name="select_import_dialog"
+            )
+        )
         presenter.start()  # interact && run
         presenter.cleanup()
         s.close()
 
 
 class JSONExportTool(pluginmgr.Tool):
-    category = (_('Export'), "edit-redo")
-    label = _('JSON')
+    category = (_("Export"), "edit-redo")
+    label = _("JSON")
     icon_name = "new-json.png"
 
     @classmethod
@@ -386,9 +494,13 @@ class JSONExportTool(pluginmgr.Tool):
         # performs the export, if this is the case.
         s = db.Session()
         filename = os.path.join(
-            paths.lib_dir(), 'plugins', 'imex', 'select_export.glade')
-        presenter = JSONExporter(view=editor.GenericEditorView(
-            filename, root_widget_name='select_export_dialog'))
+            paths.lib_dir(), "plugins", "imex", "select_export.glade"
+        )
+        presenter = JSONExporter(
+            view=editor.GenericEditorView(
+                filename, root_widget_name="select_export_dialog"
+            )
+        )
         presenter.start()  # interact && run
         presenter.cleanup()
         s.close()

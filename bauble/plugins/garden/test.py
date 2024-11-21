@@ -19,7 +19,6 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 
-
 import datetime
 import logging
 import os
@@ -36,29 +35,49 @@ from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import object_session
 
-#import bauble
+# import bauble
 import bauble.db as db
 import bauble.plugins.plants.test as plants_test
 import bauble.utils as utils
 from bauble import prefs
 from bauble.meta import BaubleMeta
-from bauble.plugins.garden.accession import (Accession, AccessionEditor,
-                                             AccessionEditorView,
-                                             AccessionNote, SourcePresenter,
-                                             Verification, Voucher,
-                                             dms_to_decimal, latitude_to_dms,
-                                             longitude_to_dms)
+from bauble.plugins.garden.accession import (
+    Accession,
+    AccessionEditor,
+    AccessionEditorView,
+    AccessionNote,
+    SourcePresenter,
+    Verification,
+    Voucher,
+    dms_to_decimal,
+    latitude_to_dms,
+    longitude_to_dms,
+)
 from bauble.plugins.garden.institution import Institution, InstitutionPresenter
 from bauble.plugins.garden.location import Location, LocationEditor
-from bauble.plugins.garden.plant import (Plant, PlantChange, PlantEditor,
-                                         PlantNote, branch_callback,
-                                         is_code_unique)
-from bauble.plugins.garden.propagation import (Propagation, PropagationEditor,
-                                               PropCutting, PropCuttingRooted,
-                                               PropSeed)
-from bauble.plugins.garden.source import (Collection, CollectionPresenter,
-                                          Contact, ContactPresenter, Source,
-                                          create_contact)
+from bauble.plugins.garden.plant import (
+    Plant,
+    PlantChange,
+    PlantEditor,
+    PlantNote,
+    branch_callback,
+    is_code_unique,
+)
+from bauble.plugins.garden.propagation import (
+    Propagation,
+    PropagationEditor,
+    PropCutting,
+    PropCuttingRooted,
+    PropSeed,
+)
+from bauble.plugins.garden.source import (
+    Collection,
+    CollectionPresenter,
+    Contact,
+    ContactPresenter,
+    Source,
+    create_contact,
+)
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.geography import GeographicArea
@@ -70,73 +89,72 @@ from bauble.utils import safe_set_props
 prefs.testing = True
 
 
-accession_test_data = ({'id': 1, 'code': '2001.1', 'species_id': 1},
-                       {'id': 2, 'code': '2001.2', 'species_id': 2,
-                        'source_type': 'Collection'},
-                       )
+accession_test_data = (
+    {"id": 1, "code": "2001.1", "species_id": 1},
+    {"id": 2, "code": "2001.2", "species_id": 2, "source_type": "Collection"},
+)
 
-plant_test_data = ({'id': 1, 'code': '1', 'accession_id': 1,
-                    'location_id': 1, 'quantity': 1},
-                   {'id': 2, 'code': '1', 'accession_id': 2,
-                    'location_id': 1, 'quantity': 1},
-                   {'id': 3, 'code': '2', 'accession_id': 2,
-                    'location_id': 1, 'quantity': 1},
-                   )
+plant_test_data = (
+    {"id": 1, "code": "1", "accession_id": 1, "location_id": 1, "quantity": 1},
+    {"id": 2, "code": "1", "accession_id": 2, "location_id": 1, "quantity": 1},
+    {"id": 3, "code": "2", "accession_id": 2, "location_id": 1, "quantity": 1},
+)
 
-location_test_data = ({'id': 1, 'name': 'Somewhere Over The Rainbow',
-                       'code': 'RBW'},
-                      )
+location_test_data = ({"id": 1, "name": "Somewhere Over The Rainbow", "code": "RBW"},)
 
-geographic_area_test_data = [{'id': 1, 'name': 'Somewhere'}]
+geographic_area_test_data = [{"id": 1, "name": "Somewhere"}]
 
-collection_test_data = ({'id': 1, 'accession_id': 2, 'locale': 'Somewhere',
-                         'geographic_area_id': 1},
-                        )
+collection_test_data = (
+    {"id": 1, "accession_id": 2, "locale": "Somewhere", "geographic_area_id": 1},
+)
 
-default_propagation_values = {
-    'date': datetime.date(2011, 11, 25)}
+default_propagation_values = {"date": datetime.date(2011, 11, 25)}
 
 default_cutting_values = {
-    'cutting_type': 'Nodal',
-    'length': 2,
-    'length_unit': 'mm',
-    'tip': 'Intact',
-    'leaves': 'Intact',
-    'leaves_reduced_pct': 25,
-    'flower_buds': 'None',
-    'wound': 'Single',
-    'fungicide': 'Physan',
-    'media': 'standard mix',
-    'container': '4" pot',
-    'hormone': 'Auxin powder',
-    'cover': 'Poly cover',
-    'location': 'Mist frame',
-    'bottom_heat_temp': 65,
-    'bottom_heat_unit': 'F',
-    'rooted_pct': 90}
+    "cutting_type": "Nodal",
+    "length": 2,
+    "length_unit": "mm",
+    "tip": "Intact",
+    "leaves": "Intact",
+    "leaves_reduced_pct": 25,
+    "flower_buds": "None",
+    "wound": "Single",
+    "fungicide": "Physan",
+    "media": "standard mix",
+    "container": '4" pot',
+    "hormone": "Auxin powder",
+    "cover": "Poly cover",
+    "location": "Mist frame",
+    "bottom_heat_temp": 65,
+    "bottom_heat_unit": "F",
+    "rooted_pct": 90,
+}
 
 default_seed_values = {
-    'pretreatment': 'Soaked in peroxide solution',
-    'nseeds': 24,
-    'date_sown': datetime.date(2017, 1, 1),
-    'container': "tray",
-    'media': 'standard seed compost',
-    'location': 'mist tent',
-    'moved_from': 'mist tent',
-    'moved_to': 'hardening table',
-    'media': 'standard mix',
-    'germ_date': datetime.date(2017, 2, 1),
-    'germ_pct': 99,
-    'nseedlings': 23,
-    'date_planted': datetime.date(2017,2,8),
-    }
+    "pretreatment": "Soaked in peroxide solution",
+    "nseeds": 24,
+    "date_sown": datetime.date(2017, 1, 1),
+    "container": "tray",
+    "media": "standard seed compost",
+    "location": "mist tent",
+    "moved_from": "mist tent",
+    "moved_to": "hardening table",
+    "media": "standard mix",
+    "germ_date": datetime.date(2017, 2, 1),
+    "germ_pct": 99,
+    "nseedlings": 23,
+    "date_planted": datetime.date(2017, 2, 8),
+}
 
-test_data_table_control = ((Accession, accession_test_data),
-                           (Location, location_test_data),
-                           (Plant, plant_test_data),
-                           (GeographicArea, geographic_area_test_data),
-                           (Collection, collection_test_data))
+test_data_table_control = (
+    (Accession, accession_test_data),
+    (Location, location_test_data),
+    (Plant, plant_test_data),
+    (GeographicArea, geographic_area_test_data),
+    (Collection, collection_test_data),
+)
 testing_today = datetime.date(2017, 1, 1)
+
 
 def setUp_data():
     for cls, data in test_data_table_control:
@@ -146,11 +164,11 @@ def setUp_data():
         for col in table.c:
             utils.reset_sequence(col)
     i = Institution()
-    i.name = 'TestInstitution'
-    i.technical_contact = 'TestTechnicalContact Name'
-    i.email = 'contact@test.com'
-    i.contact = 'TestContact Name'
-    i.code = 'TestCode'
+    i.name = "TestInstitution"
+    i.technical_contact = "TestTechnicalContact Name"
+    i.email = "contact@test.com"
+    i.contact = "TestContact Name"
+    i.code = "TestCode"
 
 
 # TODO: if we ever get a GUI tester then do the following
@@ -162,13 +180,15 @@ def setUp_data():
 # 5. existing accession with existing source
 # - create test for parsing latitude/longitude entered into the lat/lon entries
 
+
 class DuplicateIdsGlade(TestCase):
     def test_duplicate_ids(self):
         import glob
 
         import bauble.plugins.garden as mod
+
         head, tail = os.path.split(mod.__file__)
-        files = glob.glob(os.path.join(head, '*.glade'))
+        files = glob.glob(os.path.join(head, "*.glade"))
         for f in files:
             self.assertTrue(not check_dupids(f), f)
 
@@ -182,10 +202,10 @@ class GardenTestCase(BaubleTestCase):
     def setUp(self):
         super().setUp()
         plants_test.setUp_data()
-        self.family = Family(epithet='Cactaceae')
-        self.genus = Genus(family=self.family, epithet='Echinocactus')
-        self.species = Species(genus=self.genus, sp='grusonii')
-        self.sp2 = Species(genus=self.genus, sp='texelensis')
+        self.family = Family(epithet="Cactaceae")
+        self.genus = Genus(family=self.family, epithet="Echinocactus")
+        self.species = Species(genus=self.genus, sp="grusonii")
+        self.sp2 = Species(genus=self.genus, sp="texelensis")
         self.session.add_all([self.family, self.genus, self.species, self.sp2])
         self.session.commit()
 
@@ -205,11 +225,15 @@ class PlantTests(GardenTestCase):
 
     def setUp(self):
         super().setUp()
-        self.accession = self.create(Accession,
-                                     species=self.species, code='1')
-        self.location = self.create(Location, name='site', code='STE')
-        self.plant = self.create(Plant, accession=self.accession,
-                                 location=self.location, code='1', quantity=1)
+        self.accession = self.create(Accession, species=self.species, code="1")
+        self.location = self.create(Location, name="site", code="STE")
+        self.plant = self.create(
+            Plant,
+            accession=self.accession,
+            location=self.location,
+            code="1",
+            quantity=1,
+        )
         self.session.commit()
 
     def tearDown(self):
@@ -217,79 +241,107 @@ class PlantTests(GardenTestCase):
 
     def test_constraints(self):
         # test that we can't have duplicate codes with the same accession
-        plant2 = Plant(accession=self.accession, location=self.location,
-                       code=self.plant.code, quantity=1)
+        plant2 = Plant(
+            accession=self.accession,
+            location=self.location,
+            code=self.plant.code,
+            quantity=1,
+        )
         self.session.add(plant2)
         self.assertRaises(IntegrityError, self.session.commit)
         # rollback the IntegrityError so tearDown() can do its job
         self.session.rollback()
 
     def test_delete(self):
-        raise SkipTest('Not Implemented')
+        raise SkipTest("Not Implemented")
 
     def test_editor_addnote(self):
-        raise SkipTest('Not Implemented')
+        raise SkipTest("Not Implemented")
 
     def test_duplicate(self):
-        p = Plant(accession=self.accession, location=self.location, code='2',
-                  quantity=52)
+        p = Plant(
+            accession=self.accession, location=self.location, code="2", quantity=52
+        )
         self.session.add(p)
-        note = PlantNote(note='some note')
+        note = PlantNote(note="some note")
         note.plant = p
         note.date = datetime.date.today()
-        change = PlantChange(from_location=self.location,
-                             to_location=self.location, quantity=1)
+        change = PlantChange(
+            from_location=self.location, to_location=self.location, quantity=1
+        )
         change.plant = p
         self.session.commit()
-        dup = p.duplicate(code='3')
+        dup = p.duplicate(code="3")
         assert dup.notes is not []
         assert dup.changes is not []
         self.session.commit()
 
     def test_search_view_markup_pair(self):
         # living plant
-        p = Plant(accession=self.accession, location=self.location, code='2',
-                  quantity=52)
+        p = Plant(
+            accession=self.accession, location=self.location, code="2", quantity=52
+        )
         self.session.add(p)
-        self.assertEqual(p.search_view_markup_pair(),
-                          ('1.2 <span foreground="#555555" size="small" weight="light">- 52 alive in (STE) site</span>',
-                           '<i>Echinocactus</i> <i>grusonii</i>'))
+        self.assertEqual(
+            p.search_view_markup_pair(),
+            (
+                '1.2 <span foreground="#555555" size="small" weight="light">- 52 alive in (STE) site</span>',
+                "<i>Echinocactus</i> <i>grusonii</i>",
+            ),
+        )
         # dead plant
-        p = Plant(accession=self.accession, location=self.location, code='2',
-                  quantity=0)
+        p = Plant(
+            accession=self.accession, location=self.location, code="2", quantity=0
+        )
         self.session.add(p)
-        self.assertEqual(p.search_view_markup_pair(),
-                          ('<span foreground="#9900ff">1.2</span>',
-                           '<i>Echinocactus</i> <i>grusonii</i>'))
+        self.assertEqual(
+            p.search_view_markup_pair(),
+            (
+                '<span foreground="#9900ff">1.2</span>',
+                "<i>Echinocactus</i> <i>grusonii</i>",
+            ),
+        )
 
     def test_bulk_plant_editor(self):
         from gi.repository import Gtk
 
         # use our own plant because PlantEditor.commit_changes() will
         # only work in bulk mode when the plant is in session.new
-        p = Plant(accession=self.accession, location=self.location, code='2',
-                  quantity=52)
+        p = Plant(
+            accession=self.accession, location=self.location, code="2", quantity=52
+        )
         self.editor = PlantEditor(model=p)
-        #editor.start()
+        # editor.start()
         update_gui()
-        rng = '2,3,4-6'
+        rng = "2,3,4-6"
 
         for code in utils.range_builder(rng):
-            q = self.session.query(Plant).join(Accession, Plant.accession_id == Accession.id).\
-                filter(and_(Accession.id == self.plant.accession.id,
-                            Plant.code == utils.utf8(code)))
-            self.assertTrue(not q.first(), 'code already exists')
+            q = (
+                self.session.query(Plant)
+                .join(Accession, Plant.accession_id == Accession.id)
+                .filter(
+                    and_(
+                        Accession.id == self.plant.accession.id,
+                        Plant.code == utils.utf8(code),
+                    )
+                )
+            )
+            self.assertTrue(not q.first(), "code already exists")
 
         widgets = self.editor.presenter.view.widgets
         # make sure the entry gets a Problem added to it if an
         # existing plant code is used in bulk mode
-        widgets.plant_code_entry.set_text('1,' + rng)
-        widgets.plant_quantity_entry.set_text('2')
+        widgets.plant_code_entry.set_text("1," + rng)
+        widgets.plant_quantity_entry.set_text("2")
         update_gui()
-        problem = (self.editor.presenter.PROBLEM_DUPLICATE_PLANT_CODE,
-                   self.editor.presenter.view.widgets.plant_code_entry)
-        self.assertTrue(problem in self.editor.presenter.problems,
-                     'no problem added for duplicate plant code')
+        problem = (
+            self.editor.presenter.PROBLEM_DUPLICATE_PLANT_CODE,
+            self.editor.presenter.view.widgets.plant_code_entry,
+        )
+        self.assertTrue(
+            problem in self.editor.presenter.problems,
+            "no problem added for duplicate plant code",
+        )
 
         # create multiple plant codes
         widgets.plant_code_entry.set_text(rng)
@@ -299,25 +351,33 @@ class PlantTests(GardenTestCase):
         for code in utils.range_builder(rng):
             from sqlalchemy import and_
 
-            q = self.session.query(Plant).join(Accession).\
-                filter(and_(Accession.id == self.plant.accession.id,
-                            Plant.code == utils.utf8(code)))
+            q = (
+                self.session.query(Plant)
+                .join(Accession)
+                .filter(
+                    and_(
+                        Accession.id == self.plant.accession.id,
+                        Plant.code == utils.utf8(code),
+                    )
+                )
+            )
 
-            self.assertTrue(q.first(), 'plant %s.%s not created' %
-                         (self.accession, code))
+            self.assertTrue(
+                q.first(), "plant %s.%s not created" % (self.accession, code)
+            )
 
     def test_editor(self):
-        raise SkipTest('separate view from presenter, then test presenter')
+        raise SkipTest("separate view from presenter, then test presenter")
         for plant in self.session.query(Plant):
             self.session.delete(plant)
         for location in self.session.query(Location):
             self.session.delete(location)
         self.session.commit()
 
-        #editor = PlantEditor(model=self.plant)
-        loc = Location(name='site1', code='1')
-        loc2 = Location(name='site2', code='2')
-        loc2a = Location(name='site2a', code='2a')
+        # editor = PlantEditor(model=self.plant)
+        loc = Location(name="site1", code="1")
+        loc2 = Location(name="site2", code="2")
+        loc2a = Location(name="site2a", code="2a")
         self.session.add_all([loc, loc2, loc2a])
         self.session.commit()
         p = Plant(accession=self.accession, location=loc, quantity=1)
@@ -325,12 +385,19 @@ class PlantTests(GardenTestCase):
         editor.start()
 
     def test_double_change(self):
-        plant = Plant(accession=self.accession, code='11', location=self.location, quantity=10)
-        loc2a = Location(name='site2a', code='2a')
+        plant = Plant(
+            accession=self.accession, code="11", location=self.location, quantity=10
+        )
+        loc2a = Location(name="site2a", code="2a")
         self.session.add_all([plant, loc2a])
         self.session.flush()
         editor = PlantEditor(model=plant, branch_mode=True)
-        loc2a = object_session(editor.branched_plant).query(Location).filter(Location.code == '2a').one()
+        loc2a = (
+            object_session(editor.branched_plant)
+            .query(Location)
+            .filter(Location.code == "2a")
+            .one()
+        )
         editor.branched_plant.location = loc2a
         update_gui()
         editor.model.quantity = 3
@@ -364,7 +431,7 @@ class PlantTests(GardenTestCase):
         #               code=u'33', quantity=5)
         # self.assertRaises(CheckConditionError, PlantEditor, model=plant,
         #                   branch_mode=True)
-        #self.accession.plants.remove(plant) # remove from session
+        # self.accession.plants.remove(plant) # remove from session
         # TODO: test check where quantity < 2
 
         quantity = 5
@@ -375,13 +442,14 @@ class PlantTests(GardenTestCase):
 
         widgets = self.editor.presenter.view.widgets
         new_quantity = 2
-        safe_set_props(widgets.plant_quantity_entry, 'text', "%s" % new_quantity)
+        widgets.plant_quantity_entry.props.text = "%s" % new_quantity
         update_gui()
         self.editor.handle_response(Gtk.ResponseType.OK)
 
         # there should only be three plants,
-        new_plant = self.session.query(Plant).\
-            filter(Plant.code != self.plant.code).first()
+        new_plant = (
+            self.session.query(Plant).filter(Plant.code != self.plant.code).first()
+        )
         # test the quantity was set properly on the new plant
         assert new_plant.quantity == new_quantity, new_plant.quantity
         self.session.refresh(self.plant)
@@ -798,7 +866,7 @@ class PropagationTests(GardenTestCase):
         for widget, attr in list(seed_presenter.widget_to_field_map.items()):
             w = widgets[widget]
             if isinstance(w, Gtk.ComboBox) and w.get_child() and not w.get_model():
-                safe_set_props(widgets[widget].get_child(), 'text', default_seed_values[attr])
+                widgets[widget].get_child().props.text = default_seed_values[attr]
             view.widget_set_value(widget, default_seed_values[attr])
 
         # update the editor, send the RESPONSE_OK signal and commit the changes
@@ -1321,7 +1389,7 @@ class AccessionTests(GardenTestCase):
         update_gui()
 
         # set the date so the presenter will be "dirty"
-        safe_set_props(widgets.acc_date_recvd_entry, 'text', utils.today_str())
+        widgets.acc_date_recvd_entry.props.text = utils.today_str()
 
         # set the source type as "Garden Propagation"
         safe_set_props(widgets.acc_source_comboentry.get_child(), 'text', SourcePresenter.garden_prop_str)

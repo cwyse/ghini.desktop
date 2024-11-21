@@ -35,7 +35,7 @@ class PoTests(unittest.TestCase):
         pattern = re.compile(r"%\([a-z0-9_]*\)s")
         parts = __file__.split(os.path.sep)[:-3]
         po_dir = os.path.sep.join(parts)
-        files = glob.glob(os.path.join(po_dir, 'po', '*.po'))
+        files = glob.glob(os.path.join(po_dir, "po", "*.po"))
         for filename in files:
             catalog = read_po(open(filename))
             for msg in catalog:

@@ -49,7 +49,6 @@ import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.view as view
 from bauble.prefs import prefs
-from bauble.utils import safe_set_text
 from bauble.view import (Action, InfoBox, InfoExpander, PropertiesExpander,
                          select_in_search_results)
 
@@ -344,8 +343,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         return result
 
     def top_level_count(self):
-        accessions = [a for s in self.species if s.accessions for a in s.accessions]
-        #accessions = [a for s in self.species for a in s.accessions]
+        accessions = [a for s in self.species for a in s.accessions]
         plants = [p for a in accessions for p in a.plants]
         return {(1, 'Genera'): {self.id},
                 (2, 'Families'): {self.family.id},

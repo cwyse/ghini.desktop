@@ -31,19 +31,33 @@ import threading
 class AskGBIF(threading.Thread):
     running = None
 
-    def __init__(self, binomial, callback, threshold=0.8, timeout=4, gui=False,
-                 group=None, verbose=None, **kwargs):
-        super().__init__(
-            group=group, target=None, name=None)
-        logger.debug("new %s, already running %s.",
-                     self.name, self.running and self.running.name)
+    def __init__(
+        self,
+        binomial,
+        callback,
+        threshold=0.8,
+        timeout=4,
+        gui=False,
+        group=None,
+        verbose=None,
+        **kwargs
+    ):
+        super().__init__(group=group, target=None, name=None)
+        logger.debug(
+            "new %s, already running %s.", self.name, self.running and self.running.name
+        )
         if self.running is not None:
             if self.running.binomial == binomial:
-                logger.debug('already requesting %s, ignoring repeated request', binomial)
+                logger.debug(
+                    "already requesting %s, ignoring repeated request", binomial
+                )
                 binomial = None
             else:
-                logger.debug("running different request (%s), stopping it, starting %s",
-                             self.running.binomial, binomial)
+                logger.debug(
+                    "running different request (%s), stopping it, starting %s",
+                    self.running.binomial,
+                    binomial,
+                )
                 self.running.stop()
         if binomial:
             self.__class__.running = self
@@ -63,8 +77,9 @@ class AskGBIF(threading.Thread):
     def run(self):
         def ask_gbif(binomial):
             result = requests.get(
-                'http://api.gbif.org/v1/species/match?verbose=false&name=' + binomial,
-                timeout=self.timeout)
+                "http://api.gbif.org/v1/species/match?verbose=false&name=" + binomial,
+                timeout=self.timeout,
+            )
             logger.debug(result.text)
             result = json.loads(result.text)
             return result
@@ -84,41 +99,42 @@ class AskGBIF(threading.Thread):
             candidate = ask_gbif(self.binomial)
             logger.debug("%s after first query", self.name)
             if self.stopped():
-                raise ShouldStopNow('after first query')
-            if candidate['matchType'] in ['NONE', 'HIGHERRANK']:
+                raise ShouldStopNow("after first query")
+            if candidate["matchType"] in ["NONE", "HIGHERRANK"]:
                 raise NoResult
             else:
                 found = candidate
             logger.debug("found this: %s", str(found))
-            if found['status'] == 'SYNONYM':
-                accepted = ask_gbif(found['species'])
+            if found["status"] == "SYNONYM":
+                accepted = ask_gbif(found["species"])
                 logger.debug("ask_gbif on the Accepted ID returns %s", accepted)
                 logger.debug("%s after second query", self.name)
             if self.stopped():
-                raise ShouldStopNow('after second query')
+                raise ShouldStopNow("after second query")
         except ShouldStopNow:
-            logger.debug("%s interrupted : do not invoke callback",
-                         self.name)
+            logger.debug("%s interrupted : do not invoke callback", self.name)
             return
         except Exception as e:
             import traceback
+
             logger.warning(traceback.format_exc())
-            logger.debug("%s (%s)%s : completed with trouble",
-                         self.name, type(e).__name__, e)
+            logger.debug(
+                "%s (%s)%s : completed with trouble", self.name, type(e).__name__, e
+            )
             self.__class__.running = None
             found = accepted = None
         self.__class__.running = None
         logger.debug("%s before invoking callback" % self.name)
         if self.gui:
             from gi.repository import GObject
+
             GObject.idle_add(self.callback, found, accepted)
         else:
             self.callback(found, accepted)
 
 
 def citation(d):
-    return ("%(scientificName)s "
-            "(%(family)s)" % d).replace('   ', ' ')
+    return ("%(scientificName)s " "(%(family)s)" % d).replace("   ", " ")
 
 
 def what_to_do_with_it(found, accepted):

@@ -38,29 +38,32 @@ def test_duplicate_ids():
     import glob
 
     import bauble.plugins.users as mod
+
     head, tail = os.path.split(mod.__file__)
-    files = glob.glob(os.path.join(head, '*.glade'))
+    files = glob.glob(os.path.join(head, "*.glade"))
     for f in files:
-        assert(not check_dupids(f))
+        assert not check_dupids(f)
 
 
 class UsersTests(BaubleTestCase):
 
-    table = Table('test_users', db.metadata,
-                  Column('id', Integer, Sequence('test_users_id_seq'),
-                         primary_key=True),
-                  Column('test', String(128)))
+    table = Table(
+        "test_users",
+        db.metadata,
+        Column("id", Integer, Sequence("test_users_id_seq"), primary_key=True),
+        Column("test", String(128)),
+    )
 
     def __init__(self, *args):
-        self.user = '_test_user'
-        self.group = '_test_group'
+        self.user = "_test_user"
+        self.group = "_test_group"
         super().__init__(*args)
 
     def setUp(self):
         super().setUp()
 
         # these tests are for postgres only
-        if db.engine.name != 'postgresql':
+        if db.engine.name != "postgresql":
             raise SkipTest("users management only on PostgreSQL")
 
         # the test user and group may still exist if a test didn't
@@ -72,7 +75,7 @@ class UsersTests(BaubleTestCase):
 
         # create a connection where the current user is set to
         # self.name
-        #self.conn = users.connect_as_user(self.user)
+        # self.conn = users.connect_as_user(self.user)
         self.conn = db.engine.connect()
 
         # the tables are created and owned by the user who we used to
@@ -89,7 +92,7 @@ class UsersTests(BaubleTestCase):
         super().tearDown()
 
     def test_group_members(self):
-        if db.engine.name != 'postgresql':
+        if db.engine.name != "postgresql":
             raise SkipTest("users management only on PostgreSQL")
 
         # test adding a member to a group
@@ -105,39 +108,63 @@ class UsersTests(BaubleTestCase):
     def test_has_privileges(self):
 
         # test setting admin privileges
-        users.set_privilege(self.user, 'admin')
-        self.assertTrue(users.has_privileges(self.user, 'admin'),
-                     "%s doesn't have admin privileges" % self.user)
-        self.assertTrue(users.has_privileges(self.user, 'write'),
-                     "%s doesnt' have write privileges" % self.user)
-        self.assertTrue(users.has_privileges(self.user, 'read'),
-                     "%s doesn't have read privileges" % self.user)
+        users.set_privilege(self.user, "admin")
+        self.assertTrue(
+            users.has_privileges(self.user, "admin"),
+            "%s doesn't have admin privileges" % self.user,
+        )
+        self.assertTrue(
+            users.has_privileges(self.user, "write"),
+            "%s doesnt' have write privileges" % self.user,
+        )
+        self.assertTrue(
+            users.has_privileges(self.user, "read"),
+            "%s doesn't have read privileges" % self.user,
+        )
 
-        users.set_privilege(self.user, 'write')
-        self.assertTrue(not users.has_privileges(self.user, 'admin'),
-                     "%s has admin privileges" % self.user)
-        self.assertTrue(users.has_privileges(self.user, 'write'),
-                     "%s doesn't have write privileges" % self.user)
-        self.assertTrue(users.has_privileges(self.user, 'read'),
-                     "%s doesn't have read privileges" % self.user)
+        users.set_privilege(self.user, "write")
+        self.assertTrue(
+            not users.has_privileges(self.user, "admin"),
+            "%s has admin privileges" % self.user,
+        )
+        self.assertTrue(
+            users.has_privileges(self.user, "write"),
+            "%s doesn't have write privileges" % self.user,
+        )
+        self.assertTrue(
+            users.has_privileges(self.user, "read"),
+            "%s doesn't have read privileges" % self.user,
+        )
 
-        users.set_privilege(self.user, 'read')
-        self.assertTrue(not users.has_privileges(self.user, 'admin'),
-                     "%s has admin privileges" % self.user)
-        self.assertTrue(not users.has_privileges(self.user, 'write'),
-                     "%s has write privileges" % self.user)
-        self.assertTrue(users.has_privileges(self.user, 'read'),
-                     "%s doesn't have read privileges" % self.user)
+        users.set_privilege(self.user, "read")
+        self.assertTrue(
+            not users.has_privileges(self.user, "admin"),
+            "%s has admin privileges" % self.user,
+        )
+        self.assertTrue(
+            not users.has_privileges(self.user, "write"),
+            "%s has write privileges" % self.user,
+        )
+        self.assertTrue(
+            users.has_privileges(self.user, "read"),
+            "%s doesn't have read privileges" % self.user,
+        )
 
         # revoke all
         users.set_privilege(self.user, None)
-        self.assertTrue(not users.has_privileges(self.user, 'admin'),
-                     "%s has admin privileges" % self.user)
-        self.assertTrue(not users.has_privileges(self.user, 'write'),
-                     "%s has write privileges" % self.user)
-        self.assertTrue(not users.has_privileges(self.user, 'read'),
-                     "%s has read privileges" % self.user)
+        self.assertTrue(
+            not users.has_privileges(self.user, "admin"),
+            "%s has admin privileges" % self.user,
+        )
+        self.assertTrue(
+            not users.has_privileges(self.user, "write"),
+            "%s has write privileges" % self.user,
+        )
+        self.assertTrue(
+            not users.has_privileges(self.user, "read"),
+            "%s has read privileges" % self.user,
+        )
 
     def test_tool(self):
-        raise SkipTest('Not Implemented')
+        raise SkipTest("Not Implemented")
         users.UsersEditor().start()

@@ -26,7 +26,6 @@ from gi.repository import Pango
 from bauble import paths, pluginmgr, utils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.plugins.plants import Species
-from bauble.utils import safe_set_text
 
 
 def start_taxonomy_check():

@@ -17,8 +17,8 @@ Generate docs about search strategies, mapper properties, etc.
 import os
 import sys
 
-if 'PYTHONPATH' in os.environ:
-    sys.path.insert(0, os.environ['PYTHONPATH'])
+if "PYTHONPATH" in os.environ:
+    sys.path.insert(0, os.environ["PYTHONPATH"])
 
 import sqlalchemy as sa
 
@@ -27,7 +27,7 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 from bauble.prefs import prefs
 
-uri = 'sqlite:///:memory:'
+uri = "sqlite:///:memory:"
 bauble.open_database(uri, verify=False)
 prefs.init()
 pluginmgr.load()
@@ -35,11 +35,11 @@ bauble.create_database(False)
 pluginmgr.init()
 session = bauble.Session()
 
-path = os.path.join(paths.lib_dir(), 'plugins')
+path = os.path.join(paths.lib_dir(), "plugins")
 modules = pluginmgr._find_module_names(path)
 classes = set()
 for mod in modules:
-    fullname = 'bauble.plugins.%s' % mod
+    fullname = "bauble.plugins.%s" % mod
     mod = __import__(fullname, globals(), locals(), [fullname])
     for item in dir(mod):
         item = getattr(mod, item)
@@ -49,7 +49,6 @@ for mod in modules:
                     classes.add(item)
         except:
             pass
-
 
 
 from sqlalchemy.orm.properties import ColumnProperty, PropertyLoader
@@ -64,14 +63,14 @@ for item in classes:
         elif isinstance(p, PropertyLoader):
             collections.append(p)
         else:
-            raise Exception('**Error')
-        #s = '-- %s' % p.key
+            raise Exception("**Error")
+        # s = '-- %s' % p.key
 
-    print('{} ({} table)'.format(item.__name__ , mapper.local_table.name))
-    print(' * Columns:')
+    print("{} ({} table)".format(item.__name__, mapper.local_table.name))
+    print(" * Columns:")
     for c in columns:
-        print('  |- %s' % c.key)
-    print(' * Collections:')
+        print("  |- %s" % c.key)
+    print(" * Collections:")
     for c in collections:
-        print('  |- %s (collection of %s)'  % (c.key, c.mapper.class_.__name__))
-    print('')
+        print("  |- %s (collection of %s)" % (c.key, c.mapper.class_.__name__))
+    print("")

@@ -38,35 +38,52 @@ from bauble.plugins.report import PS, SVG, TemplateFormatterPlugin
 
 class Jinja2FormatterPlugin(TemplateFormatterPlugin):
 
-    title = 'Jinja2'
-    extension = '.jj2'
+    title = "Jinja2"
+    extension = ".jj2"
     domain_pattern = re.compile(r"^\{#\s*DOMAIN\s+([a-z_]*)\s*#\}$")
-    option_pattern = re.compile(r"^{#\s*OPTION ([a-z_]*): \("
-                                r"type: ([a-z_]*), "
-                                r"default: '(.*)', "
-                                r"tooltip: '(.*)'\)\s*#}$")
+    option_pattern = re.compile(
+        r"^{#\s*OPTION ([a-z_]*): \("
+        r"type: ([a-z_]*), "
+        r"default: '(.*)', "
+        r"tooltip: '(.*)'\)\s*#}$"
+    )
 
     def get_template(name):
         if not name:
-            msg = _('Please select a template.')
+            msg = _("Please select a template.")
             utils.idle_message(msg, Gtk.MessageType.WARNING)
             return False
         try:
             path, name = os.path.split(name)
-            from jinja2 import (ChoiceLoader, Environment, FileSystemLoader,
-                                PackageLoader)
-            env = Environment(
-                loader=ChoiceLoader([FileSystemLoader(path),
-                                     FileSystemLoader(os.path.join(paths.user_dir(), 'templates')),
-                                     PackageLoader('bauble.plugins.report', 'templates')])
+            from jinja2 import (
+                ChoiceLoader,
+                Environment,
+                FileSystemLoader,
+                PackageLoader,
             )
-            env.globals['PS'] = PS
-            env.globals['SVG'] = SVG
-            env.globals['enumerate'] = enumerate
+
+            env = Environment(
+                loader=ChoiceLoader(
+                    [
+                        FileSystemLoader(path),
+                        FileSystemLoader(os.path.join(paths.user_dir(), "templates")),
+                        PackageLoader("bauble.plugins.report", "templates"),
+                    ]
+                )
+            )
+            env.globals["PS"] = PS
+            env.globals["SVG"] = SVG
+            env.globals["enumerate"] = enumerate
             template = env.get_template(name)
         except RuntimeError as e:
             import traceback
-            utils.idle_message("Reading template {}\n{}({})\n{}".format(name, type(e).__name__, e, traceback.format_exc()), type=Gtk.MessageType.ERROR)
+
+            utils.idle_message(
+                "Reading template {}\n{}({})\n{}".format(
+                    name, type(e).__name__, e, traceback.format_exc()
+                ),
+                type=Gtk.MessageType.ERROR,
+            )
             return False
 
         return template

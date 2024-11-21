@@ -31,51 +31,56 @@ import os.path
 from dateutil.parser import parse
 
 from bauble import db
-from bauble.plugins.garden import (Accession, Location, Plant, PlantNote,
-                                   Verification)
+from bauble.plugins.garden import Accession, Location, Plant, PlantNote, Verification
 from bauble.plugins.plants import Family, Genus, Species
 
 
 def get_genus(session, keys):
     try:
-        keys['gn_epit'], keys['sp_epit'] = keys['species'].split(' ')
+        keys["gn_epit"], keys["sp_epit"] = keys["species"].split(" ")
     except:
-        keys['gn_epit'], keys['sp_epit'] = ('Zzz', 'sp')
+        keys["gn_epit"], keys["sp_epit"] = ("Zzz", "sp")
 
-    genus = session.query(Genus).filter(Genus.epithet == keys['gn_epit']).one()
+    genus = session.query(Genus).filter(Genus.epithet == keys["gn_epit"]).one()
     return genus
 
 
 def get_species(session, keys):
-    if keys['sp_epit'] == 'sp':
-        keys['infrasp1'], keys['sp_epit'] = 'sp', ''
+    if keys["sp_epit"] == "sp":
+        keys["infrasp1"], keys["sp_epit"] = "sp", ""
     else:
-        keys['infrasp1'] = ''
+        keys["infrasp1"] = ""
 
-    if keys['sp_epit'] == '':
+    if keys["sp_epit"] == "":
         try:
-            species = session.query(Species).filter(
-                Species.genus == genus).filter(
-                Species.infrasp1 == 'sp').first()
+            species = (
+                session.query(Species)
+                .filter(Species.genus == genus)
+                .filter(Species.infrasp1 == "sp")
+                .first()
+            )
             if species != zzz:  # no hace falta mencionarlo
-                sys.stdout.write('+')  # encontramos fictive species
+                sys.stdout.write("+")  # encontramos fictive species
         except:
-            species = Species(genus=genus, sp='', infrasp1='sp')
+            species = Species(genus=genus, sp="", infrasp1="sp")
             session.add(species)
             session.flush()
-            sys.stdout.write('*')  # tuvimos que crear fictive species
+            sys.stdout.write("*")  # tuvimos que crear fictive species
     else:
         try:
-            species = session.query(Species).filter(
-                Species.genus == genus).filter(
-                Species.infrasp1 == '').filter(
-                Species.epithet == keys['sp_epit']).one()
-            sys.stdout.write('+')  # encontramos Species
+            species = (
+                session.query(Species)
+                .filter(Species.genus == genus)
+                .filter(Species.infrasp1 == "")
+                .filter(Species.epithet == keys["sp_epit"])
+                .one()
+            )
+            sys.stdout.write("+")  # encontramos Species
         except:
-            species = Species(genus=genus, sp='', epithet=keys['sp_epit'])
+            species = Species(genus=genus, sp="", epithet=keys["sp_epit"])
             session.add(species)
             session.flush()
-            sys.stdout.write('*')  # tuvimos que crear Species
+            sys.stdout.write("*")  # tuvimos que crear Species
     return species
 
 
@@ -90,13 +95,13 @@ def lookup(session, klass, **kwargs):
 
 def heuristic_split(full_plant_code):
     try:
-        accession_code, plant_code = full_plant_code.rsplit('.', 1)
-        if plant_code[0] == '0':
-            raise ValueError('plant code does not start with a 0')
+        accession_code, plant_code = full_plant_code.rsplit(".", 1)
+        if plant_code[0] == "0":
+            raise ValueError("plant code does not start with a 0")
         if len(accession_code) < 6:
-            raise ValueError('seems there was no plant code after all')
+            raise ValueError("seems there was no plant code after all")
     except:
-        accession_code, plant_code = full_plant_code, '1'
+        accession_code, plant_code = full_plant_code, "1"
     return accession_code, plant_code
 
 
@@ -106,10 +111,16 @@ def process_inventory_line(session, baseline, timestamp, parameters):
         # what should we do…
         return
     accession_code, plant_code = heuristic_split(full_plant_code)
-    location = lookup(session, Location, code=(location_code or 'default'))
+    location = lookup(session, Location, code=(location_code or "default"))
 
     # if plant is in place, edit it, otherwise, create it.
-    plant = session.query(Plant).filter_by(code=plant_code).join(Accession).filter_by(code=accession_code).first()
+    plant = (
+        session.query(Plant)
+        .filter_by(code=plant_code)
+        .join(Accession)
+        .filter_by(code=accession_code)
+        .first()
+    )
     if plant is not None:
         # no location_code means just asserting existence, on existing plant, so no effect.
         if location_code:
@@ -118,15 +129,35 @@ def process_inventory_line(session, baseline, timestamp, parameters):
         # if not even accession is in place, let's create a default one
         accession = session.query(Accession).filter_by(code=accession_code).first()
         if accession is None:
-            fictive_family = lookup(session, Family, epithet='Zz-Plantae')
-            fictive_genus = lookup(session, Genus, family=fictive_family, epithet='Zzd-Plantae')
-            fictive_species = lookup(session, Species, genus=fictive_genus, infrasp1='sp')
-            accession = lookup(session, Accession, code=accession_code, species=fictive_species)
-        plant = lookup(session, Plant, code=plant_code, accession=accession, quantity=1, location=location)
+            fictive_family = lookup(session, Family, epithet="Zz-Plantae")
+            fictive_genus = lookup(
+                session, Genus, family=fictive_family, epithet="Zzd-Plantae"
+            )
+            fictive_species = lookup(
+                session, Species, genus=fictive_genus, infrasp1="sp"
+            )
+            accession = lookup(
+                session, Accession, code=accession_code, species=fictive_species
+            )
+        plant = lookup(
+            session,
+            Plant,
+            code=plant_code,
+            accession=accession,
+            quantity=1,
+            location=location,
+        )
 
     # even if location is none, still we have seen the plant today, so we make a note of it
     date_str = str(timestamp.date())
-    lookup(session, PlantNote, plant=plant, category='inventory', date=timestamp, note=date_str)
+    lookup(
+        session,
+        PlantNote,
+        plant=plant,
+        category="inventory",
+        date=timestamp,
+        note=date_str,
+    )
 
 
 def process_pending_edit_line(session, baseline, timestamp, parameters):
@@ -135,134 +166,178 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
         # what should we do…
         return
 
-    quantity = int(quantity or '1')
+    quantity = int(quantity or "1")
 
     # does the accession code actually indicate a specific plant within the accession?
     accession_code, plant_code = heuristic_split(full_plant_code)
 
-    fictive_family = lookup(session, Family, epithet='Zz-Plantae')
-    fictive_genus = lookup(session, Genus, family=fictive_family, epithet='Zzd-Plantae')
-    fictive_species = lookup(session, Species, genus=fictive_genus, infrasp1='sp')
+    fictive_family = lookup(session, Family, epithet="Zz-Plantae")
+    fictive_genus = lookup(session, Genus, family=fictive_family, epithet="Zzd-Plantae")
+    fictive_species = lookup(session, Species, genus=fictive_genus, infrasp1="sp")
 
     # how long is the species indication?
-    epithets = [i for i in scientific_name.split(' ') if i]
+    epithets = [i for i in scientific_name.split(" ") if i]
     if len(epithets) == 0:
         # no identification whatsoever
         species = fictive_species
     elif len(epithets) == 1:
         # identified to rank genus, which must exist
         genus = lookup(session, Genus, epithet=epithets[0])
-        species = lookup(session, Species, genus=genus, infrasp1='sp')
+        species = lookup(session, Species, genus=genus, infrasp1="sp")
     elif len(epithets) >= 2:
         if len(epithets) > 2:
             logger.info("ignoring infraspecific epithets ›%s‹" % scientific_name)
         genus = lookup(session, Genus, epithet=epithets[0])
         species = lookup(session, Species, genus=genus, epithet=epithets[1])
-    
-    # does this plant already exist?  
-    plant = session.query(Plant).filter_by(code=plant_code).join(Accession).filter_by(code=accession_code).first()
+
+    # does this plant already exist?
+    plant = (
+        session.query(Plant)
+        .filter_by(code=plant_code)
+        .join(Accession)
+        .filter_by(code=accession_code)
+        .first()
+    )
     accession = session.query(Accession).filter_by(code=accession_code).first()
     if plant is None:
         # if it does not, we have work to do …
-        location = lookup(session, Location, code='default')
+        location = lookup(session, Location, code="default")
         if accession is None:
-            accession = lookup(session, Accession, code=accession_code, species=species, quantity_recvd=quantity)
-        plant = lookup(session, Plant, code=plant_code, accession=accession, location=location, quantity=quantity)
+            accession = lookup(
+                session,
+                Accession,
+                code=accession_code,
+                species=species,
+                quantity_recvd=quantity,
+            )
+        plant = lookup(
+            session,
+            Plant,
+            code=plant_code,
+            accession=accession,
+            location=location,
+            quantity=quantity,
+        )
     else:
-        plant.quantity=quantity
+        plant.quantity = quantity
 
     if species != fictive_species:
         if species.epithet:
-            lookup(session, Verification, date=timestamp, accession=accession, species=species,
-                   verifier=db.current_user(), level=0, prev_species=accession.species)
+            lookup(
+                session,
+                Verification,
+                date=timestamp,
+                accession=accession,
+                species=species,
+                verifier=db.current_user(),
+                level=0,
+                prev_species=accession.species,
+            )
         accession.species = species
-        
 
-    if coordinates != '(@;@)':
+    if coordinates != "(@;@)":
         # remove any previous such note
-        session.query(PlantNote).filter_by(plant=plant, category='<coords>').delete()
+        session.query(PlantNote).filter_by(plant=plant, category="<coords>").delete()
         # add new one
-        lat, lon = (float(i) for i in coordinates[1:-1].split(';'))
+        lat, lon = (float(i) for i in coordinates[1:-1].split(";"))
         value = "{{lat:{:0.6f},lon:{:0.6f}}}".format(lat, lon)
-        note = lookup(session, PlantNote, plant=plant, category='<coords>', note=value)
+        note = lookup(session, PlantNote, plant=plant, category="<coords>", note=value)
 
     for picture in pictures:
         basename = os.path.basename(picture)
-        note = lookup(session, PlantNote, plant=plant, category='<picture>', note=basename)
+        note = lookup(
+            session, PlantNote, plant=plant, category="<picture>", note=basename
+        )
 
 
 def process_line(session, line, baseline):
-    """process the changes in 'line'
-
-    """
+    """process the changes in 'line'"""
     import re
+
     try:
-        timestamp, category, trailer = re.split(r' :(?:([A-Z_]*):) ', line)
-        timestamp = parse(timestamp.replace("_", "T")+"Z")
+        timestamp, category, trailer = re.split(r" :(?:([A-Z_]*):) ", line)
+        timestamp = parse(timestamp.replace("_", "T") + "Z")
     except:
         logger.error("some serious error in your pocket data line ›%s‹" % line)
         return None
-    parameters = re.split(r' : ', trailer)
-    if category == 'INVENTORY':
+    parameters = re.split(r" : ", trailer)
+    if category == "INVENTORY":
         process_inventory_line(session, baseline, timestamp, parameters)
-    elif category == 'PENDING_EDIT':
+    elif category == "PENDING_EDIT":
         process_pending_edit_line(session, baseline, timestamp, parameters)
     else:
         logger.error("unhandled category in your pocket data line ›%s‹" % line)
 
 
 if False:
-    q = session.query(Species).filter(Species.infrasp1 == 'sp').join(Genus, Species.genus_id == Genus.id).filter(Genus.epithet == 'Zzz')
+    q = (
+        session.query(Species)
+        .filter(Species.infrasp1 == "sp")
+        .join(Genus, Species.genus_id == Genus.id)
+        .filter(Genus.epithet == "Zzz")
+    )
     zzz = q.one()
 
     import csv
     import sys
 
-    header = ['timestamp', 'location', 'acc_code', 'imei', 'species']
+    header = ["timestamp", "location", "acc_code", "imei", "species"]
     last_loc = None
 
     import fileinput
+
     for line in fileinput.input():
         sys.stdout.flush()
-        obj = dict(list(zip(header, [i.strip() for i in str(line).split(':')])))
+        obj = dict(list(zip(header, [i.strip() for i in str(line).split(":")])))
         if len(obj) < 3:
             continue  # ignore blank lines
-        obj.setdefault('species', 'Zzz sp')
+        obj.setdefault("species", "Zzz sp")
 
-        if not obj['location']:
-            obj['location'] = last_loc
-        last_loc = obj['location']
+        if not obj["location"]:
+            obj["location"] = last_loc
+        last_loc = obj["location"]
 
         loc = lookup(session, Location, code=last_loc)
         genus = get_genus(session, obj)  # alters obj
         species = get_species(session, obj)
 
         try:
-            q = session.query(Plant).join(Accession, Plant.accession_id == Accession.id).filter(Accession.code == obj['acc_code']).filter(Plant.code == '1')
+            q = (
+                session.query(Plant)
+                .join(Accession, Plant.accession_id == Accession.id)
+                .filter(Accession.code == obj["acc_code"])
+                .filter(Plant.code == "1")
+            )
             plant = q.one()
             if plant.location != loc:
                 plant.location = loc
-                sys.stdout.write(':')  # we altered a plant location
+                sys.stdout.write(":")  # we altered a plant location
             else:
-                sys.stdout.write('.')  # we confirmed a plant location
+                sys.stdout.write(".")  # we confirmed a plant location
         except Exception as e:
             try:
-                accession = session.query(Accession).filter(Accession.code == obj['acc_code']).one()
+                accession = (
+                    session.query(Accession)
+                    .filter(Accession.code == obj["acc_code"])
+                    .one()
+                )
             except Exception as e:
-                accession = Accession(species=species, code=obj['acc_code'])
+                accession = Accession(species=species, code=obj["acc_code"])
                 session.add(accession)
-                sys.stdout.write('a')  # we added a new accession
-            plant = Plant(accession=accession, location=loc, quantity=1, code='1')
+                sys.stdout.write("a")  # we added a new accession
+            plant = Plant(accession=accession, location=loc, quantity=1, code="1")
             session.add(plant)
             session.flush()
-            sys.stdout.write('p')  # we added a new plant
+            sys.stdout.write("p")  # we added a new plant
         # operación perro - mark the plant as seen today
         q = session.query(PlantNote)
         q = q.filter(PlantNote.plant == plant)
-        q = q.filter(PlantNote.category == 'inventario')
-        q = q.filter(PlantNote.note == obj['timestamp'][:8])
+        q = q.filter(PlantNote.category == "inventario")
+        q = q.filter(PlantNote.note == obj["timestamp"][:8])
         if q.count() == 0:
-            note = PlantNote(plant=plant, category='inventario', note=obj['timestamp'][:8])
+            note = PlantNote(
+                plant=plant, category="inventario", note=obj["timestamp"][:8]
+            )
             session.add(note)
             session.flush()
 

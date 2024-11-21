@@ -95,7 +95,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         self.init_enum_combo('sp_spqual_combo', 'sp_qual')
 
         def cell_data_func(column, cell, model, treeiter, data=None):
-            safe_set_props(cell, 'text', utils.utf8(model[treeiter][0]))
+            cell.props.text = utils.utf8(model[treeiter][0])
 
         combo = self.view.widgets.sp_habit_comboentry
         model = Gtk.ListStore(str, object)
@@ -352,7 +352,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         value = combo.get_model()[treeiter][1]
         self.set_model_attr('habit', value)
         # the entry change handler does the validation of the model
-        safe_set_props(combo.get_child(), 'text', utils.utf8(value))
+        combo.get_child().props.text = utils.utf8(value)
         combo.get_child().set_position(-1)
 
     def __del__(self):
@@ -451,8 +451,6 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             self.view.set_label('sp_fullname_label', '--')
             return
         sp_str = self.model.str(markup=True, authors=True)
-        if isinstance(sp_str, bytes):  # Ensure `sp_str` is a string
-            sp_str = sp_str.decode('utf-8')
         self.view.set_label('sp_fullname_label', sp_str)
         if self.model.genus is not None:
             genus = self.model.genus

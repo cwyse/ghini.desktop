@@ -23,7 +23,6 @@
 #
 
 
-
 import datetime
 import logging
 import os
@@ -332,14 +331,6 @@ class GenericEditorView:
         widget.set_from_file(value)
 
     def set_label(self, widget_name, value):
-        """
-        Sets the text of a label widget.
-
-        :param widget_name: The name of the label widget.
-        :param value: The text to set for the label.
-        """
-        if isinstance(value, bytes):
-            value = value.decode('utf-8')  # Convert bytes to string
         getattr(self.widgets, widget_name).set_markup(value)
 
     def close_boxes(self):
@@ -1749,7 +1740,7 @@ class GenericEditorPresenter:
             # temporarily block the changed ID so that this function
             # doesn't get called twice
             widget.handler_block(_changed_sid)
-            safe_set_props(widget, 'text', value)
+            widget.props.text = utils.utf8(value)
             widget.handler_unblock(_changed_sid)
             self.remove_problem(PROBLEM, widget)
             on_select(value)
@@ -1969,34 +1960,34 @@ class NoteBox(Gtk.HBox):
             self.presenter.add_problem(PROBLEM, entry)
         else:
             self.presenter.remove_problem(PROBLEM, entry)
-            self.set_model_attr('date', text)
+            self.set_model_attr("date", text)
 
     def on_user_entry_changed(self, entry, *args):
         value = utils.utf8(entry.props.text)
         if not value:  # if value == ''
             value = None
-        self.set_model_attr('user', value)
+        self.set_model_attr("user", value)
 
     def on_category_combo_changed(self, combo, *args):
         """
         Sets the text on the entry.  The model value is set in the
         entry "changed" handler.
         """
-        text = ''
+        text = ""
         treeiter = combo.get_active_iter()
         if treeiter:
             text = utils.utf8(combo.get_model()[treeiter][0])
         else:
             return
-        safe_set_props(self.widgets.category_comboentry.get_child(), 'text', text)
+        self.widgets.category_comboentry.get_child().props.text = \
+            utils.utf8(text)
 
     def on_category_entry_changed(self, entry, *args):
-        """
-        """
+        """ """
         value = utils.utf8(entry.props.text)
         if not value:  # if value == ''
             value = None
-        self.set_model_attr('category', value)
+        self.set_model_attr("category", value)
 
     def on_note_buffer_changed(self, buff, widget, *args):
         value = utils.utf8(buff.props.text)
@@ -2005,49 +1996,48 @@ class NoteBox(Gtk.HBox):
             self.presenter.add_problem(self.presenter.PROBLEM_EMPTY, widget)
         else:
             self.presenter.remove_problem(self.presenter.PROBLEM_EMPTY, widget)
-        self.set_model_attr('note', value)
+        self.set_model_attr("note", value)
 
     def update_label(self):
         label = []
         date_str = None
         if self.model.date and isinstance(self.model.date, datetime.date):
             format = prefs.prefs[prefs.date_format_pref]
-            date_str = utils.xml_safe(
-                self.model.date.strftime(format))
+            date_str = utils.xml_safe(self.model.date.strftime(format))
         elif self.model.date:
             date_str = utils.xml_safe(self.model.date)
         else:
             date_str = self.widgets.date_entry.props.text
 
         if self.model.user and date_str:  # and self.model.date:
-            label.append(_('%(user)s on %(date)s') %
-                         dict(user=utils.xml_safe(self.model.user),
-                              date=date_str))
+            label.append(
+                _("%(user)s on %(date)s")
+                % dict(user=utils.xml_safe(self.model.user), date=date_str)
+            )
         elif date_str:
-            label.append('%s' % date_str)
+            label.append("%s" % date_str)
         elif self.model.user:
-            label.append('%s' % utils.xml_safe(self.model.user))
+            label.append("%s" % utils.xml_safe(self.model.user))
 
         if self.model.category:
-            label.append('(%s)' % utils.xml_safe(self.model.category))
+            label.append("(%s)" % utils.xml_safe(self.model.category))
 
         if self.model.note:
-            note_str = ' : %s' % utils.xml_safe(self.model.note).\
-                replace('\n', '  ')
+            note_str = " : %s" % utils.xml_safe(self.model.note).replace("\n", "  ")
             max_length = 25
             # label.props.ellipsize doesn't work properly on a
             # label in an expander we just do it ourselves here
             if len(self.model.note) > max_length:
-                label.append('%s …' % note_str[0:max_length-1])
+                label.append("%s …" % note_str[0 : max_length - 1])
             else:
                 label.append(note_str)
 
-        self.widgets.notes_expander.set_label(' '.join(label))
+        self.widgets.notes_expander.set_label(" ".join(label))
 
     def set_model_attr(self, attr, value):
         setattr(self.model, attr, value)
         self.presenter._dirty = True
-        if attr != 'date' and not self.model.date:
+        if attr != "date" and not self.model.date:
             # this is a little voodoo to set the date on the model
             # since when we create a new note box we add today's
             # date to the entry but we don't set the model so the
@@ -2074,17 +2064,15 @@ class NoteBox(Gtk.HBox):
 
 
 class PictureBox(NoteBox):
-    glade_ui = 'pictures.glade'
-    last_folder = '.'
+    glade_ui = "pictures.glade"
+    last_folder = "."
 
     def __init__(self, presenter, model=None):
         super().__init__(presenter, model)
-        utils.set_widget_value(self.widgets.category_comboentry,
-                               '<picture>')
+        utils.set_widget_value(self.widgets.category_comboentry, "<picture>")
         self.presenter._dirty = False
 
-        self.widgets.picture_button.connect(
-            "clicked", self.on_activate_browse_button)
+        self.widgets.picture_button.connect("clicked", self.on_activate_browse_button)
 
     def set_content(self, basename):
         for w in list(self.widgets.picture_button.get_children()):
@@ -2093,9 +2081,9 @@ class PictureBox(NoteBox):
             im = Gtk.Image()
             try:
                 thumbname = os.path.join(
-                    prefs.prefs[prefs.picture_root_pref], 'thumbs', basename)
-                filename = os.path.join(
-                    prefs.prefs[prefs.picture_root_pref], basename)
+                    prefs.prefs[prefs.picture_root_pref], "thumbs", basename
+                )
+                filename = os.path.join(prefs.prefs[prefs.picture_root_pref], basename)
                 if os.path.isfile(thumbname):
                     pixbuf = GdkPixbuf.Pixbuf.new_from_file(thumbname)
                 else:
@@ -2106,13 +2094,11 @@ class PictureBox(NoteBox):
                     scale = max(scale_x, scale_y, 1)
                     x = int(fullbuf.get_width() / scale)
                     y = int(fullbuf.get_height() / scale)
-                    pixbuf = fullbuf.scale_simple(
-                        x, y, GdkPixbuf.InterpType.BILINEAR)
+                    pixbuf = fullbuf.scale_simple(x, y, GdkPixbuf.InterpType.BILINEAR)
                 im.set_from_pixbuf(pixbuf)
             except GLib.GError as e:
-                logger.debug("picture %s caused GLib.GError %s" %
-                             (basename, e))
-                label = _('picture file %s not found.') % basename
+                logger.debug("picture %s caused GLib.GError %s" % (basename, e))
+                label = _("picture file %s not found.") % basename
                 im = Gtk.Label()
                 safe_set_text(im, label)
             except Exception as e:
@@ -2122,38 +2108,42 @@ class PictureBox(NoteBox):
         else:
             # make button hold some text
             im = Gtk.Label()
-            safe_set_text(im, _('Choose a file…'))
+            safe_set_text(im, _("Choose a file…"))
         im.show()
         self.widgets.picture_button.add(im)
         self.widgets.picture_button.show()
 
     def on_activate_browse_button(self, widget, data=None):
         fileChooserDialog = Gtk.FileChooserDialog(
-            _("Choose a file…"), parent=self, action=Gtk.FileChooserAction.OPEN)
-        fileChooserDialog.add_buttons(Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT,
-                     Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+            _("Choose a file…"), parent=self, action=Gtk.FileChooserAction.OPEN
+        )
+        fileChooserDialog.add_buttons(
+            Gtk.STOCK_OK,
+            Gtk.ResponseType.ACCEPT,
+            Gtk.STOCK_CANCEL,
+            Gtk.ResponseType.CANCEL,
+        )
         try:
-            logger.debug('about to set current folder - %s' % self.last_folder)
+            logger.debug("about to set current folder - %s" % self.last_folder)
             fileChooserDialog.set_current_folder(self.last_folder)
             fileChooserDialog.run()
             filename = fileChooserDialog.get_filename()
             if filename:
                 ## remember chosen location for next time
                 PictureBox.last_folder, basename = os.path.split(str(filename))
-                logger.debug('new current folder is: %s' % self.last_folder)
+                logger.debug("new current folder is: %s" % self.last_folder)
                 ## copy file to picture_root_dir (if not yet there),
                 ## also receiving thumbnail base64
                 thumb = utils.copy_picture_with_thumbnail(self.last_folder, basename)
                 ## make sure the category is <picture>
-                self.set_model_attr('category', '<picture>')
+                self.set_model_attr("category", "<picture>")
                 ## append thumbnail base64 to content string
                 basename = basename + "|data:image/jpeg;base64," + thumb
                 ## store basename in note field and fire callbacks.
-                self.set_model_attr('note', basename)
+                self.set_model_attr("note", basename)
                 self.set_content(basename)
         except Exception as e:
-            logger.warning("unhandled exception in editor.py: "
-                           "(%s)%s" % (type(e), e))
+            logger.warning("unhandled exception in editor.py: " "(%s)%s" % (type(e), e))
         fileChooserDialog.destroy()
 
     def on_category_entry_changed(self, entry, *args):
@@ -2161,7 +2151,7 @@ class PictureBox(NoteBox):
 
     @classmethod
     def is_valid_note(cls, note):
-        return note.category == '<picture>'
+        return note.category == "<picture>"
 
 
 # TODO: create a separate class for browsing notes in a treeview
@@ -2169,6 +2159,7 @@ class PictureBox(NoteBox):
 
 # TODO: add an "editable" property to the NotesPresenter and if it is
 # True then show the add/remove buttons
+
 
 class NotesPresenter(GenericEditorPresenter):
     """
@@ -2197,8 +2188,9 @@ class NotesPresenter(GenericEditorPresenter):
         self.widgets = utils.BuilderWidgets(filename)
 
         self.parent_ref = weakref.ref(presenter)
-        self.note_cls = object_mapper(presenter.model).\
-            get_property(notes_property).mapper.class_
+        self.note_cls = (
+            object_mapper(presenter.model).get_property(notes_property).mapper.class_
+        )
         self.notes = getattr(presenter.model, notes_property)
         self.parent_container = parent_container
         editor_box = self.widgets.notes_editor_box  # Gtk.VBox()
@@ -2215,11 +2207,10 @@ class NotesPresenter(GenericEditorPresenter):
                 box.set_expanded(False)
                 valid_notes_count += 1
 
-        logger.debug('notes: %s' % self.notes)
-        logger.debug('children: %s' % self.box.get_children())
+        logger.debug("notes: %s" % self.notes)
+        logger.debug("children: %s" % self.box.get_children())
 
-        self.widgets.notes_add_button.connect(
-            'clicked', self.on_add_button_clicked)
+        self.widgets.notes_add_button.connect("clicked", self.on_add_button_clicked)
         self.box.show_all()
 
     def on_add_button_clicked(self, *args):
@@ -2253,8 +2244,7 @@ class PicturesPresenter(NotesPresenter):
     ContentBox = PictureBox
 
     def __init__(self, presenter, notes_property, parent_container):
-        super().__init__(
-            presenter, notes_property, parent_container)
+        super().__init__(presenter, notes_property, parent_container)
 
         notes = self.box.get_children()
         if notes:

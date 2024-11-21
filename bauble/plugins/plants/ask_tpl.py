@@ -31,19 +31,33 @@ import threading
 class AskTPL(threading.Thread):
     running = None
 
-    def __init__(self, binomial, callback, threshold=0.8, timeout=4, gui=False,
-                 group=None, verbose=None, **kwargs):
-        super().__init__(
-            group=group, target=None, name=None)
-        logger.debug("new %s, already running %s.",
-                     self.name, self.running and self.running.name)
+    def __init__(
+        self,
+        binomial,
+        callback,
+        threshold=0.8,
+        timeout=4,
+        gui=False,
+        group=None,
+        verbose=None,
+        **kwargs
+    ):
+        super().__init__(group=group, target=None, name=None)
+        logger.debug(
+            "new %s, already running %s.", self.name, self.running and self.running.name
+        )
         if self.running is not None:
             if self.running.binomial == binomial:
-                logger.debug('already requesting %s, ignoring repeated request', binomial)
+                logger.debug(
+                    "already requesting %s, ignoring repeated request", binomial
+                )
                 binomial = None
             else:
-                logger.debug("running different request (%s), stopping it, starting %s",
-                             self.running.binomial, binomial)
+                logger.debug(
+                    "running different request (%s), stopping it, starting %s",
+                    self.running.binomial,
+                    binomial,
+                )
                 self.running.stop()
         if binomial:
             self.__class__.running = self
@@ -63,15 +77,19 @@ class AskTPL(threading.Thread):
     def run(self):
         def ask_tpl(binomial):
             result = requests.get(
-                'http://www.theplantlist.org/tpl1.1/search?q=' + binomial +
-                '&csv=true',
-                timeout=self.timeout)
+                "http://www.theplantlist.org/tpl1.1/search?q=" + binomial + "&csv=true",
+                timeout=self.timeout,
+            )
             logger.debug(result.text)
-            l = result.text.split('\n')
+            l = result.text.split("\n")
             result = [row for row in csv.reader(k for k in l if k)]
             header = result[0]
             result = result[1:]
-            return [dict(list(zip(header, k))) for k in result if k[7] == '' and k[10] in ['Accepted', 'Synonym']]
+            return [
+                dict(list(zip(header, k)))
+                for k in result
+                if k[7] == "" and k[10] in ["Accepted", "Synonym"]
+            ]
 
         class ShouldStopNow(Exception):
             pass
@@ -88,25 +106,29 @@ class AskTPL(threading.Thread):
             candidates = ask_tpl(self.binomial)
             logger.debug("%s after first query", self.name)
             if self.stopped():
-                raise ShouldStopNow('after first query')
+                raise ShouldStopNow("after first query")
             if len(candidates) > 1:
                 for item in candidates:
-                    g, s = item['Genus'], item['Species']
-                    seq = difflib.SequenceMatcher(a=self.binomial,
-                                                  b='{} {}'.format(g, s))
-                    item['_score_'] = seq.ratio()
+                    g, s = item["Genus"], item["Species"]
+                    seq = difflib.SequenceMatcher(
+                        a=self.binomial, b="{} {}".format(g, s)
+                    )
+                    item["_score_"] = seq.ratio()
 
-                found = sorted(candidates, key=lambda a: (a['_score_'], a['Taxonomic status in TPL']))[-1]
-                logger.debug('best match has score %s', found['_score_'])
-                if found['_score_'] < self.threshold:
-                    found['_score_'] = 0
+                found = sorted(
+                    candidates,
+                    key=lambda a: (a["_score_"], a["Taxonomic status in TPL"]),
+                )[-1]
+                logger.debug("best match has score %s", found["_score_"])
+                if found["_score_"] < self.threshold:
+                    found["_score_"] = 0
             elif candidates:
                 found = candidates.pop()
             else:
                 raise NoResult
             logger.debug("found this: %s", str(found))
-            if found['Accepted ID']:
-                accepted = ask_tpl(found['Accepted ID'])
+            if found["Accepted ID"]:
+                accepted = ask_tpl(found["Accepted ID"])
                 logger.debug("ask_tpl on the Accepted ID returns %s", accepted)
                 if accepted:
                     accepted = accepted[0]
@@ -114,36 +136,43 @@ class AskTPL(threading.Thread):
                     logger.debug(
                         "taxon %s %s (%s) is marked as synonym. "
                         "accepted form (%s) is at infraspecific rank.",
-                        found['Genus'], found['Species'], found['ID'],
-                        found['Accepted ID'])
+                        found["Genus"],
+                        found["Species"],
+                        found["ID"],
+                        found["Accepted ID"],
+                    )
                 logger.debug("%s after second query", self.name)
             if self.stopped():
-                raise ShouldStopNow('after second query')
+                raise ShouldStopNow("after second query")
         except ShouldStopNow:
-            logger.debug("%s interrupted : do not invoke callback",
-                         self.name)
+            logger.debug("%s interrupted : do not invoke callback", self.name)
             return
         except Exception as e:
             import traceback
+
             logger.warning(traceback.format_exc())
-            logger.debug("%s (%s)%s : completed with trouble",
-                         self.name, type(e).__name__, e)
+            logger.debug(
+                "%s (%s)%s : completed with trouble", self.name, type(e).__name__, e
+            )
             self.__class__.running = None
             found = accepted = None
         self.__class__.running = None
         logger.debug("%s before invoking callback" % self.name)
         if self.gui:
             from gi.repository import GObject
+
             GObject.idle_add(self.callback, found, accepted)
         else:
             self.callback(found, accepted)
 
 
 def citation(d):
-    return ("%(Genus hybrid marker)s%(Genus)s "
-            "%(Species hybrid marker)s%(Species)s "
-            #"%(Infraspecific rank)s %(Infraspecific epithet)s "
-            "%(Authorship)s (%(Family)s)" % d).replace('   ', ' ')
+    return (
+        "%(Genus hybrid marker)s%(Genus)s "
+        "%(Species hybrid marker)s%(Species)s "
+        # "%(Infraspecific rank)s %(Infraspecific epithet)s "
+        "%(Authorship)s (%(Family)s)" % d
+    ).replace("   ", " ")
 
 
 def what_to_do_with_it(found, accepted):

@@ -40,15 +40,20 @@ import bauble.pluginmgr as pluginmgr
 import bauble.search as search
 import bauble.utils as utils
 import bauble.view as view
-from bauble.plugins.plants.species_editor import (SpeciesDistribution,
-                                                  SpeciesEditor,
-                                                  SpeciesEditorPresenter,
-                                                  SpeciesEditorView,
-                                                  edit_species)
-from bauble.plugins.plants.species_model import (DefaultVernacularName,
-                                                 Species, SpeciesNote,
-                                                 SpeciesSynonym,
-                                                 VernacularName)
+from bauble.plugins.plants.species_editor import (
+    SpeciesDistribution,
+    SpeciesEditor,
+    SpeciesEditorPresenter,
+    SpeciesEditorView,
+    edit_species,
+)
+from bauble.plugins.plants.species_model import (
+    DefaultVernacularName,
+    Species,
+    SpeciesNote,
+    SpeciesSynonym,
+    VernacularName,
+)
 from bauble.prefs import prefs
 from bauble.view import Action, PropertiesExpander
 
@@ -60,6 +65,7 @@ SpeciesNote
 
 def edit_callback(values):
     from bauble.plugins.plants.species_editor import edit_species
+
     sp = values[0]
     if isinstance(sp, VernacularName):
         sp = sp.species
@@ -71,6 +77,7 @@ def remove_callback(values):
     The callback function to remove a species from the species context menu.
     """
     from bauble.plugins.garden.accession import Accession
+
     species = values[0]
     session = object_session(species)
     if isinstance(species, VernacularName):
@@ -78,14 +85,14 @@ def remove_callback(values):
     nacc = session.query(Accession).filter_by(species_id=species.id).count()
     safe_str = utils.xml_safe(species)
     if nacc > 0:
-        msg = (_('The species <i>%(1)s</i> has %(2)s accessions.'
-                 '\n\n') % {'1': safe_str, '2': nacc} +
-               _('You cannot remove a species with accessions.'))
+        msg = _("The species <i>%(1)s</i> has %(2)s accessions." "\n\n") % {
+            "1": safe_str,
+            "2": nacc,
+        } + _("You cannot remove a species with accessions.")
         utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
         return
     else:
-        msg = _("Are you sure you want to remove the species <i>%s</i>?") \
-            % safe_str
+        msg = _("Are you sure you want to remove the species <i>%s</i>?") % safe_str
     if not utils.yes_no_dialog(msg):
         return
     try:
@@ -93,14 +100,16 @@ def remove_callback(values):
         session.delete(obj)
         session.commit()
     except Exception as e:
-        msg = _('Could not delete.\n\n%s') % utils.xml_safe(e)
-        utils.message_details_dialog(msg, traceback.format_exc(),
-                                     type=Gtk.MessageType.ERROR)
+        msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
+        utils.message_details_dialog(
+            msg, traceback.format_exc(), type=Gtk.MessageType.ERROR
+        )
     return True
 
 
 def add_accession_callback(values):
     from bauble.plugins.garden.accession import Accession, AccessionEditor
+
     session = db.Session()
     species = session.merge(values[0])
     if isinstance(species, VernacularName):
@@ -111,22 +120,28 @@ def add_accession_callback(values):
     return e.start() is not None
 
 
-edit_action = Action('species_edit', _('_Edit'),
-                     callback=edit_callback,
-                     accelerator='<ctrl>e')
-add_accession_action = Action('species_acc_add', _('_Add accession'),
-                              callback=add_accession_callback,
-                              accelerator='<ctrl>k')
-remove_action = Action('species_remove', _('_Delete'),
-                       callback=remove_callback,
-                       accelerator='<ctrl>Delete', multiselect=True)
+edit_action = Action(
+    "species_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
+)
+add_accession_action = Action(
+    "species_acc_add",
+    _("_Add accession"),
+    callback=add_accession_callback,
+    accelerator="<ctrl>k",
+)
+remove_action = Action(
+    "species_remove",
+    _("_Delete"),
+    callback=remove_callback,
+    accelerator="<ctrl>Delete",
+    multiselect=True,
+)
 
 species_context_menu = [edit_action, remove_action]
 vernname_context_menu = [edit_action]
 
 
-from bauble.view import (InfoBox, InfoBoxPage, InfoExpander,
-                         select_in_search_results)
+from bauble.view import InfoBox, InfoBoxPage, InfoExpander, select_in_search_results
 
 
 class SynonymSearch(search.SearchStrategy):
@@ -135,7 +150,8 @@ class SynonymSearch(search.SearchStrategy):
 
     bauble.search.return_synonyms in the prefs toggles this.
     """
-    return_synonyms_pref = 'bauble.search.return_synonyms'
+
+    return_synonyms_pref = "bauble.search.return_synonyms"
 
     def __init__(self):
         super().__init__()
@@ -145,10 +161,11 @@ class SynonymSearch(search.SearchStrategy):
 
     def search(self, text, session):
         from .genus import Genus, GenusSynonym
+
         super().search(text, session)
         if not prefs[self.return_synonyms_pref]:
             return []
-        mapper_search = search.get_strategy('MapperSearch')
+        mapper_search = search.get_strategy("MapperSearch")
         r1 = mapper_search.search(text, session)
         if not r1:
             return []
@@ -158,16 +175,15 @@ class SynonymSearch(search.SearchStrategy):
             # synonym of something else, include that something else. that
             # is, the accepted name.
             if isinstance(result, Species):
-                q = session.query(SpeciesSynonym).\
-                    filter_by(synonym_id=result.id)
+                q = session.query(SpeciesSynonym).filter_by(synonym_id=result.id)
                 results.extend([syn.species for syn in q])
             elif isinstance(result, Genus):
-                q = session.query(GenusSynonym).\
-                    filter_by(synonym_id=result.id)
+                q = session.query(GenusSynonym).filter_by(synonym_id=result.id)
                 results.extend([syn.genus for syn in q])
             elif isinstance(results, VernacularName):
-                q = session.query(SpeciesSynonym).\
-                    filter_by(synonym_id=result.species.id)
+                q = session.query(SpeciesSynonym).filter_by(
+                    synonym_id=result.species.id
+                )
                 results.extend([syn.species for syn in q])
         return results
 
@@ -176,11 +192,12 @@ class SynonymSearch(search.SearchStrategy):
 # Species infobox for SearchView
 #
 class VernacularExpander(InfoExpander):
-    '''
+    """
     VernacularExpander
 
     :param widgets:
-    '''
+    """
+
     def __init__(self, widgets):
         InfoExpander.__init__(self, _("Vernacular names"), widgets)
         vernacular_box = self.widgets.sp_vernacular_box
@@ -188,25 +205,25 @@ class VernacularExpander(InfoExpander):
         self.vbox.pack_start(vernacular_box, True, True, 0)
 
     def update(self, row):
-        '''
+        """
         update the expander
 
         :param row: the row to get thevalues from
-        '''
+        """
         if len(row.vernacular_names) == 0:
             self.set_sensitive(False)
             self.set_expanded(False)
         else:
             names = []
             for vn in row.vernacular_names:
-                if row.default_vernacular_name is not None \
-                        and vn == row.default_vernacular_name:
-                    names.insert(0, '%s - %s (default)' %
-                                 (vn.name, vn.language))
+                if (
+                    row.default_vernacular_name is not None
+                    and vn == row.default_vernacular_name
+                ):
+                    names.insert(0, "%s - %s (default)" % (vn.name, vn.language))
                 else:
-                    names.append('%s - %s' %
-                                 (vn.name, vn.language))
-            self.widget_set_value('sp_vernacular_data', '\n'.join(names))
+                    names.append("%s - %s" % (vn.name, vn.language))
+            self.widget_set_value("sp_vernacular_data", "\n".join(names))
             self.set_sensitive(True)
             # TODO: get expanded state from prefs
             self.set_expanded(True)
@@ -221,21 +238,26 @@ class SynonymsExpander(InfoExpander):
         self.vbox.pack_start(synonyms_box, True, True, 0)
 
     def update(self, row):
-        '''
+        """
         update the expander
 
         :param row: the row to get thevalues from
-        '''
+        """
         syn_box = self.widgets.sp_synonyms_box
         # remove old labels
         syn_box.foreach(syn_box.remove)
         logger.debug(row.synonyms)
         session = object_session(row)
-        syn = session.query(SpeciesSynonym).filter(
-            SpeciesSynonym.synonym_id == row.id).first()
+        syn = (
+            session.query(SpeciesSynonym)
+            .filter(SpeciesSynonym.synonym_id == row.id)
+            .first()
+        )
         accepted = syn and syn.species
-        logger.debug("species %s is synonym of %s and has synonyms %s" %
-                     (row, accepted, row.synonyms))
+        logger.debug(
+            "species %s is synonym of %s and has synonyms %s"
+            % (row, accepted, row.synonyms)
+        )
         self.set_label(_("Synonyms"))  # reset default value
         on_label_clicked = lambda l, e, syn: select_in_search_results(syn)
         if accepted is not None:
@@ -244,7 +266,7 @@ class SynonymsExpander(InfoExpander):
             # in the search results
             box = Gtk.EventBox()
             label = Gtk.Label()
-            label.set_alignment(0, .5)
+            label.set_alignment(0, 0.5)
             label.set_markup(accepted.str(markup=True, authors=True))
             box.add(label)
             utils.make_label_clickable(label, on_label_clicked, accepted)
@@ -263,7 +285,7 @@ class SynonymsExpander(InfoExpander):
                 # in the search results
                 box = Gtk.EventBox()
                 label = Gtk.Label()
-                label.set_alignment(0, .5)
+                label.set_alignment(0, 0.5)
                 label.set_markup(syn.str(markup=True, authors=True))
                 box.add(label)
                 utils.make_label_clickable(label, on_label_clicked, syn)
@@ -275,14 +297,14 @@ class SynonymsExpander(InfoExpander):
 
 
 class GeneralSpeciesExpander(InfoExpander):
-    '''
+    """
     expander to present general information about a species
-    '''
+    """
 
     def __init__(self, widgets):
-        '''
+        """
         the constructor
-        '''
+        """
         InfoExpander.__init__(self, _("General"), widgets)
         general_box = self.widgets.sp_general_box
         self.widgets.remove_parent(general_box)
@@ -297,134 +319,213 @@ class GeneralSpeciesExpander(InfoExpander):
         self.current_obj = None
 
         def on_nacc_clicked(*args):
-            cmd = 'accession where species.id=%s' % self.current_obj.id
+            cmd = "accession where species.id=%s" % self.current_obj.id
             bauble.gui.send_command(cmd)
 
-        utils.make_label_clickable(self.widgets.sp_nacc_data,
-                                   on_nacc_clicked)
+        utils.make_label_clickable(self.widgets.sp_nacc_data, on_nacc_clicked)
 
         def on_nplants_clicked(*args):
-            cmd = 'plant where accession.species.id=%s' % self.current_obj.id
+            cmd = "plant where accession.species.id=%s" % self.current_obj.id
             bauble.gui.send_command(cmd)
-        utils.make_label_clickable(self.widgets.sp_nplants_data,
-                                   on_nplants_clicked)
+
+        utils.make_label_clickable(self.widgets.sp_nplants_data, on_nplants_clicked)
 
     def update(self, row):
-        '''
+        """
         update the expander
 
         :param row: the row to get the values from
-        '''
+        """
         self.current_obj = row
         session = object_session(row)
         # link function
         on_label_clicked = lambda l, e, x: select_in_search_results(x)
         # Link to family
-        self.widget_set_value('sp_fam_data', '<small>(%s)</small>' %
-                              row.genus.family.epithet, markup=True)
+        self.widget_set_value(
+            "sp_fam_data", "<small>(%s)</small>" % row.genus.family.epithet, markup=True
+        )
         utils.make_label_clickable(
-            self.widgets.sp_fam_data, on_label_clicked, row.genus.family)
+            self.widgets.sp_fam_data, on_label_clicked, row.genus.family
+        )
         # link to genus
-        self.widget_set_value('sp_gen_data', '<big><i>%s</i></big>' %
-                              row.genus.genus, markup=True)
+        self.widget_set_value(
+            "sp_gen_data", "<big><i>%s</i></big>" % row.genus.genus, markup=True
+        )
         utils.make_label_clickable(
-            self.widgets.sp_gen_data, on_label_clicked, row.genus)
+            self.widgets.sp_gen_data, on_label_clicked, row.genus
+        )
         # epithet (full binomial but missing genus)
-        self.widget_set_value('sp_epithet_data', '<big>%s</big>' %
-                              row.markup(authors=True, genus=False),
-                              markup=True)
+        self.widget_set_value(
+            "sp_epithet_data",
+            "<big>%s</big>" % row.markup(authors=True, genus=False),
+            markup=True,
+        )
 
-        awards = ''
+        awards = ""
         if row.awards:
             awards = utils.utf8(row.awards)
-        self.widget_set_value('sp_awards_data', awards)
+        self.widget_set_value("sp_awards_data", awards)
 
-        logger.debug('setting cites data from row %s' % row)
-        cites = ''
+        logger.debug("setting cites data from row %s" % row)
+        cites = ""
         if row.cites:
             cites = utils.utf8(row.cites)
-        self.widget_set_value('sp_cites_data', cites)
+        self.widget_set_value("sp_cites_data", cites)
 
         # zone = ''
         # if row.hardiness_zone:
         #     awards = utils.utf8(row.hardiness_zone)
         # self.widget_set_value('sp_hardiness_data', zone)
 
-        habit = ''
+        habit = ""
         if row.habit:
             habit = utils.utf8(row.habit)
-        self.widget_set_value('sp_habit_data', habit)
+        self.widget_set_value("sp_habit_data", habit)
 
-        dist = ''
+        dist = ""
         if row.distribution:
             dist = utils.utf8(row.distribution_str())
-        self.widget_set_value('sp_dist_data', dist)
+        self.widget_set_value("sp_dist_data", dist)
 
-        dist = ''
+        dist = ""
         if row.label_distribution:
             dist = row.label_distribution
-        self.widget_set_value('sp_labeldist_data', dist)
+        self.widget_set_value("sp_labeldist_data", dist)
 
         # stop here if not GardenPluin
-        if 'GardenPlugin' not in pluginmgr.plugins:
+        if "GardenPlugin" not in pluginmgr.plugins:
             return
 
         from bauble.plugins.garden.accession import Accession
         from bauble.plugins.garden.plant import Plant
 
-        nacc = session.query(Accession).\
-            join(Species, Accession.species_id == Species.id).\
-            filter(Species.id == row.id).count()
-        self.widget_set_value('sp_nacc_data', nacc)
+        nacc = (
+            session.query(Accession)
+            .join(Species, Accession.species_id == Species.id)
+            .filter(Species.id == row.id)
+            .count()
+        )
+        self.widget_set_value("sp_nacc_data", nacc)
 
-        nplants = session.query(Plant).\
-            join(Accession, Plant.accession_id == Accession.id).\
-            join(Species, Accession.species_id == Species.id).\
-            filter(Species.id == row.id).count()
+        nplants = (
+            session.query(Plant)
+            .join(Accession, Plant.accession_id == Accession.id)
+            .join(Species, Accession.species_id == Species.id)
+            .filter(Species.id == row.id)
+            .count()
+        )
         if nplants == 0:
-            self.widget_set_value('sp_nplants_data', nplants)
+            self.widget_set_value("sp_nplants_data", nplants)
         else:
-            nacc_in_plants = session.query(Plant.accession_id).\
-                join(Accession, Plant.accession_id == Accession.id).\
-                join(Species, Accession.species_id == Species.id).\
-                filter(Species.id == row.id).distinct().count()
-            self.widget_set_value('sp_nplants_data', '%s in %s accessions'
-                                  % (nplants, nacc_in_plants))
+            nacc_in_plants = (
+                session.query(Plant.accession_id)
+                .join(Accession, Plant.accession_id == Accession.id)
+                .join(Species, Accession.species_id == Species.id)
+                .filter(Species.id == row.id)
+                .distinct()
+                .count()
+            )
+            self.widget_set_value(
+                "sp_nplants_data", "%s in %s accessions" % (nplants, nacc_in_plants)
+            )
 
-        living_plants = sum(i.quantity for i in session.query(Plant).\
-                            join(Accession, Plant.accession_id == Accession.id).\
-                            join(Species, Accession.species_id == Species.id).\
-                            filter(Species.id == row.id).all())
-        self.widget_set_value('living_plants_count', living_plants)
+        living_plants = sum(
+            i.quantity
+            for i in session.query(Plant)
+            .join(Accession, Plant.accession_id == Accession.id)
+            .join(Species, Accession.species_id == Species.id)
+            .filter(Species.id == row.id)
+            .all()
+        )
+        self.widget_set_value("living_plants_count", living_plants)
 
 
 class SpeciesInfoBox(InfoBox):
-    '''
+    """
     general info, fullname, common name, num of accessions and clones,
     distribution
-    '''
+    """
 
     # others to consider: reference, images, redlist status
 
     def __init__(self):
-        '''
+        """
         the constructor
-        '''
+        """
         button_defs = [
-            {'name': 'GoogleButton', '_base_uri': "http://www.google.com/search?q=%s", '_space': '+', 'title': "Search Google", 'tooltip': None, },
-            {'name': 'GBIFButton', '_base_uri': "http://www.gbif.org/species/search?q=%s", '_space': '+', 'title': _("Search GBIF"), 'tooltip': _("Search the Global Biodiversity Information Facility"), },
-            {'name': 'ITISButton', '_base_uri': "http://www.itis.gov/servlet/SingleRpt/SingleRpt?search_topic=Scientific_Name&search_value=%s&search_kingdom=Plant&search_span=containing&categories=All&source=html&search_credRating=All", '_space': '%20', 'title': _("Search ITIS"), 'tooltip': _("Search the Intergrated Taxonomic Information System"), },
-            {'name': 'GRINButton', '_base_uri': "http://www.ars-grin.gov/cgi-bin/npgs/swish/accboth?query=%s&submit=Submit+Text+Query&si=0", '_space': '+', 'title': _("Search NPGS/GRIN"), 'tooltip': _('Search National Plant Germplasm System'), },
-            {'name': 'ALAButton', '_base_uri': "http://bie.ala.org.au/search?q=%s", '_space': '+', 'title': _("Search ALA"), 'tooltip': _("Search the Atlas of Living Australia"), },
-            {'name': 'WikipediaButton', '_base_uri': "http://en.wikipedia.org/wiki/%(genus.genus)s_%(sp)s", '_space': '+', 'title': _("Search Wikipedia"), 'tooltip': _("open the wikipedia page about this species"), },
-            {'name': 'IPNIButton', '_base_uri': "http://www.ipni.org/ipni/advPlantNameSearch.do?find_genus=%(genus.genus)s&find_species=%(sp)s&find_isAPNIRecord=on& find_isGCIRecord=on&find_isIKRecord=on&output_format=normal", '_space': ' ', 'title': _("Search IPNI"), 'tooltip': _("Search the International Plant Names Index"), },
-            {'name': 'BGCIButton', '_base_uri': "http://www.bgci.org/plant_search.php?action=Find&ftrGenus=%(genus.genus)s&ftrRedList=&ftrSpecies=%(sp)s&ftrRedList1997=&ftrEpithet=&ftrCWR=&x=0&y=0#results", '_space': ' ', 'title': _("Search BGCI"), 'tooltip': _("Search Botanic Gardens Conservation International"), },
-            {'name': 'TPLButton', '_base_uri': "http://www.theplantlist.org/tpl1.1/search?q=%(genus.genus)s+%(sp)s", '_space': '+', 'title': _("Search TPL"), 'tooltip': _("Search The Plant List online database"), },
-            {'name': 'TropicosButton', '_base_uri': "http://tropicos.org/NameSearch.aspx?name=%(genus.genus)s+%(sp)s", '_space': '+', 'title': _("Search Tropicos"), 'tooltip': _("Search Tropicos (MissouriBG) online database"), },
-            ]
+            {
+                "name": "GoogleButton",
+                "_base_uri": "http://www.google.com/search?q=%s",
+                "_space": "+",
+                "title": "Search Google",
+                "tooltip": None,
+            },
+            {
+                "name": "GBIFButton",
+                "_base_uri": "http://www.gbif.org/species/search?q=%s",
+                "_space": "+",
+                "title": _("Search GBIF"),
+                "tooltip": _("Search the Global Biodiversity Information Facility"),
+            },
+            {
+                "name": "ITISButton",
+                "_base_uri": "http://www.itis.gov/servlet/SingleRpt/SingleRpt?search_topic=Scientific_Name&search_value=%s&search_kingdom=Plant&search_span=containing&categories=All&source=html&search_credRating=All",
+                "_space": "%20",
+                "title": _("Search ITIS"),
+                "tooltip": _("Search the Intergrated Taxonomic Information System"),
+            },
+            {
+                "name": "GRINButton",
+                "_base_uri": "http://www.ars-grin.gov/cgi-bin/npgs/swish/accboth?query=%s&submit=Submit+Text+Query&si=0",
+                "_space": "+",
+                "title": _("Search NPGS/GRIN"),
+                "tooltip": _("Search National Plant Germplasm System"),
+            },
+            {
+                "name": "ALAButton",
+                "_base_uri": "http://bie.ala.org.au/search?q=%s",
+                "_space": "+",
+                "title": _("Search ALA"),
+                "tooltip": _("Search the Atlas of Living Australia"),
+            },
+            {
+                "name": "WikipediaButton",
+                "_base_uri": "http://en.wikipedia.org/wiki/%(genus.genus)s_%(sp)s",
+                "_space": "+",
+                "title": _("Search Wikipedia"),
+                "tooltip": _("open the wikipedia page about this species"),
+            },
+            {
+                "name": "IPNIButton",
+                "_base_uri": "http://www.ipni.org/ipni/advPlantNameSearch.do?find_genus=%(genus.genus)s&find_species=%(sp)s&find_isAPNIRecord=on& find_isGCIRecord=on&find_isIKRecord=on&output_format=normal",
+                "_space": " ",
+                "title": _("Search IPNI"),
+                "tooltip": _("Search the International Plant Names Index"),
+            },
+            {
+                "name": "BGCIButton",
+                "_base_uri": "http://www.bgci.org/plant_search.php?action=Find&ftrGenus=%(genus.genus)s&ftrRedList=&ftrSpecies=%(sp)s&ftrRedList1997=&ftrEpithet=&ftrCWR=&x=0&y=0#results",
+                "_space": " ",
+                "title": _("Search BGCI"),
+                "tooltip": _("Search Botanic Gardens Conservation International"),
+            },
+            {
+                "name": "TPLButton",
+                "_base_uri": "http://www.theplantlist.org/tpl1.1/search?q=%(genus.genus)s+%(sp)s",
+                "_space": "+",
+                "title": _("Search TPL"),
+                "tooltip": _("Search The Plant List online database"),
+            },
+            {
+                "name": "TropicosButton",
+                "_base_uri": "http://tropicos.org/NameSearch.aspx?name=%(genus.genus)s+%(sp)s",
+                "_space": "+",
+                "title": _("Search Tropicos"),
+                "tooltip": _("Search Tropicos (MissouriBG) online database"),
+            },
+        ]
         super().__init__()
-        filename = os.path.join(paths.lib_dir(), 'plugins', 'plants',
-                                'infoboxes.glade')
+        filename = os.path.join(paths.lib_dir(), "plugins", "plants", "infoboxes.glade")
         # load the widgets directly instead of using BuilderWidgets()
         # because the caching that BuilderWidgets() does can mess up
         # displaying the SpeciesInfoBox sometimes if you try to show
@@ -437,24 +538,24 @@ class SpeciesInfoBox(InfoBox):
         self.add_expander(self.vernacular)
         self.synonyms = SynonymsExpander(self.widgets)
         self.add_expander(self.synonyms)
-        self.links = view.LinksExpander('notes', links=button_defs)
+        self.links = view.LinksExpander("notes", links=button_defs)
         self.add_expander(self.links)
         self.props = PropertiesExpander()
         self.add_expander(self.props)
-        self.label = _('General')
+        self.label = _("General")
 
-        if 'GardenPlugin' not in pluginmgr.plugins:
-            self.widgets.remove_parent('sp_nacc_label')
-            self.widgets.remove_parent('sp_nacc_data')
-            self.widgets.remove_parent('sp_nplants_label')
-            self.widgets.remove_parent('sp_nplants_data')
+        if "GardenPlugin" not in pluginmgr.plugins:
+            self.widgets.remove_parent("sp_nacc_label")
+            self.widgets.remove_parent("sp_nacc_data")
+            self.widgets.remove_parent("sp_nplants_label")
+            self.widgets.remove_parent("sp_nplants_data")
 
     def update(self, row):
-        '''
+        """
         update the expanders in this infobox
 
         :param row: the row to get the values from
-        '''
+        """
         self.general.update(row)
         self.vernacular.update(row)
         self.synonyms.update(row)
@@ -466,7 +567,8 @@ class SpeciesInfoBox(InfoBox):
 class VernacularNameInfoBox(SpeciesInfoBox):
 
     def update(self, row):
-        logger.info("VernacularNameInfoBox.update {}({})".format(
-            row.__class__.__name__, row))
+        logger.info(
+            "VernacularNameInfoBox.update {}({})".format(row.__class__.__name__, row)
+        )
         if isinstance(row, VernacularName):
             super().update(row.species)

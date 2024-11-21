@@ -28,7 +28,7 @@ import os
 
 import gi
 
-gi.require_version('Gtk', '3.0')
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 import bauble.db as db
@@ -65,8 +65,7 @@ def validate_xml(root):
     :param root: root of an XML tree to validate against
     :returns: True or False depending if root validates correctly
     """
-    schema_file = os.path.join(
-        paths.lib_dir(), 'plugins', 'abcd', 'abcd_2.06.xsd')
+    schema_file = os.path.join(paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd")
     xmlschema_doc = etree.parse(schema_file)
     abcd_schema = etree.XMLSchema(xmlschema_doc)
     return abcd_schema.validate(root)
@@ -78,15 +77,19 @@ def validate_xml(root):
 # labels but most likely accessions are wanted if we're exchanging data, the
 # only problem is that accessions don't keep status, like dead, etc.
 
+
 def verify_institution(institution):
-    test = lambda x: x != '' and x is not None
-    return test(institution.name) and \
-        test(institution.technical_contact) and \
-        test(institution.email) and test(institution.contact) and \
-        test(institution.code)
+    test = lambda x: x != "" and x is not None
+    return (
+        test(institution.name)
+        and test(institution.technical_contact)
+        and test(institution.email)
+        and test(institution.contact)
+        and test(institution.code)
+    )
 
 
-namespaces = {'abcd': 'http://www.tdwg.org/schemas/abcd/2.06'}
+namespaces = {"abcd": "http://www.tdwg.org/schemas/abcd/2.06"}
 
 
 def ABCDElement(parent, name, text=None, attrib=None):
@@ -110,22 +113,26 @@ def ABCDElement(parent, name, text=None, attrib=None):
     else:
         text = str(text)
     
-    el = SubElement(parent, '{{{}}}{}'.format(namespaces['abcd'], name),
-                    nsmap=namespaces, attrib=attrib)
+    el = SubElement(
+        parent,
+        "{{{}}}{}".format(namespaces["abcd"], name),
+        nsmap=namespaces,
+        attrib=attrib,
+    )
     el.text = text
     return el
 
 
 def DataSets():
-    """
-    """
-    return Element('{%s}DataSets' % namespaces['abcd'], nsmap=namespaces)
+    """ """
+    return Element("{%s}DataSets" % namespaces["abcd"], nsmap=namespaces)
 
 
 class ABCDAdapter:
     """
     An abstract base class for creating ABCD adapters.
     """
+
     # TODO: create a HigherTaxonRank/HigherTaxonName iteratorator for a list
     # of all the higher taxon
 
@@ -188,7 +195,7 @@ class ABCDAdapter:
     def get_CultivarName(self):
         pass
 
-    def get_HybridFlag (self):
+    def get_HybridFlag(self):
         pass
 
     def get_IdentificationQualifier(self):
@@ -214,103 +221,115 @@ def create_abcd(decorated_objects, authors=True, validate=True):
     :returns: a valid ABCD ElementTree
     """
     import bauble.plugins.garden.institution as institution
+
     inst = institution.Institution()
     if not verify_institution(inst):
-        raise ValueError(_('Some or all of the information about your institution or '
-                           'business is not complete. Please make sure that the '
-                           'Name, Technical Contact, Email, Contact and Institution '
-                           'Code fields are filled in.'))
+        raise ValueError(
+            _(
+                "Some or all of the information about your institution or "
+                "business is not complete. Please make sure that the "
+                "Name, Technical Contact, Email, Contact and Institution "
+                "Code fields are filled in."
+            )
+        )
 
     datasets = DataSets()
-    ds = ABCDElement(datasets, 'DataSet')
-    tech_contacts = ABCDElement(ds, 'TechnicalContacts')
-    tech_contact = ABCDElement(tech_contacts, 'TechnicalContact')
+    ds = ABCDElement(datasets, "DataSet")
+    tech_contacts = ABCDElement(ds, "TechnicalContacts")
+    tech_contact = ABCDElement(tech_contacts, "TechnicalContact")
 
     # TODO: need to include contact information in bauble meta when
     # creating a new database
-    ABCDElement(tech_contact, 'Name', text=inst.technical_contact)
-    ABCDElement(tech_contact, 'Email', text=inst.email)
-    cont_contacts = ABCDElement(ds, 'ContentContacts')
-    cont_contact = ABCDElement(cont_contacts, 'ContentContact')
-    ABCDElement(cont_contact, 'Name', text=inst.contact)
-    ABCDElement(cont_contact, 'Email', text=inst.email)
-    metadata = ABCDElement(ds, 'Metadata', )
-    description = ABCDElement(metadata, 'Description')
+    ABCDElement(tech_contact, "Name", text=inst.technical_contact)
+    ABCDElement(tech_contact, "Email", text=inst.email)
+    cont_contacts = ABCDElement(ds, "ContentContacts")
+    cont_contact = ABCDElement(cont_contacts, "ContentContact")
+    ABCDElement(cont_contact, "Name", text=inst.contact)
+    ABCDElement(cont_contact, "Email", text=inst.email)
+    metadata = ABCDElement(
+        ds,
+        "Metadata",
+    )
+    description = ABCDElement(metadata, "Description")
 
     # TODO: need to get the localized language
-    representation = ABCDElement(description, 'Representation',
-                                 attrib={'language': 'en'})
-    revision = ABCDElement(metadata, 'RevisionData')
-    ABCDElement(revision, 'DateModified', text='2001-03-01T00:00:00')
-    title = ABCDElement(representation, 'Title', text='TheTitle')
-    units = ABCDElement(ds, 'Units')
+    representation = ABCDElement(
+        description, "Representation", attrib={"language": "en"}
+    )
+    revision = ABCDElement(metadata, "RevisionData")
+    ABCDElement(revision, "DateModified", text="2001-03-01T00:00:00")
+    title = ABCDElement(representation, "Title", text="TheTitle")
+    units = ABCDElement(ds, "Units")
 
     # build the ABCD unit
     for obj in decorated_objects:
-        unit = ABCDElement(units, 'Unit')
-        ABCDElement(unit, 'SourceInstitutionID', text=inst.code)
+        unit = ABCDElement(units, "Unit")
+        ABCDElement(unit, "SourceInstitutionID", text=inst.code)
 
         # TODO: don't really understand the SourceID element
-        ABCDElement(unit, 'SourceID', text='Ghini')
+        ABCDElement(unit, "SourceID", text="Ghini")
 
-        unit_id = ABCDElement(unit, 'UnitID', text=obj.get_UnitID())
-        ABCDElement(unit, 'DateLastEdited', text=obj.get_DateLastEdited())
+        unit_id = ABCDElement(unit, "UnitID", text=obj.get_UnitID())
+        ABCDElement(unit, "DateLastEdited", text=obj.get_DateLastEdited())
 
         # TODO: add list of verifications to Identifications
 
         # scientific name identification
-        identifications = ABCDElement(unit, 'Identifications')
-        identification = ABCDElement(identifications, 'Identification')
-        result = ABCDElement(identification, 'Result')
-        taxon_identified = ABCDElement(result, 'TaxonIdentified')
-        higher_taxa = ABCDElement(taxon_identified, 'HigherTaxa')
-        higher_taxon = ABCDElement(higher_taxa, 'HigherTaxon')
+        identifications = ABCDElement(unit, "Identifications")
+        identification = ABCDElement(identifications, "Identification")
+        result = ABCDElement(identification, "Result")
+        taxon_identified = ABCDElement(result, "TaxonIdentified")
+        higher_taxa = ABCDElement(taxon_identified, "HigherTaxa")
+        higher_taxon = ABCDElement(higher_taxa, "HigherTaxon")
 
         # TODO: ABCDDecorator should provide an iterator so that we can
         # have multiple HigherTaxonName's
-        higher_taxon_name = ABCDElement(higher_taxon, 'HigherTaxonName',
-                                        text=obj.get_family())
-        higher_taxon_rank = ABCDElement(higher_taxon, 'HigherTaxonRank',
-                                        text='familia')
+        higher_taxon_name = ABCDElement(
+            higher_taxon, "HigherTaxonName", text=obj.get_family()
+        )
+        higher_taxon_rank = ABCDElement(higher_taxon, "HigherTaxonRank", text="familia")
 
-        scientific_name = ABCDElement(taxon_identified, 'ScientificName')
-        ABCDElement(scientific_name, 'FullScientificNameString',
-                    text=obj.get_FullScientificNameString(authors))
+        scientific_name = ABCDElement(taxon_identified, "ScientificName")
+        ABCDElement(
+            scientific_name,
+            "FullScientificNameString",
+            text=obj.get_FullScientificNameString(authors),
+        )
 
-        name_atomised = ABCDElement(scientific_name, 'NameAtomised')
-        botanical = ABCDElement(name_atomised, 'Botanical')
-        ABCDElement(botanical, 'GenusOrMonomial',
-                    text=obj.get_GenusOrMonomial())
-        ABCDElement(botanical, 'FirstEpithet', text=obj.get_FirstEpithet())
+        name_atomised = ABCDElement(scientific_name, "NameAtomised")
+        botanical = ABCDElement(name_atomised, "Botanical")
+        ABCDElement(botanical, "GenusOrMonomial", text=obj.get_GenusOrMonomial())
+        ABCDElement(botanical, "FirstEpithet", text=obj.get_FirstEpithet())
         if obj.get_InfraspecificEpithet():
-            ABCDElement(botanical, 'InfraspecificEpithet',
-                        text=obj.get_InfraspecificEpithet())
-            ABCDElement(botanical, 'Rank',
-                        text=obj.get_InfraspecificRank())
+            ABCDElement(
+                botanical, "InfraspecificEpithet", text=obj.get_InfraspecificEpithet()
+            )
+            ABCDElement(botanical, "Rank", text=obj.get_InfraspecificRank())
         if obj.get_HybridFlag():
-            ABCDElement(botanical, 'HybridFlag', text=obj.get_HybridFlag())
+            ABCDElement(botanical, "HybridFlag", text=obj.get_HybridFlag())
         if obj.get_CultivarName():
-            ABCDElement(botanical, 'CultivarName',
-                        text=obj.get_CultivarName())
+            ABCDElement(botanical, "CultivarName", text=obj.get_CultivarName())
         author_team = obj.get_AuthorTeam()
         if author_team is not None:
-            ABCDElement(botanical, 'AuthorTeam', text=author_team)
-        ABCDElement(identification, 'PreferredFlag', text='true')
+            ABCDElement(botanical, "AuthorTeam", text=author_team)
+        ABCDElement(identification, "PreferredFlag", text="true")
 
         # vernacular name identification
         # TODO: should we include all the vernacular names or only the default
         # one
         vernacular_name = obj.get_InformalNameString()
         if vernacular_name is not None:
-            identification = ABCDElement(identifications, 'Identification')
-            result = ABCDElement(identification, 'Result')
-            taxon_identified = ABCDElement(result, 'TaxonIdentified')
-            ABCDElement(taxon_identified, 'InformalNameString',
-                        text=vernacular_name)
+            identification = ABCDElement(identifications, "Identification")
+            result = ABCDElement(identification, "Result")
+            taxon_identified = ABCDElement(result, "TaxonIdentified")
+            ABCDElement(taxon_identified, "InformalNameString", text=vernacular_name)
         if obj.get_IdentificationQualifier():
-            ABCDElement(scientific_name, 'IdentificationQualifier',
-                        text=obj.get_IdentificationQualifier(),
-                        attrib={'insertionpoint': obj.get_IdentificationQualifierRank()})
+            ABCDElement(
+                scientific_name,
+                "IdentificationQualifier",
+                text=obj.get_IdentificationQualifier(),
+                attrib={"insertionpoint": obj.get_IdentificationQualifierRank()},
+            )
         # add all the extra non standard elements
         obj.extra_elements(unit)
         # TODO: handle verifiers/identifiers
@@ -321,10 +340,10 @@ def create_abcd(decorated_objects, authors=True, validate=True):
         # EAnnotations, UnitExtension
         notes = obj.get_Notes()
         if notes:
-            ABCDElement(unit, 'Notes', text=notes)
+            ABCDElement(unit, "Notes", text=notes)
 
     if validate:
-        check(validate_xml(datasets), 'ABCD data not valid')
+        check(validate_xml(datasets), "ABCD data not valid")
 
     return ElementTree(datasets)
 
@@ -333,8 +352,8 @@ def plants_to_abcd(plants):
     # TODO: move PlantABCDAdapter, AccessionABCDAdapter and
     # PlantABCDAdapter into the ABCD plugin
     from bauble.plugins.report.xsl import PlantABCDAdapter
-    return create_abcd([PlantABCDAdapter(p) for p in plants],
-                       validate=False)
+
+    return create_abcd([PlantABCDAdapter(p) for p in plants], validate=False)
 
 
 class ABCDExporter:
@@ -344,10 +363,17 @@ class ABCDExporter:
 
     def start(self, filename=None, plants=None):
         if filename is None:  # no filename, ask the user
-            d = Gtk.FileChooserDialog(_("Choose a file to export to..."), self,
-                                      Gtk.FileChooserAction.SAVE, 
-                                      (Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT, 
-                                       Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+            d = Gtk.FileChooserDialog(
+                _("Choose a file to export to..."),
+                self,
+                Gtk.FileChooserAction.SAVE,
+                (
+                    Gtk.STOCK_OK,
+                    Gtk.ResponseType.ACCEPT,
+                    Gtk.STOCK_CANCEL,
+                    Gtk.ResponseType.CANCEL,
+                ),
+            )
             filename = None
             if d.run() == Gtk.ResponseType.ACCEPT:
                 filename = d.get_filename()
@@ -361,10 +387,11 @@ class ABCDExporter:
             nplants = db.Session().query(Plant).count()
 
         if nplants > 3000:
-            msg = _('You are exporting %(nplants)s plants to ABCD format.  '
-                    'Exporting this many plants may take several minutes.  '
-                    '\n\n<i>Would you like to continue?</i>') \
-                % ({'nplants': nplants})
+            msg = _(
+                "You are exporting %(nplants)s plants to ABCD format.  "
+                "Exporting this many plants may take several minutes.  "
+                "\n\n<i>Would you like to continue?</i>"
+            ) % ({"nplants": nplants})
             if not utils.yes_no_dialog(msg):
                 return
         self.run(filename, plants)
@@ -374,8 +401,7 @@ class ABCDExporter:
             raise ValueError("filename can not be None")
 
         if os.path.exists(filename) and not os.path.isfile(filename):
-            raise ValueError("%s exists and is not a a regular file"
-                             % filename)
+            raise ValueError("%s exists and is not a a regular file" % filename)
 
         # if plants is None then export all plants, this could be huge
         # TODO: do something about this, like list the number of plants
@@ -415,7 +441,8 @@ try:
     import lxml.etree as etree
     from lxml.etree import Element, ElementTree, SubElement
 except ImportError:
-    utils.message_dialog(_('The <i>lxml</i> package is required for the '
-                           'ABCD plugin'))
+    utils.message_dialog(
+        _("The <i>lxml</i> package is required for the " "ABCD plugin")
+    )
 else:
     plugin = ABCDImexPlugin

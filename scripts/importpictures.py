@@ -34,7 +34,7 @@ path = os.path.dirname(os.path.realpath(__file__))
 
 import json
 
-with open(os.path.join(path, 'settings.json')) as f:
+with open(os.path.join(path, "settings.json")) as f:
     (user, pw, filename, imei2user, dburi, pic_path) = json.load(f)
 
 import bauble.db
@@ -45,11 +45,11 @@ from bauble.plugins.plants import Genus, Species
 bauble.db.open(dburi, True, True)
 session = bauble.db.Session()
 
-q = session.query(Species).filter(Species.infrasp1 == 'sp')
-q = q.join(Genus).filter(Genus.epithet == 'Zzz')
+q = session.query(Species).filter(Species.infrasp1 == "sp")
+q = q.join(Genus).filter(Genus.epithet == "Zzz")
 zzz = q.one()
 
-loc = session.query(Location).filter(Location.code == 'desconocid').one()
+loc = session.query(Location).filter(Location.code == "desconocid").one()
 import sys
 
 with open("/tmp/plant-pictures.txt") as f:
@@ -60,33 +60,35 @@ with open("/tmp/plant-pictures.txt") as f:
         try:
             q = session.query(Plant)
             q = q.join(Accession).filter(Accession.code == acc_no)
-            q = q.filter(Plant.code == '1')
+            q = q.filter(Plant.code == "1")
             plant = q.one()
         except:
             try:
-                accession = session.query(Accession).filter(Accession.code == acc_no).one()
+                accession = (
+                    session.query(Accession).filter(Accession.code == acc_no).one()
+                )
             except:
                 accession = Accession(species=zzz, code=acc_no)
                 session.add(accession)
-                sys.stdout.write('a')
-            plant = Plant(accession=accession, location=loc, quantity=1, code='1')
+                sys.stdout.write("a")
+            plant = Plant(accession=accession, location=loc, quantity=1, code="1")
             session.add(plant)
-            sys.stdout.write('p')
+            sys.stdout.write("p")
             session.flush()
 
         # `plant` is the object to receive pictures, and it is in the session.
 
         q = session.query(Plant)
         q = q.join(Accession).filter(Accession.code == acc_no)
-        q = q.join(PlantNote).filter(PlantNote.category == '<picture>')
+        q = q.join(PlantNote).filter(PlantNote.category == "<picture>")
         q = q.filter(PlantNote.note == text)
         if q.count() == 0:
             # we need to add this note to the plant
-            note = PlantNote(plant=plant, category='<picture>', note=text)
+            note = PlantNote(plant=plant, category="<picture>", note=text)
             session.add(note)
-            sys.stdout.write('f')
+            sys.stdout.write("f")
         else:
-            sys.stdout.write('.')
+            sys.stdout.write(".")
         sys.stdout.flush()
 session.commit()
 print()

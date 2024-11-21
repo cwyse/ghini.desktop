@@ -36,8 +36,14 @@ from unittest import TestCase
 import bauble
 from bauble import utils as butils
 from bauble.plugins.garden import Accession, Location, Plant
-from bauble.plugins.plants import (Family, Genus, GeographicArea, Species,
-                                   SpeciesDistribution, VernacularName)
+from bauble.plugins.plants import (
+    Family,
+    Genus,
+    GeographicArea,
+    Species,
+    SpeciesDistribution,
+    VernacularName,
+)
 from bauble.plugins.report import get_pertinent_objects
 from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
 from bauble.test import BaubleTestCase
@@ -52,35 +58,40 @@ class Jinja2FormatterTests(BaubleTestCase):
         super().setUp()
         fctr = gctr = sctr = actr = pctr = 0
         for f in range(2):
-            fctr+=1
-            family = Family(id=fctr, family='fam%s' % fctr)
+            fctr += 1
+            family = Family(id=fctr, family="fam%s" % fctr)
             self.session.add(family)
             for g in range(2):
-                gctr+=1
-                genus = Genus(id=gctr, family=family, genus='gen%s' % gctr)
+                gctr += 1
+                genus = Genus(id=gctr, family=family, genus="gen%s" % gctr)
                 self.session.add(genus)
                 for s in range(2):
-                    sctr+=1
-                    sp = Species(id=sctr, genus=genus, sp='sp%s' % sctr)
+                    sctr += 1
+                    sp = Species(id=sctr, genus=genus, sp="sp%s" % sctr)
                     # TODO: why doesn't this geographic_area, species
                     # distribution stuff seem to work
-                    geo = GeographicArea(id=sctr, name='Mexico%s' % sctr)
+                    geo = GeographicArea(id=sctr, name="Mexico%s" % sctr)
                     dist = SpeciesDistribution(geographic_area_id=sctr)
                     sp.distribution.append(dist)
-                    vn = VernacularName(id=sctr, species=sp,
-                                        name='name%s' % sctr)
+                    vn = VernacularName(id=sctr, species=sp, name="name%s" % sctr)
                     self.session.add_all([sp, geo, dist, vn])
                     for a in range(2):
-                        actr+=1
-                        acc = Accession(id=actr, species=sp, code='%s' % actr)
+                        actr += 1
+                        acc = Accession(id=actr, species=sp, code="%s" % actr)
                         self.session.add(acc)
                         for p in range(2):
-                            pctr+=1
-                            loc = Location(id=pctr, code='%s' % pctr,
-                                           name='site%s' % pctr)
-                            plant = Plant(id=pctr, accession=acc, location=loc,
-                                          code='%s' % pctr, quantity=1)
-                            #debug('fctr: %s, gctr: %s, actr: %s, pctr: %s' \
+                            pctr += 1
+                            loc = Location(
+                                id=pctr, code="%s" % pctr, name="site%s" % pctr
+                            )
+                            plant = Plant(
+                                id=pctr,
+                                accession=acc,
+                                location=loc,
+                                code="%s" % pctr,
+                                quantity=1,
+                            )
+                            # debug('fctr: %s, gctr: %s, actr: %s, pctr: %s' \
                             #      % (fctr, gctr, actr, pctr))
                             self.session.add_all([loc, plant])
         self.session.commit()
@@ -91,26 +102,27 @@ class Jinja2FormatterTests(BaubleTestCase):
     def test_format_all_templates(self):
         selection = self.session.query(Plant).all()
         # td is this module name, minus mako/test, plus templates
-        td = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'templates')
+        td = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
         for i, tn in enumerate(os.listdir(td)):
-            if not tn.endswith('.jj2'):
+            if not tn.endswith(".jj2"):
                 continue
             filename = os.path.join(td, tn)
             domain = Jinja2FormatterPlugin.get_iteration_domain(filename)
-            if domain == '':
-                self.assertEqual(tn[:5], 'base.')
+            if domain == "":
+                self.assertEqual(tn[:5], "base.")
                 continue
             try:
                 cls = {
-                    'plant': Plant,
-                    'accession': Accession,
-                    'species': Species,
-                    'location': Location,
+                    "plant": Plant,
+                    "accession": Accession,
+                    "species": Species,
+                    "location": Location,
                 }[domain]
-                todo = sorted(get_pertinent_objects(cls, selection),
-                              key=butils.natsort_key)
+                todo = sorted(
+                    get_pertinent_objects(cls, selection), key=butils.natsort_key
+                )
             except KeyError:
                 todo = selection
-            logger.debug('formatting ›%s‹' % filename)
+            logger.debug("formatting ›%s‹" % filename)
             report = Jinja2FormatterPlugin.format(todo, template=filename)
             self.assertEqual((i, filename, type(report)), (i, filename, bytes))
