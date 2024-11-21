@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-from optparse import OptionParser
 import imp
+from optparse import OptionParser
+
 usage = 'usage: %prog [options]'
 parser = OptionParser(usage)
 parser.add_option('-f', '--from', dest='translation_from', default='en',
@@ -13,13 +14,16 @@ options, args = parser.parse_args()
 translation_from = options.translation_from
 translation_to = options.translation_to
 
-import sys  
+import sys
+
 imp.reload(sys)  
 sys.setdefaultencoding('utf8')
 
 import codecs
 import json
+
 import requests
+
 
 def translate(s):
     try:
@@ -42,7 +46,9 @@ def translate(s):
 
 about_to_stop = False
 
-import fileinput, re
+import fileinput
+import re
+
 for line in fileinput.input(args):
     text = str(line.strip())
     if not text:

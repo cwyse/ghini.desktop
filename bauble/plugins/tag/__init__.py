@@ -25,36 +25,28 @@ import os
 import traceback
 
 import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
-from gi.repository import Gdk
 
+gi.require_version('Gtk', '3.0')
 import logging
+
+from gi.repository import Gdk, Gtk
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from sqlalchemy import (
-    Column, Unicode, UnicodeText, Integer, String, ForeignKey)
+from sqlalchemy import (Column, ForeignKey, Integer, String, Unicode,
+                        UnicodeText, and_, text)
+from sqlalchemy.exc import DBAPIError, InvalidRequestError
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
-from sqlalchemy import and_
-from sqlalchemy.exc import DBAPIError, InvalidRequestError
 from sqlalchemy.orm.session import object_session
-from sqlalchemy import text
 
 import bauble
-from bauble import ui
-from bauble import db
-from bauble import editor
-from bauble import pluginmgr
-from bauble import paths
-from bauble import search
+from bauble import db, editor, paths, pluginmgr, search, ui, utils
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble import utils
-from bauble.view import InfoBox, InfoExpander, SearchView, Action
+from bauble.view import Action, InfoBox, InfoExpander, SearchView
 
-from bauble.editor import (
-    GenericEditorView, GenericEditorPresenter)
-from bauble.utils import safe_set_text
 
 class TagsMenuManager:
     def __init__(self):
@@ -839,8 +831,9 @@ class TagPlugin(pluginmgr.Plugin):
     @classmethod
     def init(cls):
         pluginmgr.provided.update(cls.provides)
-        from bauble.view import SearchView
         from functools import partial
+
+        from bauble.view import SearchView
         mapper_search = search.get_strategy('MapperSearch')
         mapper_search.add_meta(('tag', 'tags'), Tag, ['tag'])
         SearchView.row_meta[Tag].set(

@@ -20,8 +20,10 @@
 # types.py
 #
 
-import sqlalchemy.types as types
 import logging
+
+import sqlalchemy.types as types
+
 logger = logging.getLogger(__name__)
 
 
@@ -101,6 +103,7 @@ class Enum(types.TypeDecorator):
 
 
 from bauble.utils import parse_date
+
 
 class DateTime(types.TypeDecorator):
     """

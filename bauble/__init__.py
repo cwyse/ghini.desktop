@@ -23,18 +23,21 @@
 The top level module for Ghini.
 """
 import gi
+
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
 import debugpy
+from gi.repository import Gtk
 
 debugpy.breakpoint()
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 consoleLevel = logging.DEBUG
 
 import os
 import sys
+
 import bauble.paths as paths
 
 try:
@@ -44,6 +47,7 @@ except:
     pass
 
 from bauble.version import version
+
 version_tuple = tuple(version.split('.'))
 release_date = None
 release_version = None
@@ -102,6 +106,7 @@ sys.path.append(paths.lib_dir())
 
 # set SQLAlchemy logging level
 import logging
+
 logging.getLogger('sqlalchemy').setLevel(logging.DEBUG)
 
 gui = None
@@ -117,6 +122,7 @@ conn_name = None
 """
 
 import traceback
+
 import bauble.error as err
 
 
@@ -125,6 +131,7 @@ def save_state():
     Save the gui state and preferences.
     """
     from bauble.prefs import prefs
+
     # in case we quit before the gui is created
     if gui is not None:
         gui.save_state()
@@ -136,6 +143,7 @@ def quit():
     Stop all tasks and quit Ghini.
     """
     from gi.repository import Gtk
+
     import bauble.utils as utils
     try:
         import bauble.task as task
@@ -165,8 +173,9 @@ def command_handler(cmd, arg):
     """
     logger.debug('entering ui.command_handler {} {}'.format(cmd, arg))
     from gi.repository import Gtk
-    import bauble.utils as utils
+
     import bauble.pluginmgr as pluginmgr
+    import bauble.utils as utils
     global last_handler
     handler_cls = None
     try:
@@ -215,8 +224,7 @@ dbengine.html#create-engine-url-arguments>`_
     :type uri: str
     """
     try:
-        from gi.repository import Gtk
-        from gi.repository import GObject
+        from gi.repository import GObject, Gtk
     except ImportError as e:
         print(_('** Error: could not import gtk and/or gobject'))
         print(e)

@@ -22,6 +22,7 @@
 #
 
 
+import logging
 import os
 import traceback
 import weakref
@@ -29,31 +30,28 @@ import xml
 
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 
-from sqlalchemy import (
-    Column, Unicode, Integer, ForeignKey, UnicodeText, String,
-    UniqueConstraint, func, and_)
-from sqlalchemy.orm import relationship, validates, synonym
-from sqlalchemy.orm.session import object_session
+from sqlalchemy import (Column, ForeignKey, Integer, String, Unicode,
+                        UnicodeText, UniqueConstraint, and_, func, text)
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy import text
+from sqlalchemy.orm import relationship, synonym, validates
+from sqlalchemy.orm.session import object_session
 
 import bauble
-import bauble.db as db
-import bauble.error as error
-import bauble.pluginmgr as pluginmgr
-import bauble.editor as editor
-import bauble.utils as utils
 import bauble.btypes as types
+import bauble.db as db
+import bauble.editor as editor
+import bauble.error as error
 import bauble.paths as paths
+import bauble.pluginmgr as pluginmgr
+import bauble.utils as utils
+import bauble.view as view
 from bauble.prefs import prefs
 from bauble.utils import safe_set_text
-from bauble.view import (InfoBox, InfoExpander, PropertiesExpander,
-                         select_in_search_results, Action)
-import bauble.view as view
+from bauble.view import (Action, InfoBox, InfoExpander, PropertiesExpander,
+                         select_in_search_results)
 
 # TODO: warn the user that a duplicate genus name is being entered
 # even if only the author or qualifier is different
@@ -408,8 +406,8 @@ class GenusSynonym(db.Base):
 
 # late bindings
 from bauble.plugins.plants.family import Family, FamilySynonym
-from bauble.plugins.plants.species_model import Species
 from bauble.plugins.plants.species_editor import edit_species
+from bauble.plugins.plants.species_model import Species
 
 # only now that we have `Species` can we define the sorted `species` in
 # the `Genus` class.

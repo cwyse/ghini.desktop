@@ -18,11 +18,11 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from requests.auth import HTTPDigestAuth
-import requests
+import re
 import xml.etree.ElementTree as ET
 
-import re
+import requests
+from requests.auth import HTTPDigestAuth
 
 
 def get_submissions(user, pw, host, form_id, to_skip=[]):

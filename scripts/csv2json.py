@@ -19,6 +19,7 @@
 
 import csv
 import json
+
 from . import staale
 
 k = []
@@ -73,6 +74,7 @@ species = {}
 species_notes = {}
 
 import re
+
 binomial_with_authorship = re.compile(r'^([A-Z][a-z]+) (?:(cf|aff|cf\.|aff\.|\?) )?(×[ ]?)?([-a-z]+|sp\.?[ ]?[1-9]?)(?: (.*[A-Z].*))?( \?)?$')
 
 family_hidden = []  # [vernacular_key, binomial_key]

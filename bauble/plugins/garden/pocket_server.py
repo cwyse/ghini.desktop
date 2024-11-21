@@ -21,22 +21,19 @@
 #
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
-from gi.repository import GLib
 
+gi.require_version('Gtk', '3.0')
 import datetime
 import os.path
 
-from bauble import paths
-from bauble import db
-from bauble import pluginmgr
-from bauble.editor import (
-    GenericEditorView, GenericEditorPresenter)
-from bauble import meta
+from gi.repository import GLib, Gtk
+
+from bauble import db, meta, paths, pluginmgr
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.utils import safe_set_text
 
 
@@ -65,8 +62,7 @@ def get_code():
 
 
 from threading import Thread
-from xmlrpc.server import SimpleXMLRPCServer
-from xmlrpc.server import SimpleXMLRPCRequestHandler
+from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
 
 class RequestHandler(SimpleXMLRPCRequestHandler):
@@ -296,7 +292,7 @@ class PocketServerPresenter(GenericEditorPresenter):
         text = self.view.widgets.creating_snapshot_label.get_text()
         safe_set_text(self.view.widgets.last_snapshot_date_entry, text)
         self.view.widgets.new_snapshot_button.set_sensitive(False)
-        from .exporttopocket import create_pocket, ExportToPocketThread
+        from .exporttopocket import ExportToPocketThread, create_pocket
         create_pocket(self.pocket_fn)
         self.view.widgets.progressbar.set_fraction(0)
         self.view.widgets.progressbar_placeholder.set_visible(False)

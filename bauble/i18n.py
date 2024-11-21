@@ -33,15 +33,16 @@ this module more than once in an application.  It is usually imported
 in :mod:`bauble`
 """
 
-import os
-import locale
 import gettext
-import bauble.paths as paths
-from bauble import version_tuple
+import locale
+import os
 
 # the following has effect on Windows: to set the environment variables as
 # on an operating system. operating systems don't need it.
 import bauble.gettext_windows
+import bauble.paths as paths
+from bauble import version_tuple
+
 bauble.gettext_windows.setup_env()
 
 __all__ = ["_"]
@@ -74,6 +75,7 @@ langs += ["en"]
 # finally the 'known' list
 
 import sys
+
 if sys.platform in ['win32', 'darwin']:
     locale = gettext
 
@@ -87,4 +89,5 @@ lang = gettext.translation(TEXT_DOMAIN, paths.locale_dir(), languages=langs,
 # translatable strings with it) to lang.gettext(), which translates them.
 _ = lang.gettext
 import builtins
+
 builtins._ = lang.gettext

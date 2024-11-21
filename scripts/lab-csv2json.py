@@ -20,6 +20,7 @@
 
 import csv
 import json
+
 from . import staale
 
 k = []

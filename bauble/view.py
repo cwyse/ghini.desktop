@@ -21,44 +21,37 @@
 #
 
 
+import cgi
 import itertools
+import logging
 import os
 import sys
 import traceback
-import cgi
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GObject
-from gi.repository import Pango
 import threading
 
 import gi
+from gi.repository import Gdk, GObject, Gtk, Pango
+
 gi.require_version('Champlain', '0.12')
 gi.require_version('GtkChamplain', '0.12')
 gi.require_version('GtkClutter', '1.0')
-from gi.repository import GtkClutter, Clutter, GtkChamplain
-GtkClutter.init([])
-from gi.repository import Champlain
+from gi.repository import Clutter, GtkChamplain, GtkClutter
 
+GtkClutter.init([])
+import sqlalchemy.exc as saexc
+from gi.repository import Champlain
 from pyparsing import ParseException
 from sqlalchemy.orm import object_session
-import sqlalchemy.exc as saexc
 
 import bauble
-from bauble import db
-from bauble.error import check, BaubleError
-from bauble import paths
-from bauble import pluginmgr
-from bauble import prefs
-from bauble import search
-from bauble import utils
-from bauble import editor
-from bauble import pictures_view
+from bauble import (db, editor, paths, pictures_view, pluginmgr, prefs, search,
+                    utils)
+from bauble.error import BaubleError, check
+
 
 
 # use different formatting template for the result view depending on the

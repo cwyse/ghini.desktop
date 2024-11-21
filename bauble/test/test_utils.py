@@ -17,8 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
-import bauble.utils as utils
 from unittest import TestCase
+
+import bauble.utils as utils
 
 
 class Utils(TestCase):
@@ -35,8 +36,9 @@ class Utils(TestCase):
 
 class CacheTest(TestCase):
     def test_create_store_retrieve(self):
-        from bauble.utils import Cache
         from functools import partial
+
+        from bauble.utils import Cache
         invoked = []
 
         def getter(x):
@@ -52,8 +54,9 @@ class CacheTest(TestCase):
         self.assertEqual(invoked, [1])
 
     def test_respect_size(self):
-        from bauble.utils import Cache
         from functools import partial
+
+        from bauble.utils import Cache
         invoked = []
 
         def getter(x):
@@ -69,8 +72,9 @@ class CacheTest(TestCase):
         self.assertEqual(sorted(cache.storage.keys()), [3, 4])
 
     def test_respect_timing(self):
-        from bauble.utils import Cache
         from functools import partial
+
+        from bauble.utils import Cache
         invoked = []
 
         def getter(x):
@@ -94,8 +98,9 @@ class CacheTest(TestCase):
         self.assertEqual(sorted(cache.storage.keys()), [1, 4])
 
     def test_cache_on_hit(self):
-        from bauble.utils import Cache
         from functools import partial
+
+        from bauble.utils import Cache
         invoked = []
 
         def getter(x):

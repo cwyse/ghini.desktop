@@ -23,13 +23,12 @@ import shutil
 import sys
 from optparse import OptionParser
 
-from bauble.plugins.geography import *
 from migrate.run import *
 from sqlalchemy import *
 
 import bauble
+from bauble.plugins.geography import *
 from bauble.plugins.plants import *
-
 
 #import bauble.pluginmgr as pluginmgr
 

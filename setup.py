@@ -26,20 +26,25 @@ except ImportError:
     from ez_setup import use_setuptools
     use_setuptools()
     import setuptools
+
 import gi
+
 gi.require_version('Gtk', '3.0')
 
+import glob
 import os
 import sys
-import glob
+
 spawn = setuptools.distutils.spawn
 dep_util = setuptools.distutils.dep_util
 dir_util = setuptools.distutils.dir_util
 file_util = setuptools.distutils.file_util
 from distutils.command.build import build as _build
+
 #from setuptools.command.build_py import build_py as _build
 from setuptools import Command
 from setuptools.command.install import install as _install
+
 from bauble import version
 
 # TODO: external dependencies not in the PyPI: PyGTK>=2.14
@@ -82,8 +87,10 @@ data_files = []
 
 # setup py2exe and nsis installer
 if sys.platform == 'win32' and sys.argv[1] in ('nsis', 'py2exe'):
-    import py2exe
     from distutils.command.py2exe import py2exe as _py2exe_cmd
+
+    import py2exe
+
     # setuptools.find packages doesn't dig deep enough so we search
     # for a list of all packages in the sqlalchemy namespace
     sqlalchemy_includes = ['sqlalchemy.dialects.sqlite',
@@ -466,8 +473,10 @@ if sys.platform == 'win32':
     scripts = ["scripts/ghini", "scripts/ghini.bat", "scripts/ghini.vbs",
                "scripts/ghini-update.bat"]
 
-import toml
 import subprocess
+
+import toml
+
 print("Executing generate_pyproject\n")
 
 # Run generate_pyproject.py if pyproject.toml needs to be generated

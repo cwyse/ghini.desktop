@@ -17,15 +17,15 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 import os
+
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 import bauble
-
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr

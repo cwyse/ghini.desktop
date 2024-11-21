@@ -26,9 +26,9 @@
 
 
 
-import sys
-import json
 import fileinput
+import json
+import sys
 
 from . import gettropicos
 

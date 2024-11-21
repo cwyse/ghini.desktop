@@ -27,16 +27,16 @@
 import os
 
 import gi
+
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 import bauble.db as db
-from bauble.error import check
 import bauble.paths as paths
-import bauble.utils as utils
 import bauble.pluginmgr as pluginmgr
+import bauble.utils as utils
+from bauble.error import check
 from bauble.plugins.garden.plant import Plant
-
 
 # NOTE: see biocase provider software for reading and writing ABCD data
 # files, already downloaded software to desktop
@@ -411,9 +411,9 @@ class ABCDImexPlugin(pluginmgr.Plugin):
 
 
 try:
-    import lxml.etree as etree
     import lxml._elementpath  # put this here so py2exe picks it up
-    from lxml.etree import Element, SubElement, ElementTree
+    import lxml.etree as etree
+    from lxml.etree import Element, ElementTree, SubElement
 except ImportError:
     utils.message_dialog(_('The <i>lxml</i> package is required for the '
                            'ABCD plugin'))

@@ -16,11 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
-import difflib
-import requests
 import csv
-
+import difflib
 import logging
+
+import requests
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 

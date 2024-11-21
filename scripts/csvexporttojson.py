@@ -17,8 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
-import json
 import csv
+import json
 
 
 def project(d, fields):
@@ -85,8 +85,8 @@ def main(config_file, input_stream, output_stream, want_taxonomy=False):
     then we pull things out of the set and we produce the output.
     '''
 
-    import configparser
     import codecs
+    import configparser
     config = configparser.RawConfigParser()
     config.readfp(codecs.open(config_file, 'r', 'utf-8'))
 

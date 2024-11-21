@@ -20,37 +20,40 @@
 #
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from sqlalchemy.orm import object_session, eagerload
+import re
+
+from sqlalchemy.orm import eagerload, object_session
 
 import bauble
-
-import bauble.utils as utils
 import bauble.pluginmgr as pluginmgr
-from bauble.view import SearchView
-from bauble.plugins.garden.accession import AccessionEditor, \
-    Accession, AccessionInfoBox, AccessionNote, \
-    Verification, \
-    acc_context_menu
-from bauble.plugins.garden.location import LocationEditor, \
-    Location, LocationInfoBox, loc_context_menu
-from bauble.plugins.garden.plant import PlantEditor, PlantNote, \
-    Plant, PlantSearch, PlantInfoBox, plant_context_menu, \
-    plant_delimiter_key, default_plant_delimiter
-from bauble.plugins.garden.source import (
-    Source, create_contact, Contact, ContactPresenter,
-    ContactInfoBox, source_detail_context_menu,
-    Collection, collection_context_menu)
-from bauble.plugins.garden.institution import (
-    Institution, InstitutionCommand, InstitutionTool, start_institution_editor)
-from bauble.plugins.garden.picture_importer import PictureImporterTool
-from bauble.plugins.garden.pocket_server import PocketServerTool
-
 #from bauble.plugins.garden.propagation import *
 import bauble.search as search
-import re
+import bauble.utils as utils
+from bauble.plugins.garden.accession import (Accession, AccessionEditor,
+                                             AccessionInfoBox, AccessionNote,
+                                             Verification, acc_context_menu)
+from bauble.plugins.garden.institution import (Institution, InstitutionCommand,
+                                               InstitutionTool,
+                                               start_institution_editor)
+from bauble.plugins.garden.location import (Location, LocationEditor,
+                                            LocationInfoBox, loc_context_menu)
+from bauble.plugins.garden.picture_importer import PictureImporterTool
+from bauble.plugins.garden.plant import (Plant, PlantEditor, PlantInfoBox,
+                                         PlantNote, PlantSearch,
+                                         default_plant_delimiter,
+                                         plant_context_menu,
+                                         plant_delimiter_key)
+from bauble.plugins.garden.pocket_server import PocketServerTool
+from bauble.plugins.garden.source import (Collection, Contact, ContactInfoBox,
+                                          ContactPresenter, Source,
+                                          collection_context_menu,
+                                          create_contact,
+                                          source_detail_context_menu)
+from bauble.view import SearchView
 
 # other ideas:
 # - cultivation table
@@ -129,6 +132,7 @@ class GardenPlugin(pluginmgr.Plugin):
 
         if bauble.gui is not None:
             import os.path
+
             from bauble import paths
             base = os.path.join(paths.lib_dir(), "plugins", "garden")
             from gi.repository import Gtk

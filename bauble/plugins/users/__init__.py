@@ -18,26 +18,26 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 import os
 import re
 
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 
 from sqlalchemy import *
 from sqlalchemy.exc import *
+from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
 from sqlalchemy.orm.exc import *
-from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 
 import bauble
-import bauble.editor as editor
-from bauble.error import check, CheckConditionError
 import bauble.db as db
+import bauble.editor as editor
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
+from bauble.error import CheckConditionError, check
 from bauble.utils import safe_set_text
 
 # WARNING: "roles" are specific to PostgreSQL database from 8.1 and

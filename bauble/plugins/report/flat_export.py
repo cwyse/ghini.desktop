@@ -18,20 +18,22 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk, Gdk
-import os.path
-from os.path import isdir, dirname
 import os
+import os.path
+from os.path import dirname, isdir
+
+from gi.repository import Gdk, Gtk
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.properties import ColumnProperty
-from sqlalchemy.types import Integer, Boolean, Float
+from sqlalchemy.types import Boolean, Float, Integer
+
 import bauble
-from bauble import utils as butils
-from bauble.search import MapperSearch
-from bauble.editor import (
-    GenericEditorView, GenericEditorPresenter)
 from bauble import paths, pluginmgr
+from bauble import utils as butils
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.querybuilder import SchemaMenu
+from bauble.search import MapperSearch
+
 
 class FlatFileExporter(GenericEditorPresenter):
 
@@ -208,9 +210,11 @@ class FlatFileExporter(GenericEditorPresenter):
                                                                self.schema_menu)
 
     def do_export(self):
-        from bauble import db
-        from sqlalchemy.orm.collections import InstrumentedList
         import csv
+
+        from sqlalchemy.orm.collections import InstrumentedList
+
+        from bauble import db
         filename = self.view.widget_get_value('output_file')
         rows_count = 0
         with open(filename, 'w') as csvfile:

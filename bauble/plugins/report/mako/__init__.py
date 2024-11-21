@@ -22,16 +22,17 @@
 #
 
 import logging
+
 logger = logging.getLogger(__name__)
 
-import re
 import os
+import re
 
 from gi.repository import Gtk
 
-from bauble.plugins.report import TemplateFormatterPlugin
-from bauble import utils as butils
 from bauble import paths as bpaths
+from bauble import utils as butils
+from bauble.plugins.report import TemplateFormatterPlugin
 
 
 class MakoFormatterPlugin(TemplateFormatterPlugin):

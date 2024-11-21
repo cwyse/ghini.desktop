@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import sys, os
+import os
+import sys
 
 if not sys.platform.startswith('linux'):
     print('This script only works on Linux.')

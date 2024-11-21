@@ -35,28 +35,28 @@ installed plugins in to the registry (happens in load())
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-import types
 import os
 import re
 import sys
 import traceback
+import types
 
 import gi
+
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GObject
-
-
-from sqlalchemy import Column, Unicode, select
 import sqlalchemy.orm.exc as orm_exc
+from gi.repository import GObject, Gtk
+from sqlalchemy import Column, Unicode, select
 
 import bauble
 import bauble.db as db
-from bauble.error import BaubleError
 import bauble.paths as paths
 import bauble.utils as utils
+from bauble.error import BaubleError
 
 plugins = {}
 commands = {}
@@ -496,7 +496,7 @@ class View(Gtk.VBox):
             del kwargs['root_widget_name']
         super().__init__(*args, **kwargs)
         if filename is not None:
-            from bauble import utils, editor
+            from bauble import editor, utils
             self.widgets = utils.BuilderWidgets(filename)
             self.view = editor.GenericEditorView(
                 filename, root_widget_name=root_widget_name)
@@ -586,7 +586,9 @@ def _find_plugins(path):
         plugin_names = ['bauble.plugins.%s' % m
                         for m in _find_module_names(path)]
 
-    import importlib, bauble.plugins
+    import importlib
+
+    import bauble.plugins
     for name in plugin_names:
         mod = None
         # Fast path: see if the module has already been imported.

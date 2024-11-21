@@ -21,27 +21,27 @@
 
 import csv
 import logging
+
 logger = logging.getLogger(__name__)
 
+import json
 import os
 import shutil
 import tempfile
 
-from sqlalchemy import Column, Integer, Boolean
+from sqlalchemy import Boolean, Column, Integer
 
 import bauble.db as db
-from bauble.plugins.plants import (
-    Familia, Family, Genus, Species, VernacularName, SpeciesNote)
-from bauble.plugins.garden import Accession, Location, Plant, Contact, Source
 import bauble.plugins.garden.test as garden_test
 import bauble.plugins.plants.test as plants_test
-from bauble.plugins.imex.csv_ import CSVImporter, CSVExporter, QUOTE_CHAR, \
-    QUOTE_STYLE
-from bauble.plugins.imex.iojson import JSONImporter, JSONExporter
-from bauble.test import BaubleTestCase
-import json
 from bauble.editor import MockView
-
+from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
+from bauble.plugins.imex.csv_ import (QUOTE_CHAR, QUOTE_STYLE, CSVExporter,
+                                      CSVImporter)
+from bauble.plugins.imex.iojson import JSONExporter, JSONImporter
+from bauble.plugins.plants import (Familia, Family, Genus, Species,
+                                   SpeciesNote, VernacularName)
+from bauble.test import BaubleTestCase
 
 family_data = [{'id': 1, 'epithet': 'Orchidaceae', 'qualifier': None},
                {'id': 2, 'epithet': 'Myrtaceae'}]
@@ -1204,6 +1204,7 @@ class GlobalFunctionsTests(BaubleTestCase):
     'Presenter manages view and model, implements view callbacks.'
     def test_json_serializer_datetime(self):
         import datetime
+
         from .iojson import serializedatetime
         stamp = datetime.datetime(2011, 11, 11, 12, 13)
         self.assertEqual(serializedatetime(stamp),

@@ -23,21 +23,20 @@
 #
 
 
+import logging
 import os
 import traceback
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from gi.repository import Gtk, Gdk
+from gi.repository import Gdk, Gtk
 
 import bauble
 import bauble.db as db
-import bauble.utils as utils
 import bauble.pluginmgr as pluginmgr
 import bauble.task
-
+import bauble.utils as utils
 
 # TODO: single file or one file per table
 

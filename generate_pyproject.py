@@ -1,5 +1,7 @@
 import toml
+
 from bauble import version
+
 
 def create_pyproject():
     pyproject_data = {

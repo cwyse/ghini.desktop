@@ -19,14 +19,14 @@
 
 import os
 
+from gi.repository import Gtk
 ## just keeping it here because I am forgetful and I never recall how to
 ## import SkipTest otherwise! and commented out because of FlyCheck.
 from nose import SkipTest
 
-from bauble.test import BaubleTestCase, check_dupids
 from bauble.connmgr import ConnMgrPresenter
-from bauble.editor import MockView, MockDialog
-from gi.repository import Gtk
+from bauble.editor import MockDialog, MockView
+from bauble.test import BaubleTestCase, check_dupids
 
 
 def test_duplicate_ids():
@@ -40,6 +40,7 @@ def test_duplicate_ids():
 
 import bauble
 import bauble.prefs as prefs
+
 prefs.testing = True
 
 

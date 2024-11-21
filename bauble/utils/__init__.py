@@ -24,30 +24,27 @@
 #
 
 import gi
+
 gi.require_version('Gtk', '3.0')
 
 import datetime
+import logging
 import os
 import re
 import textwrap
 import xml.sax.saxutils as saxutils
 
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GObject
-from gi.repository import GdkPixbuf
-from gi.repository import GLib
+from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 import threading
 
-
 import bauble
-from bauble.error import check
 from bauble import paths
+from bauble.error import check
+
 
 def safe_set_text(gtk_widget, text):
     """
@@ -238,8 +235,10 @@ class ImageLoader(threading.Thread):
 
     def read_global_url(self):
         self.loader.connect("area-prepared", self.loader_notified)
-        import urllib.request, urllib.parse, urllib.error
         import contextlib
+        import urllib.error
+        import urllib.parse
+        import urllib.request
         pieces = []
         with contextlib.closing(urllib.request.urlopen(self.url)) as f:
             for piece in read_in_chunks(f, 4096):
@@ -723,6 +722,7 @@ def create_message_details_dialog(msg, details, type=Gtk.MessageType.INFO,
                                        context.get_language())
     width = font_metrics.get_approximate_char_width()
     from gi.repository import Pango
+
     # if the character width is less than 300 pixels then set the
     # message dialog's label to be 300 to avoid tiny dialogs
     if width/Pango.SCALE*len(msg) < 300:
@@ -1029,9 +1029,10 @@ def reset_sequence(column):
     This function only works for PostgreSQL database.  It does nothing
     for other database engines.
     """
-    import bauble.db as db
-    from sqlalchemy.types import Integer
     from sqlalchemy import schema
+    from sqlalchemy.types import Integer
+
+    import bauble.db as db
     if not db.engine.name == 'postgresql':
         return
 
@@ -1166,8 +1167,8 @@ def ilike(col, val, engine=None):
 def range_builder(text):
     """Return a list of numbers from a string range of the form 1-3,4,5
     """
-    from pyparsing import Word, Group, Suppress, delimitedList, nums, \
-        ParseException, ParseResults
+    from pyparsing import (Group, ParseException, ParseResults, Suppress, Word,
+                           delimitedList, nums)
     rng = Group(Word(nums) + Suppress('-') + Word(nums))
     range_list = delimitedList(rng | Word(nums))
 
@@ -1195,8 +1196,8 @@ def gc_objects_by_type(tipe):
     """
     Return a list of objects from the garbage collector by type.
     """
-    import inspect
     import gc
+    import inspect
     if isinstance(tipe, str):
         return [o for o in gc.get_objects() if type(o).__name__ == tipe]
     elif inspect.isclass(tipe):
@@ -1535,8 +1536,10 @@ def get_urls(text):
     return matches
 
 import re
+
 sloppy_iso8601 = re.compile('^[12][0-9][0-9][0-9]-[0-9][0-9]?-[0-9][0-9]?.*$')
 import dateutil.parser
+
 
 def parse_date(value, dayfirst=True, yearfirst=False, **kwargs):
     if sloppy_iso8601.match(value) is not None:

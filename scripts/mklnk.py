@@ -1,5 +1,6 @@
-from win32com.client import Dispatch
 import os
+
+from win32com.client import Dispatch
 
 base = os.path.expanduser("~\\Local\\github\\Ghini\\ghini.desktop")
 path = os.path.join(base, 'scripts\\ghini.lnk')

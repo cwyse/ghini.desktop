@@ -16,26 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 import os
+
 from gi.repository import Gtk
 
-import logging
 logger = logging.getLogger(__name__)
 
 
-from bauble import utils
-from bauble import db
-from bauble.plugins.plants import (Familia, Genus, Species, VernacularName, SpeciesNote)
-from bauble.plugins.garden.plant import (Plant, PlantNote)
-from bauble.plugins.garden.accession import (Accession, AccessionNote)
-from bauble.plugins.garden.source import (Source, Contact)
-from bauble.plugins.garden.location import (Location)
-import bauble.task
-from bauble import editor
-from bauble import paths
 import json
-from bauble import pluginmgr
-from bauble import pb_set_fraction
+
+import bauble.task
+from bauble import db, editor, paths, pb_set_fraction, pluginmgr, utils
+from bauble.plugins.garden.accession import Accession, AccessionNote
+from bauble.plugins.garden.location import Location
+from bauble.plugins.garden.plant import Plant, PlantNote
+from bauble.plugins.garden.source import Contact, Source
+from bauble.plugins.plants import (Familia, Genus, Species, SpeciesNote,
+                                   VernacularName)
 
 
 def serializedatetime(obj):

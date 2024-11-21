@@ -11,8 +11,10 @@
 # then it should be easy enough to generate the links in the mapper
 # section
 
-import os, sys
+import os
+import sys
 import xml.sax.saxutils as saxutils
+
 sys.path.append('.')
 import sqlalchemy as sa
 from sqlalchemy.orm import *
@@ -22,8 +24,8 @@ from sqlalchemy.orm.properties import *
 import bauble
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
-from bauble.prefs import prefs
 import bauble.view as view
+from bauble.prefs import prefs
 
 uri = 'sqlite:///:memory:'
 db.open(uri, verify=False)
@@ -116,6 +118,7 @@ for strategy in view.SearchView.search_strategies:
 
 print(html_tail)
 import sys
+
 sys.exit(1)
 print(html_head)
 

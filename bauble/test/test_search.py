@@ -19,22 +19,20 @@
 #
 # test_search.py
 #
+import logging
 import unittest
+
 from nose import SkipTest
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from pyparsing import ParseException
 
-from bauble import db
-from bauble import search
-from bauble import querybuilder
-from bauble.editor import MockView, GenericEditorView
-from bauble import prefs
-from bauble import paths
+from bauble import db, paths, prefs, querybuilder, search
+from bauble.editor import GenericEditorView, MockView
 from bauble.test import BaubleTestCase
+
 prefs.testing = True
 
 
@@ -674,10 +672,10 @@ class SearchTests(BaubleTestCase):
         import datetime
         Family = self.Family
         Genus = self.Genus
-        from bauble.plugins.plants.species_model import Species
         from bauble.plugins.garden.accession import Accession
         from bauble.plugins.garden.location import Location
         from bauble.plugins.garden.plant import Plant
+        from bauble.plugins.plants.species_model import Species
         family2 = Family(family='family2')
         g2 = Genus(family=family2, genus='genus2')
         f3 = Family(family='fam3', qualifier='s. lat.')
@@ -705,8 +703,9 @@ class SearchTests(BaubleTestCase):
         'use BETWEEN value and value'
         Family = self.Family
         Genus = self.Genus
-        from bauble.plugins.plants.species_model import Species
         from bauble.plugins.garden.accession import Accession
+        from bauble.plugins.plants.species_model import Species
+
         #from bauble.plugins.garden.location import Location
         #from bauble.plugins.garden.plant import Plant
         family2 = Family(family='family2')
@@ -773,8 +772,7 @@ class SearchTests(BaubleTestCase):
 
         Family = self.Family
         Genus = self.Genus
-        from bauble.plugins.plants.species_model import Species
-        from bauble.plugins.plants.species_model import VernacularName
+        from bauble.plugins.plants.species_model import Species, VernacularName
         family2 = Family(family='family2')
         g2 = Genus(family=family2, genus='genus2')
         f3 = Family(family='fam3', qualifier='s. lat.')
@@ -918,8 +916,8 @@ class BinomialSearchTests(BaubleTestCase):
         mapper_search = search.get_strategy('MapperSearch')
         self.assertTrue(isinstance(mapper_search, search.MapperSearch))
 
-        from bauble.plugins.plants.species import Species
         from bauble.plugins.plants.genus import Genus
+        from bauble.plugins.plants.species import Species
         g3 = self.session.query(Genus).filter(Genus.genus == 'Ixora').one()
         sp5 = Species(sp="coccinea", genus=g3,
                       infrasp1_rank='cv.', infrasp1='Nora Grant')

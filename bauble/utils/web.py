@@ -19,15 +19,15 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk
+import logging
 import re
 
-import logging
+from gi.repository import Gtk
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 import bauble.utils.desktop as desktop
-
 
 
 def _open_link(data=None, *args, **kwargs):

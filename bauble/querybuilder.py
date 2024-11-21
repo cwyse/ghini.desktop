@@ -18,22 +18,23 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk
 import logging
+
+from gi.repository import Gtk
+
 logger = logging.getLogger(__name__)
 
 from sqlalchemy.orm import class_mapper
-from sqlalchemy.orm.properties import (
-    ColumnProperty, RelationshipProperty)
+from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
+
 RelationProperty = RelationshipProperty
 
 import bauble
-
-from .search import EmptyToken, MapperSearch
-from .querybuilderparser import BuiltQuery
-from bauble.editor import (
-    GenericEditorView, GenericEditorPresenter)
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.utils import safe_set_text
+
+from .querybuilderparser import BuiltQuery
+from .search import EmptyToken, MapperSearch
 
 
 def parse_typed_value(value):

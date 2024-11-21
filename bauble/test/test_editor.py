@@ -23,10 +23,11 @@
 
 import os
 
-from bauble.editor import GenericEditorView
-import bauble.prefs as prefs
 import bauble.paths as paths
+import bauble.prefs as prefs
 import bauble.utils as utils
+from bauble.editor import GenericEditorView
+
 prefs.testing = True
 
 from bauble.test import BaubleTestCase
@@ -98,9 +99,12 @@ class PleaseIgnoreMe:
         self.assertFalse(view.widgets.noconnectionlabel.get_visible())
 
 
-from bauble.utils import parse_date
 import datetime
 import unittest
+
+from bauble.utils import parse_date
+
+
 class TimeStampParserTests(unittest.TestCase):
 
     def test_date_parser_generic(self):

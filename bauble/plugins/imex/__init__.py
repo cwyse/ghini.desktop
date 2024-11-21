@@ -25,10 +25,10 @@
 # transform from any format to another
 
 import bauble.pluginmgr as pluginmgr
-from bauble.plugins.imex.csv_ import CSVImportTool, CSVExportTool, \
-    CSVExportCommandHandler, CSVImportCommandHandler
-from bauble.plugins.imex.iojson import JSONImportTool, JSONExportTool
-from bauble.plugins.imex.xml import XMLExportTool, XMLExportCommandHandler
+from bauble.plugins.imex.csv_ import (CSVExportCommandHandler, CSVExportTool,
+                                      CSVImportCommandHandler, CSVImportTool)
+from bauble.plugins.imex.iojson import JSONExportTool, JSONImportTool
+from bauble.plugins.imex.xml import XMLExportCommandHandler, XMLExportTool
 
 # TODO: it might be best to do something like the reporter plugin so
 # that this plugin provides a generic interface for importing and exporting

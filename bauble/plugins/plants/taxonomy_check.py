@@ -16,19 +16,18 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import logging
+import os
 from functools import reduce
-logger = logging.getLogger(__name__)
-from bauble import paths, pluginmgr, utils
-from bauble.plugins.plants import Species
 
+logger = logging.getLogger(__name__)
 from gi.repository import Pango
 
-
-from bauble.editor import (
-    GenericEditorView, GenericEditorPresenter)
+from bauble import paths, pluginmgr, utils
+from bauble.editor import GenericEditorPresenter, GenericEditorView
+from bauble.plugins.plants import Species
 from bauble.utils import safe_set_text
+
 
 def start_taxonomy_check():
     '''run the batch taxonomy check (BTC)

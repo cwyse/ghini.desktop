@@ -21,8 +21,11 @@
 #
 
 import logging
-from bauble.test import BaubleTestCase
+
 import requests
+
+from bauble.test import BaubleTestCase
+
 
 def requests_get(x, timeout=None):
     import time
@@ -39,8 +42,10 @@ def requests_get(x, timeout=None):
 
 requests.get = requests_get
 
-from .ask_tpl import AskTPL, what_to_do_with_it
 import bauble.plugins.plants.ask_tpl
+
+from .ask_tpl import AskTPL, what_to_do_with_it
+
 
 class TestOne(BaubleTestCase):
 

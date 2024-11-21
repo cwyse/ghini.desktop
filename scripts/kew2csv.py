@@ -1,6 +1,10 @@
 #!/usr/bin/python
 
-import sys, os, glob, csv, zipfile
+import csv
+import glob
+import os
+import sys
+import zipfile
 
 # NOTE: for some reason the files for the old family names downloaded from the
 # kew website don't end in .TXT like the rest

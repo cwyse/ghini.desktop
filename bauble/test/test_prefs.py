@@ -18,14 +18,14 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
-from bauble.test import BaubleTestCase
-from bauble import prefs
 from tempfile import mkstemp
-from bauble import version_tuple
 
+from bauble import prefs, version_tuple
+from bauble.test import BaubleTestCase
 
 prefs.testing = True
 

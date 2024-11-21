@@ -18,6 +18,7 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -26,22 +27,18 @@ logging.getLogger().addHandler(consoleHandler)
 consoleHandler.setLevel(logging.DEBUG)
 logging.getLogger().setLevel(logging.DEBUG)
 
-from bauble.plugins.garden.aggregateclient import get_submissions, get_image
-import os.path
+import codecs
 import datetime
 import json
-import codecs
 import os
+import os.path
 import uuid
 
 import bauble.db
 import bauble.utils
-
-from bauble.plugins.garden import Location
-from bauble.plugins.garden import Plant
-from bauble.plugins.garden import Accession
-from bauble.plugins.plants import Species
-from bauble.plugins.plants import Genus
+from bauble.plugins.garden import Accession, Location, Plant
+from bauble.plugins.garden.aggregateclient import get_image, get_submissions
+from bauble.plugins.plants import Genus, Species
 
 path = os.path.dirname(os.path.realpath(__file__))
 

@@ -25,29 +25,30 @@
 
 
 
+import logging
 import os
 import sys
+from functools import partial
 from unittest import TestCase
 
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.exc import IntegrityError
 from nose import SkipTest
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import NoResultFound
 
-import bauble.utils as utils
 import bauble.db as db
-from bauble.plugins.plants.species import (
-    Species, VernacularName, SpeciesSynonym, edit_species,
-    DefaultVernacularName, SpeciesDistribution, SpeciesNote)
-from bauble.plugins.plants.family import (
-    Family, FamilySynonym, FamilyEditor, FamilyNote)
-from bauble.plugins.plants.genus import \
-    Genus, GenusSynonym, GenusEditor, GenusNote
-from bauble.plugins.plants.geography import GeographicArea, get_species_in_geographic_area
+import bauble.utils as utils
+from bauble.plugins.plants.family import (Family, FamilyEditor, FamilyNote,
+                                          FamilySynonym)
+from bauble.plugins.plants.genus import (Genus, GenusEditor, GenusNote,
+                                         GenusSynonym)
+from bauble.plugins.plants.geography import (GeographicArea,
+                                             get_species_in_geographic_area)
+from bauble.plugins.plants.species import (DefaultVernacularName, Species,
+                                           SpeciesDistribution, SpeciesNote,
+                                           SpeciesSynonym, VernacularName,
+                                           edit_species)
 from bauble.test import BaubleTestCase, check_dupids, mockfunc
 
-from functools import partial
-
-import logging
 logging.basicConfig()
 #logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
@@ -67,7 +68,6 @@ logging.basicConfig()
 
 
 from bauble.plugins.plants.species_model import _remove_zws as remove_zws
-
 
 family_test_data = (
     {'id': 1, 'epithet': 'Orchidaceae'},
@@ -264,8 +264,9 @@ class DuplicateIdsGlade(TestCase):
         """
         Test for duplicate ids for all .glade files in the plants plugin.
         """
-        import bauble.plugins.garden as mod
         import glob
+
+        import bauble.plugins.garden as mod
         head, tail = os.path.split(mod.__file__)
         files = glob.glob(os.path.join(head, '*.glade'))
         for f in files:
@@ -1147,7 +1148,7 @@ class SpeciesTests(PlantTestCase):
         caricaceae = Family(epithet='Caricaceae')
         f5 = Genus(epithet='Carica', family=caricaceae)
         sp = Species(epithet='papaya', genus=f5)
-        from bauble.plugins.garden import (Accession)
+        from bauble.plugins.garden import Accession
         acc = Accession(code='0123456', species=sp)
         self.session.add_all([caricaceae, f5, sp, acc])
         self.session.flush()
@@ -1995,6 +1996,8 @@ class GlobalFunctionsTest(PlantTestCase):
         self.assertEqual(partial(db.natsort, 'species.accessions')(vName), [])
 
 import bauble.search
+
+
 class BaubleSearchSearchTest(BaubleTestCase):
     def test_search_search_uses_Synonym_Search(self):
         import bauble.plugins.garden.plant

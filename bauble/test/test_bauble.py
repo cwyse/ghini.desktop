@@ -20,22 +20,22 @@
 # test_bauble.py
 #
 import datetime
+import logging
 import os
 import time
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from sqlalchemy import (
-    Column, Integer)
-
 import unittest
+
+from sqlalchemy import Column, Integer
+
 import bauble
 import bauble.db as db
+import bauble.meta as meta
 from bauble.btypes import Enum, EnumError
 from bauble.test import BaubleTestCase, check_dupids
-import bauble.meta as meta
 
 """Tests for the main bauble module.
 
@@ -200,8 +200,9 @@ class BaubleTests(BaubleTestCase):
         self.assertTrue(m._last_updated != last_updated)
 
     def test_duplicate_ids(self):
-        import bauble as mod
         import glob
+
+        import bauble as mod
         head, tail = os.path.split(mod.__file__)
         files = glob.glob(os.path.join(head, '*.glade'))
         for f in files:
@@ -236,8 +237,7 @@ class HistoryTests(BaubleTestCase):
 class MVPTests(BaubleTestCase):
 
     def test_can_programmatically_connect_signals(self):
-        from bauble.editor import (
-            GenericEditorPresenter, GenericEditorView)
+        from bauble.editor import GenericEditorPresenter, GenericEditorView
 
         class HandlerDefiningPresenter(GenericEditorPresenter):
             def on_tag_desc_textbuffer_changed(self, *args):
@@ -281,6 +281,7 @@ class MVPTests(BaubleTestCase):
 class GlobalFunctionsTests(unittest.TestCase):
     def test_newer_version_on_github(self):
         import io
+
         from bauble.connmgr import newer_version_on_github
         stream = io.BytesIO(b'version = "1.0.0"  # comment')
         self.assertFalse(newer_version_on_github(stream) and True or False)
