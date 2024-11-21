@@ -12,8 +12,8 @@
             },
             "pathMappings": [
                 {
-                    "localRoot": "/home/chris/repositories/ghini.desktop",  // Path to your code on your local machine
-                    "remoteRoot": "/app"  // Path to your code in the container
+                    "localRoot": "/home/chris/debug/ghini.desktop",  
+                    "remoteRoot": "/app"  
                 }
             ],
             "preLaunchTask": "Wait for Container",
@@ -31,8 +31,8 @@
             },
             "pathMappings": [
                 {
-                    "localRoot": "/home/chris/repositories/ghini.desktop",  // Path to your code on your local machine
-                    "remoteRoot": "/app"  // Path to your code in the container
+                    "localRoot": "/home/chris/debug/ghini.desktop", 
+                    "remoteRoot": "/app" 
                 }
             ],
             "preLaunchTask": "Wait for Test Container",
@@ -50,8 +50,8 @@
             },
             "pathMappings": [
                 {
-                    "localRoot": "/home/chris/repositories/ghini.desktop",  // Path to your code on your local machine
-                    "remoteRoot": "/app"  // Path to your code in the container
+                    "localRoot": "/home/chris/debug/ghini.desktop",  
+                    "remoteRoot": "/app" 
                 }
             ],
             "justMyCode": false,

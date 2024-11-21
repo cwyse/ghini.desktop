@@ -6,7 +6,7 @@
             "type": "shell",
             "command": "docker buildx build --ssh default --progress=plain --build-arg COMMIT=$(git rev-parse HEAD) --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --load -t ghini-desktop:latest .",
             "options": {
-                "cwd": "/home/chris/repositories/ghini.desktop"
+                "cwd": "/home/chris/debug/ghini.desktop"
             },
             "problemMatcher": [],
             "detail": "Build Docker image with buildx and custom arguments",
@@ -18,9 +18,9 @@
         {
             "label": "Build Docker Test Image",
             "type": "shell",
-            "command": "docker buildx build --ssh default --progress=plain --build-arg COMMIT=$(git rev-parse HEAD) --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --load -f Dockerfile.test -t ghini-desktop-test:latest .",
+            "command": "docker buildx build --no-cache --ssh default --progress=plain --build-arg COMMIT=$(git rev-parse HEAD) --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --load -f Dockerfile.test -t ghini-desktop-test:latest .",
             "options": {
-                "cwd": "/home/chris/repositories/ghini.desktop"
+                "cwd": "/home/chris/debug/ghini.desktop"
             },
             "problemMatcher": [],
             "detail": "Build Docker test image with buildx and custom arguments",
@@ -28,7 +28,7 @@
                 "kind": "build",
                 "isDefault": true
             }
-        },        
+        },
         {
             "label": "Stop Docker Container",
             "type": "shell",
@@ -44,7 +44,7 @@
         {
             "label": "Run Docker Container",
             "type": "shell",
-            "command": "( nohup docker run --rm -t -p 5678:5678 -e DEBUG=true -e USER=ghini -e DISPLAY=$DISPLAY -e DB_HOST=postgres.wysechoice.net -e DB_PORT=5432 -e DB_NAME=ghini_test3 -e DB_USER=ghini -e DB_SSLMODE=prefer -e KRB5_CONFIG=/krb5/krb5.conf -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab -e NO_AT_BRIDGE=1 -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/krb5:/krb5:ro -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1 -v /usr/lib/dri:/usr/lib/dri  -v $HOME/repositories/ghini.desktop:/app --device /dev/dri:/dev/dri --user $(id -u):$(id -g) --name ghini_debug ghini-desktop:latest &) && sleep 2",
+            "command": "( nohup docker run --rm -t -p 5678:5678 -e DEBUG=true -e USER=ghini -e DISPLAY=$DISPLAY -e DB_HOST=postgres.wysechoice.net -e DB_PORT=5432 -e DB_NAME=ghini_test3 -e DB_USER=ghini -e DB_SSLMODE=prefer -e KRB5_CONFIG=/krb5/krb5.conf -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab -e NO_AT_BRIDGE=1 -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/krb5:/krb5:ro -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1 -v /usr/lib/dri:/usr/lib/dri  -v $HOME/debug/ghini.desktop:/app --device /dev/dri:/dev/dri --user $(id -u):$(id -g) --name ghini_debug ghini-desktop:latest &) && sleep 2",
             "options": {
                 "env": {
                     "DISPLAY": ":0"
@@ -58,7 +58,7 @@
         {
             "label": "Run Docker Test Container",
             "type": "shell",
-            "command": "( nohup docker run --rm -t -p 5678:5678 -e DEBUG=true -e USER=ghini -e DISPLAY=$DISPLAY -e DB_HOST=postgres.wysechoice.net -e DB_PORT=5432 -e DB_NAME=ghini_test3 -e DB_USER=ghini -e DB_SSLMODE=prefer -e KRB5_CONFIG=/krb5/krb5.conf -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab -e NO_AT_BRIDGE=1 -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/krb5:/krb5:ro -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1 -v /usr/lib/dri:/usr/lib/dri  -v $HOME/repositories/ghini.desktop:/app --device /dev/dri:/dev/dri --user $(id -u):$(id -g) --name ghini_test ghini-desktop-test:latest &) && sleep 2",
+            "command": "( nohup docker run --rm -t -p 5678:5678 -e DEBUG=true -e USER=ghini -e DISPLAY=$DISPLAY -e DB_HOST=postgres.wysechoice.net -e DB_PORT=5432 -e DB_NAME=ghini_test3 -e DB_USER=ghini -e DB_SSLMODE=prefer -e KRB5_CONFIG=/krb5/krb5.conf -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab -e NO_AT_BRIDGE=1 -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/krb5:/krb5:ro -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1 -v /usr/lib/dri:/usr/lib/dri  -v $HOME/debug/ghini.desktop:/app --device /dev/dri:/dev/dri --user $(id -u):$(id -g) --name ghini_test ghini-desktop-test:latest &) && sleep 2",
             "options": {
                 "env": {
                     "DISPLAY": ":0"
@@ -74,14 +74,14 @@
             "type": "shell",
             "command": "until docker exec ghini_debug netstat -tuln | grep :5678 ; do sleep 1; done",
             "problemMatcher": [],
-            "dependsOn": "Run Docker Container",
+            "dependsOn": "Run Docker Container"
         },
         {
             "label": "Wait for Test Container",
             "type": "shell",
             "command": "until docker exec ghini_test netstat -tuln | grep :5678 ; do sleep 1; done",
             "problemMatcher": [],
-            "dependsOn": "Run Docker Test Container",
-        }        
+            "dependsOn": "Run Docker Test Container"
+        }
     ]
 }
