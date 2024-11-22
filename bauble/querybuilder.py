@@ -51,7 +51,7 @@ def parse_typed_value(value):
         except ValueError:
             new_val = float(value)
         return new_val
-    except ValueError as e:
+    except ValueError:
         logger.error("Invalid input type: %s", value)
         return value  # fallback to string
 
@@ -441,13 +441,17 @@ class QueryBuilder(GenericEditorPresenter):
         domain = self.domain_map[self.domain]
         self.mapper = class_mapper(domain)
         self.table_row_count += 1
-        row = ExpressionRow(self, self.remove_expression_row, self.table_row_count)
+        row = ExpressionRow(
+            self, self.remove_expression_row, self.table_row_count
+        )
         self.expression_rows.append(row)
         self.view.widgets.expressions_table.show_all()
 
     def start(self):
         if self.default_size is None:
-            self.__class__.default_size = self.view.widgets.main_dialog.get_size()
+            self.__class__.default_size = (
+                self.view.widgets.main_dialog.get_size()
+            )
         else:
             self.view.widgets.main_dialog.resize(*self.default_size)
         return self.view.start()

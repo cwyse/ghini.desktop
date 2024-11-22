@@ -847,7 +847,6 @@ class PropagationTests(GardenTestCase):
         """we can reach the parent plant from an accession"""
 
         self.add_plants(["1"])
-        pass
 
     def test_seed_property(self):
         loc = Location(name="name", code="code")

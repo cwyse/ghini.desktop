@@ -4,7 +4,7 @@
         {
             "label": "Build Docker Image",
             "type": "shell",
-            "command": "docker buildx build --ssh default --progress=plain --build-arg COMMIT=$(git rev-parse HEAD) --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --load -t ghini-desktop:latest .",
+            "command": "docker buildx build --no-cache --ssh default --progress=plain --build-arg COMMIT=$(git rev-parse HEAD) --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --load -t ghini-desktop:latest .",
             "options": {
                 "cwd": "/home/chris/debug/ghini.desktop"
             },

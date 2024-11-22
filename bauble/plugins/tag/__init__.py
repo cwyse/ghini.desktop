@@ -238,11 +238,15 @@ class TagsMenuManager:
         view.update_bottom_notebook()
 
     def on_apply_active_tag_activated(self, *args, **kwargs):
-        logger.debug("you're applying %s to the selection", self.active_tag_name)
+        logger.debug(
+            "you're applying %s to the selection", self.active_tag_name
+        )
         self.toggle_tag(applying=tag_objects)
 
     def on_remove_active_tag_activated(self, *args, **kwargs):
-        logger.debug("you're removing %s from the selection", self.active_tag_name)
+        logger.debug(
+            "you're removing %s from the selection", self.active_tag_name
+        )
         self.toggle_tag(applying=untag_objects)
 
 
@@ -332,7 +336,9 @@ class TagEditorPresenter(GenericEditorPresenter):
             self.last_entry = entry
         else:
             tv, path = tree.get_selection().get_selected()
-            self.view.widgets.notes_list[path][self.column] = self.last_entry.get_text()
+            self.view.widgets.notes_list[path][
+                self.column
+            ] = self.last_entry.get_text()
 
     def on_cell_editing_started_col0(self, *args):
         self.column = 2
@@ -656,7 +662,9 @@ class Tag(db.Base, db.WithNotes):
         elif len(classes) == 0:
             fine_prints = _("tagging nothing")
         else:
-            fine_prints = _("tagging %(1)s objects of %(2)s different types") % {
+            fine_prints = _(
+                "tagging %(1)s objects of %(2)s different types"
+            ) % {
                 "1": len(objects),
                 "2": len(classes),
             }
@@ -897,7 +905,9 @@ class GeneralTagExpander(InfoExpander):
         self.table_cells = []
 
     def update(self, row):
-        on_label_clicked = lambda l, e, x: bauble.gui.send_command(x)
+        def on_label_clicked(l, e, x):
+            return bauble.gui.send_command(x)
+
         self.current_obj = row
         self.widget_set_value("ib_name_label", row.tag)
         self.widget_set_value("ib_description_label", row.description)

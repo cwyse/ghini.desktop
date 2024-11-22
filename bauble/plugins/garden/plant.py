@@ -33,7 +33,6 @@ import bauble.meta as meta
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
-from bauble.utils import safe_set_text
 import bauble.view as view
 from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorView
@@ -45,6 +44,7 @@ from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.location import LocationEditor
 from bauble.search import SearchStrategy
+from bauble.utils import safe_set_text
 from bauble.view import Action
 from bauble.view import InfoBox
 from bauble.view import InfoExpander

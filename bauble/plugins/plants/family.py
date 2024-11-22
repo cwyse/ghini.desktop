@@ -595,7 +595,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self.parent_ref = weakref.ref(parent)
         super().__init__(self.parent_ref().model, self.parent_ref().view)
         self.session = self.parent_ref().session
-        safe_set_props(self.view.widgets.fam_syn_entry, 'text', '')
+        safe_set_props(self.view.widgets.fam_syn_entry, "text", "")
         self.init_treeview()
 
         # List to track new synonyms for addition to the database
@@ -752,7 +752,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         # Clear selection and entry field
         self._selected = None
         entry = self.view.widgets.fam_syn_entry
-        safe_set_props(entry, 'text', '')
+        safe_set_props(entry, "text", "")
         entry.set_position(-1)
         self.view.widgets.fam_syn_add_button.set_sensitive(False)
 

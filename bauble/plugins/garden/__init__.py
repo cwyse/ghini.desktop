@@ -216,7 +216,7 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
     re_code_name_splitter = re.compile(r"\(([^)]+)\) ?(.*)")
 
     def cell_data_func(col, cell, model, treeiter, data=None):
-        cell.props.text = utils.utf8(model[treeiter][0])
+        safe_set_text(cell, utils.utf8(model[treeiter][0]))
 
     from gi.repository import Gtk
 
@@ -319,7 +319,7 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
         if not i:
             return
         location = combo.get_model()[i][0]
-        safe_set_props(combo.get_child(), 'text', str(location))
+        safe_set_props(combo.get_child(), "text", str(location))
 
     presenter.view.connect(combo, "changed", on_combo_changed)
 

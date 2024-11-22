@@ -17,19 +17,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import logging
 import os
 import re
-
-from gi.repository import Gtk
-
-logger = logging.getLogger(__name__)
-
-from sqlalchemy import *
-from sqlalchemy.exc import *
-from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
-from sqlalchemy.orm.exc import *
+from gettext import gettext as _
 
 import bauble
 import bauble.db as db
@@ -37,7 +28,17 @@ import bauble.editor as editor
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-from bauble.error import CheckConditionError, check
+from bauble.error import check
+from bauble.error import CheckConditionError
+from gi.repository import Gtk
+from sqlalchemy import *
+from sqlalchemy.exc import *
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy.orm.exc import *
+
+logger = logging.getLogger(__name__)
+
 
 # WARNING: "roles" are specific to PostgreSQL database from 8.1 and
 # greater, therefore this module won't work on earlier PostgreSQL
@@ -245,7 +246,7 @@ def get_members(group):
     gid = db.engine.execute(stmt).fetchone()[0]
     # get members with the gid
     stmt = "select member from pg_auth_members where roleid = '%s'" % gid
-    roleids = [r[0] for r in db.engine.execute(stmt).fetchall()]
+    [r[0] for r in db.engine.execute(stmt).fetchall()]
     stmt = (
         "select rolname from pg_roles where oid in (select member "
         "from pg_auth_members where roleid = %s)" % gid
@@ -489,7 +490,9 @@ def set_privilege(role, privilege):
                 seq_privs = [x for x in privs if x.lower() in __sequence_privs]
                 for priv in seq_privs:
                     if has_implicit_sequence(col):
-                        sequence_name = "{}_{}_seq".format(table.name, col.name)
+                        sequence_name = "{}_{}_seq".format(
+                            table.name, col.name
+                        )
                         logger.debug(
                             "column {} of table {} has associated sequence {}".format(
                                 col, table, sequence_name
@@ -532,7 +535,9 @@ def set_password(password, user=None):
     conn = db.engine.connect()
     trans = conn.begin()
     try:
-        stmt = "alter role {} with encrypted password '{}'".format(user, password)
+        stmt = "alter role {} with encrypted password '{}'".format(
+            user, password
+        )
         conn.execute(stmt)
     except Exception as e:
         logger.error(
@@ -644,7 +649,7 @@ class UsersEditor(editor.GenericEditorView):
     def on_add_button_clicked(self, button, *args):
         tree = self.widgets.users_tree
         column = tree.get_column(0)
-        cell = column.get_cell_renderers()[0]
+        column.get_cell_renderers()[0]
         model = tree.get_model()
         treeiter = model.append([self.new_user_message])
         path = model.get_path(treeiter)

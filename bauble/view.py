@@ -24,6 +24,7 @@ import itertools
 import logging
 import os
 import sys
+import threading
 import traceback
 from gettext import gettext as _
 
@@ -114,7 +115,9 @@ class Action(Gtk.Action):
         The activate signal is not automatically connected to the
         callback method.
         """
-        super().__init__(name=name, label=label, tooltip=tooltip, stock_id=stock_id)
+        super().__init__(
+            name=name, label=label, tooltip=tooltip, stock_id=stock_id
+        )
         self.callback = callback
         self.multiselect = multiselect
         self.singleselect = singleselect
@@ -547,7 +550,7 @@ class CountResultsTask(threading.Thread):
                 GObject.idle_add(callback, value)
         else:
             logger.debug("showing text %s", value)
-        ## we should not leave the session around
+        # we should not leave the session around
         session.close()
 
 
@@ -593,8 +596,12 @@ class PopulateResults(threading.Thread):
                 continue
             GObject.idle_add(append_expandable_row, model, obj)
             if not added:  # this is the first iteration
-                GObject.idle_add(utils.none, self.view.results_view.set_cursor, 0)
-                GObject.idle_add(utils.none, self.view.results_view.scroll_to_cell, 0)
+                GObject.idle_add(
+                    utils.none, self.view.results_view.set_cursor, 0
+                )
+                GObject.idle_add(
+                    utils.none, self.view.results_view.scroll_to_cell, 0
+                )
             steps_so_far += 1
             percent = float(steps_so_far) / nresults
             if 0 < percent < 1.0:
@@ -746,7 +753,9 @@ class SearchView(pluginmgr.View):
             "label": label,
             "name": _("Notes"),
         }
-        self.widgets.notes_treeview.connect("row-activated", self.on_note_row_activated)
+        self.widgets.notes_treeview.connect(
+            "row-activated", self.on_note_row_activated
+        )
         logger.debug("exiting add_notes_page_to_bottom_notebook")
 
     def on_note_row_activated(self, tree, path, column):
@@ -800,7 +809,7 @@ class SearchView(pluginmgr.View):
         """
         logger.debug("update_bottom_notebook - entering")
         values = self.get_selected_values()
-        ## Only one should be selected
+        # Only one should be selected
         if values is None or len(values) != 1:
             logger.debug("update_bottom_notebook - need one single row")
             self.view.widget_set_visible("bottom_notebook", False)
@@ -814,7 +823,7 @@ class SearchView(pluginmgr.View):
             )
         )
 
-        ## loop over bottom_info plugin classes (eg: Tag)
+        # loop over bottom_info plugin classes (eg: Tag)
         for klass, bottom_info in list(self.bottom_info.items()):
             logger.debug(
                 "update_bottom_notebook - for {}({})".format(
@@ -950,9 +959,9 @@ class SearchView(pluginmgr.View):
         Update the infobox and switch the accelerators depending on the
         type of the row that the cursor points to.
         """
-        ## update all forward-looking info boxes
+        # update all forward-looking info boxes
         self.update_infobox()
-        ## update all backward-looking info boxes
+        # update all backward-looking info boxes
         self.update_bottom_notebook()
         pictures_view.floating_window.set_selection(self.get_selected_values())
 
@@ -1548,7 +1557,9 @@ class HistoryView(pluginmgr.View):
         mapper_search = search.get_strategy("MapperSearch")
         if table in mapper_search._domains:
             query = "{} where id={}".format(table, obj_id)
-            safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), query)
+            safe_set_text(
+                bauble.gui.widgets.main_comboentry.get_child(), query
+            )
             bauble.gui.widgets.go_button.emit("clicked")
 
     def update(self):

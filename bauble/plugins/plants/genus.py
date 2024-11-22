@@ -739,7 +739,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self.parent_ref = weakref.ref(parent)
         super().__init__(self.parent_ref().model, self.parent_ref().view)
         self.session = self.parent_ref().session
-        safe_set_props(self.view.widgets.gen_syn_entry, 'text', '')
+        safe_set_props(self.view.widgets.gen_syn_entry, "text", "")
         self.init_treeview()
 
         def gen_get_completions(text):
@@ -843,7 +843,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         tree_model.append([syn])
         self._selected = None
         entry = self.view.widgets.gen_syn_entry
-        safe_set_props(entry, 'text', '')
+        safe_set_props(entry, "text", "")
         entry.set_position(-1)
         self.view.widgets.gen_syn_add_button.set_sensitive(False)
         self.view.widgets.gen_syn_add_button.set_sensitive(False)

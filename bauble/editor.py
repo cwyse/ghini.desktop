@@ -1395,7 +1395,7 @@ class GenericEditorPresenter:
         if attr is None:
             return
         if value is None:
-            value = widget.props.text
+            value = widget.set_text
             value = value and utils.utf8(value) or None
         logger.debug(
             "on_text_entry_changed(%s, %s) - %s → %s"
@@ -1457,7 +1457,7 @@ class GenericEditorPresenter:
         if attr is None:
             return
         if value is None:
-            value = widget.props.text
+            value = widget.set_text
             value = value and utils.utf8(value) or None
         if not value:
             self.add_problem(self.PROBLEM_EMPTY, widget)
@@ -1488,7 +1488,7 @@ class GenericEditorPresenter:
         attr = self.__get_widget_attr(widget)
         logger.debug("on_datetime_entry_changed({}, {})".format(widget, attr))
         if value is None:
-            value = widget.props.text
+            value = widget.set_text
             value = value and utils.utf8(value) or None
         self.__set_model_attr(attr, value)
 
@@ -1756,13 +1756,13 @@ class GenericEditorPresenter:
         if isinstance(widget, Gtk.Entry):
 
             def on_changed(entry):
-                self.set_model_attr(model_attr, entry.props.text, validator)
+                self.set_model_attr(model_attr, entry.set_text, validator)
 
             self.view.connect(widget, "changed", on_changed)
         elif isinstance(widget, Gtk.TextView):
 
             def on_changed(textbuff):
-                self.set_model_attr(model_attr, textbuff.props.text, validator)
+                self.set_model_attr(model_attr, textbuff.set_text, validator)
 
             buff = widget.get_buffer()
             self.view.connect(buff, "changed", on_changed)
@@ -1785,7 +1785,7 @@ class GenericEditorPresenter:
                 self.set_model_attr(model_attr, value, validator)
 
             def entry_changed(entry, data=None):
-                self.set_model_attr(model_attr, entry.props.text, validator)
+                self.set_model_attr(model_attr, entry.set_text, validator)
 
             self.view.connect(widget, "changed", combo_changed)
             if isinstance(widget, Gtk.ComboBox) and isinstance(
@@ -1936,7 +1936,7 @@ class GenericEditorPresenter:
             # temporarily block the changed ID so that this function
             # doesn't get called twice
             widget.handler_block(_changed_sid)
-            widget.props.text = utils.utf8(value)
+            widget.set_text = utils.utf8(value)
             widget.handler_unblock(_changed_sid)
             self.remove_problem(PROBLEM, widget)
             on_select(value)
@@ -2144,7 +2144,7 @@ class NoteBox(Gtk.HBox):
         self.show_all()
 
     def set_expanded(self, expand):
-        self.widgets.notes_expander.props.expanded = expand
+        self.widgets.notes_expander.set_expanded = expand
 
     def on_notes_remove_button(self, button, *args):
         """ """
@@ -2156,7 +2156,7 @@ class NoteBox(Gtk.HBox):
 
     def on_date_entry_changed(self, entry, *args):
         PROBLEM = "BAD_DATE"
-        text = entry.props.text
+        text = entry.set_text
         try:
             text = DateValidator().to_python(text)
         except Exception as e:
@@ -2167,7 +2167,7 @@ class NoteBox(Gtk.HBox):
             self.set_model_attr("date", text)
 
     def on_user_entry_changed(self, entry, *args):
-        value = utils.utf8(entry.props.text)
+        value = utils.utf8(entry.set_text)
         if not value:  # if value == ''
             value = None
         self.set_model_attr("user", value)
@@ -2189,13 +2189,13 @@ class NoteBox(Gtk.HBox):
 
     def on_category_entry_changed(self, entry, *args):
         """ """
-        value = utils.utf8(entry.props.text)
+        value = utils.utf8(entry.set_text)
         if not value:  # if value == ''
             value = None
         self.set_model_attr("category", value)
 
     def on_note_buffer_changed(self, buff, widget, *args):
-        value = utils.utf8(buff.props.text)
+        value = utils.utf8(buff.set_text)
         if not value:  # if value == ''
             value = None
             self.presenter.add_problem(self.presenter.PROBLEM_EMPTY, widget)
@@ -2212,7 +2212,7 @@ class NoteBox(Gtk.HBox):
         elif self.model.date:
             date_str = utils.xml_safe(self.model.date)
         else:
-            date_str = self.widgets.date_entry.props.text
+            date_str = self.widgets.date_entry.set_text
 
         if self.model.user and date_str:  # and self.model.date:
             label.append(
@@ -2252,9 +2252,9 @@ class NoteBox(Gtk.HBox):
             # tmp variable since the changed signal won't fire if
             # the new value is the same as the old
             entry = self.widgets.date_entry
-            tmp = entry.props.text
-            safe_set_props(entry, 'text', '')
-            safe_set_props(entry, 'text', tmp)
+            tmp = entry.get_text()
+            safe_set_props(entry, "text", "")
+            safe_set_props(entry, "text", tmp)
             # if the note is new and isn't yet associated with an
             # accession then set the accession when we start
             # changing values, this way we can setup a dummy

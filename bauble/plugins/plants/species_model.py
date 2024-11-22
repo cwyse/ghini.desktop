@@ -17,8 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
-
 import logging
 from gettext import gettext as _
 from itertools import chain
@@ -298,7 +296,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                     '<span weight="light">' + authorship_text + "</span>",
                 )
             return citation + trail, substring
-        except Exception as e:
+        except Exception:
             import traceback
 
             logger.warning(traceback.format_exc())
@@ -448,7 +446,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     )
     infrasp4_author = Column(Unicode(64))
 
-    ## the Species.genus property is defined as back_populates in Genus.species
+    # the Species.genus property is defined as back_populates in Genus.species
 
     label_distribution = Column(UnicodeText)
     bc_distribution = Column(UnicodeText)
@@ -475,7 +473,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         single_parent=True,
     )
 
-    ## VernacularName.species gets defined here too.
+    # VernacularName.species gets defined here too.
     vernacular_names = (
         relationship(
             "VernacularName",
@@ -823,7 +821,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         from .genus import Genus
 
         result = {"genus": None}
-        ## retrieve genus object
+        # retrieve genus object
         specifies_family = keys.get("familia")
         result["genus"] = Genus.retrieve_or_create(
             session,
@@ -997,7 +995,7 @@ class VernacularName(db.Base, db.Serializable):
         logger.debug("compute_serializable_fields(session, %s)" % keys)
         result = {"species": None}
         if "species" in keys:
-            ## now we must connect the name to the species it refers to
+            # now we must connect the name to the species it refers to
             genus_name, epithet = keys["species"].split(" ", 1)
             sp_dict = {"ht-epithet": genus_name, "epithet": epithet}
             result["species"] = Species.retrieve_or_create(
