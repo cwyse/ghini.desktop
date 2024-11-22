@@ -48,17 +48,8 @@ from bauble.plugins.plants.genus import Genus, GenusSynonym
 from bauble.plugins.plants.species_model import (
     Species, SpeciesDistribution, VernacularName, SpeciesSynonym, Habit,
     infrasp_rank_values, compare_rank)
-
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
+from bauble.utils import safe_set_text
+from bauble.utils import safe_set_props
 
 class SpeciesEditorPresenter(editor.GenericEditorPresenter):
 
@@ -104,7 +95,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         self.init_enum_combo('sp_spqual_combo', 'sp_qual')
 
         def cell_data_func(column, cell, model, treeiter, data=None):
-            cell.props.text = utils.utf8(model[treeiter][0])
+            safe_set_props(cell, 'text', utils.utf8(model[treeiter][0]))
 
         combo = self.view.widgets.sp_habit_comboentry
         model = Gtk.ListStore(str, object)
@@ -361,7 +352,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         value = combo.get_model()[treeiter][1]
         self.set_model_attr('habit', value)
         # the entry change handler does the validation of the model
-        combo.get_child().props.text = utils.utf8(value)
+        safe_set_props(combo.get_child(), 'text', utils.utf8(value))
         combo.get_child().set_position(-1)
 
     def __del__(self):
@@ -460,6 +451,8 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             self.view.set_label('sp_fullname_label', '--')
             return
         sp_str = self.model.str(markup=True, authors=True)
+        if isinstance(sp_str, bytes):  # Ensure `sp_str` is a string
+            sp_str = sp_str.decode('utf-8')
         self.view.set_label('sp_fullname_label', sp_str)
         if self.model.genus is not None:
             genus = self.model.genus
@@ -951,7 +944,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         super().__init__(parent.model, parent.view)
         self.parent_ref = weakref.ref(parent)
         self.session = parent.session
-        self.view.widgets.sp_syn_entry.props.text = ''
+        safe_set_props(self.view.widgets.sp_syn_entry, 'text', '')
         self.init_treeview()
 
         def sp_get_completions(text):

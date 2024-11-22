@@ -61,16 +61,6 @@ from bauble import utils
 from bauble import editor
 from bauble import pictures_view
 
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
 
 # use different formatting template for the result view depending on the
 # platform
@@ -1089,11 +1079,16 @@ class SearchView(pluginmgr.View):
                 except:
                     main = r
                     substr = '(%s)' % type(value).__name__
+
+                # Ensure main and substr are strings, not bytes
+                main_str = str(main) if not isinstance(main, str) else main
+                substr_str = str(substr) if not isinstance(substr, str) else substr
+
+                # Set the cell property with properly formatted markup
                 cell.set_property(
                     'markup', '%s\n%s' %
-                    (_mainstr_tmpl % utils.utf8(main),
-                     _substr_tmpl % utils.utf8(substr)))
-
+                    (_mainstr_tmpl % main_str, _substr_tmpl % substr_str)
+                )
             except (saexc.InvalidRequestError, TypeError) as e:
                 logger.warning(
                     'bauble.view.SearchView.cell_data_func(): \n(%s)%s' %

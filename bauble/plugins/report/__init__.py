@@ -52,7 +52,7 @@ import bauble.pluginmgr as pluginmgr
 from bauble.plugins.plants import Family, Genus, Species, VernacularName
 from bauble.plugins.garden import Accession, Plant, Location, Source, Contact
 from bauble.plugins.tag import Tag
-
+from bauble.utils import safe_set_text
 from bauble.editor import (
     GenericEditorView, GenericEditorPresenter)
 
@@ -66,16 +66,6 @@ config_list_pref = 'report.options'
 default_config_pref = 'report.xsl'
 formatter_settings_expanded_pref = 'report.settings.expanded'
 
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
 
 def get_plant_query(obj, session):
     """

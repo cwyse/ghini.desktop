@@ -578,7 +578,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                     logger.info('cannot find specified rank %s' % e)
 
         parts = chain(binomial, infrasp_parts, tail)
-        s = utils.utf8(' '.join(i for i in parts if i))
+        # Convert to string explicitly before returning
+        s = ' '.join(i for i in parts if i)
         if self.hybrid:
             s = s.replace('%s ' % self.hybrid_char, self.hybrid_char)
         return s

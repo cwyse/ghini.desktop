@@ -51,6 +51,7 @@ import bauble.utils as utils
 import bauble.btypes as types
 import bauble.paths as paths
 from bauble.prefs import prefs
+from bauble.utils import safe_set_text
 from bauble.view import (InfoBox, InfoExpander, PropertiesExpander,
                          select_in_search_results, Action)
 import bauble.view as view
@@ -65,16 +66,6 @@ import bauble.view as view
 # to use the accepted name and show the author of the genus then so
 # they aren't using the wrong version of the Genus, e.g. Cananga
 
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
 
 def edit_callback(genera):
     genus = genera[0]
@@ -356,7 +347,8 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         return result
 
     def top_level_count(self):
-        accessions = [a for s in self.species for a in s.accessions]
+        accessions = [a for s in self.species if s.accessions for a in s.accessions]
+        #accessions = [a for s in self.species for a in s.accessions]
         plants = [p for a in accessions for p in a.plants]
         return {(1, 'Genera'): set([self.id]),
                 (2, 'Families'): set([self.family.id]),
@@ -632,7 +624,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         super().__init__(self.parent_ref().model,
                                                 self.parent_ref().view)
         self.session = self.parent_ref().session
-        self.view.widgets.gen_syn_entry.props.text = ''
+        safe_set_props(self.view.widgets.gen_syn_entry, 'text', '')
         self.init_treeview()
 
         def gen_get_completions(text):
@@ -724,7 +716,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         tree_model.append([syn])
         self._selected = None
         entry = self.view.widgets.gen_syn_entry
-        entry.props.text = ''
+        safe_set_props(entry, 'text', '')
         entry.set_position(-1)
         self.view.widgets.gen_syn_add_button.set_sensitive(False)
         self.view.widgets.gen_syn_add_button.set_sensitive(False)

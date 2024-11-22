@@ -56,6 +56,7 @@ from bauble.plugins.plants.species_model import Species
 import bauble.plugins.plants.test as plants_test
 from bauble.plugins.garden.institution import Institution, InstitutionPresenter
 from bauble import prefs
+from bauble.utils import safe_set_props
 
 from functools import partial
 
@@ -370,7 +371,7 @@ class PlantTests(GardenTestCase):
 
         widgets = self.editor.presenter.view.widgets
         new_quantity = 2
-        widgets.plant_quantity_entry.props.text = "%s" % new_quantity
+        safe_set_props(widgets.plant_quantity_entry, 'text', "%s" % new_quantity)
         update_gui()
         self.editor.handle_response(Gtk.ResponseType.OK)
 
@@ -793,7 +794,7 @@ class PropagationTests(GardenTestCase):
         for widget, attr in list(seed_presenter.widget_to_field_map.items()):
             w = widgets[widget]
             if isinstance(w, Gtk.ComboBox) and w.get_child() and not w.get_model():
-                widgets[widget].get_child().props.text = default_seed_values[attr]
+                safe_set_props(widgets[widget].get_child(), 'text', default_seed_values[attr])
             view.widget_set_value(widget, default_seed_values[attr])
 
         # update the editor, send the RESPONSE_OK signal and commit the changes
@@ -1316,11 +1317,10 @@ class AccessionTests(GardenTestCase):
         update_gui()
 
         # set the date so the presenter will be "dirty"
-        widgets.acc_date_recvd_entry.props.text = utils.today_str()
+        safe_set_props(widgets.acc_date_recvd_entry, 'text', utils.today_str())
 
         # set the source type as "Garden Propagation"
-        widgets.acc_source_comboentry.get_child().props.text = \
-            SourcePresenter.garden_prop_str
+        safe_set_props(widgets.acc_source_comboentry.get_child(), 'text', SourcePresenter.garden_prop_str)
         self.assertTrue(not self.editor.presenter.problems)
 
         # set the source plant

@@ -70,6 +70,7 @@ from .stored_queries import (
 import bauble.search as search
 from bauble.view import SearchView
 from bauble.ui import DefaultView
+from bauble.utils import safe_set_text
 from bauble import utils
 
 
@@ -79,16 +80,6 @@ Familia, SpeciesDistribution,
 from threading import Thread
 from gi.repository import GObject
 
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
 
 class LabelUpdater(Thread):
     def __init__(self, widget, query, *args, **kwargs):
@@ -99,7 +90,7 @@ class LabelUpdater(Thread):
     def run(self):
         ssn = db.Session()
         value, = ssn.execute(self.query).first()
-        GObject.idle_add(utils.none, self.widget.set_text, str(value) if str(value) is not None else '')
+        GObject.idle_add(safe_set_text, self.widget, value)
         ssn.close()
 
 

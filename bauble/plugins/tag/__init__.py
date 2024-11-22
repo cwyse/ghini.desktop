@@ -55,17 +55,7 @@ from bauble.view import InfoBox, InfoExpander, SearchView, Action
 
 from bauble.editor import (
     GenericEditorView, GenericEditorPresenter)
-
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
+from bauble.utils import safe_set_text
 
 class TagsMenuManager:
     def __init__(self):

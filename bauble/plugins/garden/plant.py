@@ -56,6 +56,7 @@ import bauble.prefs as prefs
 from bauble.search import SearchStrategy
 import bauble.btypes as types
 import bauble.utils as utils
+from bauble.utils import safe_set_text
 from bauble.view import (InfoBox, InfoExpander, PropertiesExpander, 
                          MapInfoExpander,
                          select_in_search_results, Action)
@@ -68,16 +69,6 @@ import bauble.view as view
 plant_delimiter_key = 'plant_delimiter'
 default_plant_delimiter = '.'
 
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
 
 def edit_callback(plants):
     e = PlantEditor(model=plants[0])

@@ -39,6 +39,7 @@ import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
+from bauble.utils import safe_set_text
 
 # WARNING: "roles" are specific to PostgreSQL database from 8.1 and
 # greater, therefore this module won't work on earlier PostgreSQL
@@ -105,17 +106,6 @@ import bauble.utils as utils
 #     else:
 #         trans.commit()
 #     return conn
-
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
 
 def get_users():
     """Return the list of user names.
