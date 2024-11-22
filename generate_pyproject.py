@@ -12,7 +12,7 @@ def create_pyproject():
         "project_urls": {
             "homepage": "http://ghini.github.io/",
             "repository": "https://github.com/ghini/ghini.desktop",
-            "documentation": "http://ghini.github.io/docs"
+            "documentation": "http://ghini.github.io/docs",
         },
         "project": {
             "name": "ghini-desktop",
@@ -87,6 +87,7 @@ def create_pyproject():
     with open("/app/pyproject.toml", "w") as file:
         toml.dump(pyproject_data, file)
     print("pyproject.toml has been generated successfully.")
+
 
 if __name__ == "__main__":
     create_pyproject()

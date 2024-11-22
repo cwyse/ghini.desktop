@@ -777,7 +777,6 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
                 next = format % 1
         except Exception as e:
             logger.debug(e)
-            pass
         finally:
             session.close()
         return str(next)

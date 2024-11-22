@@ -109,7 +109,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         self.init_enum_combo("sp_spqual_combo", "sp_qual")
 
         def cell_data_func(column, cell, model, treeiter, data=None):
-            cell.props.text = utils.utf8(model[treeiter][0])
+            safe_set_text(cell, utils.utf8(model[treeiter][0])
 
         combo = self.view.widgets.sp_habit_comboentry
         model = Gtk.ListStore(str, object)
@@ -398,7 +398,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
 
             bauble.plugins.garden  # fake its usage
             if self.model not in self.model.new:
-                self.view.widgets.sp_ok_and_add_button.set_sensitive(True)
+                self.view.widgets.sp_ok_and_add_button.props.sensitive = True
         except Exception:
             pass
         self.initializing = False
@@ -430,7 +430,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         value = combo.get_model()[treeiter][1]
         self.set_model_attr("habit", value)
         # the entry change handler does the validation of the model
-        combo.get_child().props.text = utils.utf8(value)
+        safe_set_text(combo.get_child(), utils.utf8(value))
         combo.get_child().set_position(-1)
 
     def __del__(self):
@@ -732,7 +732,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             self.presenter._dirty = False
             self.presenter.parent_ref().refresh_fullname_label()
             self.presenter.parent_ref().refresh_sensitivity()
-            self.presenter.view.widgets.add_infrasp_button.set_sensitive = True
+            self.presenter.view.widgets.add_infrasp_button.props.sensitive = True
 
         def set_model_attr(self, attr, value):
             infrasp_attr = Species.infrasp_attr[self.level][attr]
@@ -792,13 +792,13 @@ class DistributionPresenter(editor.GenericEditorPresenter):
             "button-press-event",
             self.on_remove_button_pressed,
         )
-        self.view.widgets.sp_dist_add_button.set_sensitive(False)
+        self.view.widgets.sp_dist_add_button.props.sensitive = False
 
         def _init_geo():
             add_button = self.view.widgets.sp_dist_add_button
             self.geo_menu = GeographicAreaMenu(self.on_activate_add_menu_item)
             self.geo_menu.attach_to_widget(add_button, None)
-            add_button.set_sensitive(True)
+            add_button.props.sensitive = True
 
         GObject.idle_add(_init_geo)
 
@@ -1035,7 +1035,7 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
 
     def on_tree_cursor_changed(self, tree, data=None):
         path, column = tree.get_cursor()
-        self.view.widgets.sp_vern_remove_button.set_sensitive(True)
+        self.view.widgets.sp_vern_remove_button.props.sensitive = True
 
     def refresh_view(self, default_vernacular_name):
         tree_model = self.treeview.get_model()
@@ -1071,7 +1071,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         super().__init__(parent.model, parent.view)
         self.parent_ref = weakref.ref(parent)
         self.session = parent.session
-        safe_set_props(self.view.widgets.sp_syn_entry, 'text', '')
+        safe_set_props(self.view.widgets.sp_syn_entry, "text", "")
         self.init_treeview()
 
         def sp_get_completions(text):
@@ -1088,7 +1088,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
             sensitive = True
             if value is None:
                 sensitive = False
-            self.view.widgets.sp_syn_add_button.set_sensitive(sensitive)
+            self.view.widgets.sp_syn_add_button.props.sensitive = sensitive
             self._selected = value
 
         self.assign_completions_handler(
@@ -1138,7 +1138,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
     def on_tree_cursor_changed(self, tree, data=None):
         """ """
         path, column = tree.get_cursor()
-        self.view.widgets.sp_syn_remove_button.set_sensitive(True)
+        self.view.widgets.sp_syn_remove_button.props.sensitive = True
 
     def refresh_view(self):
         """
@@ -1158,8 +1158,8 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         entry = self.view.widgets.sp_syn_entry
         safe_set_text(entry, "")
         entry.set_position(-1)
-        self.view.widgets.sp_syn_add_button.set_sensitive(False)
-        self.view.widgets.sp_syn_add_button.set_sensitive(False)
+        self.view.widgets.sp_syn_add_button.props.sensitive = False
+        self.view.widgets.sp_syn_add_button.props.sensitive = False
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 
@@ -1288,15 +1288,15 @@ class SpeciesEditorView(editor.GenericEditorView):
         """
         set the sensitivity of all the accept/ok buttons for the editor dialog
         """
-        self.widgets.sp_ok_button.set_sensitive(sensitive)
+        self.widgets.sp_ok_button.props.sensitive = sensitive
         try:
             import bauble.plugins.garden
 
             bauble.plugins.garden  # fake usage
-            self.widgets.sp_ok_and_add_button.set_sensitive(sensitive)
+            self.widgets.sp_ok_and_add_button.props.sensitive = sensitive
         except Exception:
             pass
-        self.widgets.sp_next_button.set_sensitive(sensitive)
+        self.widgets.sp_next_button.props.sensitive = sensitive
 
     @staticmethod
     def genus_completion_cell_data_func(

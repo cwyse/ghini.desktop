@@ -19,7 +19,6 @@
 #
 # plant plugin
 #
-
 # TODO: there is going to be problem with the accessions MultipleJoin
 # in Species, plants should really have to depend on garden unless
 # plants is contained within garden, but what about herbaria, they would
@@ -27,21 +26,12 @@
 # with the same name as the other table that defines new columns/joins
 # for that class or probably not add new columns but add new joins
 # dynamically
-
-# TODO: should create the table the first time this plugin is loaded, if a new
-# database is created there should be a way to recreate everything from scratch
-
-
 import logging
 import os
 import sys
-
-from gi.repository import Gtk
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
 from functools import partial
+from gettext import gettext as _
+from threading import Thread
 
 import bauble
 import bauble.db as db
@@ -75,16 +65,21 @@ from bauble.plugins.plants.species import VernacularNameInfoBox
 from bauble.plugins.plants.species import vernname_context_menu
 from bauble.ui import DefaultView
 from bauble.view import SearchView
+from gi.repository import GObject
+from gi.repository import Gtk
 
 from .stored_queries import StoredQueryEditorTool
 from .taxonomy_check import TaxonomyCheckTool
 
-## naming locally unused objects. will be imported by clients of the module
+# TODO: should create the table the first time this plugin is loaded, if a new
+# database is created there should be a way to recreate everything from scratch
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
+# naming locally unused objects. will be imported by clients of the module
 Familia, SpeciesDistribution,
-
-from threading import Thread
-
-from gi.repository import GObject
 
 
 def safe_set_text(gtk_widget, text):
@@ -394,7 +389,9 @@ class SplashInfoBox(pluginmgr.View):
     def on_sqb_clicked(self, btn_no, *args):
         try:
             query = self.name_tooltip_query[btn_no][2]
-            safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), query)
+            safe_set_text(
+                bauble.gui.widgets.main_comboentry.get_child(), query
+            )
             bauble.gui.widgets.go_button.emit("clicked")
         except:
             pass
@@ -465,9 +462,11 @@ class PlantsPlugin(pluginmgr.Plugin):
         )
 
         mapper_search.add_meta(("geography", "geo"), GeographicArea, ["name"])
-        SearchView.row_meta[GeographicArea].set(children=get_species_in_geographic_area)
+        SearchView.row_meta[GeographicArea].set(
+            children=get_species_in_geographic_area
+        )
 
-        ## now it's the turn of the DefaultView
+        # now it's the turn of the DefaultView
         logger.debug("PlantsPlugin::init, registering splash info box")
         DefaultView.infoboxclass = SplashInfoBox
 

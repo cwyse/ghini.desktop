@@ -859,7 +859,7 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
 
     # if combo is a Gtk.ComboBoxEntry then setup completions
     def compl_cell_data_func(col, cell, model, treeiter, data=None):
-        cell.props.text = utf8(model[treeiter][0])
+        safe_set_text(cell, utf8(model[treeiter][0])
 
     completion = Gtk.EntryCompletion()
     completion.set_model(model)
@@ -880,9 +880,9 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
         value = model[treeiter][0]
         if value:
             set_combo_from_value(combo, value)
-            combo.get_child().props.text = utf8(value)
+            safe_set_text(combo.get_child(), utf8(value))
         else:
-            safe_set_props(combo.get_child(), 'text', '')
+            safe_set_props(combo.get_child(), "text", "")
 
     # TODO: we should be able to disconnect this signal handler
     completion.connect("match-selected", on_match_select)

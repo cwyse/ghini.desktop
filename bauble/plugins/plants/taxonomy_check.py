@@ -15,17 +15,20 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-
 import logging
 import os
 from functools import reduce
+from gettext import gettext as _
 
-logger = logging.getLogger(__name__)
+from bauble import paths
+from bauble import pluginmgr
+from bauble import utils
+from bauble.editor import GenericEditorPresenter
+from bauble.editor import GenericEditorView
+from bauble.plugins.plants import Species
 from gi.repository import Pango
 
-from bauble import paths, pluginmgr, utils
-from bauble.editor import GenericEditorPresenter, GenericEditorView
-from bauble.plugins.plants import Species
+logger = logging.getLogger(__name__)
 
 
 def safe_set_text(gtk_widget, text):

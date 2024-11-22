@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2005,2006,2007,2008,2009 Brett Adams <brett@belizebotanic.org>
 # Copyright (c) 2012-2016 Mario Frasca <mario@anche.no>
@@ -424,8 +423,10 @@ class ABCDExporter:
         # validate after the file is written so we still have some
         # output but let the user know the file isn't valid ABCD
         if not validate_xml(data):
-            msg = _("The ABCD file was created but failed to validate "
-                    "correctly against the ABCD standard.")
+            msg = _(
+                "The ABCD file was created but failed to validate "
+                "correctly against the ABCD standard."
+            )
             utils.message_dialog(msg, Gtk.MessageType.WARNING)
 
 
