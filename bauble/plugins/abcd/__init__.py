@@ -102,6 +102,14 @@ def ABCDElement(parent, name, text=None, attrib=None):
     """
     if attrib is None:
         attrib = {}
+    # Ensure text is a string and encoded properly
+    if text is None:
+        text = ''
+    elif isinstance(text, bytes):
+        text = text.decode('utf-8', errors='replace')
+    else:
+        text = str(text)
+    
     el = SubElement(parent, '{%s}%s' % (namespaces['abcd'], name),
                     nsmap=namespaces, attrib=attrib)
     el.text = text

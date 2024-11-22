@@ -44,7 +44,7 @@
         {
             "label": "Run Docker Container",
             "type": "shell",
-            "command": "( nohup docker run --rm -t -p 5678:5678 -e DEBUG=true -e USER=ghini -e DISPLAY=$DISPLAY -e DB_HOST=postgres.wysechoice.net -e DB_PORT=5432 -e DB_NAME=ghini_test3 -e DB_USER=ghini -e DB_SSLMODE=prefer -e KRB5_CONFIG=/krb5/krb5.conf -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab -e NO_AT_BRIDGE=1 -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/krb5:/krb5:ro -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1 -v /usr/lib/dri:/usr/lib/dri  -v $HOME/debug/ghini.desktop:/app --device /dev/dri:/dev/dri --user $(id -u):$(id -g) --name ghini_debug ghini-desktop:latest &) && sleep 2",
+            "command": "( nohup docker run --rm -t -p 5678:5678 -e DEBUG=true -e USER=ghini -e DISPLAY=$DISPLAY -e DB_HOST=postgres.wysechoice.net -e DB_PORT=5432 -e GTK_DEBUG=interactive -e DB_NAME=ghini_test3 -e DB_USER=ghini -e DB_SSLMODE=prefer -e KRB5_CONFIG=/krb5/krb5.conf -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab -e NO_AT_BRIDGE=1 -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/krb5:/krb5:ro -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1 -v /usr/lib/dri:/usr/lib/dri  -v $HOME/debug/ghini.desktop:/app --device /dev/dri:/dev/dri --user $(id -u):$(id -g) --name ghini_debug ghini-desktop:latest &) && sleep 2",
             "options": {
                 "env": {
                     "DISPLAY": ":0"

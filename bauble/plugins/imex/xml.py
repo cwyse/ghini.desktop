@@ -50,7 +50,11 @@ def ElementFactory(parent, name, **kwargs):
     el = etree.SubElement(parent, name, **kwargs)
     try:
         if text is not None:
-            el.text = str(text, 'utf8')
+            if isinstance(text, bytes):
+                # Decode bytes to UTF-8
+                el.text = text.decode('utf-8', errors='replace')
+            else:
+                el.text = str(text, 'utf8')
     except (AssertionError, TypeError):
         el.text = str(str(text), 'utf8')
     return el

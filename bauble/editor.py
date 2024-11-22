@@ -53,20 +53,11 @@ from bauble.error import check
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
+from bauble.utils import safe_set_text
 from bauble.error import CheckConditionError
 
 # TODO: create a generic date entry that can take a mask for the date format
 # see the date entries for the accession and accession source presenters
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
 
 
 class ValidatorError(Exception):
@@ -348,8 +339,16 @@ class GenericEditorView(object):
         widget.set_from_file(value)
 
     def set_label(self, widget_name, value):
-        getattr(self.widgets, widget_name).set_markup(value)
+        """
+        Sets the text of a label widget.
 
+        :param widget_name: The name of the label widget.
+        :param value: The text to set for the label.
+        """
+        if isinstance(value, bytes):
+            value = value.decode('utf-8')  # Convert bytes to string
+        getattr(self.widgets, widget_name).set_markup(value)
+        
     def close_boxes(self):
         while self.boxes:
             logger.debug('box is being forcibly removed')
@@ -1757,7 +1756,7 @@ class GenericEditorPresenter(object):
             # temporarily block the changed ID so that this function
             # doesn't get called twice
             widget.handler_block(_changed_sid)
-            widget.props.text = utils.utf8(value)
+            safe_set_props(widget, 'text', value)
             widget.handler_unblock(_changed_sid)
             self.remove_problem(PROBLEM, widget)
             on_select(value)
@@ -1996,8 +1995,7 @@ class NoteBox(Gtk.HBox):
             text = utils.utf8(combo.get_model()[treeiter][0])
         else:
             return
-        self.widgets.category_comboentry.get_child().props.text = \
-            utils.utf8(text)
+        safe_set_props(self.widgets.category_comboentry.get_child(), 'text', text)
 
     def on_category_entry_changed(self, entry, *args):
         """
@@ -2065,8 +2063,8 @@ class NoteBox(Gtk.HBox):
             # the new value is the same as the old
             entry = self.widgets.date_entry
             tmp = entry.props.text
-            entry.props.text = ''
-            entry.props.text = tmp
+            safe_set_props(entry, 'text', '')
+            safe_set_props(entry, 'text', tmp)
             # if the note is new and isn't yet associated with an
             # accession then set the accession when we start
             # changing values, this way we can setup a dummy

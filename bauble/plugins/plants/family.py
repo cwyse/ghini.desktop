@@ -49,7 +49,7 @@ import bauble.utils.web as web
 import bauble.btypes as types
 from bauble.prefs import prefs
 import bauble.view as view
-
+from bauble.utils import safe_set_props
 
 
 def edit_callback(families):
@@ -509,7 +509,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         super().__init__(self.parent_ref().model,
                                                 self.parent_ref().view)
         self.session = self.parent_ref().session
-        self.view.widgets.fam_syn_entry.props.text = ''
+        safe_set_props(self.view.widgets.fam_syn_entry, 'text', '')
         self.init_treeview()
 
         # List to track new synonyms for addition to the database
@@ -646,7 +646,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         # Clear selection and entry field
         self._selected = None
         entry = self.view.widgets.fam_syn_entry
-        entry.props.text = ''
+        safe_set_props(entry, 'text', '')
         entry.set_position(-1)
         self.view.widgets.fam_syn_add_button.set_sensitive(False)
 

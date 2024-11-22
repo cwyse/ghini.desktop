@@ -47,17 +47,8 @@ import bauble.utils as utils
 import bauble.btypes as types
 import bauble.view as view
 import bauble.paths as paths
-
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
+from bauble.utils import safe_set_text
+from bauble.utils import safe_set_props
 
 def collection_edit_callback(coll):
     from bauble.plugins.garden.accession import edit_callback
@@ -744,7 +735,7 @@ class PropagationChooserPresenter(editor.ChildPresenter):
 
     def summary_cell_data_func(self, column, cell, model, treeiter, data=None):
         propagation = model[treeiter][0]
-        cell.props.text = propagation.get_summary()
+        safe_set_props(cell.props, 'text', propagation.get_summary())
         cell.set_sensitive(True)
 
     def dirty(self):

@@ -53,13 +53,36 @@ from bauble import paths
 def safe_set_text(gtk_widget, text):
     """
     Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
+
+    :param gtk_widget: Instance of a Gtk widget
     :param text: The text to set, which may be None
     """
     if text is None:
         text = ''
+    elif isinstance(text, bytes):
+        text = text.decode('utf-8')  # Convert bytes to string
     gtk_widget.set_text(text)
+
+
+def safe_set_props(widget, prop, value):
+    """
+    Safely set a property of a widget.
+
+    Args:
+        widget: The widget whose property needs to be set.
+        prop: The name of the property to set (e.g., 'text', 'label').
+        value: The value to set, can be a string, bytes, or None.
+    """
+    if value is None:
+        value = ''
+    elif isinstance(value, bytes):
+        value = value.decode('utf-8', errors='replace')
+    else:
+        value = str(value)
+
+    # Convert to UTF-8 and set the widget property
+    setattr(widget.props, prop, utils.utf8(value))
+
 
 def read_in_chunks(file_object, chunk_size=1024):
     """read a chunk from a stream
@@ -784,7 +807,7 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
 
     # if combo is a Gtk.ComboBoxEntry then setup completions
     def compl_cell_data_func(col, cell, model, treeiter, data=None):
-        cell.props.text = utf8(model[treeiter][0])
+        safe_set_props(cell, 'text', utf8(model[treeiter][0]))
     completion = Gtk.EntryCompletion()
     completion.set_model(model)
     cell = Gtk.CellRendererText()  # set up the completion renderer
@@ -803,9 +826,9 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
         value = model[treeiter][0]
         if value:
             set_combo_from_value(combo, value)
-            combo.get_child().props.text = utf8(value)
+            safe_set_props(combo.get_child(), 'text', utf8(value))
         else:
-            combo.get_child().props.text = ''
+            safe_set_props(combo.get_child(), 'text', '')
 
     # TODO: we should be able to disconnect this signal handler
     completion.connect('match-selected', on_match_select)

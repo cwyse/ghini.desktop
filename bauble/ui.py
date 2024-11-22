@@ -44,20 +44,11 @@ from bauble.prefs import prefs
 import bauble.search as search
 import bauble.utils as utils
 import bauble.utils.desktop as desktop
+from bauble.utils import safe_set_text
 from bauble.view import SearchView
 from bauble.editor import (
     GenericEditorView, GenericEditorPresenter)
 
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
 
 class DefaultView(pluginmgr.View):
     '''ghini's home screen
@@ -438,7 +429,7 @@ class GUI(object):
     def set_default_view(self):
         main_entry = self.widgets.main_comboentry.get_child()
         if main_entry is not None:
-            main_entry.set_text('')
+            safe_set_text(main_entry, "")  # Use safe_set_text for robustness
         SplashCommandHandler.view = DefaultView()
         self.set_view(SplashCommandHandler.view)
         pluginmgr.register_command(SplashCommandHandler)

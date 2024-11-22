@@ -62,6 +62,8 @@ from bauble.plugins.garden.source import Contact, create_contact, \
 import bauble.prefs as prefs
 import bauble.btypes as types
 import bauble.utils as utils
+from bauble.utils import safe_set_text
+from bauble.utils import safe_set_props
 from bauble.view import (InfoBox, InfoExpander, PropertiesExpander,
                          MapInfoExpander,
                          select_in_search_results, Action)
@@ -86,16 +88,6 @@ def get_species_instance(session, epithet, genus_epithet=None, create=False):
         keys['ht-epithet'] = genus_epithet  # Application-level attribute
     return Species.retrieve_or_create(session=session, keys=keys, create=create)
 
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-    
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ''
-    gtk_widget.set_text(text)
 
 def longitude_to_dms(decimal):
     return decimal_to_dms(Decimal(decimal), 'long')
@@ -1214,7 +1206,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             # verifier entry
             entry = self.widgets.ver_verifier_entry
             if self.model.verifier:
-                entry.props.text = self.model.verifier
+                safe_set_props(entry, 'text', self.model.verifier)
             self.presenter().view.connect(
                 entry, 'changed', self.on_entry_changed, 'verifier')
 
@@ -1223,14 +1215,14 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             if self.model.date:
                 utils.set_widget_value(self.date_entry, self.model.date)
             else:
-                self.date_entry.props.text = utils.today_str()
+                safe_set_props(self.date_entry, 'text', utils.today_str())
             self.presenter().view.connect(
                 self.date_entry, 'changed', self.on_date_entry_changed)
 
             # reference entry
             ref_entry = self.widgets.ver_ref_entry
             if self.model.reference:
-                ref_entry.props.text = self.model.reference
+                safe_set_props(ref_entry, 'text', self.model.reference)
             self.presenter().view.connect(
                 ref_entry, 'changed', self.on_entry_changed, 'reference')
 
@@ -1257,7 +1249,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             self.presenter().view.attach_completion(
                 ver_prev_taxon_entry, sp_cell_data_func)
             if self.model.prev_species:
-                ver_prev_taxon_entry.props.text = "%s" % self.model.prev_species
+                safe_set_props(ver_prev_taxon_entry, 'text', "%s" % self.model.prev_species)
             self.presenter().assign_completions_handler(
                 ver_prev_taxon_entry, sp_get_completions, on_prevsp_select)
 
@@ -1269,7 +1261,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             self.presenter().view.attach_completion(
                 ver_new_taxon_entry, sp_cell_data_func)
             if self.model.species:
-                ver_new_taxon_entry.props.text = utils.utf8(self.model.species)
+                safe_set_props(ver_new_taxon_entry, 'text', utils.utf8(self.model.species))
             self.presenter().assign_completions_handler(
                 ver_new_taxon_entry, sp_get_completions, on_sp_select)
 
@@ -1307,7 +1299,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             textview.set_border_width(1)
             buff = Gtk.TextBuffer()
             if self.model.notes:
-                buff.props.text = self.model.notes
+                safe_set_props(buff, 'text', self.model.notes)
             textview.set_buffer(buff)
             self.presenter().view.connect(buff, 'changed',
                                           self.on_entry_changed, 'notes')
@@ -1389,8 +1381,8 @@ class VerificationPresenter(editor.GenericEditorPresenter):
                 # entry as well, by first clearing the entry then setting it
                 # to its intended value.
                 tmp = self.date_entry.props.text
-                self.date_entry.props.text = ''
-                self.date_entry.props.text = tmp
+                safe_set_props(self.date_entry, 'text', '')
+                safe_set_props(self.date_entry, 'text', tmp)
             # if the verification isn't yet associated with an accession
             # then set the accession when we start changing values, this way
             # we can setup a dummy verification in the interface
@@ -1471,14 +1463,13 @@ class SourcePresenter(editor.GenericEditorPresenter):
 
         if self.model.source:
             self.source = self.model.source
-            self.view.widgets.sources_code_entry.props.text = \
-                self.source.sources_code
+            safe_set_props(self.view.widgets.sources_code_entry, 'text', self.source.sources_code)
         else:
             self.source = Source()
             # self.model.source will be reset the None if the source
             # combo value is None in commit_changes()
             self.model.source = self.source
-            self.view.widgets.sources_code_entry.props.text = ''
+            safe_set_props(self.view.widgets.sources_code_entry, 'text', '')
 
         if self.source.collection:
             self.collection = self.source.collection
@@ -1668,7 +1659,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         PROBLEM = 'unknown_source'
 
         def cell_data_func(col, cell, model, treeiter, data=None):
-            cell.props.text = utils.utf8(model[treeiter][0])
+            safe_set_props(cell, 'text', utils.utf8(model[treeiter][0]))
 
         combo = self.view.widgets.acc_source_comboentry
         combo.clear()
@@ -1716,10 +1707,10 @@ class SourcePresenter(editor.GenericEditorPresenter):
             # source is changed and restore them if they are switched
             # back
             if not value:
-                combo.get_child().props.text = ''
+                safe_set_props(combo.get_child(), 'text', '')
                 on_select(None)
             else:
-                combo.get_child().props.text = utils.utf8(value)
+                safe_set_props(combo.get_child(), 'text', utils.utf8(value))
                 on_select(value)
 
             # don't set the model as dirty if this is called during
@@ -1761,9 +1752,9 @@ class SourcePresenter(editor.GenericEditorPresenter):
                 # set the text value on the entry since it does all the
                 # validation
                 if not detail:
-                    combo.get_child().props.text = ''
+                    safe_set_props(combo.get_child(), 'text', '')
                 else:
-                    combo.get_child().props.text = utils.utf8(detail)
+                    safe_set_props(combo.get_child(), 'text', utils.utf8(detail))
             update_visible()
             return True
 
@@ -2157,7 +2148,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             # combo.get_child().props.text with the activer iter set to None
             return True
         # the entry change handler does the validation of the model
-        combo.get_child().props.text = recvd_type_values[value]
+        safe_set_props(combo.get_child(), 'text', recvd_type_values[value])
 
     def on_recvd_type_entry_changed(self, entry, *args):
         """
