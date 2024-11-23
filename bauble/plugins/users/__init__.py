@@ -32,10 +32,14 @@ from bauble.error import check
 from bauble.error import CheckConditionError
 from gi.repository import Gtk
 from sqlalchemy import *
+from sqlalchemy import Integer
 from sqlalchemy.exc import *
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm.exc import *
+
+
 
 logger = logging.getLogger(__name__)
 

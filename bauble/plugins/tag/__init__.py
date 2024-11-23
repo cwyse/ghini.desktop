@@ -39,7 +39,7 @@ from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorView
 from bauble.view import Action
 from bauble.view import InfoBox
-from bauble.view import InfoExpander
+from bauble.shared import InfoExpander
 from bauble.view import SearchView
 from gi.repository import Gdk
 from gi.repository import Gtk

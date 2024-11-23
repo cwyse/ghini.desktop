@@ -23,6 +23,7 @@
 #
 import logging
 import os.path
+import sys
 
 from bauble import db
 from bauble.plugins.garden import Accession
@@ -50,11 +51,13 @@ def get_genus(session, keys):
     return genus
 
 
-def get_species(session, keys):
+def get_species(session, keys, genus):
     if keys["sp_epit"] == "sp":
         keys["infrasp1"], keys["sp_epit"] = "sp", ""
     else:
         keys["infrasp1"] = ""
+
+    zzz = "placeholder_value"  # Replace with an actual meaningful default
 
     if keys["sp_epit"] == "":
         try:
@@ -326,7 +329,7 @@ if False:
 
         loc = lookup(session, Location, code=last_loc)
         genus = get_genus(session, obj)  # alters obj
-        species = get_species(session, obj)
+        species = get_species(session, obj, genus)
 
         try:
             q = (

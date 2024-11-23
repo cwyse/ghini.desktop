@@ -22,6 +22,7 @@ from gettext import gettext as _
 
 import bauble
 from bauble.editor import GenericEditorPresenter
+from bauble.utils import safe_set_text
 from gi.repository import Gtk
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.properties import ColumnProperty

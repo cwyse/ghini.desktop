@@ -31,6 +31,7 @@ from bauble.utils import topological_sort
 from nose import SkipTest
 from pyparsing import *
 from sqlalchemy import *
+from sqlalchemy import MetaData, Table, ForeignKey, Column, Integer, Sequence
 
 
 

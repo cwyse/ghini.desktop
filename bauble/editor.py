@@ -37,7 +37,7 @@ import bauble.utils as utils
 import lxml.etree as etree
 from bauble.error import check
 from bauble.error import CheckConditionError
-from bauble.utils import parse_date
+from bauble.utils import parse_date, safe_set_props
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import GLib

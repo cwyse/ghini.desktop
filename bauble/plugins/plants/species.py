@@ -43,7 +43,7 @@ from bauble.plugins.plants.species_model import VernacularName
 from bauble.prefs import prefs
 from bauble.view import Action
 from bauble.view import InfoBox
-from bauble.view import InfoExpander
+from bauble.shared import InfoExpander
 from bauble.view import PropertiesExpander
 from bauble.view import select_in_search_results
 from gi.repository import Gtk

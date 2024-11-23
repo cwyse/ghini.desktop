@@ -25,6 +25,7 @@ import urllib.request
 import winreg
 import zipfile
 from optparse import OptionParser
+from bauble.version import version
 
 parser = OptionParser()
 parser.add_option(

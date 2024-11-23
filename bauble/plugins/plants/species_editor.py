@@ -41,6 +41,7 @@ from bauble.plugins.plants.species_model import SpeciesDistribution
 from bauble.plugins.plants.species_model import SpeciesSynonym
 from bauble.plugins.plants.species_model import VernacularName
 from bauble.prefs import prefs
+from bauble.utils import safe_set_props
 from gi.repository import GObject
 from gi.repository import Gtk
 from sqlalchemy.exc import DBAPIError
@@ -109,7 +110,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         self.init_enum_combo("sp_spqual_combo", "sp_qual")
 
         def cell_data_func(column, cell, model, treeiter, data=None):
-            safe_set_text(cell, utils.utf8(model[treeiter][0])
+            safe_set_text(cell, utils.utf8(model[treeiter][0]))
 
         combo = self.view.widgets.sp_habit_comboentry
         model = Gtk.ListStore(str, object)

@@ -36,6 +36,7 @@ import bauble.utils as utils
 import bauble.view as view
 from bauble.plugins.plants.geography import GeographicArea
 from bauble.plugins.plants.geography import GeographicAreaMenu
+from bauble.utils import safe_set_text
 from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -48,7 +49,7 @@ from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy.orm import relationship
-
+from bauble.shared import InfoExpander
 
 
 logger = logging.getLogger(__name__)

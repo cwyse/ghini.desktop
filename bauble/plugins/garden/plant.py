@@ -47,7 +47,7 @@ from bauble.search import SearchStrategy
 from bauble.utils import safe_set_text
 from bauble.view import Action
 from bauble.view import InfoBox
-from bauble.view import InfoExpander
+from bauble.shared import InfoExpander
 from bauble.view import MapInfoExpander
 from bauble.view import PropertiesExpander
 from bauble.view import select_in_search_results

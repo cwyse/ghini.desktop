@@ -41,7 +41,7 @@ import datetime
 import json
 import os
 import os.path
-import uuid
+import sys
 
 import bauble.db
 import bauble.utils
@@ -49,6 +49,7 @@ from bauble.plugins.garden import Accession, Location, Plant
 from bauble.plugins.garden.aggregateclient import get_image, get_submissions
 from bauble.plugins.plants import Genus, Species
 
+zzz = Genus(epithet="Zzz")
 
 def get_genus(session, keys):
     try:
@@ -68,6 +69,7 @@ def get_species(session, keys):
 
     if keys["sp_epit"] == "sp":
         try:
+            genus = get_genus(session, keys)
             species = (
                 session.query(Species)
                 .filter(Species.genus == genus)

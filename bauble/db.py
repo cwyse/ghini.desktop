@@ -33,6 +33,7 @@ import sqlalchemy.orm as orm
 from bauble.utils import parse_date
 from gi.repository import Gtk
 from sqlalchemy import event
+from sqlalchemy import inspect
 from sqlalchemy import text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
@@ -496,14 +497,18 @@ def verify_connection(engine, show_error_dialogs=False):
             utils.message_dialog(msg, Gtk.MessageType.ERROR)
             raise
 
+    inspector = inspect(engine)
+    table_names = inspector.get_table_names()
+    
     # check if the database has any tables
-    if len(engine.table_names()) == 0:
+    if len(table_names) == 0:
         raise error.EmptyDatabaseError()
 
     import bauble.meta as meta
 
     # check that the database we connected to has the bauble meta table
-    if not engine.has_table(meta.BaubleMeta.__tablename__):
+
+    if meta.BaubleMeta.__tablename__ not in table_names:
         raise error.MetaTableError()
 
     from sqlalchemy.orm import sessionmaker
@@ -605,7 +610,7 @@ def make_note_class(
             return None
 
     def as_dict_default(self):
-        result = db.Serializable.as_dict(self)
+        result = Serializable.as_dict(self)
         result[name.lower()] = getattr(self, name.lower()).code
         return result
 

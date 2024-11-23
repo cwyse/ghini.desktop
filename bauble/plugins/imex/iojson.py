@@ -20,6 +20,8 @@ import logging
 import os
 from gettext import gettext as _
 
+from sqlalchemy import bindparam
+
 import bauble.task
 from bauble import db
 from bauble import editor

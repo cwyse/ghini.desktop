@@ -22,6 +22,7 @@
 #
 # A common set of utility functions used throughout Ghini.
 #
+import base64
 import datetime
 import logging
 import os
@@ -41,6 +42,7 @@ from gi.repository import GdkPixbuf
 from gi.repository import GLib
 from gi.repository import GObject
 from gi.repository import Gtk
+from bauble import utils
 
 gi.require_version("Gtk", "3.0")
 
@@ -51,14 +53,42 @@ logger.setLevel(logging.INFO)
 
 def safe_set_text(gtk_widget, text):
     """
-    Sets the text of a Gtk widget replacing None with an empty string.
+    Sets the text of a Gtk widget, replacing None with an empty string 
+    and converting bytes to UTF-8 strings.
 
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
+    :param gtk_widget: Instance of a Gtk widget
+    :param text: The text to set, which may be None or bytes
     """
-    if text is None:
-        text = ""
-    gtk_widget.set_text(text)
+    try:
+        if text is None:
+            text = ''
+        elif isinstance(text, bytes):
+            text = text.decode('utf-8', errors='replace')  # Safely decode bytes
+        elif not isinstance(text, str):
+            text = str(text)  # Ensure it's a string
+        gtk_widget.set_text(text)
+    except AttributeError as e:
+        raise TypeError(f"Invalid widget or text: {gtk_widget}, {text}") from e
+
+
+def safe_set_props(widget, prop, value):
+    """
+    Safely set a property of a widget.
+
+    Args:
+        widget: The widget whose property needs to be set.
+        prop: The name of the property to set (e.g., 'text', 'label').
+        value: The value to set, can be a string, bytes, or None.
+    """
+    if value is None:
+        value = ''
+    elif isinstance(value, bytes):
+        value = value.decode('utf-8', errors='replace')
+    else:
+        value = str(value)
+
+    # Convert to UTF-8 and set the widget property
+    setattr(widget.props, prop, utils.utf8(value))
 
 
 def read_in_chunks(file_object, chunk_size=1024):
@@ -859,7 +889,7 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
 
     # if combo is a Gtk.ComboBoxEntry then setup completions
     def compl_cell_data_func(col, cell, model, treeiter, data=None):
-        safe_set_text(cell, utf8(model[treeiter][0])
+        safe_set_text(cell, utf8(model[treeiter][0]))
 
     completion = Gtk.EntryCompletion()
     completion.set_model(model)

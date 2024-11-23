@@ -136,7 +136,7 @@ def get_plant_query(obj, session):
         return (
             q.join(Accession, Plant.accession)
             .join(Source, Accession.source)
-            .join(SourceDetail, Source.source_detail)
+            .join(Contact, Source.source_detail)
             .filter(Contact.id == obj.id)
         )
 
@@ -194,7 +194,7 @@ def get_accession_query(obj, session):
     elif isinstance(obj, Contact):
         return (
             q.join(Source, Accession.source)
-            .join(SourceDetail, Source.source_detail)
+            .join(Contact, Source.source_detail)
             .filter(Contact.id == obj.id)
         )
 
