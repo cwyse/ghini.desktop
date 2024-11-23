@@ -35,7 +35,7 @@ from bauble.editor import NotesPresenter
 from bauble.editor import UnicodeOrNoneValidator
 from bauble.view import Action
 from bauble.view import InfoBox
-from bauble.view import InfoExpander
+from bauble.shared import InfoExpander
 from bauble.view import MapInfoExpander
 from bauble.view import PropertiesExpander
 from gi.repository import Gtk

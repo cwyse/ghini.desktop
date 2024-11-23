@@ -18,6 +18,7 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import os.path
 from gettext import gettext as _
+from logging import logger
 from os.path import dirname
 from os.path import isdir
 

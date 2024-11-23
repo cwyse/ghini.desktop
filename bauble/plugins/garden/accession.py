@@ -43,7 +43,6 @@ import bauble.view as view
 import lxml.etree as etree
 from bauble import meta
 from bauble.error import check
-from bauble.plugins.garden.plant import Plant
 from bauble.plugins.garden.plant import PlantEditor
 from bauble.plugins.garden.propagation import Propagation
 from bauble.plugins.garden.propagation import SourcePropagationPresenter
@@ -56,10 +55,11 @@ from bauble.plugins.garden.source import Source
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species_model import Species
 from bauble.plugins.plants.species_model import SpeciesSynonym
+from bauble.shared import InfoExpander, Action
 from bauble.utils import safe_int
 from bauble.view import Action
 from bauble.view import InfoBox
-from bauble.view import InfoExpander
+from bauble.shared import InfoExpander
 from bauble.view import MapInfoExpander
 from bauble.view import PropertiesExpander
 from bauble.view import select_in_search_results
@@ -209,6 +209,7 @@ def edit_callback(accessions):
 
 
 def add_plants_callback(accessions):
+    from bauble.plugins.garden.plant import Plant
     session = db.Session()
     acc = session.merge(accessions[0])
     e = PlantEditor(model=Plant(accession=acc))
@@ -750,6 +751,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
 
         If there is an error getting the next code the None is returned.
         """
+        from bauble.plugins.garden.plant import Plant
         # auto generate/increment the accession code
         session = db.Session()
         if code_format is None:
@@ -2747,6 +2749,7 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         """
         handle the response from self.presenter.start() in self.start()
         """
+        from bauble.plugins.garden.plant import Plant
         not_ok_msg = _("Are you sure you want to lose your changes?")
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
             try:
@@ -2855,8 +2858,8 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         return model
 
     def commit_changes(self):
+        from bauble.plugins.garden.plant import Plant
         if self.model.source:
-
             if not self.model.source.collection:
                 utils.delete_or_expunge(
                     self.presenter.source_presenter.collection
@@ -2945,6 +2948,7 @@ class GeneralAccessionExpander(InfoExpander):
 
     def update(self, row):
         """ """
+        from bauble.plugins.garden.plant import Plant
         self.current_obj = row
         self.widget_set_value(
             "acc_code_data",

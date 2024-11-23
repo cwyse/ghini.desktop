@@ -8,6 +8,7 @@ families_file = data_dir + "csv/Family.txt"
 genera_file = data_dir + "csv/Genera.txt"
 checklist_file = data_dir + "old/belize_plants.txt"
 species_columns = '"genusID","sp","sp_author","infrasp_rank","infrasp","infrasp_author","sp_hybrid"'
+plantname_columns = '"genus","species","species_author","infrasp_rank","infrasp","infrasp_author","hybrid"'
 
 # synonyms to use for the checklist genera
 # generic_synonyms = {'Adenocalymna', Adenocalymma Mart. ex Meisn.

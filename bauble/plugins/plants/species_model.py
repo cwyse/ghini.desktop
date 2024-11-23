@@ -25,6 +25,7 @@ import bauble.btypes as types
 import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
+from bauble.plugins.plants.genus import Genus
 from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
@@ -37,7 +38,8 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import synonym
-
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import MultipleResultsFound
 
 
 logger = logging.getLogger(__name__)

@@ -68,6 +68,10 @@ origin_key = None
 easting_key, northing_key, altitude_key = None, None, None
 utm_slice = None
 plant_quantity_key = "No.Plantas"
+location_key = None
+height_key = None
+dbh_key = None
+dbh_category = None
 
 accession_code_def = "%(code)06d"
 

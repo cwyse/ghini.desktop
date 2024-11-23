@@ -51,6 +51,7 @@ from gi.repository import GtkClutter
 from gi.repository import Pango
 from pyparsing import ParseException
 from sqlalchemy.orm import object_session
+from bauble.shared import InfoExpander
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -134,69 +135,6 @@ class Action(Gtk.Action):
         return self.get_visible()
 
     enabled = property(_get_enabled, _set_enabled)
-
-
-class InfoExpander(Gtk.Expander):
-    """
-    an abstract class that is really just a generic expander with a vbox
-    to extend this you just have to implement the update() method
-    """
-
-    # preference for storing the expanded state
-    expanded_pref = None
-
-    def __init__(self, label, widgets=None):
-        """
-        :param label: the name of this info expander, this is displayed on the
-        expander's expander
-
-        :param widgets: a bauble.utils.BuilderWidgets instance
-        """
-        super().__init__()
-        self.set_label(label)
-        self.vbox = Gtk.VBox(False)
-        self.vbox.set_border_width(5)
-        self.add(self.vbox)
-        self.widgets = widgets
-        if not self.expanded_pref:
-            self.set_expanded(True)
-        self.connect("notify::expanded", self.on_expanded)
-
-    def on_expanded(self, expander, *args):
-        if self.expanded_pref:
-            prefs.prefs[self.expanded_pref] = expander.get_expanded()
-            prefs.prefs.save()
-
-    def set_labeled_value(self, prefix, value):
-        """toggle visibility of labeled value, set value
-
-        if value is not empty, update the value and show both the label and
-        the value.  if the value is empty, show both label and value.
-
-        note: label id is prefix+'_label', value id is prefix+'_data'.
-
-        """
-        if value:
-            self.widget_set_value(prefix + "_data", value)
-            self.widgets[prefix + "_data"].set_visible(True)
-            self.widgets[prefix + "_label"].set_visible(True)
-        else:
-            self.widgets[prefix + "_data"].set_visible(False)
-            self.widgets[prefix + "_label"].set_visible(False)
-
-    def widget_set_value(self, widget_name, value, markup=False, default=None):
-        """
-        a shorthand for L{bauble.utils.set_widget_value()}
-        """
-        utils.set_widget_value(
-            self.widgets[widget_name], value, markup, default
-        )
-
-    def update(self, value):
-        """
-        This method should be implemented by classes that extend InfoExpander
-        """
-        raise NotImplementedError("InfoExpander.update(): not implemented")
 
 
 class PropertiesExpander(InfoExpander):

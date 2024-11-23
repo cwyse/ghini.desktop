@@ -57,7 +57,7 @@ class Reader:
         m = self.line_rx.match(line.strip())
         if m is None:
             raise ValueError(
-                "could not match:\n%s\n%s" % (str(line), (str(s)))
+                "could not match:\n%s\n%s" % (str(line), self.line_rx.pattern)
             )
         return m.groupdict()
 

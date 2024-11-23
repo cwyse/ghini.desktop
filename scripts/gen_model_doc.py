@@ -22,6 +22,7 @@ import bauble.db as db
 import bauble.pluginmgr as pluginmgr
 import bauble.view as view
 from bauble.prefs import prefs
+from sqlalchemy import ColumnProperty, class_mapper
 
 uri = "sqlite:///:memory:"
 db.open(uri, verify=False)

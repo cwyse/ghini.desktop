@@ -29,6 +29,7 @@ from nose import SkipTest
 from sqlalchemy import *
 from sqlalchemy.exc import *
 from sqlalchemy.orm import *
+from sqlalchemy import Table, Column, Integer, Sequence, String
 
 
 def test_duplicate_ids():

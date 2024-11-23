@@ -59,6 +59,7 @@ from bauble.plugins.garden.source import ContactPresenter
 from bauble.plugins.garden.source import create_contact
 from bauble.plugins.garden.source import Source
 from bauble.plugins.garden.source import source_detail_context_menu
+from bauble.utils import safe_set_text, safe_set_props
 from bauble.view import SearchView
 from sqlalchemy.orm import eagerload
 from sqlalchemy.orm import object_session

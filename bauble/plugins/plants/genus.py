@@ -41,9 +41,10 @@ from bauble.plugins.plants.family import FamilySynonym
 from bauble.plugins.plants.species_editor import edit_species
 from bauble.plugins.plants.species_model import Species
 from bauble.prefs import prefs
+from bauble.utils import safe_set_props
 from bauble.view import Action
 from bauble.view import InfoBox
-from bauble.view import InfoExpander
+from bauble.shared import InfoExpander
 from bauble.view import PropertiesExpander
 from bauble.view import select_in_search_results
 from gi.repository import Gtk
@@ -444,6 +445,9 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
 
 def compute_serializable_fields(cls, session, keys):
     result = {"genus": None}
+
+    # Prepare genus keys from the `keys` parameter
+    genus_keys = {"epithet": keys.get("genus")}
 
     genus_dict = {"epithet": keys["genus"]}
     result["genus"] = Genus.retrieve_or_create(

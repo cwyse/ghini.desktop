@@ -125,7 +125,7 @@ class Jinja2FormatterTests(BaubleTestCase):
             }.get(domain, Plant)  # Default to Plant if domain is unknown
 
             todo = (
-                sorted(get_pertinent_objects(cls, selection), key=butils.natsort_key)
+                sorted(get_pertinent_objects(cls, selection), key=natsort_key)
                 if cls
                 else selection
             )

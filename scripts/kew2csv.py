@@ -34,11 +34,11 @@ family_rename_map = {
 gen_columns = '"id","hybrid","genus","author","synonymID","familyID"'
 fam_columns = '"id","family"'
 
-genera_file = file(os.path.join(dst, "kew_genera.txt"), "w+")
+genera_file = open(os.path.join(dst, "kew_genera.txt"), "w+")
 genera_file.write("%s\n" % gen_columns)
 genera = csv.writer(genera_file, quoting=csv.QUOTE_NONNUMERIC)
 
-families = file(os.path.join(dst, "kew_families.txt"), "w+")
+families = open(os.path.join(dst, "kew_families.txt"), "w+")
 families.write("%s\n" % fam_columns)
 
 fam_id = 1  # the start id

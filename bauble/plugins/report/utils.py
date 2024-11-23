@@ -917,7 +917,7 @@ def get_caller_template_location():
         if here.f_code.co_name == "render_body":
             from mako import template  # Mako hides the full path
 
-            info = mako.template._get_module_info(template_name)
+            info = template._get_module_info(template_name)
             template_name = info.template_filename
         return os.path.dirname(template_name)
     except Exception as e:

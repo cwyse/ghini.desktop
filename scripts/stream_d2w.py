@@ -39,19 +39,18 @@ logging.getLogger().addHandler(consoleHandler)
 consoleHandler.setLevel(logging.DEBUG)
 logging.getLogger().setLevel(logging.DEBUG)
 
-import codecs
-import datetime
 import json
 import math
 import os
 import os.path
-import uuid
+import sys
 
 import bauble.db
 import bauble.utils
 from bauble.plugins.garden import Accession, Institution, Location, Plant
 from bauble.plugins.plants import Genus, Species
 
+zzz = Genus(epithet="Zzz")
 
 def shorten(x):
     import re
@@ -90,6 +89,7 @@ def get_species(session, keys):
 
     if keys["sp_epit"] == "sp":
         try:
+            genus = get_genus(session, keys)
             species = (
                 session.query(Species)
                 .filter(Species.genus == genus)
