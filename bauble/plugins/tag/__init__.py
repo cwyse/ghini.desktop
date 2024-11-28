@@ -537,7 +537,7 @@ class Tag(db.Base, db.WithNotes):
     """
 
     __tablename__ = "tag"
-    __mapper_args__ = {"order_by": text("tag.tag")}
+    order_by = [text("tag.tag")]
 
     # columns
     tag = Column(Unicode(64), unique=True, nullable=False)

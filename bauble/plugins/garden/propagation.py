@@ -34,6 +34,29 @@ import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 from bauble.utils import parse_date
+from bauble.utils import (
+    get_object_session,
+    delete_or_expunge,
+    add_to_relationship,
+    remove_from_relationship,
+    get_column_value,
+    set_column_value,
+    sorted_relationship,
+    handle_db_error,
+    count_relationship_items,
+)
+from bauble.plugins.garden.constants import (
+    prop_type_values,
+    prop_type_results,
+    cutting_type_values,
+    tip_values,
+    leaves_values,
+    flower_buds_values,
+    wound_values,
+    hormone_values,
+    bottom_heat_unit_values,
+    length_unit_values,
+)
 from gi.repository import Gtk
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
@@ -49,17 +72,6 @@ from sqlalchemy.orm.session import object_session
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-prop_type_values = {
-    "Seed": _("Seed"),
-    "UnrootedCutting": _("Unrooted cutting"),
-}
-
-prop_type_results = {
-    "Seed": "SEDL",
-    "UnrootedCutting": "RCUT",
-}
 
 
 PlantPropagation = Table(
@@ -151,7 +163,7 @@ class Propagation(db.Base, db.WithNotes):
         for us in self.used_source:
             if us.accession not in session.new:
                 accessions.append(us.accession)
-        return sorted(accessions, key=lambda x: x.code)
+        return sorted_relationship(accessions, key=lambda x: x.code)
 
     @property
     def accessible_quantity(self):
@@ -329,50 +341,13 @@ class PropCuttingRooted(db.Base):
     """
 
     __tablename__ = "prop_cutting_rooted"
-    __mapper_args__ = {"order_by": text("prop_cutting_rooted.date")}
+    order_by = [text("prop_cutting_rooted.date")]
 
     date = Column(types.Date)
     quantity = Column(Integer, autoincrement=False, default=0, nullable=False)
     cutting_id = Column(Integer, ForeignKey("prop_cutting.id"), nullable=False)
     # Add the missing relationship
     cutting = relationship("PropCutting", back_populates="rooted")
-
-
-cutting_type_values = {
-    "Nodal": _("Nodal"),
-    "InterNodal": _("Internodal"),
-    "Other": _("Other"),
-}
-
-tip_values = {
-    "Intact": _("Intact"),
-    "Removed": _("Removed"),
-    "None": _("None"),
-    None: "",
-}
-
-leaves_values = {
-    "Intact": _("Intact"),
-    "Removed": _("Removed"),
-    "None": _("None"),
-    None: "",
-}
-
-flower_buds_values = {"Removed": _("Removed"), "None": _("None"), None: ""}
-
-wound_values = {
-    "No": _("No"),
-    "Single": _("Singled"),
-    "Double": _("Double"),
-    "Slice": _("Slice"),
-    None: "",
-}
-
-hormone_values = {"Liquid": _("Liquid"), "Powder": _("Powder"), "No": _("No")}
-
-bottom_heat_unit_values = {"F": _("°F"), "C": _("°C"), None: ""}
-
-length_unit_values = {"mm": _("mm"), "cm": _("cm"), "in": _("in"), None: ""}
 
 
 class PropCutting(db.Base):
@@ -535,7 +510,7 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
         """
         propagation = Propagation()
         propagation.prop_type = "Seed"  # a reasonable default
-        propagation.plant = self.model
+        add_to_relationship(self.model.propagations, propagation)
         editor = PropagationEditor(propagation, parent=self.view.get_window())
         # open propagation editor with start(commit=False) so that the
         # propagation editor doesn't commit its changes since we'll be
@@ -583,7 +558,7 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
         button_box.pack_start(button, False, False, 0)
 
         def on_remove_clicked(button, propagation, box):
-            count = len(propagation.accessions)
+            count = count_relationship_items(propagation.accessions)
             potential = propagation.accessible_quantity
             if count == 0:
                 if potential:
@@ -623,7 +598,7 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
                     )
                 utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
                 return False
-            self.model.propagations.remove(propagation)
+            remove_from_relationship(self.model.propagations, propagation)
             self.view.widgets.prop_tab_box.remove(box)
             self._dirty = True
             self.parent_ref().refresh_sensitivity()
@@ -1055,7 +1030,7 @@ class PropagationPresenter(editor.ChildPresenter):
         :param view: an instance of PropagationEditorView
         """
         super().__init__(model, view)
-        self.session = object_session(model)
+        self.session = get_object_session(model)
 
         if self.model.prop_type is None:
             view.widgets.prop_details_box.set_visible(False)
@@ -1234,7 +1209,7 @@ class PropagationEditorPresenter(PropagationPresenter):
             sensitive = False
 
         model = None
-        if object_session(self.model):
+        if get_object_session(self.model):
             if self.model.prop_type == "UnrootedCutting":
                 model = self.model._cutting
             elif self.model.prop_type == "Seed":
@@ -1289,47 +1264,49 @@ class PropagationEditor(editor.GenericModelViewPresenterEditor):
 
     def handle_response(self, response, commit=True):
         """
-        handle the response from self.presenter.start() in self.start()
+        Handle the response from the presenter and manage database commits or rollbacks.
+
+        :param response: The Gtk response code from the dialog.
+        :param commit: Whether to commit the changes to the database.
+        :return: True if the operation was successful, False otherwise.
         """
-        not_ok_msg = "Are you sure you want to lose your changes?"
+        not_ok_msg = _("Are you sure you want to lose your changes?")
         self._return = None
-        self.model.clean()
-        if response == Gtk.ResponseType.OK or response in self.ok_responses:
-            try:
-                self._return = self.model
+
+        try:
+            # Clean up the model before processing the response
+            self.model.clean()
+
+            if response in (Gtk.ResponseType.OK, *self.ok_responses):
                 if self.presenter.is_dirty() and commit:
-                    self.commit_changes()
-            except DBAPIError as e:
-                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(
-                    str(e.orig)
-                )
-                utils.message_details_dialog(
-                    msg, str(e), Gtk.MessageType.ERROR
-                )
+                    if not handle_db_error(self.commit_changes, self.session):
+                        return False
+                self._return = self.model
+            elif (
+                self.presenter.is_dirty()
+                and utils.yes_no_dialog(not_ok_msg)
+                or not self.presenter.is_dirty()
+            ):
+                # Rollback changes if the user confirms losing changes
                 self.session.rollback()
+            else:
+                # User canceled the operation without confirming
                 return False
-            except Exception as e:
-                msg = _(
-                    "Unknown error when committing changes. See the "
-                    "details for more information.\n\n%s"
-                ) % utils.xml_safe(e)
-                logger.debug(traceback.format_exc())
-                utils.message_details_dialog(
-                    msg, traceback.format_exc(), Gtk.MessageType.ERROR
-                )
-                self.session.rollback()
-                return False
-        elif (
-            self.presenter.is_dirty()
-            and utils.yes_no_dialog(not_ok_msg)
-            or not self.presenter.is_dirty()
-        ):
+        except Exception as e:
+            # Fallback for unexpected errors
+            msg = _(
+                "Unknown error occurred. See the details for more information.\n\n%s"
+            ) % utils.xml_safe(str(e))
+            logger.error(msg)
+            logger.debug(traceback.format_exc())
+            utils.message_details_dialog(
+                msg, traceback.format_exc(), Gtk.MessageType.ERROR
+            )
             self.session.rollback()
-            return True
-        else:
             return False
 
         return True
+
 
     def __del__(self):
         # override the editor.GenericModelViewPresenterEditor since it

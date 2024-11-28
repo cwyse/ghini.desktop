@@ -38,6 +38,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm import Query
 
 gi.require_version("Gtk", "3.0")
 
@@ -81,6 +82,9 @@ sqlalchemy_debug(SQLALCHEMY_DEBUG)
 
 
 def get_or_create(session, model, **kwargs):
+    """
+    Retrieve or create an instance of the given model.
+    """
     instance = session.query(model).filter_by(**kwargs).first()
     if instance:
         return instance
@@ -114,6 +118,14 @@ def natsort(attr, obj):
         obj = getattr(obj, attr)
     return sorted(obj, key=utils.natsort_key)
 
+class CustomQuery(sa.orm.Query):
+    def order_by(self, *args):
+        # If no explicit order_by is given, check the model's order_by attribute
+        if not args and self._entities:
+            model = self._only_entity_zero().entity_zero.class_
+            if hasattr(model, "order_by"):
+                return super().order_by(*model.order_by)
+        return super().order_by(*args)
 
 class MapperBase(DeclarativeMeta):
     """
@@ -321,22 +333,18 @@ def open(uri, verify=True, show_error_dialogs=False):
         logger.info("about to forget about encoding of exception text.")
         raise
 
+    # Bind metadata and create the session factory
     def _bind():
-        """bind metadata to engine and create sessionmaker"""
-        global Session, engine
+        global engine, Session
         if engine is not None:
             engine.dispose()
         engine = new_engine
-        metadata.bind = engine  # make engine implicit for metadata
+        metadata.bind = engine
 
-        def temp():
-            import inspect
-
-            logger.debug("creating session %s" % str(inspect.stack()[1]))
-            return scoped_session(sessionmaker(bind=engine, autoflush=False))()
-
-        Session = scoped_session(sessionmaker(bind=engine, autoflush=False))
-        Session = temp
+        # Configure scoped session with CustomQuery
+        Session = scoped_session(
+            sessionmaker(bind=engine, autoflush=False, query_cls=CustomQuery)
+        )
 
     if new_engine is not None and not verify:
         _bind()
@@ -515,33 +523,31 @@ def verify_connection(engine, show_error_dialogs=False):
 
     # if we don't close this session before raising an exception then we
     # will probably get deadlocks....i'm not really sure why
-    session = sessionmaker(bind=engine)()
-    query = session.query  # (meta.BaubleMeta)
+    # Create a temporary session for verifying connection
+    session = sessionmaker(bind=engine, autoflush=False, query_cls=CustomQuery)()
 
-    # check that the database we connected to has a "created" timestamp
-    # in the bauble meta table.  we're not using the value though.
-    result = query(meta.BaubleMeta).filter_by(name=meta.CREATED_KEY).first()
-    if not result:
-        session.close()
-        raise error.TimestampError()
-
-    # check that the database we connected to has a "version" in the bauble
-    # meta table and the the major and minor version are the same
-    result = query(meta.BaubleMeta).filter_by(name=meta.VERSION_KEY).first()
-    if not result:
-        session.close()
-        raise error.VersionError(None)
     try:
+        query = session.query(meta.BaubleMeta) 
+
+        # check that the database we connected to has a "created" timestamp
+        # in the bauble meta table.  we're not using the value though.
+        # Perform necessary checks on the database schema/version
+        result = query.filter_by(name=meta.CREATED_KEY).first()
+        if not result:
+            raise error.TimestampError()
+
+        # check that the database we connected to has a "version" in the bauble
+        # meta table and the the major and minor version are the same
+        result = query.filter_by(name=meta.VERSION_KEY).first()
+        if not result:
+            raise error.VersionError(None)
+        
         major, minor, revision = result.value.split(".")
-    except Exception:
-        session.close()
-        raise error.VersionError(result.value)
+        if major != bauble.version_tuple[0] or minor != bauble.version_tuple[1]:
+            raise error.VersionError(result.value)
 
-    if major != bauble.version_tuple[0] or minor != bauble.version_tuple[1]:
+    finally:
         session.close()
-        raise error.VersionError(result.value)
-
-    session.close()
     return True
 
 
@@ -620,7 +626,6 @@ def make_note_class(
     bases = (Base,)
     fields = {
         "__tablename__": table_name,
-        "__mapper_args__": {"order_by": text(table_name + ".date")},
         "date": sa.Column(types.Date, default=sa.func.now()),
         "user": sa.Column(sa.Unicode(64), default=""),
         "category": sa.Column(sa.Unicode(32), default=""),
@@ -641,6 +646,8 @@ def make_note_class(
         "retrieve_or_create": classmethod(retrieve_or_create),
         "is_defined": is_defined,
         "as_dict": as_dict,
+        # Define the order_by attribute for this class
+        "order_by": [sa.text(f"{table_name}.date")],
     }
     if compute_serializable_fields is not None:
         bases = (Base, Serializable)
@@ -649,6 +656,7 @@ def make_note_class(
         )
 
     result = type(class_name, bases, fields)
+
     return result
 
 

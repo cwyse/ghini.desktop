@@ -19,7 +19,7 @@
 #
 # Description: the default view
 #
-import cgi
+import html
 import itertools
 import logging
 import os
@@ -992,7 +992,7 @@ class SearchView(pluginmgr.View):
         statusbar.pop(sbcontext_id)
         if len(results) == 0:
             model = Gtk.ListStore(str)
-            msg = bold % cgi.escape(
+            msg = bold % html.escape(
                 _('Couldn\'t find anything for search: "%s"') % text
             )
             model.append([msg])

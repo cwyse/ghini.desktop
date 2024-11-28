@@ -36,12 +36,10 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.view as view
-from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.family import FamilySynonym
-from bauble.plugins.plants.species_editor import edit_species
 from bauble.plugins.plants.species_model import Species
 from bauble.prefs import prefs
-from bauble.utils import safe_set_props
+from bauble.utils import safe_set_props, safe_set_text
 from bauble.view import Action
 from bauble.view import InfoBox
 from bauble.shared import InfoExpander
@@ -78,17 +76,10 @@ logger = logging.getLogger(__name__)
 # to use the accepted name and show the author of the genus then so
 # they aren't using the wrong version of the Genus, e.g. Cananga
 
-
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ""
-    gtk_widget.set_text(text)
+# Use lazy import where Family is needed
+def get_family_class():
+    from bauble.plugins.plants.family import Family
+    return Family
 
 
 def edit_callback(genera):
@@ -162,6 +153,9 @@ remove_action = Action(
 
 genus_context_menu = [edit_action, add_species_action, remove_action]
 
+def get_species_editor():
+    from bauble.plugins.plants.species_editor import edit_species
+    return edit_species
 
 class Genus(db.Base, db.Serializable, db.WithNotes):
     """
@@ -205,9 +199,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         UniqueConstraint("epithet", "author", "qualifier", "family_id"),
         {},
     )
-    __mapper_args__ = {
-        "order_by": [text("genus.epithet"), text("genus.author")]
-    }
+    order_by = [text("genus.epithet"), text("genus.author")]
 
     rank = "genus"
     link_keys = ["accepted"]
@@ -225,6 +217,9 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     )
     family = relationship("Family", back_populates="genera")
 
+    def __init__(self):
+        self.species_editor = get_species_editor()
+        
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
         return utils.xml_safe(self), utils.xml_safe(self.family)
@@ -511,7 +506,7 @@ class GenusSynonym(db.Base):
 Genus.species = relationship(
     "Species",
     cascade="all, delete-orphan",
-    order_by=[Species.sp],
+    order_by=[text("sp")],
     back_populates="genus",
     uselist=False,
     single_parent=True,
@@ -561,6 +556,7 @@ class GenusEditorView(editor.GenericEditorView):
     @staticmethod
     def syn_cell_data_func(column, renderer, model, iter, data=None):
         """ """
+        family_instance = get_family_class()
         v = model[iter][0]
         author = None
         if v.author is None:
@@ -570,7 +566,7 @@ class GenusEditorView(editor.GenericEditorView):
         renderer.set_property(
             "markup",
             "<i>%s</i> %s (<small>%s</small>)"
-            % (Genus.str(v), author, Family.str(v.family)),
+            % (Genus.str(v), author, family_instance.str(v.family)),
         )
 
     def save_state(self):
@@ -610,6 +606,7 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
         @model: should be an instance of class Genus
         @view: should be an instance of GenusEditorView
         """
+        family_instance = get_family_class()
         super().__init__(model, view)
         self.create_toolbar()
         self.session = object_session(model)
@@ -620,9 +617,9 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
 
         # connect signals
         def fam_get_completions(text):
-            query = self.session.query(Family)
-            return query.filter(Family.epithet.like("%s%%" % text)).order_by(
-                Family.epithet
+            query = self.session.query(family_instance)
+            return query.filter(family_instance.epithet.like("%s%%" % text)).order_by(
+                family_instance.epithet
             )
 
         def on_select(value):
@@ -787,6 +784,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         """
         initialize the Gtk.TreeView
         """
+        family_instance = get_family_class()
         self.treeview = self.view.widgets.gen_syn_treeview
         # remove any columns that were setup previous, this became a
         # problem when we starting reusing the glade files with
@@ -804,7 +802,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
                 % (
                     Genus.str(syn),
                     utils.xml_safe(str(syn.author)),
-                    Family.str(syn.family),
+                    family_instance.str(syn.family),
                 ),
             )
             # set background color to indicate it's new
@@ -960,6 +958,7 @@ class GenusEditor(editor.GenericModelViewPresenterEditor):
             more_committed = e.start()
         elif response == self.RESPONSE_OK_AND_ADD:
             sp = Species(genus=self.model)
+            edit_species = get_species_editor()
             more_committed = edit_species(model=sp, parent_view=self.parent)
 
         if more_committed is not None:
@@ -971,7 +970,8 @@ class GenusEditor(editor.GenericModelViewPresenterEditor):
         return True
 
     def start(self):
-        if self.session.query(Family).count() == 0:
+        family_instance = get_family_class()
+        if self.session.query(family_instance).count() == 0:
             msg = _(
                 "You must first add or import at least one Family into "
                 "the database before you can add plants."

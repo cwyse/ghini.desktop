@@ -912,7 +912,8 @@ def compute_serializable_fields(cls, session, keys):
 
 class Contact(db.Base, db.Serializable, db.WithNotes):
     __tablename__ = "contact"
-    __mapper_args__ = {"order_by": text("contact.name")}
+    order_by = [text("contact.name")]
+
 
     # ITF2 - E6 - Donor
     name = Column(Unicode(75), unique=True)

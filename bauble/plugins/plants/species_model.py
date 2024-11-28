@@ -25,7 +25,6 @@ import bauble.btypes as types
 import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
-from bauble.plugins.plants.genus import Genus
 from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
@@ -119,6 +118,10 @@ def compare_rank(rank1, rank2):
 
     return rank_level(rank1).__cmp__(rank_level(rank2))
 
+# Defer import of Genus
+def get_genus():
+    from bauble.plugins.plants.genus import Genus
+    return Genus
 
 class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     """
@@ -189,9 +192,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     __table_args__ = (
         UniqueConstraint("genus_id", "epithet", name="_genus_epithet_uc"),
     )
-    __mapper_args__ = {
-        "order_by": [text("species.epithet"), text("species.author")]
-    }
+    order_by = [text("species.epithet"), text("species.author")]
+
 
     # Define relationship to Genus
     genus = relationship("Genus", back_populates="species", lazy="joined")
@@ -208,7 +210,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     @ht_epithet.expression
     def ht_epithet(cls):
         """Enable SQL querying on ht_epithet by joining with Genus."""
-        return Genus.epithet
+        return get_genus().epithet
 
     @classmethod
     def retrieve(cls, session, keys):
@@ -245,13 +247,13 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             query = query.filter(cls.epithet == keys["epithet"])
         if "ht-epithet" in keys:
             query = query.join(cls.genus).filter(
-                Genus.epithet == keys["ht-epithet"]
+                get_genus().epithet == keys["ht-epithet"]
             )
         try:
             return query.one()
         except NoResultFound:
             if create:
-                genus_instance = Genus.retrieve_or_create(
+                genus_instance = get_genus().retrieve_or_create(
                     session, {"epithet": keys.get("ht-epithet")}, create=True
                 )
                 if not genus_instance:

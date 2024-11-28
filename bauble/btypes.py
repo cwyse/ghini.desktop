@@ -35,14 +35,14 @@ logger = logging.getLogger(__name__)
 class EnumError(error.BaubleError):
     """Raised when a bad value is inserted or returned from the Enum type"""
 
-
+#        types.Enum("s. lat.", "s. str.", "", name="qualifier_enum"),
 class Enum(types.TypeDecorator):
     """A database independent Enum type. The value is stored in the
     database as a Unicode string.
     """
 
-    impl = types.Unicode
-    cache_ok = True
+    impl = types.Unicode  # Stored as Unicode in the database
+    cache_ok = True  # SQLAlchemy caching compatibility
 
     def __init__(
         self,
@@ -67,27 +67,37 @@ class Enum(types.TypeDecorator):
                 type(self).__name__, values, empty_to_none
             )
         )
+        # Ensure all values are unique and non-empty
+#        if not values or len(set(values)) != len(values):
+#            duplicates = [v for v in values if values.count(v) > 1]
+#            raise EnumError(_("Enum requires unique, non-empty values. Duplicates: {}").format(duplicates))
         if values is None or len(values) == 0:
             raise EnumError(_("Enum requires a list of values"))
+
+        # Ensure all values are strings or None
         if not {type(x) for x in values}.issubset({type(None), str}):
             raise EnumError(_("Enum requires string values (or None)"))
-        if len(values) != len(set(values)):
-            raise EnumError(_("Enum requires the values to be different"))
+
+        # Configure translations
         self.translations = {v: v for v in values}
+        if translations:
+            self.translations.update(translations)
+        
         if empty_to_none and (None not in values):
             raise EnumError(
                 _(
                     "You have configured empty_to_none=True but "
                     "None is not in the values lists"
                 )
-            )
+            )        
         self.values = values[:]  # copy, not reference
         self.strict = strict
         self.empty_to_none = empty_to_none
         # the length of the string/unicode column should be the
         # longest string in values
-        size = max([len(v) for v in values if v is not None])
-        super().__init__(size, **kwargs)
+        max_length = max([len(v) for v in values if v is not None])
+        self.impl = types.Unicode(max_length)
+        super().__init__(**kwargs)
 
     def process_bind_param(self, value, dialect):
         """

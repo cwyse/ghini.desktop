@@ -29,12 +29,14 @@ import os
 import re
 import textwrap
 import threading
+import traceback
 import xml.sax.saxutils as saxutils
 from gettext import gettext as _
 
 import bauble
 import dateutil.parser
 import gi
+import sqlalchemy
 from bauble import paths
 from bauble.error import check
 from gi.repository import Gdk
@@ -43,6 +45,8 @@ from gi.repository import GLib
 from gi.repository import GObject
 from gi.repository import Gtk
 from bauble import utils
+from sqlalchemy.orm.session import object_session
+from sqlalchemy.exc import DBAPIError
 
 gi.require_version("Gtk", "3.0")
 
@@ -50,6 +54,95 @@ gi.require_version("Gtk", "3.0")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
+def get_object_session(obj):
+    """Get the SQLAlchemy session for a given object."""
+    return object_session(obj)
+
+
+def add_to_relationship(parent, child, relationship_name):
+    """Add a child object to a parent's relationship."""
+    relationship = getattr(parent, relationship_name, None)
+    if relationship is not None:
+        relationship.append(child)
+
+
+def remove_from_relationship(parent, child, relationship_name):
+    """Remove a child object from a parent's relationship."""
+    relationship = getattr(parent, relationship_name, None)
+    if relationship is not None and child in relationship:
+        relationship.remove(child)
+
+
+def get_column_value(obj, column_name):
+    """Get the value of a specific column in an object."""
+    return getattr(obj, column_name, None)
+
+
+def set_column_value(obj, column_name, value):
+    """Set the value of a specific column in an object."""
+    setattr(obj, column_name, value)
+
+
+def sorted_relationship(relationship, key):
+    """Return a sorted list of a relationship by a specific key."""
+    return sorted(relationship, key=lambda x: getattr(x, key, None))
+
+def handle_deletion_error(e):
+    """Handle errors specific to deletion."""
+    if isinstance(e, sqlalchemy.exc.IntegrityError):
+        message = _("Could not delete: The item is referenced elsewhere (foreign key constraint).")
+    elif isinstance(e, sqlalchemy.orm.exc.UnmappedInstanceError):
+        message = _("Could not delete: The item is not managed by the session.")
+    elif isinstance(e, sqlalchemy.exc.InvalidRequestError):
+        message = _("Could not delete: The request was invalid.")
+    else:
+        message = _("Could not delete the item. Unknown error.")
+    
+    details = traceback.format_exc()
+    utils.message_details_dialog(message, details, Gtk.MessageType.ERROR)
+
+def handle_generic_error(e):
+    """Handle database-specific errors."""
+    if isinstance(e, sqlalchemy.exc.IntegrityError):
+        message = _("Integrity error: Check constraints or data conflicts.")
+    elif isinstance(e, sqlalchemy.exc.OperationalError):
+        message = _("Operational error: Database operation failed.")
+    elif isinstance(e, sqlalchemy.exc.ProgrammingError):
+        message = _("Programming error: Syntax or command issue.")
+    else:
+        message = _("Database error occurred.")
+    
+    details = traceback.format_exc()
+    utils.message_details_dialog(message, details, Gtk.MessageType.ERROR)
+
+def handle_db_error(exception, context="database operation"):
+    """
+    Handle database-specific errors.
+
+    :param exception: The exception instance raised during the operation.
+    :param context: Description of the operation (e.g., "deletion").
+    """
+    import traceback
+
+    if isinstance(exception, sqlalchemy.exc.IntegrityError):
+        message = _(f"Integrity error during {context}: Check constraints or data conflicts.")
+    elif isinstance(exception, sqlalchemy.exc.OperationalError):
+        message = _(f"Operational error during {context}: Database operation failed.")
+    elif isinstance(exception, sqlalchemy.exc.ProgrammingError):
+        message = _(f"Programming error during {context}: Syntax or command issue.")
+    else:
+        message = _(f"An unknown error occurred during {context}.")
+
+    details = traceback.format_exc()
+    utils.message_details_dialog(message, details, Gtk.MessageType.ERROR)
+
+def count_relationship_items(obj, relationship_name):
+    """Count the number of items in a relationship."""
+    relationship = getattr(obj, relationship_name, None)
+    if relationship is not None:
+        return len(relationship)
+    return 0
 
 def safe_set_text(gtk_widget, text):
     """
