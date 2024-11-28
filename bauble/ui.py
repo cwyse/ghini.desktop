@@ -38,7 +38,7 @@ from bauble.view import SearchView
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import Gtk
-
+from gi.repository import GLib
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -122,55 +122,58 @@ class SplashCommandHandler(pluginmgr.CommandHandler):
 
 
 def create_menu_item_with_image(label, icon_name=None, base_dir=None):
-    """return a MenuItem with associated image
+    """Return a MenuItem with an associated image, if provided.
 
-    if the icon_name is a valid image file name and the file can be
-    read, the returned object is a ImageMenuItem, otherwise you get plain
-    MenuItem.
+    Args:
+        label (str or object): The label or object representing the menu item.
+        icon_name (str, optional): The name or path of the icon to display.
+        base_dir (str, optional): Base directory for icon lookup.
 
+    Returns:
+        Gtk.MenuItem: A Gtk.MenuItem, with an optional image if provided.
     """
     if not isinstance(label, str):
+        # Extract attributes if label is an object
         tool = label
-        label = tool.label
+        label = getattr(tool, "label", "Unknown")
         icon_name = getattr(tool, "icon_name", None)
         path_to_module = tool.__module__.split(".")[1:]
-        logger.debug(str(path_to_module))
         if path_to_module[-2] != "plugins":
             path_to_module = path_to_module[:-1]
         base_dir = os.path.join(paths.lib_dir(), *path_to_module)
+
     logger.debug(
-        "create_menu_item_with_image {} {} {}".format(
-            label, icon_name, base_dir
-        )
+        f"create_menu_item_with_image {label} {icon_name} {base_dir}"
     )
-    if (
-        base_dir is not None
-        and icon_name is not None
-        and icon_name.endswith(".png")
-    ):
+
+    # Resolve full path for PNG icons
+    if base_dir and icon_name and icon_name.endswith(".png"):
         icon_name = os.path.join(base_dir, icon_name)
-    if icon_name is None:
-        image = None
-    elif icon_name.endswith(".png"):
+
+    image = None
+    if icon_name:
         try:
-            pb = GdkPixbuf.Pixbuf.new_from_file(icon_name)
-            (what, width, height) = Gtk.IconSize.lookup(Gtk.IconSize.MENU)
-            pb = pb.scale_simple(width, height, GdkPixbuf.InterpType.BILINEAR)
-            image = Gtk.Image.new_from_pixbuf(pb)
-        except:
-            logger.debug("can't find image file %s" % icon_name)
-            image = None
-    else:
-        try:
-            image = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
-        except:
-            logger.debug("can't find theme icon %s" % icon_name)
-            image = None
-    if image is not None:
-        item = Gtk.ImageMenuItem(label)
-        item.set_image(image)
-    else:
-        item = Gtk.MenuItem(label)
+            if icon_name.endswith(".png"):
+                # Load and scale PNG icon
+                pb = GdkPixbuf.Pixbuf.new_from_file(icon_name)
+                (what, width, height) = Gtk.IconSize.lookup(Gtk.IconSize.MENU)
+                pb = pb.scale_simple(width, height, GdkPixbuf.InterpType.BILINEAR)
+                image = Gtk.Image.new_from_pixbuf(pb)
+            else:
+                # Load theme icon
+                image = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
+        except (GLib.Error, FileNotFoundError):
+            logger.debug(f"Cannot load icon: {icon_name}")
+
+    # Create the menu item
+    item = Gtk.MenuItem()
+    hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+    if image:
+        hbox.pack_start(image, False, False, 0)
+    label_widget = Gtk.Label(label)
+    hbox.pack_start(label_widget, True, True, 0)
+    item.add(hbox)
+
     return item
 
 
@@ -217,15 +220,19 @@ class GUI:
 
         main_entry = combo.get_child()
         main_entry.connect("activate", self.on_main_entry_activate)
+
+        # Add modern shortcut for focus (GTK 3 equivalent)
         accel_group = Gtk.AccelGroup()
-        main_entry.add_accelerator(
-            "grab-focus",
-            accel_group,
-            ord("L"),
-            Gdk.ModifierType.CONTROL_MASK,
-            Gtk.AccelFlags.VISIBLE,
-        )
+
+        # Add the accel group to the main window
         self.window.add_accel_group(accel_group)
+
+        # Bind the shortcut (Ctrl+L) to focus on the main_entry widget
+        key, mod = Gtk.accelerator_parse("<Control>L")
+        accel_group.connect(
+            key, mod, Gtk.AccelFlags.VISIBLE,
+            lambda accel_group, acceleratable, keyval, modifier: main_entry.grab_focus()
+        )
 
         self.widgets.home_button.connect(
             "clicked", self.on_home_button_clicked
@@ -247,7 +254,8 @@ class GUI:
         # Warning: this relies on Gtk.Statusbar internals and could break in
         # future versions of gtk
         statusbar = self.widgets.statusbar
-        statusbar.set_spacing(10)
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        statusbar.add(hbox)
         self._cids = []
 
         statusbar.connect("text-pushed", self.on_statusbar_push)
@@ -260,10 +268,10 @@ class GUI:
         frame.remove(label)
 
         # replace label with hbox and put label and progress bar in hbox
-        hbox = Gtk.HBox(False, 5)
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         frame.add(hbox)
         hbox.pack_start(label, True, True, 0)
-        vbox = Gtk.VBox(True, 0)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         hbox.pack_end(vbox, False, True, 15)
         self.progressbar = Gtk.ProgressBar()
         vbox.pack_start(self.progressbar, False, False, 0)
@@ -523,215 +531,200 @@ class GUI:
 
     def create_main_menu(self):
         """
-        get the main menu from the UIManager XML description, add its actions
-        and return the menubar
+        Create the main menu programmatically without relying on deprecated Gtk.UIManager.
+
+        The menu structure and actions are dynamically built to mimic the original functionality,
+        including the use of `add_actions` for defining callbacks and shortcuts.
         """
         self.ui_manager = Gtk.UIManager()
 
-        # add accel group
-        accel_group = self.ui_manager.get_accel_group()
+        # Create the MenuBar
+        self.menubar = Gtk.MenuBar()
+
+        # Add an AccelGroup for keyboard shortcuts
+        accel_group = Gtk.AccelGroup()
         self.window.add_accel_group(accel_group)
 
-        # create and add_actions for menu actions
-        menu_actions = Gtk.ActionGroup("MenuActions")
-        menu_actions.add_actions(
-            [
-                ("file", None, _("_File")),
-                (
-                    "file_new",
-                    Gtk.STOCK_NEW,
-                    _("_New"),
-                    None,
-                    None,
-                    self.on_file_menu_new,
-                ),
-                (
-                    "file_open",
-                    Gtk.STOCK_OPEN,
-                    _("_Open"),
-                    "<ctrl>o",
-                    None,
-                    self.on_file_menu_open,
-                ),
-                (
-                    "file_quit",
-                    Gtk.STOCK_QUIT,
-                    _("_Quit"),
-                    None,
-                    None,
-                    self.on_quit,
-                ),
-                ("edit", None, _("_Edit")),
-                (
-                    "edit_cut",
-                    Gtk.STOCK_CUT,
-                    _("_Cut"),
-                    None,
-                    None,
-                    self.on_edit_menu_cut,
-                ),
-                (
-                    "edit_copy",
-                    Gtk.STOCK_COPY,
-                    _("_Copy"),
-                    None,
-                    None,
-                    self.on_edit_menu_copy,
-                ),
-                (
-                    "edit_paste",
-                    Gtk.STOCK_PASTE,
-                    _("_Paste"),
-                    None,
-                    None,
-                    self.on_edit_menu_paste,
-                ),
-                ("insert", None, _("_Insert")),
-                ("tools", None, _("_Tools")),
-                ("help", None, _("_Help")),
-                (
-                    "help_contents",
-                    Gtk.STOCK_HELP,
-                    _("Contents"),
-                    None,
-                    None,
-                    self.on_help_menu_contents,
-                ),
-                (
-                    "help_bug",
-                    None,
-                    _("Report a bug"),
-                    None,
-                    None,
-                    self.on_help_menu_bug,
-                ),
-                (
-                    "help_logfile",
-                    Gtk.STOCK_PROPERTIES,
-                    _("Open the log-file"),
-                    None,
-                    None,
-                    self.on_help_menu_logfile,
-                ),
-                (
-                    "help_web.devel",
-                    Gtk.STOCK_HOME,
-                    _("Ghini development website"),
-                    None,
-                    None,
-                    self.on_help_menu_web_devel,
-                ),
-                (
-                    "help_web.wiki",
-                    Gtk.STOCK_EDIT,
-                    _("Ghini news"),
-                    None,
-                    None,
-                    self.on_help_menu_web_wiki,
-                ),
-                (
-                    "help_web.forum",
-                    Gtk.STOCK_JUSTIFY_LEFT,
-                    _("Ghini forum"),
-                    None,
-                    None,
-                    self.on_help_menu_web_forum,
-                ),
-                (
-                    "help_about",
-                    Gtk.STOCK_ABOUT,
-                    _("About"),
-                    None,
-                    None,
-                    self.on_help_menu_about,
-                ),
-            ]
+        # --- File Menu ---
+        file_menu_item = Gtk.MenuItem(label=_("File"))
+        file_menu = Gtk.Menu()
+        file_menu_item.set_submenu(file_menu)
+        self.menubar.append(file_menu_item)
+
+        # File menu entries
+        new_item = Gtk.MenuItem(label=_("New"))
+        new_item.connect("activate", self.on_file_menu_new)
+        new_item.set_sensitive(False)  
+        file_menu.append(new_item)
+
+        open_item = Gtk.MenuItem(label=_("Open"))
+        open_item.connect("activate", self.on_file_menu_open)
+        open_item.set_sensitive(True)
+        file_menu.append(open_item)
+
+        # Add a keyboard shortcut (Ctrl+O) for the Open menu item
+        open_item.add_accelerator(
+            "activate", accel_group, ord("O"),
+            Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE
         )
-        menu_actions.get_action("file_new").set_sensitive(False)
-        menu_actions.get_action("file_open").set_sensitive(True)
-        self.ui_manager.insert_action_group(menu_actions, 0)
+    
+        quit_item = Gtk.MenuItem(label=_("Quit"))
+        quit_item.connect("activate", self.on_quit)
+        file_menu.append(quit_item)
 
-        # TODO: as things stand, the menu is defined in two quite unrelated
-        # steps, here in the code we're defining what each action does and
-        # how it should show up, while in the bauble.ui file we're defining
-        # the structure.  Moreover, we're using deprecated classes and
-        # methods as of GTK3.1.
-
-        # load ui
-        ui_filename = os.path.join(paths.lib_dir(), "bauble.ui")
-        self.ui_manager.add_ui_from_file(ui_filename)
-
-        help_bug_item = self.ui_manager.get_widget(
-            "/MenuBar/help_menu/help_bug"
+        # Add a keyboard shortcut (Ctrl+Q) for the Quit menu item
+        quit_item.add_accelerator(
+            "activate", accel_group, ord("Q"),
+            Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE
         )
+
+        # --- Edit Menu ---
+        edit_menu_item = Gtk.MenuItem(label=_("Edit"))
+        edit_menu = Gtk.Menu()
+        edit_menu_item.set_submenu(edit_menu)
+        self.menubar.append(edit_menu_item)
+
+        # Edit menu entries
+        cut_item = Gtk.MenuItem(label=_("Cut"))
+        cut_item.connect("activate", self.on_edit_menu_cut)
+        edit_menu.append(cut_item)
+
+        copy_item = Gtk.MenuItem(label=_("Copy"))
+        copy_item.connect("activate", self.on_edit_menu_copy)
+        edit_menu.append(copy_item)
+
+        paste_item = Gtk.MenuItem(label=_("Paste"))
+        paste_item.connect("activate", self.on_edit_menu_paste)
+        edit_menu.append(paste_item)
+
+        # --- Insert Menu ---
+        insert_menu_item = Gtk.MenuItem(label=_("Insert"))
+        self.insert_menu = Gtk.Menu()
+        insert_menu_item.set_submenu(self.insert_menu)
+        self.menubar.append(insert_menu_item)
+
+        # Dynamically populated later by plugins
+        self.clear_menu(self.insert_menu)
+
+        # --- Tools Menu ---
+        tools_menu_item = Gtk.MenuItem(label=_("Tools"))
+        self.tools_menu = Gtk.Menu()
+        tools_menu_item.set_submenu(self.tools_menu)
+        self.menubar.append(tools_menu_item)
+
+        # Dynamically populated later by plugins
+        self.clear_menu(self.tools_menu)
+
+        # --- Help Menu ---
+        help_menu_item = Gtk.MenuItem(label=_("Help"))
+        help_menu = Gtk.Menu()
+        help_menu_item.set_submenu(help_menu)
+        self.menubar.append(help_menu_item)
+
+        # Help menu entries
+        help_contents_item = Gtk.MenuItem(label=_("Contents"))
+        help_contents_item.connect("activate", self.on_help_menu_contents)
+        help_menu.append(help_contents_item)
+
+        bug_report_item = Gtk.MenuItem(label=_("Report a Bug"))
         try:
-            icon_name = os.path.join(
-                paths.lib_dir(), "images", "menu-help-bug.png"
-            )
-            pb = GdkPixbuf.Pixbuf.new_from_file(icon_name)
+            icon_name = os.path.join(paths.lib_dir(), "images", "menu-help-bug.png")
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_name)
             (what, width, height) = Gtk.IconSize.lookup(Gtk.IconSize.MENU)
-            pb = pb.scale_simple(width, height, GdkPixbuf.InterpType.BILINEAR)
-            image = Gtk.Image.new_from_pixbuf(pb)
-            help_bug_item.set_image(image)
+            pixbuf = pixbuf.scale_simple(width, height, GdkPixbuf.InterpType.BILINEAR)
+            image = Gtk.Image.new_from_pixbuf(pixbuf)
+            bug_report_item.set_image(image)
         except Exception as e:
-            logger.debug(
-                "can't set icon {}: {}({})".format(
-                    icon_name, type(e).__name__, e
-                )
-            )
+            logger.debug(f"Cannot set icon {icon_name}: {e}")
+        bug_report_item.connect("activate", self.on_help_menu_bug)
+        help_menu.append(bug_report_item)
 
-        # get menu bar from ui manager
-        self.menubar = self.ui_manager.get_widget("/MenuBar")
+        log_file_item = Gtk.MenuItem(label=_("Open the log-file"))
+        log_file_item.connect("activate", self.on_help_menu_logfile)
+        help_menu.append(log_file_item)
 
-        self.clear_menu("/ui/MenuBar/insert_menu")
-        self.clear_menu("/ui/MenuBar/tools_menu")
+        web_devel_item = Gtk.MenuItem(label=_("Ghini development website"))
+        web_devel_item.connect("activate", self.on_help_menu_web_devel)
+        help_menu.append(web_devel_item)
 
-        self.insert_menu = self.ui_manager.get_widget(
-            "/ui/MenuBar/insert_menu"
-        )
+        ghini_news_item = Gtk.MenuItem(label=_("Ghini news"))
+        ghini_news_item.connect("activate", self.on_help_menu_web_wiki)
+        help_menu.append(ghini_news_item)
+
+        ghini_forum_item = Gtk.MenuItem(label=_("Ghini news"))
+        ghini_forum_item.connect("activate", self.on_help_menu_web_forum)
+        help_menu.append(ghini_forum_item)
+
+        about_item = Gtk.MenuItem(label=_("About"))
+        about_item.connect("activate", self.on_help_menu_about)
+        help_menu.append(about_item)
+
+        # Add the MenuBar to the main window
+        self.widgets.menu_box.pack_start(self.menubar, False, False, 0)
+        self.menubar.show_all()
+
         return self.menubar
 
-    def clear_menu(self, path):
+
+    def clear_menu(self, menu):
         """
-        remove all the menus items from a menu
+        Remove all items from a Gtk.Menu.
+
+        :param menu: Gtk.Menu object to clear.
         """
-        # clear out the insert an tools menus
-        menu = self.ui_manager.get_widget(path)
-        submenu = menu.get_submenu()
-        for c in submenu.get_children():
-            submenu.remove(c)
+        if not isinstance(menu, Gtk.Menu):
+            logger.error(f"clear_menu expects a Gtk.Menu, got: {type(menu)}")
+            return
+
+        for item in menu.get_children():
+            menu.remove(item)
         menu.show()
 
     def add_menu(self, name, menu, index=-1):
-        """
-        add a menu to the menubar
+            """
+            add a menu to the menubar
 
-        :param name:
-        :param menu:
-        :param index:
-        """
-        menu_item = Gtk.MenuItem(name)
-        menu_item.set_submenu(menu)
-        self.menubar.insert(menu_item, len(self.menubar.get_children()) - 1)
-        self.menubar.show_all()
-        return menu_item
+            :param name:
+            :param menu:
+            :param index:
+            """
+            menu_item = Gtk.MenuItem(name)
+            menu_item.set_submenu(menu)
+            self.menubar.insert(menu_item, len(self.menubar.get_children()) - 1)
+            self.menubar.show_all()
+            return menu_item
 
     __insert_menu_cache = {}
 
     def add_to_insert_menu(self, editor, label, icon_name=None, base_dir=None):
         """
-        add an editor to the insert menu
+        Add an editor to the insert menu.
 
-        :param editor: the editor to add to the menu
+        :param editor: the editor class or callable to add to the menu
         :param label: the label for the menu item
+        :param icon_name: optional icon name or path for the menu item
+        :param base_dir: base directory for the icon, if applicable
         """
-        menu = self.ui_manager.get_widget("/ui/MenuBar/insert_menu")
-        submenu = menu.get_submenu()
+        # Ensure the insert menu exists
+        if self.insert_menu is None:
+            logger.error("Insert menu is not initialized.")
+            return
+
+        # Create a menu item with an optional image
         item = create_menu_item_with_image(label, icon_name, base_dir)
+
+        # Connect the menu item activation to the provided editor
         item.connect("activate", self.on_insert_menu_item_activate, editor)
-        submenu.append(item)
+
+        # Append the item to the insert menu
+        self.insert_menu.append(item)
+
+        # Optionally cache the item by its label
         self.__insert_menu_cache[label] = item
+
+        # Make the menu item visible
         item.show()
+
 
     def build_tools_menu(self):
         """

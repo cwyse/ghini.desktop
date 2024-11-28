@@ -43,9 +43,6 @@ import bauble.view as view
 import lxml.etree as etree
 from bauble import meta
 from bauble.error import check
-from bauble.plugins.garden.plant import PlantEditor
-from bauble.plugins.garden.propagation import Propagation
-from bauble.plugins.garden.propagation import SourcePropagationPresenter
 from bauble.plugins.garden.source import Collection
 from bauble.plugins.garden.source import CollectionPresenter
 from bauble.plugins.garden.source import Contact
@@ -56,7 +53,7 @@ from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species_model import Species
 from bauble.plugins.plants.species_model import SpeciesSynonym
 from bauble.shared import InfoExpander, Action
-from bauble.utils import safe_int
+from bauble.utils import safe_int, handle_db_error
 from bauble.view import Action
 from bauble.view import InfoBox
 from bauble.shared import InfoExpander
@@ -209,6 +206,7 @@ def edit_callback(accessions):
 
 
 def add_plants_callback(accessions):
+    from bauble.plugins.garden.plant import PlantEditor
     from bauble.plugins.garden.plant import Plant
     session = db.Session()
     acc = session.merge(accessions[0])
@@ -335,7 +333,7 @@ class Verification(db.Base):
     """
 
     __tablename__ = "verification"
-    __mapper_args__ = {"order_by": text("verification.date")}
+    order_by = [text("verification.date")]
 
     # columns
     verifier = Column(Unicode(64), nullable=False)
@@ -628,7 +626,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     """
 
     __tablename__ = "accession"
-    __mapper_args__ = {"order_by": text("accession.code")}
+    order_by = [text("accession.code")]
 
     # columns
     #: the accession code
@@ -1648,6 +1646,8 @@ class SourcePresenter(editor.GenericEditorPresenter):
     garden_prop_str = _("Garden Propagation")
 
     def __init__(self, parent, model, view, session):
+        from bauble.plugins.garden.propagation import Propagation
+        from bauble.plugins.garden.propagation import SourcePropagationPresenter
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
         self.session = session
@@ -2749,6 +2749,7 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         """
         handle the response from self.presenter.start() in self.start()
         """
+        from bauble.plugins.garden.plant import PlantEditor
         from bauble.plugins.garden.plant import Plant
         not_ok_msg = _("Are you sure you want to lose your changes?")
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
@@ -2858,6 +2859,9 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         return model
 
     def commit_changes(self):
+        """
+        Commit changes specific to accession and handle dependencies.
+        """
         from bauble.plugins.garden.plant import Plant
         if self.model.source:
             if not self.model.source.collection:
@@ -2897,7 +2901,11 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
             )
             self.session.add(plant)
 
-        return super().commit_changes()
+        # Use the base commit logic for common functionality
+        if not handle_db_error(super().commit_changes, self.session, context="committing accession changes"):
+            return False
+        
+        return True
 
 
 # import at the bottom to avoid circular dependencies

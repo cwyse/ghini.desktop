@@ -64,6 +64,7 @@ from bauble.plugins.plants.species import VernacularName
 from bauble.plugins.plants.species import VernacularNameInfoBox
 from bauble.plugins.plants.species import vernname_context_menu
 from bauble.ui import DefaultView
+from bauble.utils import safe_set_text
 from bauble.view import SearchView
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -80,18 +81,6 @@ logger.setLevel(logging.INFO)
 
 # naming locally unused objects. will be imported by clients of the module
 Familia, SpeciesDistribution,
-
-
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ""
-    gtk_widget.set_text(text)
 
 
 class LabelUpdater(Thread):
@@ -472,6 +461,13 @@ class PlantsPlugin(pluginmgr.Plugin):
 
         if bauble.gui is not None:
             base = os.path.join(paths.lib_dir(), "plugins", "plants")
+            
+            # Insert Menu
+            insert_menu = bauble.gui.insert_menu
+            if insert_menu is None:
+                logger.error("Insert menu not found!")
+                return
+
             bauble.gui.add_to_insert_menu(
                 FamilyEditor, _("Family"), "wiki-family.png", base
             )

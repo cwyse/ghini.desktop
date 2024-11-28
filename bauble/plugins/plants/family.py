@@ -34,13 +34,10 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.view as view
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.genus import GenusEditor
-from bauble.plugins.plants.species_model import Species
 from bauble.prefs import prefs
 from bauble.view import InfoBox
 from bauble.shared import InfoExpander
-from bauble.utils import safe_set_props
+from bauble.utils import safe_set_props, handle_db_error
 from bauble.view import PropertiesExpander
 from bauble.view import select_in_search_results
 from gi.repository import Gtk
@@ -54,11 +51,12 @@ from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import synonym
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
-
+from sqlalchemy.types import Enum
 
 
 logger = logging.getLogger(__name__)
@@ -75,7 +73,9 @@ def edit_callback(families):
 def add_genera_callback(families):
     session = db.Session()
     family = session.merge(families[0])
-    e = GenusEditor(model=Genus(family=family))
+    genus_instance = genus_instance()
+    genus_editor = get_genus_editor()
+    e = genus_editor(model=genus_instance(family=family))
     # session creates unbound object.  editor decides what to do with it.
     session.close()
     return e.start() is not None
@@ -86,10 +86,9 @@ def remove_callback(families):
     The callback function to remove a family from the family context menu.
     """
     family = families[0]
-    from bauble.plugins.plants.genus import Genus
-
     session = object_session(family)
-    ngen = session.query(Genus).filter_by(family_id=family.id).count()
+    genus_instance = get_genus_class()
+    ngen = session.query(genus_instance).filter_by(family_id=family.id).count()
     safe_str = utils.xml_safe(str(family))
     if ngen > 0:
         msg = _("The family <i>%(1)s</i> has %(2)s genera." "\n\n") % {
@@ -181,10 +180,9 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     """
 
     __tablename__ = "family"
-    __table_args__ = (UniqueConstraint("epithet"), {})
-    __mapper_args__ = {
-        "order_by": [text("Family.epithet"), text("Family.qualifier")]
-    }
+    __table_args__ = (UniqueConstraint("epithet"),)
+    order_by = [text("epithet"), text("qualifier")]
+
 
     rank = "familia"
     link_keys = ["accepted"]
@@ -218,9 +216,10 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     # we use the blank string here instead of None so that the
     # contraints will work properly,
     qualifier = Column(
-        types.Enum(values=["s. lat.", "s. str.", ""]), default=""
+        types.Enum(values=["s. lat.", "s. str.", ""]),
+        default=""
     )
-
+ 
     # relations
     # `genera` relation is defined outside of `Family` class definition
     synonyms = association_proxy("_synonyms", "synonym")
@@ -377,7 +376,6 @@ class FamilySynonym(db.Base):
     # Relationships
     synonym = relationship(
         "Family",
-        uselist=False,
         primaryjoin="FamilySynonym.synonym_id==Family.id",
     )
     #                       back_populates='synonyms_relationship')  # Renamed for clarity
@@ -397,6 +395,19 @@ class FamilySynonym(db.Base):
     def __str__(self):
         return Family.str(self.synonym)
 
+# Use lazy import where Genus is needed
+def get_genus_class():
+    from bauble.plugins.plants.genus import Genus
+    return Genus
+
+def get_genus_editor():
+    from bauble.plugins.plants.genus import GenusEditor
+    return GenusEditor
+
+# Defer import of Species
+def get_species():
+    from bauble.plugins.plants.species_model import Species
+    return Species
 
 #
 # late bindings
@@ -407,7 +418,7 @@ class FamilySynonym(db.Base):
 Family.genera = (
     relationship(
         "Genus",
-        order_by=[Genus.genus],
+        order_by="Genus.genus",
         back_populates="family",
         cascade="all, delete-orphan",
         single_parent=True,
@@ -818,29 +829,18 @@ class FamilyEditor(editor.GenericModelViewPresenterEditor):
         the list should either be empty or the list of committed values, return
         None if we want to keep editing
         """
+        genus_instance = get_genus_class()
+        genus_editor = get_genus_editor()
         not_ok_msg = "Are you sure you want to lose your changes?"
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
-            try:
-                if self.presenter.dirty():
-                    self.commit_changes()
-                    self._committed.append(self.model)
-            except DBAPIError as e:
-                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(
-                    e.orig
-                )
-                utils.message_details_dialog(
-                    msg, str(e), Gtk.MessageType.ERROR
-                )
-                return False
-            except Exception as e:
-                msg = _(
-                    "Unknown error when committing changes. See the "
-                    "details for more information.\n\n%s"
-                ) % utils.xml_safe(e)
-                utils.message_details_dialog(
-                    msg, traceback.format_exc(), Gtk.MessageType.ERROR
-                )
-                return False
+            if self.presenter.dirty():
+                if not handle_db_error(
+                    lambda: self.commit_changes(), self.session, context="committing family changes"
+                ):
+                    return False
+            self._committed.append(self.model)
+        
+        # Handle rollback or losing changes
         elif (
             self.presenter.dirty() and utils.yes_no_dialog(not_ok_msg)
         ) or not self.presenter.dirty():
@@ -856,7 +856,8 @@ class FamilyEditor(editor.GenericModelViewPresenterEditor):
             e = FamilyEditor(parent=self.parent)
             more_committed = e.start()
         elif response == self.RESPONSE_OK_AND_ADD:
-            e = GenusEditor(Genus(family=self.model), self.parent)
+            genus_instance = get_genus_class()
+            e = genus_editor(genus_instance(family=self.model), self.parent)
             more_committed = e.start()
 
         if more_committed is not None:
@@ -953,29 +954,31 @@ class GeneralFamilyExpander(InfoExpander):
 
         :param row: the row to get the values from
         """
+        genus_instance = get_genus_class()
+
         self.current_obj = row
         self.widget_set_value(
             "fam_name_data", "<big>%s</big>" % row, markup=True
         )
         session = object_session(row)
         # get the number of genera
-        ngen = session.query(Genus).filter_by(family_id=row.id).count()
+        ngen = session.query(genus_instance).filter_by(family_id=row.id).count()
         self.widget_set_value("fam_ngen_data", ngen)
 
         # get the number of species
         nsp = (
-            session.query(Species)
-            .join(Genus, Species.genus_id == Genus.id)
-            .filter(Genus.family_id == row.id)
+            session.query(get_species())
+            .join(genus_instance, get_species().genus_id == genus_instance.id)
+            .filter(genus_instance.family_id == row.id)
             .count()
         )
         if nsp == 0:
             self.widget_set_value("fam_nsp_data", 0)
         else:
             ngen_in_sp = (
-                session.query(Species.genus_id)
-                .join(Genus, Species.genus_id == Genus.id)
-                .join(Family, Genus.family_id == Family.id)
+                session.query(get_species().genus_id)
+                .join(genus_instance, get_species().genus_id == genus_instance.id)
+                .join(Family, genus_instance.family_id == Family.id)
                 .filter(Family.id == row.id)
                 .distinct()
                 .count()
@@ -994,9 +997,9 @@ class GeneralFamilyExpander(InfoExpander):
 
         nacc = (
             session.query(Accession)
-            .join(Species, Accession.species_id == Species.id)
-            .join(Genus, Species.genus_id == Genus.id)
-            .join(Family, Genus.family_id == Family.id)
+            .join(get_species(), Accession.species_id == get_species().id)
+            .join(genus_instance, get_species().genus_id == genus_instance.id)
+            .join(Family, genus_instance.family_id == Family.id)
             .filter(Family.id == row.id)
             .count()
         )
@@ -1005,9 +1008,9 @@ class GeneralFamilyExpander(InfoExpander):
         else:
             nsp_in_acc = (
                 session.query(Accession.species_id)
-                .join(Species, Accession.species_id == Species.id)
-                .join(Genus, Species.genus_id == Genus.id)
-                .join(Family, Genus.family_id == Family.id)
+                .join(get_species(), Accession.species_id == get_species().id)
+                .join(genus_instance, get_species().genus_id == genus_instance.id)
+                .join(Family, genus_instance.family_id == Family.id)
                 .filter(Family.id == row.id)
                 .distinct()
                 .count()
@@ -1020,9 +1023,9 @@ class GeneralFamilyExpander(InfoExpander):
         nplants = (
             session.query(Plant)
             .join(Accession, Plant.accession_id == Accession.id)
-            .join(Species, Accession.species_id == Species.id)
-            .join(Genus, Species.genus_id == Genus.id)
-            .join(Family, Genus.family_id == Family.id)
+            .join(get_species(), Accession.species_id == get_species().id)
+            .join(genus_instance, get_species().genus_id == genus_instance.id)
+            .join(Family, genus_instance.family_id == Family.id)
             .filter(Family.id == row.id)
             .count()
         )
@@ -1032,9 +1035,9 @@ class GeneralFamilyExpander(InfoExpander):
             nacc_in_plants = (
                 session.query(Plant.accession_id)
                 .join(Accession, Plant.accession_id == Accession.id)
-                .join(Species, Accession.species_id == Species.id)
-                .join(Genus, Species.genus_id == Genus.id)
-                .join(Family, Genus.family_id == Family.id)
+                .join(get_species(), Accession.species_id == get_species().id)
+                .join(genus_instance, get_species().genus_id == genus_instance.id)
+                .join(Family, genus_instance.family_id == Family.id)
                 .filter(Family.id == row.id)
                 .distinct()
                 .count()

@@ -17,7 +17,7 @@
                 }
             ],
             "preLaunchTask": "Wait for Container",
-            "justMyCode": true,
+            "justMyCode": false,
             "logToFile": true,
             "subProcess": false
         },

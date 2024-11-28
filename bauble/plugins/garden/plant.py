@@ -40,11 +40,22 @@ from bauble.editor import GenericModelViewPresenterEditor
 from bauble.editor import NotesPresenter
 from bauble.editor import PicturesPresenter
 from bauble.error import CheckConditionError
-from bauble.plugins.garden.accession import Accession
+from bauble.plugins.garden.constants import (
+    prop_type_values,
+    prop_type_results,
+    cutting_type_values,
+    tip_values,
+    leaves_values,
+    flower_buds_values,
+    wound_values,
+    hormone_values,
+    bottom_heat_unit_values,
+    length_unit_values,
+)
 from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.location import LocationEditor
 from bauble.search import SearchStrategy
-from bauble.utils import safe_set_text
+from bauble.utils import safe_set_text, handle_db_error
 from bauble.view import Action
 from bauble.view import InfoBox
 from bauble.shared import InfoExpander
@@ -270,6 +281,7 @@ def as_dict(self):
 
 
 def retrieve(cls, session, keys):
+    from bauble.plugins.garden.accession import Accession
     q = session.query(cls)
     if "plant" in keys:
         acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
@@ -291,6 +303,7 @@ def retrieve(cls, session, keys):
 
 def compute_serializable_fields(cls, session, keys):
     "plant is given as text, should be object"
+    from bauble.plugins.garden.accession import Accession
     result = {"plant": None}
 
     acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
@@ -337,7 +350,7 @@ class PlantChange(db.Base):
     """ """
 
     __tablename__ = "plant_change"
-    __mapper_args__ = {"order_by": text("plant_change.date")}
+    order_by = [text("plant_change.date")]
 
     plant_id = Column(Integer, ForeignKey("plant.id"), nullable=False)
     parent_plant_id = Column(Integer, ForeignKey("plant.id"))
@@ -449,9 +462,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     __tablename__ = "plant"
     __table_args__ = (UniqueConstraint("code", "accession_id"), {})
-    __mapper_args__ = {
-        "order_by": [text("plant.accession_id"), text("plant.code")]
-    }
+    order_by = [text("plant.accession_id"), text("plant.code")]
 
     # columns
     code = Column(Unicode(6), nullable=False)
@@ -605,6 +616,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     @classmethod
     def compute_serializable_fields(cls, session, keys):
+        from bauble.plugins.garden.accession import Accession
         result = {"accession": None, "location": None}
 
         acc_keys = {}
@@ -631,6 +643,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     @classmethod
     def retrieve(cls, session, keys):
+        from bauble.plugins.garden.accession import Accession
         try:
             return (
                 session.query(cls)
@@ -845,6 +858,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         # assign signal handlers to monitor changes now that the view has
         # been filled in
         def acc_get_completions(text):
+            from bauble.plugins.garden.accession import Accession
             query = self.session.query(Accession)
             return query.filter(
                 Accession.code.like(str("%s%%" % text))
@@ -1241,31 +1255,14 @@ class PlantEditor(GenericModelViewPresenterEditor):
     def handle_response(self, response):
         not_ok_msg = _("Are you sure you want to lose your changes?")
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
-            try:
-                if self.presenter.is_dirty():
-                    # commit_changes() will append the commited plants
-                    # to self._committed
-                    self.commit_changes()
-            except DBAPIError as e:
-                exc = traceback.format_exc()
-                logger.debug(exc)
-                msg = _("Error committing changes.\n\n%s") % e.orig
-                utils.message_details_dialog(
-                    msg, str(e), Gtk.MessageType.ERROR
-                )
-                self.session.rollback()
-                return False
-            except Exception as e:
-                msg = _(
-                    "Unknown error when committing changes. See the "
-                    "details for more information.\n\n%s"
-                ) % utils.xml_safe(e)
-                logger.debug(traceback.format_exc())
-                utils.message_details_dialog(
-                    msg, traceback.format_exc(), Gtk.MessageType.ERROR
-                )
-                self.session.rollback()
-                return False
+            if self.presenter.dirty():
+                if not handle_db_error(
+                    lambda: self.commit_changes(), self.session, context="committing plant changes"
+                ):
+                    return False
+            self._committed.append(self.model)
+        
+        # Handle rollback or losing change
         elif (
             self.presenter.is_dirty() and utils.yes_no_dialog(not_ok_msg)
         ) or not self.presenter.is_dirty():

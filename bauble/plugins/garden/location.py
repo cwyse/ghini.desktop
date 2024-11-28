@@ -140,7 +140,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     """
 
     __tablename__ = "location"
-    __mapper_args__ = {"order_by": text("location.name")}
+    order_by = [text("location.name")]
 
     # columns
     # refers to beds by unique codes

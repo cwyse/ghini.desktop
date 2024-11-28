@@ -61,7 +61,7 @@ from bauble.plugins.garden.source import Source
 from bauble.plugins.garden.source import source_detail_context_menu
 from bauble.utils import safe_set_text, safe_set_props
 from bauble.view import SearchView
-from sqlalchemy.orm import eagerload
+from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import object_session
 
 logger = logging.getLogger(__name__)
@@ -137,7 +137,7 @@ class GardenPlugin(pluginmgr.Plugin):
                 session.query(Accession)
                 .join(Source)
                 .join(Contact)
-                .options(eagerload("species"))
+                .options(selectinload("species"))
                 .filter(Contact.id == detail.id)
                 .all()
             )
@@ -173,10 +173,15 @@ class GardenPlugin(pluginmgr.Plugin):
             base = os.path.join(paths.lib_dir(), "plugins", "garden")
             from gi.repository import Gtk
 
-            submenu = bauble.gui.ui_manager.get_widget(
-                "/ui/MenuBar/insert_menu"
-            ).get_submenu()
-            submenu.append(Gtk.SeparatorMenuItem())
+            # Insert Menu
+            insert_menu = bauble.gui.insert_menu
+            if insert_menu is None:
+                logger.error("Insert menu not found!")
+                return
+
+            insert_menu.append(Gtk.SeparatorMenuItem())
+
+            # Add items to Insert menu
             bauble.gui.add_to_insert_menu(
                 AccessionEditor, _("Accession"), "insert-new.png", base
             )
@@ -186,7 +191,7 @@ class GardenPlugin(pluginmgr.Plugin):
             bauble.gui.add_to_insert_menu(
                 LocationEditor, _("Location"), "insert-new.png", base
             )
-            submenu.append(Gtk.SeparatorMenuItem())
+            insert_menu.append(Gtk.SeparatorMenuItem())
             bauble.gui.add_to_insert_menu(
                 create_contact, _("Contact"), "contact.png", base
             )

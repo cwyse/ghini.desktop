@@ -18,7 +18,7 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import os.path
 from gettext import gettext as _
-from logging import logger
+import logging
 from os.path import dirname
 from os.path import isdir
 
@@ -42,6 +42,7 @@ from sqlalchemy.types import Integer
 class FlatFileExporter(GenericEditorPresenter):
 
     view_accept_buttons = ["cancel_button", "confirm_button"]
+    logger = logging.getLogger(__name__)
 
     def __init__(self, view=None):
         super().__init__(model=self, view=view, refresh_view=False)
@@ -79,7 +80,7 @@ class FlatFileExporter(GenericEditorPresenter):
         self, output_file=None, domain=None, exported_fields=[], **kwargs
     ):
         if kwargs:
-            logger.warning(
+            self.logger.warning(
                 "set_model_fields received extra parameters %s" % kwargs
             )
 
