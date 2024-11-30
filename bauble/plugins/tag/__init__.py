@@ -201,6 +201,9 @@ class TagsMenuManager:
             tags_menu.append(self.remove_active_tag_menu_item)
             self.apply_active_tag_menu_item.set_sensitive(False)
             self.remove_active_tag_menu_item.set_sensitive(False)
+
+        # Make sure all items and the menu are visible
+        tags_menu.show_all()            
         return tags_menu
 
     def register_accelerators(self, menu_item, accel_group, accel_key, modifiers):

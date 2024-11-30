@@ -170,7 +170,7 @@ def create_menu_item_with_image(label, icon_name=None, base_dir=None):
     hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
     if image:
         hbox.pack_start(image, False, False, 0)
-    label_widget = Gtk.Label(label)
+    label_widget = Gtk.Label(label=label)
     hbox.pack_start(label_widget, True, True, 0)
     item.add(hbox)
 

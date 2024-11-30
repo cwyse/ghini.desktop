@@ -506,6 +506,8 @@ class PlantsPlugin(pluginmgr.Plugin):
             SpeciesEditor, _("Species"), "wiki-species.png", base
         )
 
+        insert_menu.show_all()
+
     @classmethod
     def _initialize_default_stored_queries(cls):
         """Set up default stored queries if not already initialized."""
