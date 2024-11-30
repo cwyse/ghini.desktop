@@ -68,6 +68,7 @@ from bauble.utils import safe_set_text
 from bauble.view import SearchView
 from gi.repository import GObject
 from gi.repository import Gtk
+from sqlalchemy import text
 
 from .stored_queries import StoredQueryEditorTool
 from .taxonomy_check import TaxonomyCheckTool
@@ -90,14 +91,18 @@ class LabelUpdater(Thread):
         self.widget = widget
 
     def run(self):
-        ssn = db.Session()
-        (value,) = ssn.execute(self.query).first()
-        GObject.idle_add(
-            utils.none,
-            self.widget.set_text,
-            str(value) if str(value) is not None else "",
-        )
-        ssn.close()
+        try:
+            with db.Session() as session:  # Use a context manager for the session
+                # Wrap the raw SQL string in text()
+                result = session.execute(text(self.query)).first()
+                (value,) = result if result else (None,)
+                GObject.idle_add(
+                    utils.none,
+                    self.widget.set_text,
+                    str(value) if value is not None else "",
+                )
+        except Exception as e:
+            logger.error(f"Error in LabelUpdater: {e}")
 
 
 class SplashInfoBox(pluginmgr.View):
