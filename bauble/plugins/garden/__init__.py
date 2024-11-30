@@ -219,6 +219,8 @@ class GardenPlugin(pluginmgr.Plugin):
         if not institution.name:
             start_institution_editor()
 
+        insert_menu.show_all()
+
 
 def init_location_comboentry(presenter, combo, on_select, required=True):
     """associate custom completion to combobox internal entry
