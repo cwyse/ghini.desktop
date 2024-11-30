@@ -76,6 +76,7 @@ from sqlalchemy.orm import reconstructor
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
+from sqlalchemy import asc
 
 
 
@@ -333,7 +334,6 @@ class Verification(db.Base):
     """
 
     __tablename__ = "verification"
-    order_by = [text("verification.date")]
 
     # columns
     verifier = Column(Unicode(64), nullable=False)
@@ -341,6 +341,7 @@ class Verification(db.Base):
     reference = Column(UnicodeText)
     accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
     accession = relationship("Accession", back_populates="verifications")
+    order_by = [asc(date)]
 
     # the level of assurance of this verification
     level = Column(Integer, nullable=False, autoincrement=False)
@@ -626,12 +627,12 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     """
 
     __tablename__ = "accession"
-    order_by = [text("accession.code")]
-
+ 
     # columns
     #: the accession code
     code = Column(Unicode(20), nullable=False, unique=True)
     code_format = "%Y%PD####"
+    order_by = [asc(code)]
 
     @validates("code")
     def validate_stripping(self, key, value):

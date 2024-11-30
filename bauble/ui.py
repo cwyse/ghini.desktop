@@ -536,8 +536,6 @@ class GUI:
         The menu structure and actions are dynamically built to mimic the original functionality,
         including the use of `add_actions` for defining callbacks and shortcuts.
         """
-        self.ui_manager = Gtk.UIManager()
-
         # Create the MenuBar
         self.menubar = Gtk.MenuBar()
 

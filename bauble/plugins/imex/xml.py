@@ -49,9 +49,11 @@ def ElementFactory(parent, name, **kwargs):
     el = etree.SubElement(parent, name, **kwargs)
     try:
         if text is not None:
-            el.text = str(text, "utf8")
-    except (AssertionError, TypeError):
-        el.text = str(str(text), "utf8")
+            el.text = str(text) if isinstance(text, str) else text.decode('utf8', errors='ignore')
+    except Exception as e:
+        logger.error(f"Error setting text for element: {e}")
+    el.text = ""
+
     return el
 
 
@@ -61,53 +63,89 @@ class XMLExporter:
         pass
 
     def start(self, path=None):
-
-        d = Gtk.Dialog(
-            "Ghini - XML Exporter",
-            bauble.gui.window,
-            Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            (
-                Gtk.STOCK_CANCEL,
-                Gtk.ResponseType.REJECT,
-                Gtk.STOCK_OK,
-                Gtk.ResponseType.ACCEPT,
-            ),
+        
+        dialog = Gtk.Dialog(
+            title=_("Ghini - XML Exporter"),
+            transient_for=bauble.gui.window,
+            flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+        )
+        dialog.set_icon_name("document-export")
+        dialog.add_buttons(
+            _("Cancel"), Gtk.ResponseType.REJECT,
+            _("OK"), Gtk.ResponseType.ACCEPT,
         )
 
-        box = Gtk.VBox(spacing=20)
-        d.vbox.pack_start(box, True, True, 10)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+        dialog.get_content_area().pack_start(box, True, True, 10)
 
-        file_chooser = Gtk.FileChooserButton(_("Select a directory"))
-        file_chooser.set_select_multiple(False)
-        file_chooser.set_action(Gtk.FileChooserAction.SELECT_FOLDER)
-        box.pack_start(file_chooser, True, True, 0)
+        # Use a FileChooserDialog for file selection
+        file_chooser_button = Gtk.Button(label=_("Select Directory"))
+        file_chooser_button.connect("clicked", self.on_open_file_chooser_dialog)
+        self.selected_path_label = Gtk.Label(label=_("No directory selected"))
+        box.pack_start(file_chooser_button, False, False, 0)
+        box.pack_start(self.selected_path_label, False, False, 0)
+
+        # Progress Bar
+        self.progress_bar = Gtk.ProgressBar()
+        self.progress_bar.set_show_text(True)
+        self.progress_bar.set_text(_("Ready"))
+        box.pack_start(self.progress_bar, False, False, 10)
+
+        # Check button for "Save all data in one file"
         check = Gtk.CheckButton(_("Save all data in one file"))
         check.set_active(True)
-        box.pack_start(check, True, True, 0)
+        box.pack_start(check, False, False, 0)
 
-        d.connect(
+        dialog.connect(
             "response",
             self.on_dialog_response,
-            file_chooser.get_filename(),
-            check.get_active(),
+            check,
         )
-        d.show_all()
-        d.run()
-        d.hide()
+        dialog.show_all()
+        dialog.run()
+        dialog.hide()
 
-    def on_dialog_response(self, dialog, response, filename, one_file):
-        logger.debug("on_dialog_response({}, {})".format(filename, one_file))
+    def on_open_file_chooser_dialog(self, button):
+        chooser = Gtk.FileChooserDialog(
+            title=_("Select a Directory"),
+            parent=None,
+            action=Gtk.FileChooserAction.SELECT_FOLDER,
+        )
+        chooser.add_buttons(
+            _("Cancel"), Gtk.ResponseType.CANCEL,
+            _("Select"), Gtk.ResponseType.OK,
+        )
+        response = chooser.run()
+        if response == Gtk.ResponseType.OK:
+            self.selected_path = chooser.get_filename()
+            self.selected_path_label.set_text(self.selected_path)
+        chooser.destroy()
+
+
+    def on_dialog_response(self, dialog, response, file_chooser, check):
+        filename = self.selected_path  # Use the selected path from the label
+        one_file = check.get_active()  # Dynamically get the state of the checkbox
         if response == Gtk.ResponseType.ACCEPT:
+            if not filename or not os.path.isdir(filename):
+                # Ensure a valid directory is selected
+                utils.message_dialog(_("Please select a valid directory"))
+                return
             self.__export_task(filename, one_file)
         dialog.destroy()
 
-    def __export_task(self, path, one_file=True):
-        if not one_file:
-            tableset_el = etree.Element("tableset")
 
-        for table_name, table in list(db.metadata.tables.items()):
-            if one_file:
+    def __export_task(self, path, one_file=True):
+        tables = list(db.metadata.tables.items())
+        total_tables = len(tables)
+        for index, (table_name, table) in enumerate(tables):
+            self.progress_bar.set_fraction((index + 1) / total_tables)
+            self.progress_bar.set_text(f"Exporting {table_name}... ({index + 1}/{total_tables})")
+            while Gtk.events_pending():
+                Gtk.main_iteration()
+
+            if not one_file:
                 tableset_el = etree.Element("tableset")
+
             logger.info("exporting %s…" % table_name)
             table_el = ElementFactory(
                 tableset_el, "table", attrib={"name": table_name}
@@ -135,13 +173,12 @@ class XMLExporter:
                 if one_file:
                     tree = etree.ElementTree(tableset_el)
                     filename = os.path.join(path, "%s.xml" % table_name)
-                    # TODO: can figure out why this keeps crashing
                     tree.write(filename, encoding="utf8", xml_declaration=True)
 
-        if not one_file:
-            tree = etree.ElementTree(tableset_el)
-            filename = os.path.join(path, "bauble.xml")
-            tree.write(filename, encoding="utf8", xml_declaration=True)
+        # Finalize progress
+        self.progress_bar.set_fraction(1.0)
+        self.progress_bar.set_text(_("Export Complete"))
+
 
 
 class XMLExportCommandHandler(pluginmgr.CommandHandler):
@@ -179,3 +216,4 @@ except ImportError:
         "The <i>lxml</i> package is required for the "
         "XML Import/Exporter plugin"
     )
+    raise

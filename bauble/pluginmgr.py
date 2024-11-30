@@ -390,10 +390,9 @@ class PluginRegistry(db.Base):
             name=utils.utf8(plugin.__class__.__name__),
             version=utils.utf8(plugin.version),
         )
-        session = db.Session()
-        session.add(p)
-        session.commit()
-        session.close()
+        with db.Session() as session:
+            session.add(p)
+            session.commit()
 
     @staticmethod
     def remove(plugin=None, name=None):
@@ -403,34 +402,25 @@ class PluginRegistry(db.Base):
         # debug('PluginRegistry.remove()')
         if name is None:
             name = plugin.__class__.__name__
-        session = db.Session()
-        p = (
-            session.query(PluginRegistry)
-            .filter_by(name=utils.utf8(name))
-            .one()
-        )
-        session.delete(p)
-        session.commit()
-        session.close()
+        with db.Session() as session:
+            p = session.query(PluginRegistry).filter_by(name=utils.utf8(name)).one()
+            session.delete(p)
+            session.commit()
 
     @staticmethod
     def all(session):
-        close_session = False
-        if not session:
-            close_session = True
-            session = db.Session()
-        q = session.query(PluginRegistry)
-        results = list(q)
-        if close_session:
-            session.close()
-        return results
+        with db.Session() as local_session:
+            session = session or local_session
+            q = session.query(PluginRegistry)
+            return list(q)
 
     @staticmethod
-    def names(bind=None):
+    def names():
         t = PluginRegistry.__table__
-        results = select([t.c.name], bind=bind).execute(bind=bind)
-        names = [n[0] for n in results]
-        results.close()
+        stmt = select(t.c.name)
+        with db.Session() as session:
+            results = session.execute(stmt)
+            names = [row[0] for row in results]
         return names
 
     @staticmethod
@@ -444,18 +434,15 @@ class PluginRegistry(db.Base):
         else:
             name = plugin.__class__.__name__
             version = plugin.version
-        session = db.Session()
-        try:
-            logger.debug("not using value of version (%s)." % version)
-            session.query(PluginRegistry).filter_by(
-                name=utils.utf8(name)
-            ).one()
-            return True
-        except orm_exc.NoResultFound as e:
-            logger.debug(e)
-            return False
-        finally:
-            session.close()
+
+        with db.Session() as session:
+            try:
+                logger.debug("not using value of version (%s)." % version)
+                session.query(PluginRegistry).filter_by(name=utils.utf8(name)).one()
+                return True
+            except orm_exc.NoResultFound as e:
+                logger.debug(e)
+                return False
 
 
 class Plugin:

@@ -60,7 +60,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import synonym
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
-
+from sqlalchemy import asc
 
 
 logger = logging.getLogger(__name__)
@@ -199,7 +199,6 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         UniqueConstraint("epithet", "author", "qualifier", "family_id"),
         {},
     )
-    order_by = [text("genus.epithet"), text("genus.author")]
 
     rank = "genus"
     link_keys = ["accepted"]
@@ -263,6 +262,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
 
     # use '' instead of None so that the constraints will work propertly
     author = Column(Unicode(255), default="")
+    order_by = [asc(epithet), asc(author)]
 
     @validates("epithet", "author")
     def validate_stripping(self, key, value):
@@ -506,7 +506,7 @@ class GenusSynonym(db.Base):
 Genus.species = relationship(
     "Species",
     cascade="all, delete-orphan",
-    order_by=[text("sp")],
+    order_by=asc(Species.epithet),
     back_populates="genus",
     uselist=False,
     single_parent=True,

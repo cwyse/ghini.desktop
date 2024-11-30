@@ -50,6 +50,10 @@ from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy.orm import relationship
 from bauble.shared import InfoExpander
+from sqlalchemy import asc
+from bauble.plugins.garden.propagation import Propagation
+from sqlalchemy.orm import configure_mappers
+from sqlalchemy.ext.declarative import declared_attr
 
 
 logger = logging.getLogger(__name__)
@@ -99,6 +103,28 @@ collection_context_menu = [
 ]
 
 
+class SourceBase:
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        
+        # This propagation relationship links a Source to a specific 
+        # Propagation that is not tied to a Plant. It likely represents 
+        # a propagation trial or source-related propagation activity 
+        # independent of the plant hierarchy.
+        
+        # Add the propagation_id column dynamically to the subclass
+        cls.propagation_id = Column(Integer, ForeignKey("propagation.id"))
+        
+        # Add the propagation relationship dynamically to the subclass
+        cls.propagation = relationship(
+            "Propagation",
+            uselist=False,
+            back_populates="source",
+            cascade="all, delete-orphan",
+            single_parent=True,
+            foreign_keys=[cls.propagation_id],
+        )
+
 class Source(db.Base):
     """connected 1-1 to Accession.
 
@@ -133,8 +159,10 @@ class Source(db.Base):
         single_parent=True,
     )
 
-    # relation to a propagation that is specific to this Source and
-    # not attached to a Plant. 2017-06-04 : WHAT IS THIS ?
+    # This propagation relationship links a Source to a specific 
+    # Propagation that is not tied to a Plant. It likely represents 
+    # a propagation trial or source-related propagation activity 
+    # independent of the plant hierarchy.
     propagation_id = Column(Integer, ForeignKey("propagation.id"))
     propagation = relationship(
         "Propagation",
@@ -145,19 +173,28 @@ class Source(db.Base):
         foreign_keys=[propagation_id],
     )
 
+    plant_propagation_id = Column(Integer, ForeignKey("propagation.id"))
+    plant_propagation = relationship(
+        "Propagation",
+        primaryjoin="Source.plant_propagation_id == Propagation.id",
+        back_populates="used_source",
+        uselist=True,
+        foreign_keys=[plant_propagation_id],
+    )
+    
     # an Accession of known Source (what we are describing here) may be in
     # relation to a successful Plant Propagation trial. In this case, the
     # Propagation points back to all Accessions that resulted from it, via
     # `used_source[i].accession`. Arguably not practical.
     plant_propagation_id = Column(Integer, ForeignKey("propagation.id"))
+    
     plant_propagation = relationship(
-        "Propagation",
-        primaryjoin="Source.plant_propagation_id==Propagation.id",
-        back_populates="used_source",
-        uselist=True,
-        foreign_keys=[plant_propagation_id],
-    )
-
+            "Propagation",
+            primaryjoin="Source.plant_propagation_id==Propagation.id",
+            back_populates="used_source",
+            uselist=True,
+            foreign_keys=[plant_propagation_id],
+        )
 
 source_type_values = [
     ("Expedition", _("Expedition")),
@@ -912,7 +949,6 @@ def compute_serializable_fields(cls, session, keys):
 
 class Contact(db.Base, db.Serializable, db.WithNotes):
     __tablename__ = "contact"
-    order_by = [text("contact.name")]
 
 
     # ITF2 - E6 - Donor
@@ -927,6 +963,8 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
         ),
         default=None,
     )
+    order_by = [asc(name)]
+
     sources = relationship(
         "Source",
         uselist=False,

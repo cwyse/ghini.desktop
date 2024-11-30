@@ -76,7 +76,6 @@ logger.setLevel(logging.INFO)
 
 
 class GardenPlugin(pluginmgr.Plugin):
-
     depends = ["PlantsPlugin"]
     tools = [InstitutionTool, PictureImporterTool, PocketServerTool]
     commands = [InstitutionCommand]
@@ -98,12 +97,27 @@ class GardenPlugin(pluginmgr.Plugin):
     @classmethod
     def init(cls):
         pluginmgr.provided.update(cls.provides)
+        cls._setup_search_metas()
+        cls._setup_gui_menus()
+
+        # Initialize the default plant delimiter if not already present
+        import bauble.meta as meta
+        meta.get_default(plant_delimiter_key, default_plant_delimiter)
+
+        # Prompt for institution setup if not already configured
+        institution = Institution()
+        if bauble.gui is not None and not institution.name:
+            start_institution_editor()
+
+    @staticmethod
+    def _setup_search_metas():
+        """Configure search strategies and row metadata."""
         from bauble.plugins.plants import Species
+        from functools import partial
 
         mapper_search = search.get_strategy("MapperSearch")
 
-        from functools import partial
-
+        # Set up Accession
         mapper_search.add_meta(("accession", "acc"), Accession, ["code"])
         SearchView.row_meta[Accession].set(
             children=partial(db.natsort, "plants"),
@@ -111,6 +125,7 @@ class GardenPlugin(pluginmgr.Plugin):
             context_menu=acc_context_menu,
         )
 
+        # Set up Location
         mapper_search.add_meta(("location", "loc"), Location, ["name", "code"])
         SearchView.row_meta[Location].set(
             children=partial(db.natsort, "plants"),
@@ -118,19 +133,14 @@ class GardenPlugin(pluginmgr.Plugin):
             context_menu=loc_context_menu,
         )
 
+        # Set up Plant
         mapper_search.add_meta(("plant", "planting"), Plant, ["code"])
-        search.add_strategy(PlantSearch)  # special search value strategy
-        # search.add_strategy(SpeciesSearch)  # special search value strategy
+        search.add_strategy(PlantSearch)
         SearchView.row_meta[Plant].set(
             infobox=PlantInfoBox, context_menu=plant_context_menu
         )
 
-        mapper_search.add_meta(
-            ("contact", "contacts", "person", "org", "source"),
-            Contact,
-            ["name"],
-        )
-
+        # Set up Contact
         def sd_kids(detail):
             session = object_session(detail)
             results = (
@@ -143,58 +153,62 @@ class GardenPlugin(pluginmgr.Plugin):
             )
             return results
 
+        mapper_search.add_meta(("contact", "contacts", "person", "org", "source"), Contact, ["name"])
         SearchView.row_meta[Contact].set(
             children=sd_kids,
             infobox=ContactInfoBox,
             context_menu=source_detail_context_menu,
         )
 
-        mapper_search.add_meta(
-            ("collection", "col", "coll"), Collection, ["locale"]
-        )
-
+        # Set up Collection
         def coll_kids(coll):
             return sorted(coll.source.accession.plants, key=utils.natsort_key)
 
+        mapper_search.add_meta(("collection", "col", "coll"), Collection, ["locale"])
         SearchView.row_meta[Collection].set(
             children=coll_kids,
             infobox=AccessionInfoBox,
             context_menu=collection_context_menu,
         )
 
-        # done here b/c the Species table is not part of this plugin
+        # Species metadata
         SearchView.row_meta[Species].child = "accessions"
 
-        if bauble.gui is not None:
-            import os.path
+    @classmethod
+    def _setup_gui_menus(cls):
+        """Set up GUI menus dynamically."""
+        if bauble.gui is None:
+            return
 
-            from bauble import paths
+        import os.path
+        from bauble import paths
+        base = os.path.join(paths.lib_dir(), "plugins", "garden")
 
-            base = os.path.join(paths.lib_dir(), "plugins", "garden")
-            from gi.repository import Gtk
+        # Insert Menu
+        insert_menu = bauble.gui.insert_menu
+        if insert_menu is None:
+            logger.error("Insert menu not found!")
+            return
 
-            # Insert Menu
-            insert_menu = bauble.gui.insert_menu
-            if insert_menu is None:
-                logger.error("Insert menu not found!")
-                return
+        from gi.repository import Gtk
+        insert_menu.append(Gtk.SeparatorMenuItem())
+ 
+        from bauble.ui import GUI 
 
-            insert_menu.append(Gtk.SeparatorMenuItem())
-
-            # Add items to Insert menu
-            bauble.gui.add_to_insert_menu(
-                AccessionEditor, _("Accession"), "insert-new.png", base
-            )
-            bauble.gui.add_to_insert_menu(
-                PlantEditor, _("Planting"), "insert-new.png", base
-            )
-            bauble.gui.add_to_insert_menu(
-                LocationEditor, _("Location"), "insert-new.png", base
-            )
-            insert_menu.append(Gtk.SeparatorMenuItem())
-            bauble.gui.add_to_insert_menu(
-                create_contact, _("Contact"), "contact.png", base
-            )
+        # Add items to Insert menu
+        bauble.gui.add_to_insert_menu(
+            AccessionEditor, _("Accession"), "insert-new.png", base
+        )
+        bauble.gui.add_to_insert_menu(
+            PlantEditor, _("Planting"), "insert-new.png", base
+        )
+        bauble.gui.add_to_insert_menu(
+            LocationEditor, _("Location"), "insert-new.png", base
+        )
+        insert_menu.append(Gtk.SeparatorMenuItem())
+        bauble.gui.add_to_insert_menu(
+            create_contact, _("Contact"), "contact.png", base
+        )
 
         # if the plant delimiter isn't in the bauble meta then add the default
         import bauble.meta as meta
@@ -202,7 +216,7 @@ class GardenPlugin(pluginmgr.Plugin):
         meta.get_default(plant_delimiter_key, default_plant_delimiter)
 
         institution = Institution()
-        if bauble.gui is not None and not institution.name:
+        if not institution.name:
             start_institution_editor()
 
 

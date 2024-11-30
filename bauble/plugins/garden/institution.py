@@ -39,6 +39,7 @@ from gi.repository import Gdk
 from gi.repository import Gtk
 from gi.repository import GtkChamplain
 from gi.repository import GtkClutter
+from sqlalchemy import select
 
 # mapping stuff
 gi.require_version("GtkClutter", "1.0")
@@ -431,12 +432,19 @@ class Institution:
         list([setattr(self, p, None) for p in self.__properties])
 
         for prop in self.__properties:
-            db_prop = utils.utf8("inst_" + prop)
-            result = self.table.select(self.table.c.name == db_prop).execute()
-            row = result.fetchone()
-            if row:
-                setattr(self, prop, row["value"])
-            result.close()
+            db_prop = "inst_" + prop
+
+            # Construct the SELECT statement
+            stmt = select(self.table).where(self.table.c.name == db_prop)
+
+            import bauble.db as db
+            # Use a connection for executing the query
+            with db.engine.connect() as conn:
+                result = conn.execute(stmt)
+                row = result.fetchone()
+                if row:
+                    setattr(self, prop, row[0])
+
 
     def write(self):
         for prop in self.__properties:
