@@ -723,58 +723,76 @@ class GUI:
         # Make the menu item visible
         item.show()
 
+    def add_to_tools_menu(self, menu, tool, on_activate_callback):
+        """
+        Helper function to add a tool to a tools menu.
+
+        Args:
+            menu (Gtk.Menu): The menu to which the tool should be added.
+            tool (object): The tool object containing label, icon, and other metadata.
+            on_activate_callback (function): The callback to execute when the tool is activated.
+        """
+        item = create_menu_item_with_image(tool.label, tool.icon_name, paths.lib_dir())
+        item.connect("activate", on_activate_callback, tool)
+        menu.append(item)
+        if not tool.enabled:
+            item.set_sensitive(False)
+        item.show()
 
     def build_tools_menu(self):
         """
         Build the tools menu from the tools provided by the plugins.
 
-        This method is generally called after plugin initialization
+        This method dynamically updates the Tools menu after plugin initialization.
         """
-        topmenu = self.ui_manager.get_widget("/ui/MenuBar/tools_menu")
-        menu = topmenu.get_submenu()
-        for child in menu.get_children():
-            menu.remove(child)
-        menu.show()
+        # Assuming self.tools_menu is a Gtk.Menu instance
+        tools_menu = self.tools_menu  # Direct reference to the tools Gtk.Menu
+        if not tools_menu:
+            logger.error("Tools menu is not defined!")
+            return
+
+        # Clear existing menu items
+        for child in tools_menu.get_children():
+            tools_menu.remove(child)
+
         tools = {}
         category_icon = {}
-        # categorize the tools into a dict
-        for p in list(pluginmgr.plugins.values()):
-            for tool in p.tools:
+
+        # Categorize tools into a dictionary
+        for plugin in pluginmgr.plugins.values():
+            for tool in plugin.tools:
                 if isinstance(tool.category, tuple):
                     tool.category, icon = tool.category
                     category_icon[tool.category] = icon
                 tools.setdefault(tool.category, []).append(tool)
 
-        # add the tools with no category to the root menu
-        root_tools = tools.pop(None)
-        for tool in sorted(
-            root_tools, key=lambda x: getattr(x, "item_position", 0)
-        ):
-            item = create_menu_item_with_image(tool)
-            item.show()
-            item.connect("activate", self.on_tools_menu_item_activate, tool)
-            menu.append(item)
-            if not tool.enabled:
-                item.set_sensitive(False)
+        # Add tools with no category to the root menu
+        root_tools = tools.pop(None, [])
+        for tool in sorted(root_tools, key=lambda x: getattr(x, "item_position", 0)):
+            self.add_to_tools_menu(tools_menu, tool, self.on_tools_menu_item_activate)
+        tools_menu.show_all()
 
-        # create submenus for the categories and add the tools
+        # Create submenus for categorized tools
         for category in sorted(tools.keys()):
             submenu = Gtk.Menu()
             submenu_item = create_menu_item_with_image(
                 category, category_icon.get(category), paths.lib_dir()
             )
             submenu_item.set_submenu(submenu)
-            menu.append(submenu_item)
+            tools_menu.append(submenu_item)
+            submenu_item.show()
+
             for tool in sorted(tools[category], key=lambda x: x.label):
-                item = create_menu_item_with_image(tool)
-                item.connect(
-                    "activate", self.on_tools_menu_item_activate, tool
-                )
-                submenu.append(item)
-                if not tool.enabled:
-                    item.set_sensitive(False)
-        menu.show_all()
-        return menu
+                try:
+                    self.add_to_tools_menu(submenu, tool, self.on_tools_menu_item_activate)
+                except:
+                    self.add_to_tools_menu(submenu, tool, self.on_tools_menu_item_activate)
+            submenu_item.show_all()
+
+        # Ensure all menu items are visible
+        tools_menu.show_all()
+
+
 
     def on_tools_menu_item_activate(self, widget, tool):
         """

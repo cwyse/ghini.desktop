@@ -508,6 +508,7 @@ class JSONImporter(editor.GenericEditorPresenter):
 class JSONImportTool(pluginmgr.Tool):
     category = (_("Import"), "edit-undo")
     label = _("JSON")
+    icon_name = _("new-json.png")
 
     @classmethod
     def start(cls):
