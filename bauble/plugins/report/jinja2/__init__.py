@@ -49,11 +49,13 @@ class Jinja2FormatterPlugin(TemplateFormatterPlugin):
         r"tooltip: '(.*)'\)\s*#}$"
     )
 
+    @classmethod
     def get_template(name):
+        """Load a Jinja2 template from available paths."""
         if not name:
             msg = _("Please select a template.")
             utils.idle_message(msg, Gtk.MessageType.WARNING)
-            return False
+            return None
         try:
             path, name = os.path.split(name)
             from jinja2 import (
@@ -87,7 +89,8 @@ class Jinja2FormatterPlugin(TemplateFormatterPlugin):
                 ),
                 type=Gtk.MessageType.ERROR,
             )
-            return False
+            logger.error(f"Failed to load Jinja2 template {name}: {e}")
+            return None
 
         return template
 

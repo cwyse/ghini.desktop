@@ -78,7 +78,7 @@ from sqlalchemy.orm import object_mapper
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
-
+from sqlalchemy import asc
 
 
 logger = logging.getLogger(__name__)
@@ -350,7 +350,6 @@ class PlantChange(db.Base):
     """ """
 
     __tablename__ = "plant_change"
-    order_by = [text("plant_change.date")]
 
     plant_id = Column(Integer, ForeignKey("plant.id"), nullable=False)
     parent_plant_id = Column(Integer, ForeignKey("plant.id"))
@@ -375,6 +374,7 @@ class PlantChange(db.Base):
 
     # date of change
     date = Column(types.DateTime, default=func.now())
+    order_by = [asc(date)]
 
     # Relationships
     plant = relationship(
@@ -462,7 +462,6 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     __tablename__ = "plant"
     __table_args__ = (UniqueConstraint("code", "accession_id"), {})
-    order_by = [text("plant.accession_id"), text("plant.code")]
 
     # columns
     code = Column(Unicode(6), nullable=False)
@@ -484,6 +483,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
     location_id = Column(Integer, ForeignKey("location.id"), nullable=False)
+    order_by = [asc(accession_id), asc(code)]
 
     # Relationships
     accession = relationship("Accession", back_populates="plants")

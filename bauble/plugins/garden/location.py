@@ -47,6 +47,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
+from sqlalchemy import asc
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -140,13 +141,13 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     """
 
     __tablename__ = "location"
-    order_by = [text("location.name")]
 
     # columns
     # refers to beds by unique codes
     code = Column(Unicode(12), unique=True, nullable=False)
     name = Column(Unicode(80))
     description = Column(UnicodeText)
+    order_by = [asc(name)]
 
     # relations
     plants = relationship("Plant", back_populates="location", uselist=False)

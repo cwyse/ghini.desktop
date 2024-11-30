@@ -25,6 +25,7 @@ import logging
 import os
 import traceback
 from gettext import gettext as _
+import sqlalchemy.orm.exc as orm_exc
 
 import bauble
 import gi
@@ -37,6 +38,7 @@ from bauble import ui
 from bauble import utils
 from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorView
+from bauble.utils import safe_set_text
 from bauble.view import Action
 from bauble.view import InfoBox
 from bauble.shared import InfoExpander
@@ -55,7 +57,9 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import object_session
+from contextlib import contextmanager
 
 gi.require_version("Gtk", "3.0")
 
@@ -63,42 +67,45 @@ gi.require_version("Gtk", "3.0")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
-def safe_set_text(gtk_widget, text):
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ""
-    gtk_widget.set_text(text)
-
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    session = db.Session()
+    try:
+        yield session
+    finally:
+        session.close()
 
 class TagsMenuManager:
     def __init__(self):
-        self.menu_item = None
-        self.active_tag_name = None
+        self.menu_item: Gtk.MenuItem | None = None
+        self.active_tag_name: str | None = None
+        self.item_list: dict[str, Gtk.MenuItem] = {}
+        self.apply_active_tag_menu_item: Gtk.MenuItem | None = None
+        self.remove_active_tag_menu_item: Gtk.MenuItem | None = None
 
     def reset(self, make_active_tag=None):
-        """initialize or replace Tags menu in main menu"""
-        self.active_tag_name = make_active_tag and make_active_tag.tag
+        """Initialize or replace Tags menu in the main menu."""
+        self.active_tag_name = make_active_tag.tag if make_active_tag else None
         tags_menu = self.build_menu()
-        if self.menu_item is None:
+        if not self.menu_item:
             self.menu_item = bauble.gui.add_menu(_("Tags"), tags_menu)
         else:
             self.menu_item.set_submenu(tags_menu)
             self.menu_item.show_all()
-        self.show_active_tag()
+
+        logger.debug(f"Active tag set to: {self.active_tag_name}")
+        if self.active_tag_name:
+            self.show_active_tag()
 
     def show_active_tag(self):
-        for c in list(self.item_list.values()):
-            c.set_image(None)
+        """Update UI to reflect the active tag."""
+        for widget in self.item_list.values():
+            widget.set_image(None)
+
         widget = self.item_list.get(self.active_tag_name)
         if widget:
-            image = Gtk.Image()
-            image.set_from_stock(Gtk.STOCK_APPLY, Gtk.IconSize.MENU)
+            image = Gtk.Image.new_from_stock(Gtk.STOCK_APPLY, Gtk.IconSize.MENU)
             widget.set_image(image)
             self.apply_active_tag_menu_item.set_sensitive(True)
             self.remove_active_tag_menu_item.set_sensitive(True)
@@ -106,88 +113,76 @@ class TagsMenuManager:
             self.apply_active_tag_menu_item.set_sensitive(False)
             self.remove_active_tag_menu_item.set_sensitive(False)
 
+        logger.debug(f"Showing active tag: {self.active_tag_name}")
+
     def item_activated(self, widget, tag_name):
+        """Handle the activation of a tag menu item."""
         self.active_tag_name = tag_name
         self.show_active_tag()
-        bauble.gui.send_command('tag="%s"' % tag_name)
-        from bauble.view import SearchView
+        logger.debug(f"Activated tag: {tag_name}")
+        bauble.gui.send_command(f'tag="{tag_name}"')
 
         view = bauble.gui.get_view()
         if isinstance(view, SearchView):
-            view.results_view.expand_to_path(Gtk.TreePath.new_first())
+            first_path = Gtk.TreePath.new_first()
+            if first_path:
+                view.results_view.expand_to_path(first_path)
 
+    def attach_path_to_menu(self, path, parent_menu, submenu_dict):
+        """Attach a path to the menu structure."""
+        full_path = ""
+        for name in path:
+            full_path += name
+            if full_path not in submenu_dict:
+                item = Gtk.ImageMenuItem(name)
+                parent_menu.append(item)
+                submenu_dict[full_path] = [item, Gtk.Menu()]
+                item.set_submenu(submenu_dict[full_path][1])
+            parent_menu = submenu_dict[full_path][1]
+            full_path += "/"
+        return parent_menu
+        
     def build_menu(self):
-        """build tags Gtk.Menu based on current data"""
+        """Build tags Gtk.Menu based on current data."""
         self.item_list = {}
         tags_menu = Gtk.Menu()
         tag_dir = os.path.join(paths.lib_dir(), "plugins", "tag")
-        add_tag_menu_item = ui.create_menu_item_with_image(
+
+        add_tag_menu_item = bauble.ui.create_menu_item_with_image(
             _("Tag Selection"), "tag.png", tag_dir
         )
-        add_tag_menu_item.connect("activate", _on_add_tag_activated)
-        self.apply_active_tag_menu_item = ui.create_menu_item_with_image(
+        add_tag_menu_item.connect("activate", self.on_add_tag_activated)
+        self.apply_active_tag_menu_item = bauble.ui.create_menu_item_with_image(
             _("Apply active tag"), "tag_apply.png", tag_dir
         )
         self.apply_active_tag_menu_item.connect(
             "activate", self.on_apply_active_tag_activated
         )
-        self.remove_active_tag_menu_item = ui.create_menu_item_with_image(
+        self.remove_active_tag_menu_item = bauble.ui.create_menu_item_with_image(
             _("Remove active tag"), "tag_remove.png", tag_dir
         )
         self.remove_active_tag_menu_item.connect(
             "activate", self.on_remove_active_tag_activated
         )
+
         if bauble.gui:
             accel_group = Gtk.AccelGroup()
             bauble.gui.window.add_accel_group(accel_group)
-            add_tag_menu_item.add_accelerator(
-                "activate",
-                accel_group,
-                ord("T"),
-                Gdk.ModifierType.CONTROL_MASK,
-                Gtk.AccelFlags.VISIBLE,
-            )
-            self.apply_active_tag_menu_item.add_accelerator(
-                "activate",
-                accel_group,
-                ord("Y"),
-                Gdk.ModifierType.CONTROL_MASK,
-                Gtk.AccelFlags.VISIBLE,
-            )
+            self.register_accelerators(add_tag_menu_item, accel_group, ord("T"), Gdk.ModifierType.CONTROL_MASK)
+            self.register_accelerators(self.apply_active_tag_menu_item, accel_group, ord("Y"), Gdk.ModifierType.CONTROL_MASK)
             key, mask = Gtk.accelerator_parse("<Control><Shift>y")
-            self.remove_active_tag_menu_item.add_accelerator(
-                "activate", accel_group, key, mask, Gtk.AccelFlags.VISIBLE
-            )
+            self.register_accelerators(self.remove_active_tag_menu_item, accel_group, key, mask)
+
         tags_menu.append(add_tag_menu_item)
 
-        session = db.Session()
-        query = session.query(Tag).order_by(Tag.tag)
-        has_tags = query.first()
-        if has_tags:
-            tags_menu.append(Gtk.SeparatorMenuItem())
-        submenu = {"": [None, tags_menu]}  # menuitem and submenu
+        with session_scope() as session:
+            query = session.query(Tag)
+            query = query.order_by(Tag.tag)
+            has_tags = query.first()
+            if has_tags:
+                tags_menu.append(Gtk.SeparatorMenuItem())
 
-        # corresponding to full item
-        # path; it is a list because it
-        # needs to be mutable
-        def confirm_attach_path(parts):
-            full_path = ""
-            parent = tags_menu
-            while parts:
-                name = parts.pop()
-                full_path += name
-                if full_path not in submenu:
-                    item = Gtk.ImageMenuItem(name)
-                    parent.append(item)
-                    submenu[full_path] = [item, None]
-                if submenu[full_path][1] is None:
-                    take_this = Gtk.Menu()
-                    submenu[full_path] = [item, take_this]
-                    item.set_submenu(take_this)
-                parent = submenu[full_path]
-                full_path += "/"
-
-        try:
+            submenu = {"": [None, tags_menu]}  # Menu structure
             for tag in query:
                 *path, tail = tag.tag.split("/")
                 head = "/".join(path)
@@ -197,15 +192,8 @@ class TagsMenuManager:
                 item.set_always_show_image(True)
                 self.item_list[tag.tag] = item
                 item.connect("activate", self.item_activated, tag.tag)
-                confirm_attach_path(path)
+                self.attach_path_to_menu(path, tags_menu, submenu)
                 submenu[head][1].append(item)
-        except Exception:
-            logger.debug(traceback.format_exc())
-            msg = _("Could not create the tags menus")
-            utils.message_details_dialog(
-                msg, traceback.format_exc(), Gtk.MessageType.ERROR
-            )
-        session.close()
 
         if has_tags:
             tags_menu.append(Gtk.SeparatorMenuItem())
@@ -214,6 +202,15 @@ class TagsMenuManager:
             self.apply_active_tag_menu_item.set_sensitive(False)
             self.remove_active_tag_menu_item.set_sensitive(False)
         return tags_menu
+
+    def register_accelerators(self, menu_item, accel_group, accel_key, modifiers):
+        """Add an accelerator key to a menu item."""
+        try:
+            menu_item.add_accelerator(
+                "activate", accel_group, accel_key, modifiers, Gtk.AccelFlags.VISIBLE
+            )
+        except Exception as e:
+            logger.error(f"Failed to register accelerator for {menu_item.get_label()}: {e}")
 
     def toggle_tag(self, applying):
         view = bauble.gui.get_view()
@@ -237,17 +234,17 @@ class TagsMenuManager:
         applying(self.active_tag_name, values)
         view.update_bottom_notebook()
 
+    def on_add_tag_activated(self, *args, **kwargs):
+        logger.debug("Add tag activated.")
+        # Add implementation here
+
     def on_apply_active_tag_activated(self, *args, **kwargs):
-        logger.debug(
-            "you're applying %s to the selection", self.active_tag_name
-        )
-        self.toggle_tag(applying=tag_objects)
+        logger.debug(f"You're applying {self.active_tag_name} to the selection")
+        self.toggle_tag(applying=utils.tag_objects)
 
     def on_remove_active_tag_activated(self, *args, **kwargs):
-        logger.debug(
-            "you're removing %s from the selection", self.active_tag_name
-        )
-        self.toggle_tag(applying=untag_objects)
+        logger.debug(f"You're removing {self.active_tag_name} from the selection")
+        self.toggle_tag(applying=utils.untag_objects)
 
 
 tags_menu_manager = TagsMenuManager()
@@ -537,9 +534,9 @@ class Tag(db.Base, db.WithNotes):
     """
 
     __tablename__ = "tag"
-    order_by = [text("tag.tag")]
 
     # columns
+    id = Column(Integer, primary_key=True)
     tag = Column(Unicode(64), unique=True, nullable=False)
     description = Column(UnicodeText)
 
@@ -554,94 +551,101 @@ class Tag(db.Base, db.WithNotes):
     __my_own_timestamp = None
     __last_objects = None
 
-    def __str__(self):
+    # Use a lambda to defer attribute access until runtime
+    @staticmethod
+    def order_by():
+        return [Tag.tag]
+    
+    def __str__(self) -> str:
         try:
             return str(self.tag)
         except DetachedInstanceError:
             return db.Base.__str__(self)
 
-    def markup(self):
-        return "%s Tag" % self.tag
+    def markup(self) -> str:
+        return f"{self.tag} Tag"
 
-    def tag_objects(self, objects):
-        session = object_session(self)
-        for obj in objects:
-            cls = and_(
-                TaggedObj.obj_class == _classname(obj),
-                TaggedObj.obj_id == obj.id,
-                TaggedObj.tag_id == self.id,
-            )
-            ntagged = session.query(TaggedObj).filter(cls).count()
-            if ntagged == 0:
-                tagged_obj = TaggedObj(
-                    obj_class=_classname(obj), obj_id=obj.id, tag=self
+    def tag_objects(self, objects) -> None:
+        """Add tags to the provided objects."""
+        with db.Session() as session:
+            for obj in objects:
+                cls = and_(
+                    TaggedObj.obj_class == type(obj).__name__,
+                    TaggedObj.obj_id == obj.id,
+                    TaggedObj.tag_id == self.id,
                 )
-                session.add(tagged_obj)
+                ntagged = session.query(TaggedObj).filter(cls).count()
+                if ntagged == 0:
+                    tagged_obj = TaggedObj(
+                        obj_class=type(obj).__name__, obj_id=obj.id, tag=self
+                    )
+                    session.add(tagged_obj)
 
     @property
-    def objects(self):
-        """return all tagged objects
-
-        reuse last result if nothing was changed in the database since
-        list was retrieved.
-        """
+    def objects(self) -> list:
+        """Return all tagged objects, using a cache if possible."""
+        # Check if the cached list is valid based on the database's latest history timestamp
         if self.__my_own_timestamp is not None:
-            # should I update my list?
-            session = object_session(self)
-            last_history = (
-                session.query(db.History)
-                .order_by(db.History.timestamp.desc())
-                .limit(1)
-                .one()
-            )
-            if last_history.timestamp > self.__my_own_timestamp:
-                self.__last_objects = None
-        if self.__last_objects is None:
-            # here I update my list
-            from datetime import datetime
+            with db.Session() as session:
+                last_history = (
+                    session.query(db.History.timestamp)
+                    .order_by(db.History.timestamp.desc())
+                    .limit(1)
+                    .scalar()
+                )
+                if last_history and last_history > self.__my_own_timestamp:
+                    # Invalidate the cache if the database has changed
+                    self.__last_objects = None
 
-            self.__my_own_timestamp = datetime.now()
-            self.__last_objects = self.get_tagged_objects()
-        # here I return my list
+        # If the cache is invalid or uninitialized, update it
+        if self.__last_objects is None:
+            from datetime import datetime
+            self.__my_own_timestamp = datetime.now()  # Update the timestamp
+            self.__last_objects = self.get_tagged_objects()  # Refresh the cached objects
+
+        # Return the cached objects
         return self.__last_objects
 
-    def is_tagging(self, obj):
+    def is_tagging(self, obj: bauble.db.Base) -> bool:
         """tell whether self tags obj"""
         return obj in self.objects
 
-    def get_tagged_objects(self):
+    def get_tagged_objects(self, session: bauble.db.Session = None) -> list:
         """
-        Return all object tagged with tag.
+        Return all objects tagged with this tag.
 
+        Reuses the logic of `_get_tagged_object_pairs` but optimizes queries by
+        grouping objects by their class for batch retrieval.
         """
-        session = object_session(self)
+        session = session or object_session(self)
 
-        r = [
-            session.query(mapper).filter_by(id=obj_id).first()
-            for mapper, obj_id in _get_tagged_object_pairs(self)
-        ]
+        # Retrieve mapper-object pairs
+        tagged_pairs = _get_tagged_object_pairs(self)
+        results = []
 
-        # if `self` was tagging objects that have been later removed from
-        # the database, those reference here become `None`. we filter them
-        # out, but what about we remove the reference pair?
-        return [i for i in r if i is not None]
+        # Group queries by mapper (class)
+        mapper_to_ids = {}
+        for mapper, obj_id in tagged_pairs:
+            mapper_to_ids.setdefault(mapper, []).append(obj_id)
+
+        # Query objects for each mapper in a single query
+        for mapper, ids in mapper_to_ids.items():
+            objects = session.query(mapper).filter(mapper.id.in_(ids)).all()
+            results.extend(objects)
+
+        # Filter out None references (orphans)
+        return [obj for obj in results if obj is not None]
+
 
     @classmethod
-    def attached_to(cls, obj):
-        """return the list of tags attached to obj
-
-        this is a class method, so more classes can invoke it.
-        """
-        session = object_session(obj)
-        if not session:
-            return []
-        modname = type(obj).__module__
-        clsname = type(obj).__name__
-        full_cls_name = "{}.{}".format(modname, clsname)
-        qto = session.query(TaggedObj).filter(
-            TaggedObj.obj_class == full_cls_name, TaggedObj.obj_id == obj.id
-        )
-        return [i.tag for i in qto.all()]
+    def attached_to(cls, obj: bauble.db.Base) -> list:
+        """Return the list of tags attached to the given object."""
+        with db.Session() as session:
+            qto = session.query(TaggedObj).filter(
+                TaggedObj.obj_class == type(obj).__name__,
+                TaggedObj.obj_id == obj.id,
+            )
+            return [i.tag for i in qto.all()]
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
@@ -730,7 +734,7 @@ def _get_tagged_object_pairs(tag):
     for obj in tag._objects:
         try:
             # __import__ "from_list" parameters has to be a list of strings
-            module_name, part, cls_name = str(obj.obj_class).rpartition(".")
+            module_name, _, cls_name = str(obj.obj_class).rpartition(".")
             module = __import__(
                 module_name, globals(), locals(), module_name.split(".")[1:]
             )
@@ -759,50 +763,70 @@ def _get_tagged_object_pairs(tag):
     return kids
 
 
-def create_named_empty_tag(name):
-    """make sure the named tag exists"""
-    session = db.Session()
-    try:
-        tag = session.query(Tag).filter_by(tag=name).one()
-    except InvalidRequestError as e:
-        logger.debug("{} - {}".format(type(e), e))
-        tag = Tag(tag=name)
-        session.add(tag)
-        session.commit()
-    session.close()
-    return
-
-
-def untag_objects(name, objs):
+def create_named_empty_tag(name: str) -> None:
     """
-    Remove the tag name from objs.
+    Ensure a tag with the specified name exists in the database.
 
-    :param name: The name of the tag
-    :type name: str
+    :param name: The name of the tag to create or verify.
+    """
+    with db.Session() as session:
+        try:
+            # Check if the tag already exists
+            tag = session.query(Tag).filter_by(tag=name).one()
+        except orm_exc.NoResultFound:
+            # Create the tag if it doesn't exist
+            logger.debug(f"Tag '{name}' not found, creating it.")
+            tag = Tag(tag=name)
+            session.add(tag)
+            session.commit()
+        except Exception as e:
+            logger.error(f"An error occurred while creating tag '{name}': {e}")
+
+
+
+def untag_objects(name: str, objs: list) -> None:
+    """
+    Remove the tag with the given name from the specified objects.
+
+    :param name: The name of the tag to remove.
     :param objs: The list of objects to untag.
-    :type objs: list
     """
     name = utils.utf8(name)
+
     if not objs:
         create_named_empty_tag(name)
         return
+
+    # Use the session from the first object
     session = object_session(objs[0])
-    try:
-        tag = session.query(Tag).filter_by(tag=name).one()
-    except Exception as e:
-        logger.info(
-            "Can't remove non existing tag from non-empty list of objects"
-            "%s - %s" % (type(e), e)
-        )
+    if session is None:
+        logger.error("No session found for the provided objects.")
         return
-    # same = lambda item, y: item.obj_class == _classname(y) and item.obj_id == y.id
-    objs = {(_classname(y), y.id) for y in objs}
-    for item in tag._objects:
-        if (item.obj_class, item.obj_id) not in objs:
-            continue
-        o = session.query(TaggedObj).filter_by(id=item.id).one()
-        session.delete(o)
-    session.commit()
+
+    try:
+        # Retrieve the tag
+        tag = session.query(Tag).filter_by(tag=name).one()
+    except orm_exc.NoResultFound:
+        logger.info(f"Tag '{name}' does not exist. Nothing to remove.")
+        return
+    except Exception as e:
+        logger.error(f"Unexpected error retrieving tag '{name}': {e}")
+        return
+
+    # Create a set of object identifiers (class name, ID) for comparison
+    objs_to_untag = {(_classname(obj), obj.id) for obj in objs}
+
+    # Iterate over tagged objects and remove matching ones
+    for tagged_obj in tag._objects:
+        if (tagged_obj.obj_class, tagged_obj.obj_id) in objs_to_untag:
+            session.delete(tagged_obj)
+
+    try:
+        session.commit()
+        logger.info(f"Successfully removed tag '{name}' from specified objects.")
+    except Exception as e:
+        logger.error(f"Failed to commit changes while untagging objects: {e}")
+        session.rollback()
 
 
 # create the classname stored in the tagged_obj table
@@ -810,63 +834,88 @@ def _classname(x):
     return "{}.{}".format(type(x).__module__, type(x).__name__)
 
 
-def tag_objects(name, objects):
-    """create or retrieve a tag, use it to tag list of objects
-
-    :param name: The tag name, if it's a str object then it will be
-      converted to unicode() using the default encoding. If a tag with
-      this name doesn't exist it will be created
-    :type name: str
-    :param obj: A list of mapped objects to tag.
-    :type obj: list
+def tag_objects(name: str, objects: list) -> None:
     """
-    name = utils.utf8(name)
+    Create or retrieve a tag and use it to tag a list of objects.
+
+    :param name: The name of the tag to create or retrieve.
+    :param objects: The list of mapped objects to tag.
+    """
     if not objects:
         create_named_empty_tag(name)
         return
+
+    name = utils.utf8(name)
     session = object_session(objects[0])
     try:
         tag = session.query(Tag).filter_by(tag=name).one()
-    except InvalidRequestError as e:
-        logger.debug("{} - {}".format(type(e), e))
+    except orm_exc.NoResultFound:
+        logger.debug(f"Tag '{name}' not found, creating it.")
         tag = Tag(tag=name)
         session.add(tag)
-    tag.tag_objects(objects)
-    session.commit()
+    except Exception as e:
+        logger.error(f"An error occurred while retrieving tag '{name}': {e}")
+        return
+
+    try:
+        tag.tag_objects(objects)
+        session.commit()
+    except Exception as e:
+        logger.error(f"An error occurred while tagging objects: {e}")
+        session.rollback()
+
 
 
 def get_tag_ids(objs):
-    """Return a 3-tuple describing which tags apply to objs.
+    """
+    Return a 3-tuple describing which tags apply to objs.
 
-    the result tuple is composed of lists.  First list contains the id of
-    the tags that apply to all objs.  Second list contains the id of the
-    tags that apply to one or more objs, but not all.  Third list contains
-    the id of the tags that do not apply to any objs.
+    The result tuple is composed of sets. The first set contains the IDs
+    of the tags that apply to all objs. The second set contains the IDs
+    of the tags that apply to one or more objs, but not all. The third set
+    contains the IDs of the tags that do not apply to any objs.
 
     :param objs: a list or tuple of objects
-
     """
+    if not objs:
+        return set(), set(), set()
+
     session = object_session(objs[0])
-    tag_id_query = session.query(Tag.id).join(TaggedObj, Tag._objects)
-    starting_now = True
-    s_all = set()
+    if not session:
+        raise ValueError("Cannot retrieve session from the provided objects.")
+
+    # Fetch all tag IDs at once
+    all_tag_ids = {tag_id for tag_id, in session.query(Tag.id)}
+
+    # Initialize sets for tags
+    s_all = None
     s_some = set()
-    s_none = {i[0] for i in tag_id_query}  # per default none apply
+    s_none = all_tag_ids
+
+    # Efficiently batch process objects
     for obj in objs:
+        obj_classname = _classname(obj)
         clause = and_(
-            TaggedObj.obj_class == _classname(obj), TaggedObj.obj_id == obj.id
+            TaggedObj.obj_class == obj_classname,
+            TaggedObj.obj_id == obj.id
         )
-        applied_tag_ids = [r[0] for r in tag_id_query.filter(clause)]
-        if starting_now:
-            s_all = set(applied_tag_ids)
-            starting_now = False
+        applied_tag_ids = {
+            tag_id for tag_id, in session.query(Tag.id).join(TaggedObj, Tag._objects).filter(clause)
+        }
+
+        if s_all is None:
+            s_all = applied_tag_ids
         else:
             s_all.intersection_update(applied_tag_ids)
+
         s_some.update(applied_tag_ids)
         s_none.difference_update(applied_tag_ids)
 
+    # Tags that apply to some but not all
     s_some.difference_update(s_all)
-    return (s_all, s_some, s_none)
+
+    return s_all, s_some, s_none
+
 
 
 def _on_add_tag_activated(*args, **kwargs):

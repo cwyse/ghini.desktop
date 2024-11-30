@@ -407,12 +407,31 @@ class PlantsPlugin(pluginmgr.Plugin):
     @classmethod
     def init(cls):
         pluginmgr.provided.update(cls.provides)
+
+        # Check for GardenPlugin and modify menus accordingly
         if "GardenPlugin" in pluginmgr.plugins:
             species_context_menu.insert(1, add_accession_action)
             vernname_context_menu.insert(1, add_accession_action)
 
+        # Set up search metas
+        cls._setup_search_metas()
+
+        # Set up GUI menus
+        cls._setup_gui_menus()
+
+        # Register default splash info box
+        logger.debug("PlantsPlugin::init, registering splash info box")
+        DefaultView.infoboxclass = SplashInfoBox
+
+        # Suggest defaults for stored queries
+        cls._initialize_default_stored_queries()
+
+    @staticmethod
+    def _setup_search_metas():
+        """Configure search strategies and row metadata."""
         mapper_search = search.get_strategy("MapperSearch")
 
+        # Family meta
         mapper_search.add_meta(("family", "fam"), Family, ["epithet"])
         SearchView.row_meta[Family].set(
             children="genera",
@@ -420,6 +439,7 @@ class PlantsPlugin(pluginmgr.Plugin):
             context_menu=family_context_menu,
         )
 
+        # Genus meta
         mapper_search.add_meta(("genus", "gen"), Genus, ["epithet"])
         SearchView.row_meta[Genus].set(
             children="species",
@@ -427,6 +447,7 @@ class PlantsPlugin(pluginmgr.Plugin):
             context_menu=genus_context_menu,
         )
 
+        # Species meta
         from functools import partial
 
         search.add_strategy(SynonymSearch)
@@ -441,6 +462,7 @@ class PlantsPlugin(pluginmgr.Plugin):
             context_menu=species_context_menu,
         )
 
+        # VernacularName meta
         mapper_search.add_meta(
             ("vernacular", "vern", "common"), VernacularName, ["name"]
         )
@@ -450,35 +472,43 @@ class PlantsPlugin(pluginmgr.Plugin):
             context_menu=vernname_context_menu,
         )
 
+        # GeographicArea meta
         mapper_search.add_meta(("geography", "geo"), GeographicArea, ["name"])
         SearchView.row_meta[GeographicArea].set(
             children=get_species_in_geographic_area
         )
 
-        # now it's the turn of the DefaultView
-        logger.debug("PlantsPlugin::init, registering splash info box")
-        DefaultView.infoboxclass = SplashInfoBox
+    @classmethod
+    def _setup_gui_menus(cls):
+        """Set up GUI menus dynamically."""
+        if bauble.gui is None:
+            return
 
-        if bauble.gui is not None:
-            base = os.path.join(paths.lib_dir(), "plugins", "plants")
-            
-            # Insert Menu
-            insert_menu = bauble.gui.insert_menu
-            if insert_menu is None:
-                logger.error("Insert menu not found!")
-                return
+        import os.path
+        from bauble import paths
 
-            bauble.gui.add_to_insert_menu(
-                FamilyEditor, _("Family"), "wiki-family.png", base
-            )
-            bauble.gui.add_to_insert_menu(
-                GenusEditor, _("Genus"), "wiki-genus.png", base
-            )
-            bauble.gui.add_to_insert_menu(
-                SpeciesEditor, _("Species"), "wiki-species.png", base
-            )
+        base = os.path.join(paths.lib_dir(), "plugins", "plants")
 
-        # suggest some useful defaults for stored queries
+        # Insert Menu
+        insert_menu = bauble.gui.insert_menu
+        if insert_menu is None:
+            logger.error("Insert menu not found!")
+            return
+
+        # Add items to Insert menu using bauble.gui.add_to_insert_menu
+        bauble.gui.add_to_insert_menu(
+            FamilyEditor, _("Family"), "wiki-family.png", base
+        )
+        bauble.gui.add_to_insert_menu(
+            GenusEditor, _("Genus"), "wiki-genus.png", base
+        )
+        bauble.gui.add_to_insert_menu(
+            SpeciesEditor, _("Species"), "wiki-species.png", base
+        )
+
+    @classmethod
+    def _initialize_default_stored_queries(cls):
+        """Set up default stored queries if not already initialized."""
         import bauble.meta as meta
 
         session = db.Session()
@@ -535,6 +565,5 @@ class PlantsPlugin(pluginmgr.Plugin):
 
         csv = CSVImporter()
         csv.start(filenames, metadata=db.metadata, force=True)
-
 
 plugin = PlantsPlugin

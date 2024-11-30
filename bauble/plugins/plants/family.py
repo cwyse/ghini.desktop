@@ -57,6 +57,7 @@ from sqlalchemy.orm import synonym
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.types import Enum
+from sqlalchemy import asc
 
 
 logger = logging.getLogger(__name__)
@@ -181,7 +182,6 @@ class Family(db.Base, db.Serializable, db.WithNotes):
 
     __tablename__ = "family"
     __table_args__ = (UniqueConstraint("epithet"),)
-    order_by = [text("epithet"), text("qualifier")]
 
 
     rank = "familia"
@@ -219,6 +219,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         types.Enum(values=["s. lat.", "s. str.", ""]),
         default=""
     )
+    order_by = [asc(epithet), asc(qualifier)]
  
     # relations
     # `genera` relation is defined outside of `Family` class definition
@@ -418,7 +419,7 @@ def get_species():
 Family.genera = (
     relationship(
         "Genus",
-        order_by="Genus.genus",
+        order_by=asc(get_genus_class().genus),
         back_populates="family",
         cascade="all, delete-orphan",
         single_parent=True,

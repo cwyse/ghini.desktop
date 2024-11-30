@@ -67,8 +67,8 @@ from sqlalchemy import UnicodeText
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import object_session
-
-
+from sqlalchemy import asc
+from sqlalchemy.ext.declarative import declared_attr
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -85,6 +85,7 @@ PlantPropagation = Table(
         primary_key=True,
     ),
 )
+
 
 # class PlantPropagation(db.Base):
 #     """
@@ -138,7 +139,8 @@ class Propagation(db.Base, db.WithNotes):
         single_parent=True,
         back_populates="propagation",
     )
-    # One-to-one relationship with Source
+
+    # One-to-one relationship with Source for propagation
     source = relationship(
         "Source",
         uselist=False,
@@ -153,6 +155,10 @@ class Propagation(db.Base, db.WithNotes):
         back_populates="plant_propagation",
         foreign_keys="Source.plant_propagation_id",
     )
+
+    # Lazy import for Source
+    def __init__(self):
+        from bauble.plugins.garden.source import Source
 
     @property
     def accessions(self):
@@ -341,11 +347,12 @@ class PropCuttingRooted(db.Base):
     """
 
     __tablename__ = "prop_cutting_rooted"
-    order_by = [text("prop_cutting_rooted.date")]
 
     date = Column(types.Date)
     quantity = Column(Integer, autoincrement=False, default=0, nullable=False)
     cutting_id = Column(Integer, ForeignKey("prop_cutting.id"), nullable=False)
+    order_by = [asc(date)]
+
     # Add the missing relationship
     cutting = relationship("PropCutting", back_populates="rooted")
 

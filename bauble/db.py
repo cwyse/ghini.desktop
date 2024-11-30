@@ -24,7 +24,7 @@ import logging
 import os
 import re
 from gettext import gettext as _
-
+from sqlalchemy import asc
 import bauble.btypes as types
 import bauble.error as error
 import bauble.utils as utils
@@ -124,7 +124,11 @@ class CustomQuery(sa.orm.Query):
         if not args and self._entities:
             model = self._only_entity_zero().entity_zero.class_
             if hasattr(model, "order_by"):
-                return super().order_by(*model.order_by)
+                # Handle callable or static `order_by`
+                order_by_clause = model.order_by()
+                if callable(order_by_clause):
+                    order_by_clause = order_by_clause()
+                return super().order_by(*order_by_clause)
         return super().order_by(*args)
 
 class MapperBase(DeclarativeMeta):
@@ -647,7 +651,7 @@ def make_note_class(
         "is_defined": is_defined,
         "as_dict": as_dict,
         # Define the order_by attribute for this class
-        "order_by": [sa.text(f"{table_name}.date")],
+        "order_by": [asc(f"{table_name}.date")],
     }
     if compute_serializable_fields is not None:
         bases = (Base, Serializable)

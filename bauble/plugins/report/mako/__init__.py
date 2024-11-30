@@ -53,6 +53,7 @@ class MakoFormatterPlugin(TemplateFormatterPlugin):
 
     @classmethod
     def get_template(cls, name):
+        """Load a Mako template from available paths."""
         if not name:
             msg = _("Please select a template.")
             butils.idle_message(msg, Gtk.MessageType.WARNING)
@@ -68,7 +69,7 @@ class MakoFormatterPlugin(TemplateFormatterPlugin):
 
         try:
             lookup = TemplateLookup(
-                cls.paths, input_encoding="utf-8", output_encoding="utf-8"
+                directories=cls.paths, input_encoding="utf-8", output_encoding="utf-8"
             )
             template = lookup.get_template(name)
             return template
@@ -81,6 +82,7 @@ class MakoFormatterPlugin(TemplateFormatterPlugin):
                 ),
                 type=Gtk.MessageType.ERROR,
             )
+            logger.error(f"Failed to load template {name}: {e}")
             return False
 
 
