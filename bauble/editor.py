@@ -371,7 +371,24 @@ class GenericEditorView:
         widget.set_from_file(value)
 
     def set_label(self, widget_name, value):
-        getattr(self.widgets, widget_name).set_markup(value)
+        """
+        Sets the markup text of a label widget.
+
+        Args:
+            widget_name (str): The name of the label widget in `self.widgets`.
+            value (str or bytes): The value to set as markup text.
+        """
+        if isinstance(value, bytes):
+            value = value.decode('utf-8', errors='replace')  # Safely decode bytes
+        elif not isinstance(value, str):
+            value = str(value)  # Convert other types to string
+
+        try:
+            getattr(self.widgets, widget_name).set_markup(value)
+        except AttributeError as e:
+            raise TypeError(
+                f"Widget '{widget_name}' not found or not a label. Error: {e}"
+            )
 
     def close_boxes(self):
         while self.boxes:

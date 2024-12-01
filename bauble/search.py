@@ -21,6 +21,7 @@ import logging
 from gettext import gettext as _
 
 import bauble.utils as utils
+from bauble.db import get_orm_entity_by_name
 from bauble.error import check
 from gi.repository import Gtk
 from pyparsing import alphanums
@@ -49,7 +50,7 @@ from sqlalchemy import and_
 from sqlalchemy import or_
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
-from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm import class_mapper, aliased
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.properties import RelationshipProperty
 
@@ -213,7 +214,14 @@ class IdentifierAction:
             cls = env.domain
         else:
             # identifier is an attribute of a joined table
-            query = query.join(*self.steps, aliased=True)
+            aliased_steps = []
+            for step in self.steps:
+                orm_entity = get_orm_entity_by_name(step)
+                if orm_entity:
+                    aliased_steps.append(aliased(orm_entity))
+                else:
+                    raise ValueError(f"Cannot resolve ORM entity for step: {step}")
+            query = query.join(*aliased_steps)
             cls = query._joinpoint["_joinpoint_entity"]
         attr = getattr(cls, self.leaf)
         logger.debug(
@@ -269,7 +277,8 @@ class FilteredIdentifierAction:
         """return pair (query, attribute)"""
         query = env.session.query(env.domain)
         # identifier is an attribute of a joined table
-        query = query.join(*self.steps, aliased=True)
+        aliased_steps = [aliased(step) for step in self.steps]
+        query = query.join(*aliased_steps)
         cls = query._joinpoint["_joinpoint_entity"]
         attr = getattr(cls, self.filter_attr)
 

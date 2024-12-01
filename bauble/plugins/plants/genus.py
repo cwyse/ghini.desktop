@@ -203,17 +203,6 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     rank = "genus"
     link_keys = ["accepted"]
 
-    # Define relationship to Species using string-based reference to avoid circular imports
-    species = (
-        relationship("Species", back_populates="genus", lazy="joined") or []
-    )
-    # Define a relationship to notes with back_populates
-    notes = relationship(
-        "GenusNote",
-        back_populates="genus",
-        cascade="all, delete-orphan",
-        single_parent=True,
-    )
     family = relationship("Family", back_populates="genera")
 
     def __init__(self):
@@ -444,7 +433,6 @@ def compute_serializable_fields(cls, session, keys):
     # Prepare genus keys from the `keys` parameter
     genus_keys = {"epithet": keys.get("genus")}
 
-    genus_dict = {"epithet": keys["genus"]}
     result["genus"] = Genus.retrieve_or_create(
         session, genus_keys, create=False
     )
