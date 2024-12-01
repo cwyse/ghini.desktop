@@ -527,6 +527,14 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         # We handled the signal so stop it from being processed further.
         entry.stop_emission("insert_text")
 
+    def ensure_string(self, value):
+        """
+        Ensure the input is a string. If bytes, decode to UTF-8. Otherwise, str().
+        """
+        if isinstance(value, bytes):
+            return value.decode('utf-8', errors='replace')
+        return str(value)
+
     def refresh_fullname_label(self, widget=None):
         """
         set the value of sp_fullname_label to either '--' if there
@@ -538,11 +546,12 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         if len(self.problems) > 0 or self.model.genus is None:
             self.view.set_label("sp_fullname_label", "--")
             return
-        sp_str = self.model.str(markup=True, authors=True)
+        sp_str = self.ensure_string(self.model.str(markup=True, authors=True))
         self.view.set_label("sp_fullname_label", sp_str)
         if self.model.genus is not None:
             genus = self.model.genus
             epithet = self.view.widget_get_value("sp_species_entry")
+
             omonym = (
                 self.session.query(Species)
                 .filter(Species.genus == genus, Species.epithet == epithet)

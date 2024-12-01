@@ -118,6 +118,32 @@ def natsort(attr, obj):
         obj = getattr(obj, attr)
     return sorted(obj, key=utils.natsort_key)
 
+def get_orm_entity_by_name(entity_name):
+    """
+    Dynamically resolve an ORM entity (class) from its name.
+
+    Handles plural forms like `genera` by resolving relationships.
+    """
+    from bauble.db import MapperBase  # Ensure you're using the correct base
+    from sqlalchemy.orm import aliased
+
+    # Check if the name exists directly in the registry
+    orm_entity = MapperBase._class_registry.get(entity_name.lower())
+    if orm_entity:
+        return orm_entity
+
+    # Handle plural cases dynamically
+    if entity_name.lower() == "genera":
+        genus_entity = MapperBase._class_registry.get("genus")
+        if not genus_entity:
+            raise ValueError("Genus not found in class registry")
+        # Alias for handling queries with synonyms
+        return aliased(genus_entity)
+    
+    # Raise error for unresolved names
+    raise ValueError(f"Cannot resolve ORM entity for name: {entity_name}")
+
+
 class CustomQuery(sa.orm.Query):
     def order_by(self, *args):
         # If no explicit order_by is given, check the model's order_by attribute
@@ -134,12 +160,13 @@ class CustomQuery(sa.orm.Query):
 class MapperBase(DeclarativeMeta):
     """
     MapperBase adds the id, _created and _last_updated columns to all
-    tables.
+    tables.  It also maintains a class registry for ORM-mapped classes.
 
     In general there is no reason to use this class directly other
     than to extend it to add more default columns to all the bauble
     tables.
     """
+    _class_registry = {}
 
     def __init__(cls, classname, bases, dict_):
         if "__tablename__" in dict_:
@@ -164,6 +191,9 @@ class MapperBase(DeclarativeMeta):
                 utils.xml_safe(str(x)),
                 "(%s)" % type(x).__name__,
             )
+
+        # Add the class to the registry
+        MapperBase._class_registry[classname.lower()] = cls
 
         super().__init__(classname, bases, dict_)
 

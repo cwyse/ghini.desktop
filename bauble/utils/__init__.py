@@ -180,8 +180,15 @@ def safe_set_props(widget, prop, value):
     else:
         value = str(value)
 
-    # Convert to UTF-8 and set the widget property
-    setattr(widget.props, prop, utils.utf8(value))
+
+    # Check if the widget has a specific method for the property
+    setter_method = f"set_{prop}"
+    if hasattr(widget, setter_method):
+        # Use the method if it exists
+        getattr(widget, setter_method)(value)
+    else:
+        # Fallback to setting the property via setattr
+        setattr(widget.props, prop, value)
 
 
 def read_in_chunks(file_object, chunk_size=1024):
@@ -592,16 +599,17 @@ def get_widget_value(w, index=0):
     """
 
     if isinstance(w, Gtk.Label):
-        return utf8(w.get_text())
+        return w.get_text()
     elif isinstance(w, Gtk.TextView):
         textbuffer = w.get_buffer()
-        return utf8(
-            textbuffer.get_text(
+        return textbuffer.get_text(
                 textbuffer.get_start_iter(), textbuffer.get_end_iter(), ""
             )
-        )
     elif isinstance(w, Gtk.Entry):
-        return utf8(w.get_text())
+        text = w.get_text()
+        if isinstance(text, bytes):
+            return text.decode("utf-8")
+        return text
     elif isinstance(w, Gtk.ComboBox):
         if w.get_child() and isinstance(w.get_child(), Gtk.Entry):
             return w.get_child().get_text()
@@ -611,7 +619,7 @@ def get_widget_value(w, index=0):
     elif isinstance(w, (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)):
         return w.get_active()
     elif isinstance(w, Gtk.Button):
-        return utf8(w.props.label)
+        return w.props.label
 
     else:
         raise TypeError(
@@ -831,6 +839,30 @@ def create_yes_no_dialog(msg, parent=None, buttons=Gtk.ButtonsType.YES_NO):
         d.set_property("skip-taskbar-hint", False)
     d.show_all()
     return d
+
+def yes_no_cancel_dialog(msg, yes_label, no_label, cancel_label):
+    """
+    Displays a dialog with Yes, No, and Cancel options.
+    Returns a DialogResponse enum value.
+    """
+    dialog = Gtk.MessageDialog(
+        message_type=Gtk.MessageType.QUESTION,
+        buttons=Gtk.ButtonsType.NONE,
+        text=msg,
+    )
+    dialog.add_button(yes_label, Gtk.ResponseType.YES)
+    dialog.add_button(no_label, Gtk.ResponseType.NO)
+    dialog.add_button(cancel_label, Gtk.ResponseType.CANCEL)
+
+    response = dialog.run()
+    dialog.destroy()
+
+    if response == Gtk.ResponseType.YES:
+        return utils.DialogResponse.YES
+    elif response == Gtk.ResponseType.NO:
+        return utils.DialogResponse.NO
+    else:
+        return utils.DialogResponse.CANCEL
 
 
 def yes_no_dialog(msg, parent=None, yes_delay=-1):
@@ -1077,26 +1109,25 @@ def setup_date_button(view, entry, button, date_func=None):
 
 def to_unicode(obj, encoding="utf-8"):
     """
-    Convert an object to a Unicode string.
+    Convert an object to a Unicode string (str in Python 3).
 
     :param obj: The object to convert.
-    :param encoding: The encoding to use for conversion.
+    :param encoding: The encoding to use for decoding if the object is bytes.
     :return: A Unicode string representation of the object.
     """
     try:
-        if isinstance(obj, str):
-            # Normalize the string to ensure it adheres to the specified encoding.
-            return obj.encode(encoding).decode(encoding)
-        elif isinstance(obj, bytes):
-            # Convert bytes to string using the specified encoding.
+        if isinstance(obj, bytes):
+            # Decode bytes to string using the specified encoding
             return obj.decode(encoding, errors="replace")
+        elif isinstance(obj, str):
+            # Return as is since it's already a string
+            return obj
         else:
-            # Convert any other type to string.
+            # Convert any other type to string using str()
             return str(obj)
     except Exception as e:
-        # Log or print the error for debugging.
         logging.warning(f"Failed to convert object to string: {e}")
-        # Return a fallback representation of the object's type.
+        # Return a fallback representation of the object's type
         return type(obj).__name__
 
 
@@ -1107,8 +1138,12 @@ def utf8(obj):
     :param obj: The object to convert.
     :return: A UTF-8 encoded bytes object.
     """
-    return to_unicode(obj).encode("utf-8", errors="replace")
-
+    try:
+        # Ensure the input is a Unicode string, then encode it to bytes
+        return to_unicode(obj).encode('utf-8', errors='replace')
+    except Exception as e:
+        logger.error(f"Failed to encode object to UTF-8: {obj} ({e})")
+        raise
 
 def xml_safe(obj):
     """
@@ -1119,17 +1154,11 @@ def xml_safe(obj):
     """
     import html
 
-    return html.escape(to_unicode(obj))
-
-
-def xml_safe_utf8(obj):
-    """
-    This method is deprecated and just returns xml_safe(obj)
-    """
-    logger.warning("invoking deprecated function")
-
-    return xml_safe(obj)
-
+    try:
+        return html.escape(to_unicode(obj))
+    except Exception as e:
+        logger.error(f"Failed to escape XML characters: {obj} ({e})")
+        return str(obj)  # Fallback to plain string
 
 def safe_numeric(s):
     "evaluate the string as a number, or return zero"
@@ -1590,7 +1619,9 @@ class MessageBox(GenericMessageBox):
         self.details_expander.add(sw)
 
         def on_expanded(*args):
-            width, height = self.size_request()
+            requisition = self.size_request()  # Get the Gtk.Requisition object
+            width = requisition.width  # Access the width attribute
+            height = requisition.height  # Access the height attribute
             self.set_size_request(width, -1)
             self.queue_resize()
 
