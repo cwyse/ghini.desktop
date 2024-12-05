@@ -54,6 +54,8 @@ ENV LINE=migrate_to_1.3
 ENV VIRTUAL_ENV=/opt/venv/$LINE
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV USER=root
+ENV PYTHONUSERBASE=$VIRTUAL_ENV
+ENV PYTHONNOUSERSITE=0
 
 # Install system packages for building
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -103,8 +105,8 @@ RUN mkdir -p $HOME/.ssh && chmod 700 $HOME/.ssh \
 # Working directory for the application
 WORKDIR /app
 
-# Create virtual environment and install essential dependencies
-RUN python3 -m venv $VIRTUAL_ENV --system-site-packages \
+# Create virtual environment and configure Python path
+RUN python3 -m venv $VIRTUAL_ENV \
     && . $VIRTUAL_ENV/bin/activate \
     && pip install --upgrade pip wheel 'setuptools<58.0.0' importlib-metadata debugpy toml PyGObject==3.50.0
 
