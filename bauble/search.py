@@ -50,11 +50,10 @@ from sqlalchemy import and_
 from sqlalchemy import or_
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import class_mapper, aliased
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.properties import RelationshipProperty
-
-
 
 
 logger = logging.getLogger(__name__)
@@ -201,34 +200,48 @@ class IdentifierAction:
     def __repr__(self):
         return ".".join(self.steps + [self.leaf])
 
-    def evaluate(self, env):
-        """return pair (query, attribute)
 
-        the value associated to the identifier is an altered query where the
+    def evaluate(self, env):
+        """Return pair (query, attribute)
+
+        The value associated to the identifier is an altered query where the
         joinpoint is the one relative to the attribute, and the attribute
         itself.
         """
         query = env.session.query(env.domain)
-        if len(self.steps) == 0:
-            # identifier is an attribute of the table being queried
-            cls = env.domain
-        else:
-            # identifier is an attribute of a joined table
-            aliased_steps = []
+        cls = env.domain
+
+        if len(self.steps) > 0:
+            # Iterate over the steps to resolve relationships
             for step in self.steps:
-                orm_entity = get_orm_entity_by_name(step)
-                if orm_entity:
-                    aliased_steps.append(aliased(orm_entity))
-                else:
-                    raise ValueError(f"Cannot resolve ORM entity for step: {step}")
-            query = query.join(*aliased_steps)
-            cls = query._joinpoint["_joinpoint_entity"]
-        attr = getattr(cls, self.leaf)
+                relationship = getattr(cls, step, None)
+                if relationship is None:
+                    raise ValueError(f"Cannot resolve relationship: {step} on {cls}")
+                
+                # Resolve the relationship entity using the SQLAlchemy inspector
+                mapper = inspect(cls)
+                relationship_property = mapper.relationships.get(step)
+                if not relationship_property:
+                    raise ValueError(f"{step} is not a relationship of {cls}")
+                
+                # Get the target class of the relationship
+                target_cls = relationship_property.mapper.class_
+                aliased_entity = aliased(target_cls)
+                
+                # Apply the join to the query
+                query = query.join(aliased_entity, relationship)
+                cls = target_cls  # Update the current class for the next step
+
+        attr = getattr(cls, self.leaf, None)
+        if attr is None:
+            raise ValueError(f"Cannot resolve attribute: {self.leaf} on {cls}")
+
         logger.debug(
-            "IdentifierToken for %s, %s evaluates to %s"
-            % (cls, self.leaf, attr)
+            "IdentifierToken for %s, %s evaluates to %s",
+            cls, self.leaf, attr
         )
-        return (query, attr)
+        return query, attr
+
 
     def needs_join(self, env):
         return self.steps
