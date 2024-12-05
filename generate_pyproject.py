@@ -1,7 +1,10 @@
 import toml
 
-from bauble import version
+version_data = {}
+with open("bauble/version.py") as f:
+    exec(f.read(), version_data)
 
+bauble_version = version_data.get("version")  
 
 def create_pyproject():
     pyproject_data = {
@@ -16,7 +19,7 @@ def create_pyproject():
         },
         "project": {
             "name": "ghini-desktop",
-            "version": version,
+            "version": bauble_version,
             "description": "Ghini: a biodiversity collection manager",
             "readme": {
                 "file": "README.rst",  # Use README.rst instead of README.md
@@ -63,6 +66,7 @@ def create_pyproject():
                 "tlslite-ng==0.7.6",                     # 0.7.6
                 "urllib3==2.1.0",                        # 2.1.0
             ],
+            "requires-python": ">=3.9,<4.0",  # Specify Python version requirement
             "optional-dependencies": {
                 "dev": [
                     # Development dependencies from dev-requirements.txt and dev-constraints.txt
@@ -73,13 +77,57 @@ def create_pyproject():
                 ],
                 "docs": [
                     # Documentation dependencies from doc-requirements.txt and doc-constraints.txt
-                    "Sphinx==7.1.2",                     # 7.1.2
-                    "sphinx-rtd-theme==1.2.0",           # 1.2.0
-                    "sphinx-autodoc-typehints==1.25.0",  # 1.25.0
+                    "Sphinx==7.4.7",                     # 7.4.7
+                    "sphinx-rtd-theme==3.0.2",           # 3.0.2
+                    "sphinx-autodoc-typehints==2.3.0",   # 2.3.0
                     # Add additional doc dependencies here
                 ],
             },
         },
+    }
+
+
+    # Dynamically create `tool.poetry.dependencies` and `tool.poetry.extras`
+    poetry_dependencies = {}
+    poetry_extras = {}
+
+    # Extract regular dependencies
+    for dep in pyproject_data["project"]["dependencies"]:
+        name, version = dep.split("==")
+        poetry_dependencies[name] = version
+
+    # Extract optional dependencies for extras
+    optional_deps = pyproject_data["project"].get("optional-dependencies", {})
+    for group, deps in optional_deps.items():
+        extras_list = []
+        for dep in deps:
+            name, version = dep.split("==")
+            poetry_dependencies[name] = version  # Ensure it's added to dependencies
+            extras_list.append(name)
+        poetry_extras[group] = extras_list
+
+    # Add Python version
+    poetry_dependencies["python"] = pyproject_data["project"]["requires-python"]
+
+    # Add Poetry-specific sections
+    pyproject_data["tool"] = {
+        "poetry": {
+            "name": pyproject_data["project"]["name"],
+            "version": pyproject_data["project"]["version"],
+            "description": pyproject_data["project"]["description"],
+            "authors": [
+                f"{author['name']} <{author['email']}>"
+                for author in pyproject_data["project"]["authors"]
+            ],
+            "license": pyproject_data["project"]["license"]["text"],
+            "homepage": pyproject_data["project_urls"]["homepage"],
+            "repository": pyproject_data["project_urls"]["repository"],
+            "documentation": pyproject_data["project_urls"]["documentation"],
+            "keywords": pyproject_data["project"]["keywords"],
+            "readme": pyproject_data["project"]["readme"]["file"],
+            "dependencies": poetry_dependencies,
+            "extras": poetry_extras,
+        }
     }
 
     print("pyproject.toml generation started.")
