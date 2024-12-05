@@ -118,6 +118,7 @@ def natsort(attr, obj):
         obj = getattr(obj, attr)
     return sorted(obj, key=utils.natsort_key)
 
+from sqlalchemy.orm import aliased
 def get_orm_entity_by_name(entity_name):
     """
     Dynamically resolve an ORM entity (class) from its name.
@@ -137,12 +138,12 @@ def get_orm_entity_by_name(entity_name):
         genus_entity = MapperBase._class_registry.get("genus")
         if not genus_entity:
             raise ValueError("Genus not found in class registry")
-        # Alias for handling queries with synonyms
-        return aliased(genus_entity)
-    
+        # Return aliased genus for queries
+        genus_alias = aliased(genus_entity)
+        return genus_alias
+
     # Raise error for unresolved names
     raise ValueError(f"Cannot resolve ORM entity for name: {entity_name}")
-
 
 class CustomQuery(sa.orm.Query):
     def order_by(self, *args):

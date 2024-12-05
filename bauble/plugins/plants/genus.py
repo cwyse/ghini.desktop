@@ -115,22 +115,58 @@ def remove_callback(genera):
         } + _("You cannot remove a genus with species.")
         utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
         return
-    else:
-        msg = (
-            _("Are you sure you want to remove the genus <i>%s</i>?")
-            % safe_str
+    
+    # Count the synonyms linked to the genus
+    synonym_count = len(genus.synonyms)
+    synonyms_exist = synonym_count > 0
+
+    # Build the confirmation message
+    msg = _("Are you sure you want to remove the genus <i>%s</i>?") % safe_str
+    if synonyms_exist:
+        msg += _(
+            "\n\nThis genus has %(1)s synonym(s). Removing it will also remove "
+            "the synonym relationships, but the synonym genera themselves will remain."
+        ) % {"1": synonym_count}
+        msg += _(
+            "\n\nWould you also like to delete the synonym genera? If not, only "
+            "the relationships will be removed."
         )
-    if not utils.yes_no_dialog(msg):
+    else:
+        msg += _("\n\nThis genus has no synonyms.")
+
+    # Show a Yes/No/Cancel dialog if synonyms exist
+    if synonyms_exist:
+        response = utils.yes_no_cancel_dialog(
+            msg,
+            yes_label=_("Yes, remove genus and synonyms"),
+            no_label=_("No, only remove genus"),
+            cancel_label=_("Cancel"),
+        )
+    else:
+        response = utils.yes_no_dialog(msg)
+
+    if response == utils.DialogResponse.CANCEL:
         return
+
     try:
+        # If 'Yes, remove genus and synonyms' was selected, delete the synonyms
+        if response == utils.DialogResponse.YES:
+            for synonym in genus.synonyms:
+                synonym_obj = session.query(Genus).get(synonym.id)
+                session.delete(synonym_obj)
+
+        # Delete the genus itself
         obj = session.query(Genus).get(genus.id)
         session.delete(obj)
         session.commit()
+
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
         utils.message_details_dialog(
             msg, traceback.format_exc(), type=Gtk.MessageType.ERROR
         )
+        return
+
     return True
 
 
