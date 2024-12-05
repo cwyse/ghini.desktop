@@ -72,14 +72,14 @@
         {
             "label": "Wait for Container",
             "type": "shell",
-            "command": "until docker exec ghini_debug netstat -tuln | grep :5678 ; do sleep 1; done",
+            "command": "xhost +;until docker exec ghini_debug netstat -tuln | grep :5678 ; do sleep 1; done",
             "problemMatcher": [],
             "dependsOn": "Run Docker Container"
         },
         {
             "label": "Wait for Test Container",
             "type": "shell",
-            "command": "until docker exec ghini_test netstat -tuln | grep :5678 ; do sleep 1; done",
+            "command": "xhost +;until docker exec ghini_test netstat -tuln | grep :5678 ; do sleep 1; done",
             "problemMatcher": [],
             "dependsOn": "Run Docker Test Container"
         }
