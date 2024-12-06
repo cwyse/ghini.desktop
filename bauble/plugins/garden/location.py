@@ -150,7 +150,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     order_by = [asc(name)]
 
     # relations
-    plants = relationship("Plant", back_populates="location", uselist=False)
+    plants = relationship("Plant", back_populates="location", uselist=True)
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""

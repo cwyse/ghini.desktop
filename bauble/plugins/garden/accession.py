@@ -336,11 +336,12 @@ class Verification(db.Base):
     __tablename__ = "verification"
 
     # columns
+    id = Column(Integer, primary_key=True)
     verifier = Column(Unicode(64), nullable=False)
     date = Column(types.Date, nullable=False)
     reference = Column(UnicodeText)
     accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession = relationship("Accession", back_populates="verifications")
+    accession = relationship("Accession", back_populates="verifications", uselist=False)
     order_by = [asc(date)]
 
     # the level of assurance of this verification
@@ -352,12 +353,9 @@ class Verification(db.Base):
     # what it was verified from
     prev_species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
 
-    species = relationship(
-        "Species", primaryjoin="Verification.species_id==Species.id"
-    )
-    prev_species = relationship(
-        "Species", primaryjoin="Verification.prev_species_id==Species.id"
-    )
+    # Relationships
+    species = relationship("Species", back_populates="verifications", foreign_keys=[species_id], uselist=False)
+    prev_species = relationship("Species", back_populates="previous_verifications", foreign_keys=[prev_species_id], uselist=False)
 
     notes = Column(UnicodeText)
 
@@ -411,7 +409,7 @@ class Voucher(db.Base):
     code = Column(Unicode(32), nullable=False)
     parent_material = Column(Boolean, default=False)
     accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession = relationship("Accession", back_populates="vouchers")
+    accession = relationship("Accession", back_populates="vouchers", uselist=False)
 
 
 # ITF2 - E.1; Provenance Type Flag; Transfer code: prot
@@ -713,7 +711,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         cascade="all, delete-orphan",
         # order_by='plant.code',
         back_populates="accession",
-        uselist=False,
+        uselist=True,
         single_parent=True,
     )
     verifications = (
@@ -722,6 +720,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             cascade="all, delete-orphan",
             back_populates="accession",
             single_parent=True,
+            uselist=True,  # An Accession can have multiple Vouchers
         )
         or []
     )
@@ -729,7 +728,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         "Voucher",
         cascade="all, delete-orphan",
         back_populates="accession",
-        uselist=False,
+        uselist=True,
         single_parent=True,
     )
     intended_location = relationship(
@@ -983,6 +982,7 @@ Accession.notes = relationship(
     back_populates="accession",
     cascade="all, delete-orphan",
     single_parent=True,
+    uselist=True,
 )
 
 
