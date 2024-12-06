@@ -381,7 +381,7 @@ class PlantChange(db.Base):
         "Plant",
         back_populates="changes",
         primaryjoin="PlantChange.plant_id == Plant.id",
-        uselist=False,
+        uselist=True,
         cascade="all, delete-orphan",
         single_parent=True,
     )
@@ -397,10 +397,14 @@ class PlantChange(db.Base):
     )
 
     from_location = relationship(
-        "Location", primaryjoin="PlantChange.from_location_id == Location.id"
+        "Location", 
+        primaryjoin="PlantChange.from_location_id == Location.id",
+        uselist=False,  # One-to-one relationship with Location
     )
     to_location = relationship(
-        "Location", primaryjoin="PlantChange.to_location_id == Location.id"
+        "Location", 
+        primaryjoin="PlantChange.to_location_id == Location.id",
+        uselist=False,  # One-to-one relationship with Location
     )
 
 
@@ -486,7 +490,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     order_by = [asc(accession_id), asc(code)]
 
     # Relationships
-    accession = relationship("Accession", back_populates="plants")
+    accession = relationship("Accession", back_populates="plants", uselist=False, cascade="save-update")
 
     propagations = relationship(
         "Propagation",
@@ -513,8 +517,12 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         single_parent=True,
     )
 
-    location = relationship("Location", back_populates="plants", uselist=False)
-
+    location = relationship(
+        "Location",
+        back_populates="plants",
+        uselist=False,  # A Plant belongs to one Location
+        cascade="save-update",
+    )
     _delimiter = None
 
     def search_view_markup_pair(self):

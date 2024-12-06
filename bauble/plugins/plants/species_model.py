@@ -34,12 +34,13 @@ from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import foreign
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import synonym
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -196,8 +197,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
 
     # Define relationship to Genus
-    genus = relationship("Genus", back_populates="species", lazy="joined")
-    accessions = relationship("Accession", back_populates="species") or []
+    genus = relationship("Genus", back_populates="species", lazy="joined", uselist=False)
+    accessions = relationship("Accession", back_populates="species", uselist=True) or []
 
     rank = "species"
     link_keys = ["accepted"]
@@ -485,12 +486,13 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             collection_class=VNList,
             back_populates="species",
             single_parent=True,
+            uselist=True,
         )
         or []
     )
     _default_vernacular_name = relationship(
         "DefaultVernacularName",
-        uselist=False,
+        uselist=True,
         cascade="all, delete-orphan",
         back_populates="species",
         single_parent=True,
@@ -501,6 +503,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             cascade="all, delete-orphan",
             back_populates="species",
             single_parent=True,
+            uselist=True,
         )
         or []
     )
@@ -513,6 +516,22 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         "Color", uselist=False, back_populates="species"
     )
 
+    # Relationships
+    verifications = relationship(
+        "Verification",
+        primaryjoin="Verification.species_id == Species.id",
+        back_populates="species",
+        cascade="all, delete-orphan",
+        uselist=True,
+    )
+
+    previous_verifications = relationship(
+        "Verification",
+        primaryjoin="Verification.prev_species_id == Species.id",
+        back_populates="prev_species",
+        cascade="all, delete-orphan",
+        uselist=True,
+    )
     # hardiness_zone = Column(Unicode(4))
 
     awards = Column(UnicodeText)
@@ -896,6 +915,7 @@ Species.notes = relationship(
     "SpeciesNote",
     back_populates="species",
     cascade="all, delete-orphan",
+    uselist=True,
     single_parent=True,
 )
 
@@ -919,13 +939,15 @@ class SpeciesSynonym(db.Base):
             "Species",
             primaryjoin="SpeciesSynonym.species_id == Species.id",
             back_populates="_synonyms",
+            uselist=False,
         )
         or []
     )
 
     # relations
     synonym = relationship(
-        "Species", primaryjoin="SpeciesSynonym.synonym_id==Species.id"
+        "Species", primaryjoin="SpeciesSynonym.synonym_id==Species.id",
+        uselist=False,
     )
 
     def __init__(self, synonym=None, **kwargs):
@@ -1112,7 +1134,7 @@ class SpeciesDistribution(db.Base):
 SpeciesDistribution.geographic_area = relationship(
     "GeographicArea",
     primaryjoin="SpeciesDistribution.geographic_area_id==GeographicArea.id",
-    uselist=False,
+    uselist=True,
 )
 
 
@@ -1124,7 +1146,7 @@ class Habit(db.Base):
     species = relationship(
         "Species",
         back_populates="habit",
-        uselist=False,  # If Habit is associated with only one Species
+        uselist=True,
     )
 
     def __str__(self):
@@ -1142,7 +1164,7 @@ class Color(db.Base):
     species = relationship(
         "Species",
         back_populates="flower_color",
-        uselist=False,  # If Habit is associated with only one Species
+        uselist=True,
     )
 
     def __str__(self):

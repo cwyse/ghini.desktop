@@ -318,12 +318,50 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     def correct_field_names(cls, keys):
         pass
 
+    # def top_level_count(self):
+    #     genera = {g for g in self.genera if g.species}
+    #     species = [s for g in genera for s in g.species]
+    #     accessions = [a for s in species for a in s.accessions]
+    #     plants = [p for a in accessions for p in a.plants]
+    #     return {
+    #         (1, "Families"): {self.id},
+    #         (2, "Genera"): genera,
+    #         (3, "Species"): set(species),
+    #         (4, "Accessions"): len(accessions),
+    #         (5, "Plantings"): len(plants),
+    #         (6, "Living plants"): sum(p.quantity for p in plants),
+    #         (7, "Locations"): {p.location.id for p in plants},
+    #         (8, "Sources"): {
+    #             a.source.source_detail.id
+    #             for a in accessions
+    #             if a.source and a.source.source_detail
+    #         },
+    #     }
+
     def top_level_count(self):
-        genera = {g for g in self.genera if g.species}
-        species = [s for g in genera for s in g.species]
-        accessions = [a for s in species for a in s.accessions]
-        plants = [p for a in accessions for p in a.plants]
-        return {
+        # Step 1: Filter genera that have species
+        genera = set()
+        for g in self.genera:
+            if g.species:
+                genera.add(g)
+
+        # Step 2: Collect all species from the filtered genera
+        species = []
+        for g in genera:
+            species.extend(g.species)
+
+        # Step 3: Collect all accessions from the species
+        accessions = []
+        for s in species:
+            accessions.extend(s.accessions)
+
+        # Step 4: Collect all plants from the accessions
+        plants = []
+        for a in accessions:
+            plants.extend(a.plants)
+
+        # Step 5: Calculate the metrics
+        result = {
             (1, "Families"): {self.id},
             (2, "Genera"): genera,
             (3, "Species"): set(species),
@@ -338,6 +376,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
             },
         }
 
+        return result
 
 # defining the latin alias to the class.
 Familia = Family
@@ -348,6 +387,7 @@ Family.notes = relationship(
     back_populates="family",
     cascade="all, delete-orphan",
     single_parent=True,
+    uselist=True,
 )
 
 
@@ -423,6 +463,7 @@ Family.genera = (
         back_populates="family",
         cascade="all, delete-orphan",
         single_parent=True,
+        uselist=True,
     )
     or []
 )

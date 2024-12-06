@@ -239,7 +239,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     rank = "genus"
     link_keys = ["accepted"]
 
-    family = relationship("Family", back_populates="genera")
+    family = relationship("Family", back_populates="genera", lazy="joined", uselist=False)
 
     def __init__(self):
         self.species_editor = get_species_editor()
@@ -481,6 +481,7 @@ Genus.notes = relationship(
     "GenusNote",
     back_populates="genus",
     cascade="all, delete-orphan",
+    uselist=True,
     single_parent=True,
 )
 
@@ -532,7 +533,7 @@ Genus.species = relationship(
     cascade="all, delete-orphan",
     order_by=asc(Species.epithet),
     back_populates="genus",
-    uselist=False,
+    uselist=True,  # one-to-many relationship
     single_parent=True,
 )
 
