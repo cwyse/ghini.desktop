@@ -198,7 +198,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     # Define relationship to Genus
     genus = relationship("Genus", back_populates="species", lazy="joined", uselist=False)
-    accessions = relationship("Accession", back_populates="species", uselist=True) or []
+    accessions = relationship("Accession", back_populates="species", uselist=True)
 
     rank = "species"
     link_keys = ["accepted"]

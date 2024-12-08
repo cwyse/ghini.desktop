@@ -190,6 +190,37 @@ class TypedValueToken(ValueABC):
     def __repr__(self):
         return "%s" % (self.value)
 
+def resolve_relationships(cls, steps):
+    """
+    Dynamically resolve relationships for a given class and steps.
+
+    Args:
+        cls: The current SQLAlchemy class being evaluated.
+        steps: A list of relationship steps to resolve.
+
+    Returns:
+        (query, cls): The updated query and the final resolved class.
+    """
+ 
+    query = env.session.execute(select(cls)).scalars()  # Start with the base class.
+    for step in steps:
+        # Resolve the relationship using inspect
+        relationship = getattr(cls, step, None)
+        if relationship is None:
+            raise ValueError(f"Cannot resolve relationship: {step} on {cls}")
+
+        mapper = inspect(cls)
+        relationship_property = mapper.relationships.get(step)
+        if not relationship_property:
+            raise ValueError(f"{step} is not a valid relationship for {cls}")
+
+        # Alias the target class and join
+        target_cls = relationship_property.mapper.class_
+        aliased_entity = aliased(target_cls)
+        query = query.join(aliased_entity, relationship)
+        cls = target_cls  # Update cls to the target for subsequent steps
+
+    return query, cls
 
 class IdentifierAction:
     def __init__(self, t):
@@ -208,29 +239,8 @@ class IdentifierAction:
         joinpoint is the one relative to the attribute, and the attribute
         itself.
         """
-        query = env.session.query(env.domain)
-        cls = env.domain
 
-        if len(self.steps) > 0:
-            # Iterate over the steps to resolve relationships
-            for step in self.steps:
-                relationship = getattr(cls, step, None)
-                if relationship is None:
-                    raise ValueError(f"Cannot resolve relationship: {step} on {cls}")
-                
-                # Resolve the relationship entity using the SQLAlchemy inspector
-                mapper = inspect(cls)
-                relationship_property = mapper.relationships.get(step)
-                if not relationship_property:
-                    raise ValueError(f"{step} is not a relationship of {cls}")
-                
-                # Get the target class of the relationship
-                target_cls = relationship_property.mapper.class_
-                aliased_entity = aliased(target_cls)
-                
-                # Apply the join to the query
-                query = query.join(aliased_entity, relationship)
-                cls = target_cls  # Update the current class for the next step
+	query, cls = resolve_relationships(env.domain, self.steps)
 
         attr = getattr(cls, self.leaf, None)
         if attr is None:
@@ -288,19 +298,19 @@ class FilteredIdentifierAction:
 
     def evaluate(self, env):
         """return pair (query, attribute)"""
-        query = env.session.query(env.domain)
-        # identifier is an attribute of a joined table
-        aliased_steps = [aliased(step) for step in self.steps]
-        query = query.join(*aliased_steps)
-        cls = query._joinpoint["_joinpoint_entity"]
-        attr = getattr(cls, self.filter_attr)
+	query, cls = resolve_relationships(env.domain, self.steps)
+        attr = getattr(cls, self.filter_attr, None)
+        if attr is None:
+            raise ValueError(f"Cannot resolve attribute: {self.leaf} on {cls}")
 
         def clause(x):
             return self.operation(attr, x)
 
         logger.debug("filtering on {}({})".format(type(attr), attr))
         query = query.filter(clause(self.filter_value.express()))
-        attr = getattr(cls, self.leaf)
+        attr = getattr(cls, self.leaf, None)
+        if attr is None:
+            raise ValueError(f"Cannot resolve attribute: {self.leaf} on {cls}")
         logger.debug(
             "IdentifierToken for %s, %s evaluates to %s"
             % (cls, self.leaf, attr)
@@ -485,7 +495,7 @@ class SearchNotAction(UnaryLogical):
     name = "NOT"
 
     def evaluate(self, env):
-        q = env.session.query(env.domain)
+        q = env.session.execute(select(env.domain)).scalars()
         for i in env.domains:
             q.join(*i)
         return q.except_(self.operand.evaluate(env))
@@ -578,7 +588,7 @@ class BinomialNameAction:
         from bauble.plugins.plants.species import Species
 
         result = (
-            search_strategy._session.query(Species)
+            search_strategy._session.execute(select(Species)).scalars()
             .filter(
                 or_(
                     Species.sp.startswith(self.species_epithet),
@@ -625,7 +635,7 @@ class DomainExpressionAction:
         except KeyError:
             raise KeyError(_("Unknown search domain: %s") % self.domain)
 
-        query = search_strategy._session.query(cls)
+        query = search_strategy._session.execute(select(cls)).scalars()
 
         # here is the place where to optionally filter out unrepresented
         # domain values. each domain class should define its own 'I have
@@ -741,7 +751,7 @@ class ValueListAction:
                     return v
 
             table = class_mapper(cls)
-            q = search_strategy._session.query(cls)  # prepares SELECT
+            q = search_strategy._session.execute(select(cls)).scalars()  # prepares SELECT
             q = q.filter(
                 or_(
                     *[

@@ -628,6 +628,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
  
     # columns
     #: the accession code
+    id = Column(Integer, primary_key=True)
     code = Column(Unicode(20), nullable=False, unique=True)
     code_format = "%Y%PD####"
     order_by = [asc(code)]
