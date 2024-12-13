@@ -47,6 +47,7 @@ from gi.repository import Gtk
 from bauble import utils
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy import select
 
 gi.require_version("Gtk", "3.0")
 
@@ -1752,7 +1753,7 @@ def get_distinct_values(column, session):
     """
     Return a list of all the distinct values in a table column
     """
-    q = session.query(column).distinct()
+    q = session.execute(select(column)).scalars().distinct()
     return [v[0] for v in q if v != (None,)]
 
 

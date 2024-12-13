@@ -88,14 +88,14 @@ def safe_set_text(gtk_widget, text):
 def get_plant_query(obj, session):
     """ """
     # .order_by(None) is needed for the later union() to work properly
-    q = session.query(Plant)
+    q = session.execute(select(Plant)).scalars()
     if isinstance(obj, Family):
         return (
             q.join(Accession, Plant.accession)
             .join(Species, Accession.species)
             .join(Genus, Species.genus)
             .join(Family, Genus.family)
-            .filter(Family.id == obj.id)
+            .where(Family.id == obj.id)
         )
 
     elif isinstance(obj, Genus):
@@ -103,14 +103,14 @@ def get_plant_query(obj, session):
             q.join(Accession, Plant.accession)
             .join(Species, Accession.species)
             .join(Genus, Species.genus)
-            .filter(Genus.id == obj.id)
+            .where(Genus.id == obj.id)
         )
 
     elif isinstance(obj, Species):
         return (
             q.join(Accession, Plant.accession)
             .join(Species, Accession.species)
-            .filter(Species.id == obj.id)
+            .where(Species.id == obj.id)
         )
 
     elif isinstance(obj, VernacularName):
@@ -118,33 +118,33 @@ def get_plant_query(obj, session):
             q.join(Accession, Plant.accession)
             .join(Species, Accession.species)
             .join(Species.vernacular_names)
-            .filter(VernacularName.id == obj.id)
+            .where(VernacularName.id == obj.id)
         )
 
     elif isinstance(obj, Plant):
-        return q.filter(Plant.id == obj.id)
+        return q.where(Plant.id == obj.id)
 
     elif isinstance(obj, Accession):
-        return q.join(Accession, Plant.accession).filter(
+        return q.join(Accession, Plant.accession).where(
             Accession.id == obj.id
         )
 
     elif isinstance(obj, Location):
-        return q.filter(Plant.location_id == obj.id)
+        return q.where(Plant.location_id == obj.id)
 
     elif isinstance(obj, Contact):
         return (
             q.join(Accession, Plant.accession)
             .join(Source, Accession.source)
             .join(Contact, Source.source_detail)
-            .filter(Contact.id == obj.id)
+            .where(Contact.id == obj.id)
         )
 
     elif isinstance(obj, Tag):
         plants = get_pertinent_objects(Plant, obj.objects)
         from sqlalchemy import bindparam
 
-        return q.filter(
+        return q.where(
             Plant.id.in_(bindparam("plant_ids", expanding=True))
         ).params(plant_ids=[p.id for p in plants])
 
@@ -154,40 +154,40 @@ def get_plant_query(obj, session):
 
 def get_accession_query(obj, session):
     """ """
-    q = session.query(Accession)
+    q = session.execute(select(Accession)).scalars()
     if isinstance(obj, Family):
         return (
             q.join(Species, Accession.species)
             .join(Genus, Species.genus)
             .join(Family, Genus.family)
-            .filter(Family.id == obj.id)
+            .where(Family.id == obj.id)
         )
 
     elif isinstance(obj, Genus):
         return (
             q.join(Species, Accession.species)
             .join(Genus, Species.genus)
-            .filter(Genus.id == obj.id)
+            .where(Genus.id == obj.id)
         )
 
     elif isinstance(obj, Species):
-        return q.join(Species, Accession.species).filter(Species.id == obj.id)
+        return q.join(Species, Accession.species).where(Species.id == obj.id)
 
     elif isinstance(obj, VernacularName):
         return (
             q.join(Species, Accession.species)
             .join(Species.vernacular_names)
-            .filter(VernacularName.id == obj.id)
+            .where(VernacularName.id == obj.id)
         )
 
     elif isinstance(obj, Plant):
-        return q.join(Plant, Accession.plants).filter(Plant.id == obj.id)
+        return q.join(Plant, Accession.plants).where(Plant.id == obj.id)
 
     elif isinstance(obj, Accession):
-        return q.filter(Accession.id == obj.id)
+        return q.where(Accession.id == obj.id)
 
     elif isinstance(obj, Location):
-        return q.join(Plant, Accession.plants).filter(
+        return q.join(Plant, Accession.plants).where(
             Plant.location_id == obj.id
         )
 
@@ -195,14 +195,14 @@ def get_accession_query(obj, session):
         return (
             q.join(Source, Accession.source)
             .join(Contact, Source.source_detail)
-            .filter(Contact.id == obj.id)
+            .where(Contact.id == obj.id)
         )
 
     elif isinstance(obj, Tag):
         acc = get_pertinent_objects(Accession, obj.objects)
         from sqlalchemy import bindparam
 
-        return q.filter(
+        return q.where(
             Accession.id.in_(bindparam("accession_ids", expanding=True))
         ).params(accession_ids=[a.id for a in acc])
     else:
@@ -213,46 +213,46 @@ def get_accession_query(obj, session):
 
 def get_species_query(obj, session):
     """ """
-    q = session.query(Species)
+    q = session.execute(select(Species)).scalars()
     if isinstance(obj, Family):
         return (
             q.join(Genus, Species.genus)
             .join(Family, Genus.family)
-            .filter(Family.id == obj.id)
+            .where(Family.id == obj.id)
         )
 
     elif isinstance(obj, Genus):
-        return q.join(Genus, Species.genus).filter(Genus.id == obj.id)
+        return q.join(Genus, Species.genus).where(Genus.id == obj.id)
 
     elif isinstance(obj, Species):
-        return q.filter(Species.id == obj.id)
+        return q.where(Species.id == obj.id)
 
     elif isinstance(obj, VernacularName):
-        return q.join(Species.vernacular_names).filter(
+        return q.join(Species.vernacular_names).where(
             VernacularName.id == obj.id
         )
 
     elif isinstance(obj, Plant):
-        return q.join(Accession.plants).filter(Plant.id == obj.id)
+        return q.join(Accession.plants).where(Plant.id == obj.id)
 
     elif isinstance(obj, Accession):
-        return q.filter(Accession.id == obj.id)
+        return q.where(Accession.id == obj.id)
 
     elif isinstance(obj, Location):
-        return q.join(Accession.plants).filter(Plant.location_id == obj.id)
+        return q.join(Accession.plants).where(Plant.location_id == obj.id)
 
     elif isinstance(obj, Contact):
         return (
             q.join(Accession.source)
             .join(Source.source_detail)
-            .filter(Contact.id == obj.id)
+            .where(Contact.id == obj.id)
         )
 
     elif isinstance(obj, Tag):
         acc = get_pertinent_objects(Species, obj.objects)
         from sqlalchemy import bindparam
 
-        return q.filter(
+        return q.where(
             Species.id.in_(bindparam("species_ids", expanding=True))
         ).params(species_ids=[a.id for a in acc])
 
@@ -264,15 +264,15 @@ def get_species_query(obj, session):
 
 def get_location_query(obj, session):
     """ """
-    q = session.query(Location)
+    q = session.execute(select(Location)).scalars()
     if isinstance(obj, Location):
-        return q.filter(Location.id == obj.id)
+        return q.where(Location.id == obj.id)
 
     elif isinstance(obj, Plant):
-        return q.filter(Plant.id == obj.id)
+        return q.where(Plant.id == obj.id)
 
     elif isinstance(obj, Accession):
-        return q.join(Plant.accession).filter(Accession.id == obj.id)
+        return q.join(Plant.accession).where(Accession.id == obj.id)
 
     elif isinstance(obj, Family):
         return (
@@ -280,7 +280,7 @@ def get_location_query(obj, session):
             .join(Accession.species)
             .join(Species.genus)
             .join(Genus.family)
-            .filter(Family.id == obj.id)
+            .where(Family.id == obj.id)
         )
 
     elif isinstance(obj, Genus):
@@ -288,14 +288,14 @@ def get_location_query(obj, session):
             q.join(Plant.accession)
             .join(Accession.species)
             .join(Species.genus)
-            .filter(Genus.id == obj.id)
+            .where(Genus.id == obj.id)
         )
 
     elif isinstance(obj, Species):
         return (
             q.join(Plant.accession)
             .join(Accession.species)
-            .filter(Species.id == obj.id)
+            .where(Species.id == obj.id)
         )
 
     elif isinstance(obj, VernacularName):
@@ -303,7 +303,7 @@ def get_location_query(obj, session):
             q.join(Plant.accession)
             .join(Accession.species)
             .join(Species.vernacular_names)
-            .filter(VernacularName.id == obj.id)
+            .where(VernacularName.id == obj.id)
         )
 
     elif isinstance(obj, Contact):
@@ -311,14 +311,14 @@ def get_location_query(obj, session):
             q.join(Plant.accession)
             .join(Accession.source)
             .join(Source.source_detail)
-            .filter(Contact.id == obj.id)
+            .where(Contact.id == obj.id)
         )
 
     elif isinstance(obj, Tag):
         locs = get_pertinent_objects(Location, obj.objects)
         from sqlalchemy import bindparam
 
-        return q.filter(
+        return q.where(
             Location.id.in_(bindparam("location_ids", expanding=True))
         ).params(location_ids=[l.id for l in locs])
 
@@ -349,7 +349,7 @@ def get_pertinent_objects(cls, objs):
 
     queries = [get_query_func(o, session) for o in objs]
     unions = union(*[q.statement for q in queries])
-    return session.query(cls).from_statement(unions)
+    return session.execute(select(cls)).scalars().from_statement(unions)
 
 
 class SettingsBox(Gtk.VBox):

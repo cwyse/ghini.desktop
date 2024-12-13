@@ -46,6 +46,8 @@ from pyparsing import Word
 from pyparsing import WordEnd
 from pyparsing import WordStart
 from pyparsing import ZeroOrMore
+from sqlalchemy import select
+from sqlalchemy import not_
 from sqlalchemy import and_
 from sqlalchemy import or_
 from sqlalchemy import Unicode
@@ -190,13 +192,14 @@ class TypedValueToken(ValueABC):
     def __repr__(self):
         return "%s" % (self.value)
 
-def resolve_relationships(cls, steps):
+def resolve_relationships(cls, steps, env):
     """
     Dynamically resolve relationships for a given class and steps.
 
     Args:
         cls: The current SQLAlchemy class being evaluated.
         steps: A list of relationship steps to resolve.
+        env: The environment containing the session and other context.
 
     Returns:
         (query, cls): The updated query and the final resolved class.
@@ -240,7 +243,7 @@ class IdentifierAction:
         itself.
         """
 
-	query, cls = resolve_relationships(env.domain, self.steps)
+        query, cls = resolve_relationships(env.domain, self.steps, env)
 
         attr = getattr(cls, self.leaf, None)
         if attr is None:
@@ -298,7 +301,7 @@ class FilteredIdentifierAction:
 
     def evaluate(self, env):
         """return pair (query, attribute)"""
-	query, cls = resolve_relationships(env.domain, self.steps)
+        query, cls = resolve_relationships(env.domain, self.steps, env)
         attr = getattr(cls, self.filter_attr, None)
         if attr is None:
             raise ValueError(f"Cannot resolve attribute: {self.leaf} on {cls}")
@@ -307,7 +310,9 @@ class FilteredIdentifierAction:
             return self.operation(attr, x)
 
         logger.debug("filtering on {}({})".format(type(attr), attr))
-        query = query.filter(clause(self.filter_value.express()))
+
+        # Updated filter logic with .where
+        query = query.where(self.operation(attr, self.filter_value.express()))
         attr = getattr(cls, self.leaf, None)
         if attr is None:
             raise ValueError(f"Cannot resolve attribute: {self.leaf} on {cls}")
@@ -356,15 +361,15 @@ class IdentExpression:
         if self.operands[1].express() == set():
             # check against the empty set
             if self.op in ("is", "=", "=="):
-                return q.filter(~a.any())
+                return q.where(~a.any())
             elif self.op in ("not", "<>", "!="):
-                return q.filter(a.any())
+                return q.where(a.any())
 
         def clause(x):
             return self.operation(a, x)
 
         logger.debug("filtering on {}({})".format(type(a), a))
-        return q.filter(clause(self.operands[1].express()))
+        return q.where(self.operation(a, self.operands[1].express()))
 
     def needs_join(self, env):
         return [self.operands[0].needs_join(env)]
@@ -377,7 +382,7 @@ class ElementSetExpression(IdentExpression):
         q, a = self.operands[0].evaluate(env)
         from sqlalchemy import bindparam
 
-        return q.filter(
+        return q.where(
             a.in_(bindparam("operand_values", expanding=True))
         ).params(operand_values=self.operands[1].express())
 
@@ -431,7 +436,7 @@ class BetweenExpressionAction:
         def clause_high(high):
             return a <= high
 
-        return q.filter(
+        return q.where(
             and_(
                 clause_low(self.operands[1].express()),
                 clause_high(self.operands[2].express()),
@@ -496,10 +501,9 @@ class SearchNotAction(UnaryLogical):
 
     def evaluate(self, env):
         q = env.session.execute(select(env.domain)).scalars()
-        for i in env.domains:
-            q.join(*i)
-        return q.except_(self.operand.evaluate(env))
-
+        for aliased_entity, relationship in env.domains:
+            q = q.join(aliased_entity, relationship)
+        return q.where(not_(self.operand.evaluate(env)))
 
 class ParenthesisedQuery:
     def __init__(self, t):
@@ -525,12 +529,18 @@ class QueryAction:
 
     def invoke(self, search_strategy):
         """
-        update search_strategy object with statement results
+        Update search_strategy object with statement results.
 
-        Queries can use more database specific features.  This also
+        Queries can use more database-specific features. This also
         means that the same query might not work the same on different
         database types. For example, on a PostgreSQL database you can
         use ilike but this would raise an error on SQLite.
+
+        Args:
+            search_strategy: The search strategy object.
+
+        Returns:
+            A set of results from the search.
         """
 
         logger.debug(
@@ -549,7 +559,10 @@ class QueryAction:
 
         result = set()
         if search_strategy._session is not None:
-            self.domains = self.filter.needs_join(self)
+            self.domains = [
+                (aliased(getattr(self.domain, step).mapper.class_), getattr(self.domain, step))
+                for step in self.filter.needs_join(self)
+            ]
             self.session = search_strategy._session
             records = self.filter.evaluate(self).all()
             result.update(records)
@@ -588,17 +601,17 @@ class BinomialNameAction:
         from bauble.plugins.plants.species import Species
 
         result = (
-            search_strategy._session.execute(select(Species)).scalars()
-            .filter(
+            search_strategy._session.execute(select(Species))
+            .where(
                 or_(
                     Species.sp.startswith(self.species_epithet),
                     and_(
                         self.species_epithet == "sp", Species.infrasp1 == "sp"
                     ),
                 )
-            )
+            ).scalars()
             .join(Genus)
-            .filter(Genus.genus.startswith(self.genus_epithet))
+            .where(Genus.genus.startswith(self.genus_epithet))
             .all()
         )
         result = set(result)
@@ -672,7 +685,7 @@ class DomainExpressionAction:
 
         for col in properties:
             ors = or_(*list(map(condition(col), self.values.express())))
-            result.update(query.filter(ors).all())
+            result.update(query.where(ors).all())
 
         if None in result:
             logger.warning("removing None from result set")
@@ -752,7 +765,7 @@ class ValueListAction:
 
             table = class_mapper(cls)
             q = search_strategy._session.execute(select(cls)).scalars()  # prepares SELECT
-            q = q.filter(
+            q = q.where(
                 or_(
                     *[
                         like(table, c, unicol(c, v))

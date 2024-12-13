@@ -40,8 +40,8 @@ class StoredQueriesModel:
         self.__tooltip = [""] * 11
         self.__query = [""] * 11
         ssn = db.Session()
-        q = ssn.query(meta.BaubleMeta)
-        stqrq = q.filter(meta.BaubleMeta.name.startswith("stqr_"))
+        q = ssn.execute(select(meta.BaubleMeta)).scalars()
+        stqrq = q.where(meta.BaubleMeta.name.startswith("stqr_"))
         for item in stqrq:
             if item.name[4] != "_":
                 continue
@@ -62,7 +62,7 @@ class StoredQueriesModel:
         ssn = db.Session()
         for index in range(1, 11):
             if self.__label[index] == "":
-                ssn.query(meta.BaubleMeta).filter_by(
+                ssn.execute(select(meta.BaubleMeta)).scalars().where(
                     name="stqr_%02d" % index
                 ).delete()
             else:

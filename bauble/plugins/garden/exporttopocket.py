@@ -108,20 +108,20 @@ class ExportToPocketThread(threading.Thread):
 
         session = db.Session()
         plant_query = (
-            session.query(Plant)
+            session.execute(select(Plant)).scalars()
             .order_by(Plant.code)
             .join(Accession)
             .order_by(Plant.id)
         )
         if self.include_private is False:
             # no private accessions: add a filter to only keep non-private
-            plant_query = plant_query.filter(
+            plant_query = plant_query.where(
                 Accession.private == False
             )  # `is` does not work
         plants = plant_query.all()
         accessions = (
-            session.query(Accession)
-            .filter(
+            session.execute(select(Accession)).scalars()
+            .where(
                 Accession.id.in_(bindparam("accession_ids", expanding=True))
             )
             .params(accession_ids=[j.accession_id for j in plants])
@@ -129,8 +129,8 @@ class ExportToPocketThread(threading.Thread):
             .all()
         )
         species = (
-            session.query(Species)
-            .filter(Species.id.in_(bindparam("species_ids", expanding=True)))
+            session.execute(select(Species)).scalars()
+            .where(Species.id.in_(bindparam("species_ids", expanding=True)))
             .params(species_ids=[j.species_id for j in accessions])
             .order_by(Species.id)
             .all()

@@ -29,6 +29,7 @@ from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
+from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
@@ -187,8 +188,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     """
 
     __tablename__ = "species"
-    id = Column(Integer, primary_key=True)
-    epithet = Column(Unicode(64), nullable=False, index=True)
+    id = Column(Integer, primary_key=True, nullable=False)
+    epithet = Column(Unicode(64), index=True)
     genus_id = Column(Integer, ForeignKey("genus.id"), nullable=False)
     __table_args__ = (
         UniqueConstraint("genus_id", "epithet", name="_genus_epithet_uc"),
@@ -217,11 +218,11 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     def retrieve(cls, session, keys):
         from .genus import Genus
 
-        query = session.query(cls)
+        query = session.execute(select(cls)).scalars()
         if "epithet" in keys:
-            query = query.filter(cls.epithet == keys["epithet"])
+            query = query.where(cls.epithet == keys["epithet"])
         if "ht-epithet" in keys:
-            query = query.join(cls.genus).filter(
+            query = query.join(cls.genus).where(
                 Genus.epithet == keys["ht-epithet"]
             )
         try:
@@ -243,11 +244,11 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         If not found and create=True, creates a new instance.
         Returns the Species instance or None.
         """
-        query = session.query(cls)
+        query = session.execute(select(cls)).scalars()
         if "epithet" in keys:
-            query = query.filter(cls.epithet == keys["epithet"])
+            query = query.where(cls.epithet == keys["epithet"])
         if "ht-epithet" in keys:
-            query = query.join(cls.genus).filter(
+            query = query.join(cls.genus).where(
                 get_genus().epithet == keys["ht-epithet"]
             )
         try:
@@ -719,8 +720,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             logger.warning("species:accepted - object not in session")
             return None
         syn = (
-            session.query(SpeciesSynonym)
-            .filter(SpeciesSynonym.synonym_id == self.id)
+            session.execute(select(SpeciesSynonym)).scalars()
+            .where(SpeciesSynonym.synonym_id == self.id)
             .first()
         )
         accepted = syn and syn.species
@@ -741,14 +742,14 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             logger.warning("species:accepted.setter - object not in session")
             return
         previous_synonymy_link = (
-            session.query(SpeciesSynonym)
-            .filter(SpeciesSynonym.synonym_id == self.id)
+            session.execute(select(SpeciesSynonym)).scalars()
+            .where(SpeciesSynonym.synonym_id == self.id)
             .first()
         )
         if previous_synonymy_link:
             a = (
-                session.query(Species)
-                .filter(Species.id == previous_synonymy_link.species_id)
+                session.execute(select(Species)).scalars()
+                .where(Species.id == previous_synonymy_link.species_id)
                 .one()
             )
             a.synonyms.remove(self)
@@ -830,10 +831,10 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
         try:
             return (
-                session.query(cls)
-                .filter(cls.epithet == keys["epithet"])
+                session.execute(select(cls)).scalars()
+                .where(cls.epithet == keys["epithet"])
                 .join(Genus)
-                .filter(Genus.epithet == keys["ht-epithet"])
+                .where(Genus.epithet == keys["ht-epithet"])
                 .one()
             )
         except:
@@ -896,12 +897,12 @@ def retrieve(cls, session, keys):
     genus, epithet = keys["species"].split(" ", 1)
     try:
         return (
-            session.query(cls)
-            .filter(cls.category == keys["category"])
+            session.execute(select(cls)).scalars()
+            .where(cls.category == keys["category"])
             .join(Species)
-            .filter(Species.epithet == epithet)
+            .where(Species.epithet == epithet)
             .join(Genus)
-            .filter(Genus.epithet == genus)
+            .where(Genus.epithet == genus)
             .one()
         )
     except:
@@ -928,6 +929,7 @@ class SpeciesSynonym(db.Base):
     __tablename__ = "species_synonym"
 
     # columns
+    id = Column(Integer, primary_key=True, nullable=False)
     species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
     synonym_id = Column(
         Integer, ForeignKey("species.id"), nullable=False, unique=True
@@ -981,6 +983,7 @@ class VernacularName(db.Base, db.Serializable):
     """
 
     __tablename__ = "vernacular_name"
+    id = Column(Integer, primary_key=True, nullable=False)
     name = Column(Unicode(128), nullable=False)
     language = Column(Unicode(128))
     species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
@@ -1035,16 +1038,16 @@ class VernacularName(db.Base, db.Serializable):
 
         g_epithet, s_epithet = keys["species"].split(" ", 1)
         sp = (
-            session.query(Species)
-            .filter(Species.epithet == s_epithet)
+            session.execute(select(Species)).scalars()
+            .where(Species.epithet == s_epithet)
             .join(Genus)
-            .filter(Genus.epithet == g_epithet)
+            .where(Genus.epithet == g_epithet)
             .first()
         )
         try:
             return (
-                session.query(cls)
-                .filter(cls.species == sp, cls.language == keys["language"])
+                session.execute(select(cls)).scalars()
+                .where(cls.species == sp, cls.language == keys["language"])
                 .one()
             )
         except:
@@ -1087,6 +1090,7 @@ class DefaultVernacularName(db.Base):
     )
 
     # columns
+    id = Column(Integer, primary_key=True)
     species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
     vernacular_name_id = Column(
         Integer, ForeignKey("vernacular_name.id"), nullable=False
@@ -1120,6 +1124,7 @@ class SpeciesDistribution(db.Base):
     __tablename__ = "species_distribution"
 
     # columns
+    id = Column(Integer, primary_key=True)
     geographic_area_id = Column(
         Integer, ForeignKey("geographic_area.id"), nullable=False
     )
@@ -1141,6 +1146,7 @@ SpeciesDistribution.geographic_area = relationship(
 class Habit(db.Base):
     __tablename__ = "habit"
 
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(Unicode(64))
     code = Column(Unicode(8), unique=True)
     species = relationship(
@@ -1159,6 +1165,7 @@ class Habit(db.Base):
 class Color(db.Base):
     __tablename__ = "color"
 
+    id = Column(Integer, primary_key=True)
     name = Column(Unicode(32))
     code = Column(Unicode(8), unique=True)
     species = relationship(

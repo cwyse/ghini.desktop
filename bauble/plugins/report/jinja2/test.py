@@ -107,7 +107,7 @@ class Jinja2FormatterTests(BaubleTestCase):
     def test_format_all_templates(self):
         Plant = dynamic_import("bauble.plugins.garden.plant", "Plant")
 
-        selection = self.session.query(Plant).all()
+        selection = self..execute(select()).scalars().all()
         templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
         for i, template_name in enumerate(filter(lambda x: x.endswith(".jj2"), os.listdir(templates_dir))):
             template_path = os.path.join(templates_dir, template_name)

@@ -44,11 +44,11 @@ from bauble.plugins.plants import Genus, Species
 bauble.db.open(dburi, True, True)
 session = bauble.db.Session()
 
-q = session.query(Species).filter(Species.infrasp1 == "sp")
-q = q.join(Genus).filter(Genus.epithet == "Zzz")
+q = session.execute(select(Species)).scalars().where(Species.infrasp1 == "sp")
+q = q.join(Genus).where(Genus.epithet == "Zzz")
 zzz = q.one()
 
-loc = session.query(Location).filter(Location.code == "desconocid").one()
+loc = session.execute(select(Location)).scalars().where(Location.code == "desconocid").one()
 import sys
 
 with open("/tmp/plant-pictures.txt") as f:
@@ -57,15 +57,15 @@ with open("/tmp/plant-pictures.txt") as f:
         acc_no = text[:6]
 
         try:
-            q = session.query(Plant)
-            q = q.join(Accession).filter(Accession.code == acc_no)
-            q = q.filter(Plant.code == "1")
+            q = session.execute(select(Plant)).scalars()
+            q = q.join(Accession).where(Accession.code == acc_no)
+            q = q.where(Plant.code == "1")
             plant = q.one()
         except:
             try:
                 accession = (
-                    session.query(Accession)
-                    .filter(Accession.code == acc_no)
+                    session.execute(select(Accession)).scalars()
+                    .where(Accession.code == acc_no)
                     .one()
                 )
             except:
@@ -81,10 +81,10 @@ with open("/tmp/plant-pictures.txt") as f:
 
         # `plant` is the object to receive pictures, and it is in the session.
 
-        q = session.query(Plant)
-        q = q.join(Accession).filter(Accession.code == acc_no)
-        q = q.join(PlantNote).filter(PlantNote.category == "<picture>")
-        q = q.filter(PlantNote.note == text)
+        q = session.execute(select(Plant)).scalars()
+        q = q.join(Accession).where(Accession.code == acc_no)
+        q = q.join(PlantNote).where(PlantNote.category == "<picture>")
+        q = q.where(PlantNote.note == text)
         if q.count() == 0:
             # we need to add this note to the plant
             note = PlantNote(plant=plant, category="<picture>", note=text)

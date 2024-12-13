@@ -50,6 +50,7 @@ from sqlalchemy import and_
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
+from sqlalchemy import select
 from sqlalchemy import String
 from sqlalchemy import text
 from sqlalchemy import Unicode
@@ -106,7 +107,7 @@ def remove_callback(genera):
     from bauble.plugins.plants.species_model import Species
 
     session = object_session(genus)
-    nsp = session.query(Species).filter_by(genus_id=genus.id).count()
+    nsp = session.execute(select(Species)).scalars().where(genus_id=genus.id).count()
     safe_str = utils.xml_safe(str(genus))
     if nsp > 0:
         msg = _("The genus <i>%(1)s</i> has %(2)s species." "\n\n") % {
@@ -152,11 +153,11 @@ def remove_callback(genera):
         # If 'Yes, remove genus and synonyms' was selected, delete the synonyms
         if response == utils.DialogResponse.YES:
             for synonym in genus.synonyms:
-                synonym_obj = session.query(Genus).get(synonym.id)
+                synonym_obj = session.execute(select(Genus)).scalars().get(synonym.id)
                 session.delete(synonym_obj)
 
         # Delete the genus itself
-        obj = session.query(Genus).get(genus.id)
+        obj = session.execute(select(Genus)).scalars().get(genus.id)
         session.delete(obj)
         session.commit()
 
@@ -331,8 +332,8 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             logger.warning("genus:accepted - object not in session")
             return None
         syn = (
-            session.query(GenusSynonym)
-            .filter(GenusSynonym.synonym_id == self.id)
+            session.execute(select(GenusSynonym)).scalars()
+            .where(GenusSynonym.synonym_id == self.id)
             .first()
         )
         accepted = syn and syn.genus
@@ -349,7 +350,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         if not session:
             logger.warning("genus:accepted.setter - object not in session")
             return
-        session.query(GenusSynonym).filter(
+        session.execute(select(GenusSynonym)).scalars().where(
             GenusSynonym.synonym_id == self.id
         ).delete()
         session.commit()
@@ -406,15 +407,15 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     def retrieve(cls, session, keys):
         try:
             return (
-                session.query(cls).filter(cls.epithet == keys["epithet"]).one()
+                session.execute(select(cls)).scalars().where(cls.epithet == keys["epithet"]).one()
             )
         except:
             if "author" not in keys:
                 return None
         try:
             return (
-                session.query(cls)
-                .filter(
+                session.execute(select(cls)).scalars()
+                .where(
                     cls.epithet == keys["epithet"],
                     cls.author == keys["author"],
                 )
@@ -494,6 +495,7 @@ class GenusSynonym(db.Base):
     __tablename__ = "genus_synonym"
 
     # columns
+    id = Column(Integer, primary_key=True)
     genus_id = Column(Integer, ForeignKey("genus.id"), nullable=False)
 
     # a genus can only be a synonum of one other genus
@@ -642,8 +644,8 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
 
         # connect signals
         def fam_get_completions(text):
-            query = self.session.query(family_instance)
-            return query.filter(family_instance.epithet.like("%s%%" % text)).order_by(
+            query = self.session.execute(select(family_instance)).scalars()
+            return query.where(family_instance.epithet.like("%s%%" % text)).order_by(
                 family_instance.epithet
             )
 
@@ -654,8 +656,8 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
             if not value:
                 return
             syn = (
-                self.session.query(FamilySynonym)
-                .filter(FamilySynonym.synonym_id == value.id)
+                self.session.execute(select(FamilySynonym)).scalars()
+                .where(FamilySynonym.synonym_id == value.id)
                 .first()
             )
             if not syn:
@@ -769,8 +771,8 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self.init_treeview()
 
         def gen_get_completions(text):
-            query = self.session.query(Genus)
-            return query.filter(
+            query = self.session.execute(select(Genus)).scalars()
+            return query.where(
                 and_(
                     Genus.epithet.like("%s%%" % text),
                     Genus.id != self.model.id,
@@ -996,7 +998,7 @@ class GenusEditor(editor.GenericModelViewPresenterEditor):
 
     def start(self):
         family_instance = get_family_class()
-        if self.session.query(family_instance).count() == 0:
+        if self.session.execute(select(family_instance)).scalars().count() == 0:
             msg = _(
                 "You must first add or import at least one Family into "
                 "the database before you can add plants."
@@ -1097,9 +1099,9 @@ class GeneralGenusExpander(InfoExpander):
 
         # get the number of species
         nsp = (
-            session.query(Species)
+            session.execute(select(Species)).scalars()
             .join(Genus, Species.genus_id == Genus.id)
-            .filter(Genus.id == row.id)
+            .where(Genus.id == row.id)
             .count()
         )
         self.widget_set_value("gen_nsp_data", nsp)
@@ -1113,20 +1115,20 @@ class GeneralGenusExpander(InfoExpander):
 
         # get number of accessions
         nacc = (
-            session.query(Accession)
+            session.execute(select(Accession)).scalars()
             .join(Species, Accession.species_id == Species.id)
             .join(Genus, Species.genus_id == Genus.id)
-            .filter(Genus.id == row.id)
+            .where(Genus.id == row.id)
             .count()
         )
         if nacc == 0:
             self.widget_set_value("gen_nacc_data", nacc)
         else:
             nsp_in_acc = (
-                session.query(Accession.species_id)
+                session.execute(select(Accession.species_id)).scalars()
                 .join(Species, Accession.species_id == Species.id)
                 .join(Genus, Species.genus_id == Genus.id)
-                .filter(Genus.id == row.id)
+                .where(Genus.id == row.id)
                 .distinct()
                 .count()
             )
@@ -1136,22 +1138,22 @@ class GeneralGenusExpander(InfoExpander):
 
         # get the number of plants in the genus
         nplants = (
-            session.query(Plant)
+            session.execute(select(Plant)).scalars()
             .join(Accession, Plant.accession_id == Accession.id)
             .join(Species, Accession.species_id == Species.id)
             .join(Genus, Species.genus_id == Genus.id)
-            .filter(Genus.id == row.id)
+            .where(Genus.id == row.id)
             .count()
         )
         if nplants == 0:
             self.widget_set_value("gen_nplants_data", nplants)
         else:
             nacc_in_plants = (
-                session.query(Plant.accession_id)
+                session.execute(select(Plant.accession_id)).scalars()
                 .join(Accession, Plant.accession_id == Accession.id)
                 .join(Species, Accession.species_id == Species.id)
                 .join(Genus, Species.genus_id == Genus.id)
-                .filter(Genus.id == row.id)
+                .where(Genus.id == row.id)
                 .distinct()
                 .count()
             )

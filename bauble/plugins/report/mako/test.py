@@ -102,7 +102,7 @@ class MakoFormatterTests(BaubleTestCase):
         super().tearDown(*args)
 
     def test_format_all_mako_templates_not_using_qr(self):
-        selection = self.session.query(Plant).all()
+        selection = self.session.execute(select(Plant)).scalars().all()
         # td is this module name, minus mako/test, plus templates
         td = os.path.join(
             os.path.dirname(os.path.dirname(__file__)), "templates"
@@ -135,7 +135,7 @@ class MakoFormatterTests(BaubleTestCase):
             self.assertEqual((i, filename, type(report)), (i, filename, bytes))
 
     def test_format_qr_postscript_templates(self):
-        selection = self.session.query(Plant).all()
+        selection = self.session.execute(select(Plant)).scalars().all()
         # td is this module name, minus mako/test, plus templates
         td = os.path.join(
             os.path.dirname(os.path.dirname(__file__)), "templates"
@@ -165,7 +165,7 @@ class MakoFormatterTests(BaubleTestCase):
         pass
 
         # raise SkipTest("related to issue #363")
-        plants = self.session.query(Plant).all()
+        plants = self.session.execute(select(Plant)).scalars().all()
         # td is this module name, minus mako/test, plus templates
         td = os.path.join(
             os.path.dirname(os.path.dirname(__file__)), "templates"

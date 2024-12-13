@@ -451,7 +451,7 @@ class CountResultsTask(threading.Thread):
         klass = self.klass
         d = {}
         for ndx in self.ids:
-            item = session.query(klass).filter(klass.id == ndx).first()
+            item = session.execute(select(klass)).scalars().where(klass.id == ndx).first()
             if item is None:
                 self.__cancel = True
                 logger.warning(
@@ -1406,7 +1406,7 @@ class AppendThousandRows(threading.Thread):
 
     def run(self):
         session = db.Session()
-        q = session.query(db.History).order_by(db.History.timestamp.desc())
+        q = session.execute(select(db.History)).scalars().order_by(db.History.timestamp.desc())
         # add rows in small batches
         offset = 0
         step = 200

@@ -34,10 +34,12 @@ from bauble.utils import parse_date
 from gi.repository import Gtk
 from sqlalchemy import event
 from sqlalchemy import inspect
+from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import class_mapper
+from sqlalchemy import insert
 from sqlalchemy.orm import Query
 
 gi.require_version("Gtk", "3.0")
@@ -85,7 +87,7 @@ def get_or_create(session, model, **kwargs):
     """
     Retrieve or create an instance of the given model.
     """
-    instance = session.query(model).filter_by(**kwargs).first()
+    instance = session.execute(select(model)).scalars().where(**kwargs).first()
     if instance:
         return instance
     else:
@@ -300,7 +302,7 @@ class History(history_base):
     """
 
     __tablename__ = "history"
-    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
+    id = sa.Column(sa.Integer, primary_key=True)
     table_name = sa.Column(sa.Text, nullable=False)
     table_id = sa.Column(sa.Integer, nullable=False, autoincrement=False)
     values = sa.Column(sa.Text, nullable=False)
@@ -409,7 +411,6 @@ def create(import_defaults=True):
     :type import_defaults: bool
 
     """
-
     logger.debug("entered db.create()")
     if not engine:
         raise ValueError("engine is None, not connected to a database")
@@ -419,73 +420,45 @@ def create(import_defaults=True):
     import bauble.meta as meta
     from bauble import pluginmgr
 
-    connection = engine.connect()
-    transaction = connection.begin()
-    try:
+    with engine.begin() as connection:
         # Ensure all mappers are configured before creating tables
         from sqlalchemy.orm import configure_mappers
-
         configure_mappers()
 
         # TODO: here we are dropping/creating all the tables in the
         # metadata whether they are in the registry or not, we should
         # really only be creating those tables from registered
         # plugins, maybe with an uninstall() method on Plugin
+
+        # Drop and recreate all tables
         metadata.drop_all(bind=connection, checkfirst=True)
         metadata.create_all(bind=connection)
 
-        # fill in the bauble meta table and install all the plugins
+        # Fill in the bauble meta table
         meta_table = meta.BaubleMeta.__table__
-        meta_table.insert(bind=connection).execute(
+
+        # Insert VERSION_KEY
+        version_stmt = insert(meta_table).values(
             name=meta.VERSION_KEY, value=str(bauble.version)
-        ).close()
-        import time
-
-        tzlocal = datetime.timezone(
-            -datetime.timedelta(hours=time.timezone / 60 / 60)
         )
-        meta_table.insert(bind=connection).execute(
-            name=meta.CREATED_KEY, value=str(datetime.datetime.now(tz=tzlocal))
-        ).close()
-    except GeneratorExit as e:
-        # this is here in case the main windows is closed in the middle
-        # of a task
-        # UPDATE 2009.06.18: i'm not sure if this is still relevant since we
-        # switched the task system to use fibra...but it doesn't hurt
-        # having it here until we can make sure
-        logger.warning("bauble.db.create(): %s" % utils.utf8(e))
-        transaction.rollback()
-        raise
-    except Exception as e:
-        logger.warning("bauble.db.create(): %s" % utils.utf8(e))
-        transaction.rollback()
-        raise
-    else:
-        transaction.commit()
-    finally:
-        connection.close()
+        connection.execute(version_stmt)
 
-    connection = engine.connect()
-    transaction = connection.begin()
+        # Insert CREATED_KEY
+        import time
+        tzlocal = datetime.timezone(
+            -datetime.timedelta(hours=time.timezone / 3600)
+        )
+        created_stmt = insert(meta_table).values(
+            name=meta.CREATED_KEY, value=str(datetime.datetime.now(tz=tzlocal))
+        )
+        connection.execute(created_stmt)
+
+    # Install plugins
     try:
         pluginmgr.install("all", import_defaults, force=True)
-    except GeneratorExit as e:
-        # this is here in case the main windows is closed in the middle
-        # of a task
-        # UPDATE 2009.06.18: i'm not sure if this is still relevant since we
-        # switched the task system to use fibra...but it doesn't hurt
-        # having it here until we can make sure
-        logger.warning("bauble.db.create(): %s" % utils.utf8(e))
-        transaction.rollback()
-        raise
     except Exception as e:
-        logger.warning("bauble.db.create(): %s" % utils.utf8(e))
-        transaction.rollback()
+        logger.warning("Plugin installation failed: %s", e)
         raise
-    else:
-        transaction.commit()
-    finally:
-        connection.close()
 
 
 def verify_connection(engine, show_error_dialogs=False):
@@ -562,24 +535,31 @@ def verify_connection(engine, show_error_dialogs=False):
     session = sessionmaker(bind=engine, autoflush=False, query_cls=CustomQuery)()
 
     try:
-        query = session.query(meta.BaubleMeta) 
+        # Query to check the "created" timestamp
+        created_query = select(meta.BaubleMeta).where(meta.BaubleMeta.name == meta.CREATED_KEY)
 
         # check that the database we connected to has a "created" timestamp
         # in the bauble meta table.  we're not using the value though.
         # Perform necessary checks on the database schema/version
-        result = query.filter_by(name=meta.CREATED_KEY).first()
-        if not result:
+        created_result = session.execute(created_query).scalar_one_or_none()
+        if not created_result:
             raise error.TimestampError()
 
         # check that the database we connected to has a "version" in the bauble
         # meta table and the the major and minor version are the same
-        result = query.filter_by(name=meta.VERSION_KEY).first()
-        if not result:
+        # Query to check the "version" key
+        version_query = select(meta.BaubleMeta).where(meta.BaubleMeta.name == meta.VERSION_KEY)
+        version_result = session.execute(version_query).scalar_one_or_none()
+        if not version_result:
             raise error.VersionError(None)
         
-        major, minor, revision = result.value.split(".")
-        if major != bauble.version_tuple[0] or minor != bauble.version_tuple[1]:
-            raise error.VersionError(result.value)
+        # Parse the version and compare
+        try:
+            major, minor, revision = version_result.value.split(".")
+            if (int(major), int(minor)) != bauble.version_tuple[:2]:
+                raise error.VersionError(version_result.value)
+        except ValueError:
+            raise error.VersionError(version_result.value)
 
     finally:
         session.close()
@@ -603,6 +583,8 @@ def make_note_class(
     :param as_dict: Optional callable to define how the object is serialized.
     :param retrieve: Optional callable to define how to retrieve the object.
     """
+    from sqlalchemy import Integer
+    
     class_name = str(name + "Note")
     table_name = name.lower() + "_note"
 
@@ -636,15 +618,15 @@ def make_note_class(
         return result
 
     def retrieve_default(cls, session, keys):
-        q = session.query(cls)
+        q = session.execute(select(cls)).scalars()
         if name.lower() in keys:
-            q = q.join(globals()[name]).filter(
+            q = q.join(globals()[name]).where(
                 globals()[name].code == keys[name.lower()]
             )
         if "date" in keys:
-            q = q.filter(cls.date == keys["date"])
+            q = q.where(cls.date == keys["date"])
         if "category" in keys:
-            q = q.filter(cls.category == keys["category"])
+            q = q.where(cls.category == keys["category"])
         try:
             return q.one()
         except:
@@ -661,6 +643,7 @@ def make_note_class(
     bases = (Base,)
     fields = {
         "__tablename__": table_name,
+        "id": sa.Column(Integer, primary_key=True, autoincrement=True),
         "date": sa.Column(types.Date, default=sa.func.now()),
         "user": sa.Column(sa.Unicode(64), default=""),
         "category": sa.Column(sa.Unicode(32), default=""),

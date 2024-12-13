@@ -68,6 +68,7 @@ from bauble.utils import safe_set_text
 from bauble.view import SearchView
 from gi.repository import GObject
 from gi.repository import Gtk
+from sqlalchemy import select
 from sqlalchemy import text
 
 from .stored_queries import StoredQueryEditorTool
@@ -222,8 +223,8 @@ class SplashInfoBox(pluginmgr.View):
         safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), "")
 
         ssn = db.Session()
-        q = ssn.query(bauble.meta.BaubleMeta)
-        q = q.filter(bauble.meta.BaubleMeta.name.startswith("stqr"))
+        q = ssn.execute(select(bauble.meta.BaubleMeta)).scalars()
+        q = q.where(bauble.meta.BaubleMeta.name.startswith("stqr"))
         name_tooltip_query = {
             int(i.name[5:]): (i.value.split(":", 2)) for i in q.all()
         }
@@ -520,9 +521,9 @@ class PlantsPlugin(pluginmgr.Plugin):
 
         session = db.Session()
         default = "false"
-        q = session.query(bauble.meta.BaubleMeta).filter(
-            bauble.meta.BaubleMeta.name.startswith("stqr-")
-        )
+        q = session.execute(
+            select(bauble.meta.BaubleMeta).where(bauble.meta.BaubleMeta.name.startswith("stqr-"))
+        ).scalars()
         for i in q.all():
             default = i.name
             session.delete(i)
@@ -560,6 +561,7 @@ class PlantsPlugin(pluginmgr.Plugin):
             os.path.join(path, f)
             for f in (
                 "family.txt",
+                "family_note.txt",
                 "family_synonym.txt",
                 "genus.txt",
                 "genus_synonym.txt",

@@ -40,6 +40,8 @@ from bauble.view import MapInfoExpander
 from bauble.view import PropertiesExpander
 from gi.repository import Gtk
 from sqlalchemy import Column
+from sqlalchemy import Integer
+from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
@@ -84,7 +86,7 @@ def remove_callback(locations):
         return
     try:
         session = db.Session()
-        obj = session.query(Location).get(loc.id)
+        obj = session.execute(select(Location)).scalars().get(loc.id)
         session.delete(obj)
         session.commit()
     except Exception as e:
@@ -144,6 +146,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
 
     # columns
     # refers to beds by unique codes
+    id = Column(Integer, primary_key=True, autoincrement=True)
     code = Column(Unicode(12), unique=True, nullable=False)
     name = Column(Unicode(80))
     description = Column(UnicodeText)
@@ -182,7 +185,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.query(cls).filter(cls.code == keys["code"]).one()
+            return session.execute(select(cls)).scalars().where(cls.code == keys["code"]).one()
         except:
             return None
 
@@ -372,20 +375,20 @@ class LocationEditorPresenter(GenericEditorPresenter):
         from bauble.plugins.garden.plant import Plant, PlantChange
 
         for p in (
-            self.session.query(Plant)
-            .filter(Plant.location == self.merger_candidate)
+            self.session.execute(select(Plant)).scalars()
+            .where(Plant.location == self.merger_candidate)
             .all()
         ):
             p.location = self.model
         for p in (
-            self.session.query(PlantChange)
-            .filter(PlantChange.from_location == self.merger_candidate)
+            self.session.execute(select(PlantChange)).scalars()
+            .where(PlantChange.from_location == self.merger_candidate)
             .all()
         ):
             p.from_location = self.model
         for p in (
-            self.session.query(PlantChange)
-            .filter(PlantChange.to_location == self.merger_candidate)
+            self.session.execute(select(PlantChange)).scalars()
+            .where(PlantChange.to_location == self.merger_candidate)
             .all()
         ):
             p.to_location = self.model
@@ -576,7 +579,7 @@ class GeneralLocationExpander(InfoExpander):
             markup=True,
         )
         session = object_session(row)
-        nplants = session.query(Plant).filter_by(location_id=row.id).count()
+        nplants = session.execute(select(Plant)).scalars().where(location_id=row.id).count()
         self.widget_set_value("loc_nplants_data", nplants)
 
 

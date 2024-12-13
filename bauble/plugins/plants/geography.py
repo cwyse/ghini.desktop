@@ -68,9 +68,9 @@ def get_species_in_geographic_area(geo):
     from sqlalchemy import bindparam
 
     q = (
-        session.query(Species)
+        session.execute(select(Species)).scalars()
         .join(SpeciesDistribution)
-        .filter(
+        .where(
             SpeciesDistribution.geographic_area_id.in_(
                 bindparam("master_ids", expanding=True)
             )
@@ -201,6 +201,7 @@ class GeographicArea(db.Base):
     __tablename__ = "geographic_area"
 
     # columns
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(Unicode(255), nullable=False)
     tdwg_code = Column(String(6))
     iso_code = Column(String(7))

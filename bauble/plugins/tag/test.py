@@ -130,15 +130,15 @@ class TagTests(BaubleTestCase):
 
     def test_create_named_empty_tag(self):
         name = "name123"
-        r = self.session.query(Tag).filter_by(tag=name).all()
+        r = self.session.execute(select(Tag)).scalars().where(tag=name).all()
         self.assertEqual(len(r), 0)
         tag_plugin.create_named_empty_tag(name)
-        r = self.session.query(Tag).filter_by(tag=name).all()
+        r = self.session.execute(select(Tag)).scalars().where(tag=name).all()
         self.assertEqual(len(r), 1)
         t0 = r[0]
         self.assertEqual(t0.tag, name)
         tag_plugin.create_named_empty_tag(name)
-        t1 = self.session.query(Tag).filter_by(tag=name).one()
+        t1 = self.session.execute(select(Tag)).scalars().where(tag=name).one()
         self.assertEqual(t0, t1)
 
     def test_tag_nothing(self):
@@ -165,7 +165,7 @@ class TagTests(BaubleTestCase):
 
         # we do not offer gettin object by string
         # get object by tag
-        tag = self.session.query(Tag).filter_by(tag="test").one()
+        tag = self.session.execute(select(Tag)).scalars().where(tag="test").one()
         tagged_objs = tag.objects
         sorted_pairs = sorted([(type(o), o.id) for o in tagged_objs])
         self.assertEqual(
@@ -181,7 +181,7 @@ class TagTests(BaubleTestCase):
         tag_plugin.untag_objects("test", [self.family])
 
         # get object by tag
-        tag = self.session.query(Tag).filter_by(tag="test").one()
+        tag = self.session.execute(select(Tag)).scalars().where(tag="test").one()
         tagged_objs = tag.objects
         self.assertEqual(tagged_objs, [family2])
 
@@ -191,7 +191,7 @@ class TagTests(BaubleTestCase):
         tag_plugin.untag_objects("test", [self.family, family2])
 
         # get object by tag
-        tag = self.session.query(Tag).filter_by(tag="test").one()
+        tag = self.session.execute(select(Tag)).scalars().where(tag="test").one()
         tagged_objs = tag.objects
         self.assertEqual(tagged_objs, [])
 
@@ -271,7 +271,7 @@ class TagTests(BaubleTestCase):
             in self.invoked
         )
         self.assertEqual(result, None)
-        q = self.session.query(Tag).filter_by(tag="Arecaceae")
+        q = self.session.execute(select(Tag)).scalars().where(tag="Arecaceae")
         matching = q.all()
         self.assertEqual(matching, [f5])
 
@@ -307,7 +307,7 @@ class TagTests(BaubleTestCase):
             in self.invoked
         )
         self.assertEqual(result, True)
-        q = self.session.query(Tag).filter_by(tag="Arecaceae")
+        q = self.session.execute(select(Tag)).scalars().where(tag="Arecaceae")
         matching = q.all()
         self.assertEqual(matching, [])
 
@@ -328,8 +328,8 @@ class GetTagIdsTests(BaubleTestCase):
         self.session.commit()
 
     def tearDown(self):
-        self.session.query(Family).delete()
-        self.session.query(Tag).delete()
+        self.session.execute(select(Family)).scalars().delete()
+        self.session.execute(select(Tag)).scalars().delete()
         self.session.commit()
         super().tearDown()
 
@@ -367,7 +367,7 @@ class GetTagIdsTests(BaubleTestCase):
         self.assertEqual(s_some, {1, 2})
 
     def test_get_tag_ids7(self):
-        self.session.query(Tag).delete()
+        self.session.execute(select(Tag)).scalars().delete()
         self.session.commit()
         tag_plugin.tag_objects("test1", [self.fam1, self.fam4])
         tag_plugin.tag_objects("test2", [self.fam1])
@@ -513,18 +513,18 @@ class AttachedToTests(BaubleTestCase):
         self.session.commit()
 
     def test_attached_tags_empty(self):
-        fam = self.session.query(Family).one()
+        fam = self.session.execute(select(Family)).scalars().one()
         self.assertEqual(Tag.attached_to(fam), [])
 
     def test_attached_tags_singleton(self):
-        fam = self.session.query(Family).one()
-        obj2 = self.session.query(Tag).filter(Tag.tag == "maderable").one()
+        fam = self.session.execute(select(Family)).scalars().one()
+        obj2 = self.session.execute(select(Tag)).scalars().where(Tag.tag == "maderable").one()
         tag_plugin.tag_objects(obj2, [fam])
         self.assertEqual(Tag.attached_to(fam), [obj2])
 
     def test_attached_tags_many(self):
-        fam = self.session.query(Family).one()
-        tags = self.session.query(Tag).all()
+        fam = self.session.execute(select(Family)).scalars().one()
+        tags = self.session.execute(select(Tag)).scalars().all()
         for t in tags:
             tag_plugin.tag_objects(t, [fam])
         self.assertEqual(Tag.attached_to(fam), tags)

@@ -46,6 +46,7 @@ from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
+from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
@@ -89,7 +90,7 @@ def remove_callback(families):
     family = families[0]
     session = object_session(family)
     genus_instance = get_genus_class()
-    ngen = session.query(genus_instance).filter_by(family_id=family.id).count()
+    ngen = session.execute(select(genus_instance)).scalars().where(family_id=family.id).count()
     safe_str = utils.xml_safe(str(family))
     if ngen > 0:
         msg = _("The family <i>%(1)s</i> has %(2)s genera." "\n\n") % {
@@ -106,7 +107,7 @@ def remove_callback(families):
     if not utils.yes_no_dialog(msg):
         return
     try:
-        obj = session.query(Family).get(family.id)
+        obj = session.execute(select(Family)).scalars().get(family.id)
         session.delete(obj)
         session.commit()
     except Exception as e:
@@ -153,6 +154,52 @@ def compute_serializable_fields(cls, session, keys):
     return result
 
 
+class FamilySynonym(db.Base):
+    """
+    :Table name: family_synonyms
+
+    :Columns:
+        *family_id*:
+
+        *synonyms_id*:
+
+    :Properties:
+        *synonyms*:
+
+        *family*:
+    """
+
+    __tablename__ = "family_synonym"
+
+    # columns
+    id = Column(Integer, primary_key=True, nullable=False)
+    family_id = Column(Integer, ForeignKey("family.id"), nullable=False)
+    synonym_id = Column(
+        Integer, ForeignKey("family.id"), nullable=False, unique=True
+    )
+
+    # Relationships
+    synonym = relationship(
+        "Family",
+        primaryjoin="FamilySynonym.synonym_id==Family.id",
+    )
+    #                       back_populates='synonyms_relationship')  # Renamed for clarity
+
+    family = relationship(
+        "Family",
+        back_populates="_synonyms",
+        primaryjoin="FamilySynonym.family_id==Family.id",
+    )
+
+    def __init__(self, synonym=None, **kwargs):
+        # it is necessary that the first argument here be synonym for
+        # the Family.synonyms association_proxy to work
+        self.synonym = synonym
+        super().__init__(**kwargs)
+
+    def __str__(self):
+        return Family.str(self.synonym)
+    
 class Family(db.Base, db.Serializable, db.WithNotes):
     """
     :Table name: family
@@ -183,7 +230,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     __tablename__ = "family"
     __table_args__ = (UniqueConstraint("epithet"),)
 
-
+    id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
     rank = "familia"
     link_keys = ["accepted"]
 
@@ -265,8 +312,8 @@ class Family(db.Base, db.Serializable, db.WithNotes):
             logger.warning("family:accepted - object not in session")
             return None
         syn = (
-            session.query(FamilySynonym)
-            .filter(FamilySynonym.synonym_id == self.id)
+            session.execute(select(FamilySynonym)).scalars()
+            .where(FamilySynonym.synonym_id == self.id)
             .first()
         )
         accepted = syn and syn.family
@@ -283,7 +330,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         if not session:
             logger.warning("family:accepted.setter - object not in session")
             return
-        session.query(FamilySynonym).filter(
+        session.execute(select(FamilySynonym)).scalars().where(
             FamilySynonym.synonym_id == self.id
         ).delete()
         session.commit()
@@ -309,7 +356,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     def retrieve(cls, session, keys):
         try:
             return (
-                session.query(cls).filter(cls.epithet == keys["epithet"]).one()
+                session.execute(select(cls)).scalars().where(cls.epithet == keys["epithet"]).one()
             )
         except:
             return None
@@ -389,52 +436,6 @@ Family.notes = relationship(
     single_parent=True,
     uselist=True,
 )
-
-
-class FamilySynonym(db.Base):
-    """
-    :Table name: family_synonyms
-
-    :Columns:
-        *family_id*:
-
-        *synonyms_id*:
-
-    :Properties:
-        *synonyms*:
-
-        *family*:
-    """
-
-    __tablename__ = "family_synonym"
-
-    # columns
-    family_id = Column(Integer, ForeignKey("family.id"), nullable=False)
-    synonym_id = Column(
-        Integer, ForeignKey("family.id"), nullable=False, unique=True
-    )
-
-    # Relationships
-    synonym = relationship(
-        "Family",
-        primaryjoin="FamilySynonym.synonym_id==Family.id",
-    )
-    #                       back_populates='synonyms_relationship')  # Renamed for clarity
-
-    family = relationship(
-        "Family",
-        back_populates="_synonyms",
-        primaryjoin="FamilySynonym.family_id==Family.id",
-    )
-
-    def __init__(self, synonym=None, **kwargs):
-        # it is necessary that the first argument here be synonym for
-        # the Family.synonyms association_proxy to work
-        self.synonym = synonym
-        super().__init__(**kwargs)
-
-    def __str__(self):
-        return Family.str(self.synonym)
 
 # Use lazy import where Genus is needed
 def get_genus_class():
@@ -580,8 +581,8 @@ class FamilyEditorPresenter(editor.GenericEditorPresenter):
         # Check if the entered family name exists in the database
         family_name = widget.get_text().strip()
         family = (
-            self.session.query(Family)
-            .filter(Family.epithet == family_name)
+            self.session.execute(select(Family)).scalars()
+            .where(Family.epithet == family_name)
             .first()
         )
 
@@ -589,9 +590,9 @@ class FamilyEditorPresenter(editor.GenericEditorPresenter):
             # If family is found, update the model and refresh synonyms view
             if family:
                 family._synonyms = (
-                    self.session.query(FamilySynonym)
+                    self.session.execute(select(FamilySynonym)).scalars()
                     .join(Family, FamilySynonym.synonym_id == Family.id)
-                    .filter(FamilySynonym.family_id == family.id)
+                    .where(FamilySynonym.family_id == family.id)
                     .all()
                 )
                 # Set the model to the retrieved family
@@ -656,8 +657,8 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self.synonyms_to_add = []
 
         def fam_get_completions(text):
-            query = self.session.query(Family)
-            return query.filter(
+            query = self.session.execute(select(Family)).scalars()
+            return query.where(
                 and_(
                     Family.epithet.like("%s%%" % text),
                     Family.id != self.model.id,
@@ -1004,24 +1005,24 @@ class GeneralFamilyExpander(InfoExpander):
         )
         session = object_session(row)
         # get the number of genera
-        ngen = session.query(genus_instance).filter_by(family_id=row.id).count()
+        ngen = session.execute(select(genus_instance)).scalars().where(family_id=row.id).count()
         self.widget_set_value("fam_ngen_data", ngen)
 
         # get the number of species
         nsp = (
-            session.query(get_species())
+            session.execute(select(get_species()).scalars())
             .join(genus_instance, get_species().genus_id == genus_instance.id)
-            .filter(genus_instance.family_id == row.id)
+            .where(genus_instance.family_id == row.id)
             .count()
         )
         if nsp == 0:
             self.widget_set_value("fam_nsp_data", 0)
         else:
             ngen_in_sp = (
-                session.query(get_species().genus_id)
+                session.execute(select(get_species()).scalars().genus_id)
                 .join(genus_instance, get_species().genus_id == genus_instance.id)
                 .join(Family, genus_instance.family_id == Family.id)
-                .filter(Family.id == row.id)
+                .where(Family.id == row.id)
                 .distinct()
                 .count()
             )
@@ -1038,22 +1039,22 @@ class GeneralFamilyExpander(InfoExpander):
         from bauble.plugins.garden.plant import Plant
 
         nacc = (
-            session.query(Accession)
+            session.execute(select(Accession)).scalars()
             .join(get_species(), Accession.species_id == get_species().id)
             .join(genus_instance, get_species().genus_id == genus_instance.id)
             .join(Family, genus_instance.family_id == Family.id)
-            .filter(Family.id == row.id)
+            .where(Family.id == row.id)
             .count()
         )
         if nacc == 0:
             self.widget_set_value("fam_nacc_data", nacc)
         else:
             nsp_in_acc = (
-                session.query(Accession.species_id)
+                session.execute(select(Accession.species_id)).scalars()
                 .join(get_species(), Accession.species_id == get_species().id)
                 .join(genus_instance, get_species().genus_id == genus_instance.id)
                 .join(Family, genus_instance.family_id == Family.id)
-                .filter(Family.id == row.id)
+                .where(Family.id == row.id)
                 .distinct()
                 .count()
             )
@@ -1063,24 +1064,24 @@ class GeneralFamilyExpander(InfoExpander):
 
         # get the number of plants in the family
         nplants = (
-            session.query(Plant)
+            session.execute(select(Plant)).scalars()
             .join(Accession, Plant.accession_id == Accession.id)
             .join(get_species(), Accession.species_id == get_species().id)
             .join(genus_instance, get_species().genus_id == genus_instance.id)
             .join(Family, genus_instance.family_id == Family.id)
-            .filter(Family.id == row.id)
+            .where(Family.id == row.id)
             .count()
         )
         if nplants == 0:
             self.widget_set_value("fam_nplants_data", nplants)
         else:
             nacc_in_plants = (
-                session.query(Plant.accession_id)
+                session.execute(select(Plant.accession_id)).scalars()
                 .join(Accession, Plant.accession_id == Accession.id)
                 .join(get_species(), Accession.species_id == get_species().id)
                 .join(genus_instance, get_species().genus_id == genus_instance.id)
                 .join(Family, genus_instance.family_id == Family.id)
-                .filter(Family.id == row.id)
+                .where(Family.id == row.id)
                 .distinct()
                 .count()
             )

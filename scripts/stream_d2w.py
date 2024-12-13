@@ -77,7 +77,7 @@ def get_genus(session, keys):
     except:
         keys["gn_epit"], keys["sp_epit"] = ("Zzz", "sp")
 
-    genus = session.query(Genus).filter(Genus.epithet == keys["gn_epit"]).one()
+    genus = session.execute(select(Genus)).scalars().where(Genus.epithet == keys["gn_epit"]).one()
     return genus
 
 
@@ -91,9 +91,9 @@ def get_species(session, keys):
         try:
             genus = get_genus(session, keys)
             species = (
-                session.query(Species)
-                .filter(Species.genus == genus)
-                .filter(Species.infrasp1 == "sp")
+                session.execute(select(Species)).scalars()
+                .where(Species.genus == genus)
+                .where(Species.infrasp1 == "sp")
                 .one()
             )
             if species != zzz:  # no hace falta mencionarlo
@@ -106,9 +106,9 @@ def get_species(session, keys):
     else:
         try:
             species = (
-                session.query(Species)
-                .filter(Species.genus == genus)
-                .filter(Species.epithet == keys["sp_epit"])
+                session.execute(select(Species)).scalars()
+                .where(Species.genus == genus)
+                .where(Species.epithet == keys["sp_epit"])
                 .one()
             )
             sys.stdout.write("+")  # encontramos
@@ -123,8 +123,8 @@ def get_species(session, keys):
 def get_location(session, keys):
     try:
         loc = (
-            session.query(Location)
-            .filter(bauble.utils.ilike(Location.code, str(keys["location"])))
+            session.execute(select(Location)).scalars()
+            .where(bauble.utils.ilike(Location.code, str(keys["location"])))
             .one()
         )
     except:
@@ -166,7 +166,7 @@ if insti.tel:
 garden = d
 
 species = {}
-for i in session.query(Plant).all():
+for i in session.execute(select(Plant)).scalars().all():
     if i.accession.private:
         continue
     try:

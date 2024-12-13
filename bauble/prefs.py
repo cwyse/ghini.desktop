@@ -26,6 +26,7 @@ import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 from gi.repository import Gtk
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -296,7 +297,7 @@ class PrefsView(pluginmgr.View):
         from bauble.pluginmgr import PluginRegistry
 
         session = db.Session()
-        plugins = session.query(PluginRegistry.name, PluginRegistry.version)
+        plugins = session.execute(select(PluginRegistry.name, PluginRegistry.version)).scalars()
         for name, version in plugins:
             self.plugins_ls.append((name, version))
         session.close()

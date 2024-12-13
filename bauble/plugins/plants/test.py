@@ -387,7 +387,7 @@ class FamilyTests(PlantTestCase):
         # test that deleting a family deletes an orphaned genus
         self.session.delete(family)
         self.session.commit()
-        query = self.session.query(Genus).filter_by(family_id=family.id)
+        query = self.session.execute(select(Genus)).scalars().where(family_id=family.id)
         self.assertRaises(NoResultFound, query.one)
 
     def test_synonyms(self):
@@ -398,7 +398,7 @@ class FamilyTests(PlantTestCase):
         self.session.commit()
 
         # test that family2 was added as a synonym to family
-        family = self.session.query(Family).filter_by(family="family").one()
+        family = self.session.execute(select(Family)).scalars().where(family="family").one()
         self.assertTrue(family2 in family.synonyms)
 
         # test that the synonyms relation and family backref works
@@ -422,7 +422,7 @@ class FamilyTests(PlantTestCase):
         family.synonyms.clear()
         self.session.commit()
         self.assertTrue(len(family.synonyms) == 0)
-        self.assertTrue(self.session.query(FamilySynonym).count() == 0)
+        self.assertTrue(self.session.execute(select(FamilySynonym)).scalars().count() == 0)
 
         # test that deleting a family that is a synonym of another family
         # deletes all the dangling object s
@@ -430,11 +430,11 @@ class FamilyTests(PlantTestCase):
         self.session.commit()
         self.session.delete(family2)
         self.session.commit()
-        self.assertTrue(self.session.query(FamilySynonym).count() == 0)
+        self.assertTrue(self.session.execute(select(FamilySynonym)).scalars().count() == 0)
 
         # test that deleting the previous synonyms didn't delete the
         # family that it refered to
-        self.assertTrue(self.session.query(Family).get(family.id))
+        self.assertTrue(self.session.execute(select(Family)).scalars().get(family.id))
 
         # test that deleting a family that has synonyms deletes all
         # the synonyms that refer to that family deletes all the
@@ -444,7 +444,7 @@ class FamilyTests(PlantTestCase):
         self.session.commit()
         self.session.delete(family)
         self.session.commit()
-        self.assertTrue(self.session.query(FamilySynonym).count() == 0)
+        self.assertTrue(self.session.execute(select(FamilySynonym)).scalars().count() == 0)
 
     def test_constraints(self):
         values = [
@@ -519,7 +519,7 @@ class FamilyTests(PlantTestCase):
             in self.invoked
         )
         self.assertEqual(result, None)
-        q = self.session.query(Family).filter_by(family="Arecaceae")
+        q = self.session.execute(select(Family)).scalars().where(family="Arecaceae")
         matching = q.all()
         self.assertEqual(matching, [f5])
 
@@ -557,7 +557,7 @@ class FamilyTests(PlantTestCase):
         )
 
         self.assertEqual(result, True)
-        q = self.session.query(Family).filter_by(family="Arecaceae")
+        q = self.session.execute(select(Family)).scalars().where(family="Arecaceae")
         matching = q.all()
         self.assertEqual(matching, [])
 
@@ -596,10 +596,10 @@ class FamilyTests(PlantTestCase):
             )
             in self.invoked
         )
-        q = self.session.query(Family).filter_by(family="Arecaceae")
+        q = self.session.execute(select(Family)).scalars().where(family="Arecaceae")
         matching = q.all()
         self.assertEqual(matching, [f5])
-        q = self.session.query(Genus).filter_by(genus="Areca")
+        q = self.session.execute(select(Genus)).scalars().where(genus="Areca")
         matching = q.all()
         self.assertEqual(matching, [gf5])
 
@@ -615,7 +615,7 @@ class GenusTests(PlantTestCase):
         self.session.commit()
 
         # test that genus2 was added as a synonym to genus
-        genus = self.session.query(Genus).filter_by(genus="genus").one()
+        genus = self.session.execute(select(Genus)).scalars().where(genus="genus").one()
         self.assertTrue(genus2 in genus.synonyms)
 
         # test that the synonyms relation and genus backref works
@@ -639,7 +639,7 @@ class GenusTests(PlantTestCase):
         genus.synonyms.clear()
         self.session.commit()
         self.assertTrue(len(genus.synonyms) == 0)
-        self.assertTrue(self.session.query(GenusSynonym).count() == 0)
+        self.assertTrue(self.session.execute(select(GenusSynonym)).scalars().count() == 0)
 
         # test that deleting a genus that is a synonym of another genus
         # deletes all the dangling objects
@@ -647,11 +647,11 @@ class GenusTests(PlantTestCase):
         self.session.commit()
         self.session.delete(genus2)
         self.session.commit()
-        self.assertTrue(self.session.query(GenusSynonym).count() == 0)
+        self.assertTrue(self.session.execute(select(GenusSynonym)).scalars().count() == 0)
 
         # test that deleting the previous synonyms didn't delete the
         # genus that it refered to
-        self.assertTrue(self.session.query(Genus).get(genus.id))
+        self.assertTrue(self.session.execute(select(Genus)).scalars().get(genus.id))
 
         # test that deleting a genus that has synonyms deletes all
         # the synonyms that refer to that genus
@@ -661,7 +661,7 @@ class GenusTests(PlantTestCase):
         self.session.commit()
         self.session.delete(genus)
         self.session.commit()
-        self.assertTrue(self.session.query(GenusSynonym).count() == 0)
+        self.assertTrue(self.session.execute(select(GenusSynonym)).scalars().count() == 0)
 
     def test_contraints(self):
         """
@@ -723,8 +723,8 @@ class GenusTests(PlantTestCase):
         genus = Genus(family=family, epithet="genus")
         self.session.add_all([family, genus])
         self.session.commit()
-        g1 = self.session.query(Genus).filter(Genus.epithet == "genus").one()
-        g2 = self.session.query(Genus).filter(Genus.genus == "genus").one()
+        g1 = self.session.execute(select(Genus)).scalars().where(Genus.epithet == "genus").one()
+        g2 = self.session.execute(select(Genus)).scalars().where(Genus.genus == "genus").one()
         self.assertEqual(g1, g2)
         self.assertEqual(g1.genus, "genus")
         self.assertEqual(g2.epithet, "genus")
@@ -762,7 +762,7 @@ class GenusTests(PlantTestCase):
             in self.invoked
         )
         self.assertEqual(result, None)
-        q = self.session.query(Genus).filter_by(genus="Carica")
+        q = self.session.execute(select(Genus)).scalars().where(genus="Carica")
         matching = q.all()
         self.assertEqual(matching, [f5])
 
@@ -800,7 +800,7 @@ class GenusTests(PlantTestCase):
         )
 
         self.assertEqual(result, True)
-        q = self.session.query(Genus).filter_by(genus="Carica")
+        q = self.session.execute(select(Genus)).scalars().where(genus="Carica")
         matching = q.all()
         self.assertEqual(matching, [])
 
@@ -840,10 +840,10 @@ class GenusTests(PlantTestCase):
             )
             in self.invoked
         )
-        q = self.session.query(Genus).filter_by(genus="Carica")
+        q = self.session.execute(select(Genus)).scalars().where(genus="Carica")
         matching = q.all()
         self.assertEqual(matching, [f5])
-        q = self.session.query(Species).filter_by(sp="papaya")
+        q = self.session.execute(select(Species)).scalars().where(sp="papaya")
         matching = q.all()
         self.assertEqual(matching, [gf5])
 
@@ -853,8 +853,8 @@ class GenusSynonymyTests(PlantTestCase):
     def setUp(self):
         super().setUp()
         f = (
-            self.session.query(Family)
-            .filter(Family.family == "Orchidaceae")
+            self.session.execute(select(Family)).scalars()
+            .where(Family.family == "Orchidaceae")
             .one()
         )
         bu = Genus(family=f, genus="Bulbophyllum")  # accepted
@@ -866,13 +866,13 @@ class GenusSynonymyTests(PlantTestCase):
     def test_forward_synonyms(self):
         "a taxon has a list of synonyms"
         bu = (
-            self.session.query(Genus)
-            .filter(Genus.genus == "Bulbophyllum")
+            self.session.execute(select(Genus)).scalars()
+            .where(Genus.genus == "Bulbophyllum")
             .one()
         )
         zy = (
-            self.session.query(Genus)
-            .filter(Genus.genus == "Zygoglossum")
+            self.session.execute(select(Genus)).scalars()
+            .where(Genus.genus == "Zygoglossum")
             .one()
         )
         self.assertEqual(bu.synonyms, [zy])
@@ -881,13 +881,13 @@ class GenusSynonymyTests(PlantTestCase):
     def test_backward_synonyms(self):
         "synonymy is used to get the accepted taxon"
         bu = (
-            self.session.query(Genus)
-            .filter(Genus.genus == "Bulbophyllum")
+            self.session.execute(select(Genus)).scalars()
+            .where(Genus.genus == "Bulbophyllum")
             .one()
         )
         zy = (
-            self.session.query(Genus)
-            .filter(Genus.genus == "Zygoglossum")
+            self.session.execute(select(Genus)).scalars()
+            .where(Genus.genus == "Zygoglossum")
             .one()
         )
         self.assertEqual(zy.accepted, bu)
@@ -895,13 +895,13 @@ class GenusSynonymyTests(PlantTestCase):
 
     def test_synonymy_included_in_as_dict(self):
         bu = (
-            self.session.query(Genus)
-            .filter(Genus.genus == "Bulbophyllum")
+            self.session.execute(select(Genus)).scalars()
+            .where(Genus.genus == "Bulbophyllum")
             .one()
         )
         zy = (
-            self.session.query(Genus)
-            .filter(Genus.genus == "Zygoglossum")
+            self.session.execute(select(Genus)).scalars()
+            .where(Genus.genus == "Zygoglossum")
             .one()
         )
         self.assertTrue("accepted" not in bu.as_dict())
@@ -911,13 +911,13 @@ class GenusSynonymyTests(PlantTestCase):
     def test_define_accepted(self):
         # notice that same test should be also in Species and Family
         bu = (
-            self.session.query(Genus)
-            .filter(Genus.epithet == "Bulbophyllum")
+            self.session.execute(select(Genus)).scalars()
+            .where(Genus.epithet == "Bulbophyllum")
             .one()
         )
         f = (
-            self.session.query(Family)
-            .filter(Family.epithet == "Orchidaceae")
+            self.session.execute(select(Family)).scalars()
+            .where(Family.epithet == "Orchidaceae")
             .one()
         )
         he = Genus(family=f, epithet="Henosis")  # one more synonym
@@ -995,10 +995,10 @@ class SpeciesTests(PlantTestCase):
         """
 
         def get_sp_str(id, **kwargs):
-            return self.session.query(Species).get(id).str(**kwargs)
+            return self.session.execute(select(Species)).scalars().get(id).str(**kwargs)
 
         for sid, expect in list(species_str_map.items()):
-            sp = self.session.query(Species).get(sid)
+            sp = self.session.execute(select(Species)).scalars().get(sid)
             print(
                 "»{}« »{}« »{}« »{}« ".format(
                     sp.genus.epithet, sp.epithet, sp.genus, sp
@@ -1023,7 +1023,7 @@ class SpeciesTests(PlantTestCase):
 
     def test_lexicographic_order__unspecified_precedes_specified(self):
         def get_sp_str(id, **kwargs):
-            return self.session.query(Species).get(id).str(**kwargs)
+            return self.session.execute(select(Species)).scalars().get(id).str(**kwargs)
 
         self.assertTrue(get_sp_str(1) > get_sp_str(22))
         self.assertTrue(get_sp_str(1) > get_sp_str(23))
@@ -1047,7 +1047,7 @@ class SpeciesTests(PlantTestCase):
     #     sp.sp = u'sp2'
     #     self.session.commit()
     #     self.session.refresh(sp)
-    #     sp = self.session.query(Species).get(sp.id)
+    #     sp = self.session.execute(select(Species)).scalars().get(sp.id)
     #     self.assert_(Species.str(sp) != str1)
 
     def test_vernacular_name(self):
@@ -1069,7 +1069,7 @@ class SpeciesTests(PlantTestCase):
         # test that removing a name removes deleted orphaned objects
         sp.vernacular_names.remove(vn)
         self.session.commit()
-        q = self.session.query(VernacularName).filter_by(species_id=sp.id)
+        q = self.session.execute(select(VernacularName)).scalars().where(species_id=sp.id)
         self.assertRaises(NoResultFound, q.one)
 
     def test_default_vernacular_name(self):
@@ -1112,9 +1112,9 @@ class SpeciesTests(PlantTestCase):
         sp.vernacular_names.remove(default)
         self.session.commit()
         self.assertEqual(sp.default_vernacular_name, None)
-        q = self.session.query(DefaultVernacularName)
-        self.assertRaises(NoResultFound, q.filter_by(species_id=sp.id).one)
-        self.assertRaises(NoResultFound, q.filter_by(id=dvid).one)
+        q = self.session.execute(select(DefaultVernacularName)).scalars()
+        self.assertRaises(NoResultFound, q.where(species_id=sp.id).one)
+        self.assertRaises(NoResultFound, q.where(id=dvid).one)
 
         # test that setting default_vernacular_name to None
         # removes the name properly and deletes any orphaned objects
@@ -1124,9 +1124,9 @@ class SpeciesTests(PlantTestCase):
         dvid = sp._default_vernacular_name.id
         sp.default_vernacular_name = None
         self.session.commit()
-        q = self.session.query(DefaultVernacularName)
-        self.assertRaises(NoResultFound, q.filter_by(species_id=sp.id).one)
-        self.assertRaises(NoResultFound, q.filter_by(id=dvid).one)
+        q = self.session.execute(select(DefaultVernacularName)).scalars()
+        self.assertRaises(NoResultFound, q.where(species_id=sp.id).one)
+        self.assertRaises(NoResultFound, q.where(id=dvid).one)
 
         # test that calling __del__ on a default vernacular name removes it
         sp.default_vernacular_name = vn
@@ -1135,9 +1135,9 @@ class SpeciesTests(PlantTestCase):
         del sp.default_vernacular_name
         self.session.commit()
         self.assertEqual(sp.default_vernacular_name, None)
-        q = self.session.query(DefaultVernacularName)
-        self.assertRaises(NoResultFound, q.filter_by(species_id=sp.id).one)
-        self.assertRaises(NoResultFound, q.filter_by(id=dvid).one)
+        q = self.session.execute(select(DefaultVernacularName)).scalars()
+        self.assertRaises(NoResultFound, q.where(species_id=sp.id).one)
+        self.assertRaises(NoResultFound, q.where(id=dvid).one)
 
         # test for regression in bug Launchpad #123286
         vn1 = VernacularName(name="vn1")
@@ -1152,7 +1152,7 @@ class SpeciesTests(PlantTestCase):
         """
 
         def load_sp(id):
-            return self.session.query(Species).get(id)
+            return self.session.execute(select(Species)).scalars().get(id)
 
         def syn_str(id1, id2, isit="not"):
             sp1 = load_sp(id1)
@@ -1307,7 +1307,7 @@ class SpeciesTests(PlantTestCase):
             in self.invoked
         )
         self.assertEqual(result, None)
-        q = self.session.query(Species).filter_by(genus=f5, sp="papaya")
+        q = self.session.execute(select(Species)).scalars().where(genus=f5, sp="papaya")
         matching = q.all()
         self.assertEqual(matching, [sp])
 
@@ -1346,7 +1346,7 @@ class SpeciesTests(PlantTestCase):
         )
 
         self.assertEqual(result, True)
-        q = self.session.query(Species).filter_by(sp="Carica")
+        q = self.session.execute(select(Species)).scalars().where(sp="Carica")
         matching = q.all()
         self.assertEqual(matching, [])
 
@@ -1389,10 +1389,10 @@ class SpeciesTests(PlantTestCase):
             )
             in self.invoked
         )
-        q = self.session.query(Species).filter_by(genus=f5, sp="papaya")
+        q = self.session.execute(select(Species)).scalars().where(genus=f5, sp="papaya")
         matching = q.all()
         self.assertEqual(matching, [sp])
-        q = self.session.query(Accession).filter_by(species=sp)
+        q = self.session.execute(select(Accession)).scalars().where(species=sp)
         matching = q.all()
         self.assertEqual(matching, [acc])
 
@@ -1449,15 +1449,15 @@ class GeographicAreaTests(PlantTestCase):
 
         self.session.commit()
 
-        oaxaca = self.session.query(GeographicArea).get(oaxaca_id)
+        oaxaca = self.session.execute(select(GeographicArea)).scalars().get(oaxaca_id)
         species = get_species_in_geographic_area(oaxaca)
         self.assertTrue([s.id for s in species] == [sp2.id])
 
-        mexico = self.session.query(GeographicArea).get(mexico_id)
+        mexico = self.session.execute(select(GeographicArea)).scalars().get(mexico_id)
         species = get_species_in_geographic_area(mexico)
         self.assertTrue([s.id for s in species] == [sp1.id, sp2.id])
 
-        north_america = self.session.query(GeographicArea).get(
+        north_america = self.session.execute(select(GeographicArea)).scalars().get(
             northern_america_id
         )
         species = get_species_in_geographic_area(north_america)
@@ -1482,7 +1482,7 @@ class FromAndToDictTest(PlantTestCase):
     """tests the retrieve_or_create and the as_dict methods"""
 
     def test_can_grab_existing_families(self):
-        all_families = self.session.query(Family).all()
+        all_families = self.session.execute(select(Family)).scalars().all()
         orc = Family.retrieve_or_create(
             self.session, {"rank": "family", "epithet": "Orchidaceae"}
         )
@@ -1507,7 +1507,7 @@ class FromAndToDictTest(PlantTestCase):
         self.assertTrue(orc1 is orc2)
 
     def test_can_create_family(self):
-        all_families = self.session.query(Family).all()
+        all_families = self.session.execute(select(Family)).scalars().all()
         fab = Family.retrieve_or_create(
             self.session, {"rank": "family", "epithet": "Fabaceae"}
         )
@@ -1515,7 +1515,7 @@ class FromAndToDictTest(PlantTestCase):
         self.assertTrue(fab in self.session)
         self.assertFalse(fab in all_families)
         # according to the session, it is in the database
-        ses_families = self.session.query(Family).all()
+        ses_families = self.session.execute(select(Family)).scalars().all()
         self.assertTrue(fab in ses_families)
 
     def test_where_can_object_be_found_before_commit(self):  # disabled
@@ -1525,7 +1525,7 @@ class FromAndToDictTest(PlantTestCase):
         )
         # created in a session, it's not in other sessions
         other_session = db.Session()
-        db_families = other_session.query(Family).all()
+        db_families = other_session.execute(select(Family)).scalars().all()
         fab = Family.retrieve_or_create(
             other_session, {"rank": "family", "epithet": "Fabaceae"}
         )
@@ -1538,7 +1538,7 @@ class FromAndToDictTest(PlantTestCase):
         # after commit it's in database.
         self.session.commit()
         other_session = db.Session()
-        all_families = other_session.query(Family).all()
+        all_families = other_session.execute(select(Family)).scalars().all()
         fab = Family.retrieve_or_create(
             other_session, {"rank": "family", "epithet": "Fabaceae"}
         )
@@ -1558,7 +1558,7 @@ class FromAndToDictTest(PlantTestCase):
             self.session, {"rank": "family", "epithet": "Orchidaceae"}
         )
         all_genera_orc = (
-            self.session.query(Genus).filter(Genus.family == orc).all()
+            self.session.execute(select(Genus)).scalars().where(Genus.family == orc).all()
         )
         mxl = Genus.retrieve_or_create(
             self.session,
@@ -1712,10 +1712,10 @@ class FromAndToDict_create_update_test(PlantTestCase):
         self.assertEqual(obj.author, "Schltr.")
 
     def test_vernacular_name_as_dict(self):
-        bra = self.session.query(Species).filter(Species.id == 21).first()
+        bra = self.session.execute(select(Species)).scalars().where(Species.id == 21).first()
         vn_bra = (
-            self.session.query(VernacularName)
-            .filter(
+            self.session.execute(select(VernacularName)).scalars()
+            .where(
                 VernacularName.language == "agr", VernacularName.species == bra
             )
             .all()
@@ -1730,8 +1730,8 @@ class FromAndToDict_create_update_test(PlantTestCase):
             },
         )
         vn_bra = (
-            self.session.query(VernacularName)
-            .filter(
+            self.session.execute(select(VernacularName)).scalars()
+            .where(
                 VernacularName.language == "es", VernacularName.species == bra
             )
             .all()
@@ -2447,7 +2447,7 @@ class GlobalFunctionsTest(PlantTestCase):
         self.assertEqual(second, "Orchidaceae")
 
     def test_vername_markup_func(self):
-        vName = self.session.query(VernacularName).filter_by(id=1).one()
+        vName = self.session.execute(select(VernacularName)).scalars().where(id=1).one()
         first, second = vName.search_view_markup_pair()
         self.assertEqual(
             remove_zws(second), "<i>Maxillaria</i> <i>variabilis</i>"
@@ -2455,11 +2455,11 @@ class GlobalFunctionsTest(PlantTestCase):
         self.assertEqual(first, "SomeName")
 
     def test_species_get_kids(self):
-        mVa = self.session.query(Species).filter_by(id=1).one()
+        mVa = self.session.execute(select(Species)).scalars().where(id=1).one()
         self.assertEqual(partial(db.natsort, "accessions")(mVa), [])
 
     def test_vernname_get_kids(self):
-        vName = self.session.query(VernacularName).filter_by(id=1).one()
+        vName = self.session.execute(select(VernacularName)).scalars().where(id=1).one()
         self.assertEqual(partial(db.natsort, "species.accessions")(vName), [])
 
 

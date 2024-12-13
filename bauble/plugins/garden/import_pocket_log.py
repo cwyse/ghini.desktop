@@ -47,7 +47,7 @@ def get_genus(session, keys):
     except:
         keys["gn_epit"], keys["sp_epit"] = ("Zzz", "sp")
 
-    genus = session.query(Genus).filter(Genus.epithet == keys["gn_epit"]).one()
+    genus = session.execute(select(Genus)).scalars().where(Genus.epithet == keys["gn_epit"]).one()
     return genus
 
 
@@ -62,9 +62,9 @@ def get_species(session, keys, genus):
     if keys["sp_epit"] == "":
         try:
             species = (
-                session.query(Species)
-                .filter(Species.genus == genus)
-                .filter(Species.infrasp1 == "sp")
+                session.execute(select(Species)).scalars()
+                .where(Species.genus == genus)
+                .where(Species.infrasp1 == "sp")
                 .first()
             )
             if species != zzz:  # no hace falta mencionarlo
@@ -77,10 +77,10 @@ def get_species(session, keys, genus):
     else:
         try:
             species = (
-                session.query(Species)
-                .filter(Species.genus == genus)
-                .filter(Species.infrasp1 == "")
-                .filter(Species.epithet == keys["sp_epit"])
+                session.execute(select(Species)).scalars()
+                .where(Species.genus == genus)
+                .where(Species.infrasp1 == "")
+                .where(Species.epithet == keys["sp_epit"])
                 .one()
             )
             sys.stdout.write("+")  # encontramos Species
@@ -93,7 +93,7 @@ def get_species(session, keys, genus):
 
 
 def lookup(session, klass, **kwargs):
-    obj = session.query(klass).filter_by(**kwargs).first()
+    obj = session.execute(select(klass)).scalars().where(**kwargs).first()
     if obj is None:
         obj = klass(**kwargs)
         session.add(obj)
@@ -123,10 +123,10 @@ def process_inventory_line(session, baseline, timestamp, parameters):
 
     # if plant is in place, edit it, otherwise, create it.
     plant = (
-        session.query(Plant)
-        .filter_by(code=plant_code)
+        session.execute(select(Plant)).scalars()
+        .where(code=plant_code)
         .join(Accession)
-        .filter_by(code=accession_code)
+        .where(code=accession_code)
         .first()
     )
     if plant is not None:
@@ -136,7 +136,7 @@ def process_inventory_line(session, baseline, timestamp, parameters):
     else:
         # if not even accession is in place, let's create a default one
         accession = (
-            session.query(Accession).filter_by(code=accession_code).first()
+            session.execute(select(Accession)).scalars().where(code=accession_code).first()
         )
         if accession is None:
             fictive_family = lookup(session, Family, epithet="Zz-Plantae")
@@ -213,13 +213,13 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
 
     # does this plant already exist?
     plant = (
-        session.query(Plant)
-        .filter_by(code=plant_code)
+        session.execute(select(Plant)).scalars()
+        .where(code=plant_code)
         .join(Accession)
-        .filter_by(code=accession_code)
+        .where(code=accession_code)
         .first()
     )
-    accession = session.query(Accession).filter_by(code=accession_code).first()
+    accession = session.execute(select(Accession)).scalars().where(code=accession_code).first()
     if plant is None:
         # if it does not, we have work to do …
         location = lookup(session, Location, code="default")
@@ -258,7 +258,7 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
 
     if coordinates != "(@;@)":
         # remove any previous such note
-        session.query(PlantNote).filter_by(
+        session.execute(select(PlantNote)).scalars().where(
             plant=plant, category="<coords>"
         ).delete()
         # add new one
@@ -300,10 +300,10 @@ def process_line(session, line, baseline):
 
 if False:
     q = (
-        session.query(Species)
-        .filter(Species.infrasp1 == "sp")
+        session.execute(select(Species)).scalars()
+        .where(Species.infrasp1 == "sp")
         .join(Genus, Species.genus_id == Genus.id)
-        .filter(Genus.epithet == "Zzz")
+        .where(Genus.epithet == "Zzz")
     )
     zzz = q.one()
 
@@ -333,10 +333,10 @@ if False:
 
         try:
             q = (
-                session.query(Plant)
+                session.execute(select(Plant)).scalars()
                 .join(Accession, Plant.accession_id == Accession.id)
-                .filter(Accession.code == obj["acc_code"])
-                .filter(Plant.code == "1")
+                .where(Accession.code == obj["acc_code"])
+                .where(Plant.code == "1")
             )
             plant = q.one()
             if plant.location != loc:
@@ -347,8 +347,8 @@ if False:
         except Exception:
             try:
                 accession = (
-                    session.query(Accession)
-                    .filter(Accession.code == obj["acc_code"])
+                    session.execute(select(Accession)).scalars()
+                    .where(Accession.code == obj["acc_code"])
                     .one()
                 )
             except Exception:
@@ -362,10 +362,10 @@ if False:
             session.flush()
             sys.stdout.write("p")  # we added a new plant
         # operación perro - mark the plant as seen today
-        q = session.query(PlantNote)
-        q = q.filter(PlantNote.plant == plant)
-        q = q.filter(PlantNote.category == "inventario")
-        q = q.filter(PlantNote.note == obj["timestamp"][:8])
+        q = session.execute(select(PlantNote)).scalars()
+        q = q.where(PlantNote.plant == plant)
+        q = q.where(PlantNote.category == "inventario")
+        q = q.where(PlantNote.note == obj["timestamp"][:8])
         if q.count() == 0:
             note = PlantNote(
                 plant=plant, category="inventario", note=obj["timestamp"][:8]

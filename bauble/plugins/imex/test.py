@@ -204,13 +204,13 @@ class CSVTests(ImexTestCase):
         importer = TestImporter()
         importer.start([filename], force=True)
 
-        t = self.session.query(BoolTest).get(1)
+        t = self.session.execute(select(BoolTest)).scalars().get(1)
         self.assertTrue(t.col1 is True)
 
-        t = self.session.query(BoolTest).get(2)
+        t = self.session.execute(select(BoolTest)).scalars().get(2)
         self.assertTrue(t.col1 is False)
 
-        t = self.session.query(BoolTest).get(3)
+        t = self.session.execute(select(BoolTest)).scalars().get(3)
         self.assertTrue(t.col1 is False)
         table.drop(bind=db.engine)
 
@@ -219,7 +219,7 @@ class CSVTests(ImexTestCase):
         Test that the import doesn't stall if we have a connection
         open to Family while importing to the family table
         """
-        list(self.session.query(Family))
+        list(self.session.execute(select(Family)).scalars())
         filename = os.path.join(self.path, "family.txt")
         f = open(filename, "w")
         format = {
@@ -235,7 +235,7 @@ class CSVTests(ImexTestCase):
         f.close()
         importer = TestImporter()
         importer.start([filename], force=True)
-        list(self.session.query(Family))
+        list(self.session.execute(select(Family)).scalars())
 
     def test_import_use_defaultxxx(self):
         """
@@ -244,7 +244,7 @@ class CSVTests(ImexTestCase):
         value is executed.
         """
         self.session = db.Session()
-        family = self.session.query(Family).filter_by(id=1).one()
+        family = self.session.execute(select(Family)).scalars().where(id=1).one()
         self.assertTrue(family.qualifier == "")
 
     def test_import_use_default(self):
@@ -253,13 +253,13 @@ class CSVTests(ImexTestCase):
         column and that column has a default value then that default
         value is executed.
         """
-        q = self.session.query(Family)
+        q = self.session.execute(select(Family)).scalars()
         ids = [r.id for r in q]
         self.assertEqual(ids, [1, 2])
         del q
         self.session.expunge_all()
         self.session = db.Session()
-        family = self.session.query(Family).filter_by(id=1).one()
+        family = self.session.execute(select(Family)).scalars().where(id=1).one()
         self.assertTrue(family.qualifier == "")
 
     def test_import_no_default(self):
@@ -268,7 +268,7 @@ class CSVTests(ImexTestCase):
         column and that column does not have a default value then that
         value is set to None
         """
-        species = self.session.query(Species).filter_by(id=1).one()
+        species = self.session.execute(select(Species)).scalars().where(id=1).one()
         self.assertTrue(species.cv_group is None)
 
     def test_import_empty_is_none(self):
@@ -277,7 +277,7 @@ class CSVTests(ImexTestCase):
         but that column is empty and doesn't have a default values
         then the column is set to None
         """
-        species = self.session.query(Species).filter_by(id=1).one()
+        species = self.session.execute(select(Species)).scalars().where(id=1).one()
         self.assertTrue(species.cv_group is None)
 
     def test_import_empty_uses_default(self):
@@ -286,7 +286,7 @@ class CSVTests(ImexTestCase):
         but that column is empty and has a default then the default is
         executed.
         """
-        family = self.session.query(Family).filter_by(id=2).one()
+        family = self.session.execute(select(Family)).scalars().where(id=2).one()
         self.assertTrue(family.qualifier == "")
 
     def test_sequences(self):
@@ -324,14 +324,14 @@ class CSVTests(ImexTestCase):
         """
         Test importing a unicode string.
         """
-        genus = self.session.query(Genus).filter_by(id=1).one()
+        genus = self.session.execute(select(Genus)).scalars().where(id=1).one()
         self.assertTrue(genus.author == genus_data[0]["author"])
 
     def test_import_no_inherit(self):
         """
         Test importing a row with None doesn't inherit from previous row.
         """
-        query = self.session.query(Genus)
+        query = self.session.execute(select(Genus)).scalars()
         self.assertTrue(
             query[1].author != query[0].author,
             (query[1].author, query[0].author),
@@ -448,7 +448,7 @@ class CSVTests2(ImexTestCase):
         # with an accent
         data = {"name": "Gal\xe1pagos"}
         geographic_area_table.insert().execute(data)
-        query = self.session.query(GeographicArea)
+        query = self.session.execute(select(GeographicArea)).scalars()
         row_name = [r.name for r in query.all() if r.name.startswith("Gal")][0]
         self.assertEqual(row_name, data["name"])
 
@@ -652,8 +652,8 @@ class JSONExportTests(BaubleTestCase):
         "exporting one family: export full taxonomic information below family"
 
         selection = (
-            self.session.query(Family)
-            .filter(Family.epithet == "Orchidaceae")
+            self.session.execute(select(Family)).scalars()
+            .where(Family.epithet == "Orchidaceae")
             .all()
         )
         exporter = JSONExporter(MockView())
@@ -671,8 +671,8 @@ class JSONExportTests(BaubleTestCase):
         "exporting one genus: all species below genus"
 
         selection = (
-            self.session.query(Genus)
-            .filter(Genus.epithet == "Calopogon")
+            self.session.execute(select(Genus)).scalars()
+            .where(Genus.epithet == "Calopogon")
             .all()
         )
         exporter = JSONExporter(MockView())
@@ -693,10 +693,10 @@ class JSONExportTests(BaubleTestCase):
         "exporting one species: all species below species"
 
         selection = (
-            self.session.query(Species)
-            .filter(Species.epithet == "tuberosus")
+            self.session.execute(select(Species)).scalars()
+            .where(Species.epithet == "tuberosus")
             .join(Genus)
-            .filter(Genus.epithet == "Calopogon")
+            .where(Genus.epithet == "Calopogon")
             .all()
         )
         exporter = JSONExporter(MockView())
@@ -715,10 +715,10 @@ class JSONExportTests(BaubleTestCase):
 
     def test_export_single_species_with_notes(self):
         selection = (
-            self.session.query(Species)
-            .filter(Species.epithet == "tuberosus")
+            self.session.execute(select(Species)).scalars()
+            .where(Species.epithet == "tuberosus")
             .join(Genus)
-            .filter(Genus.epithet == "Calopogon")
+            .where(Genus.epithet == "Calopogon")
             .all()
         )
         note = SpeciesNote(category="<coords>", note="{1: 1, 2: 2}")
@@ -759,10 +759,10 @@ class JSONExportTests(BaubleTestCase):
 
     def test_export_single_species_with_vernacular_name(self):
         selection = (
-            self.session.query(Species)
-            .filter(Species.sp == "tuberosus")
+            self.session.execute(select(Species)).scalars()
+            .where(Species.sp == "tuberosus")
             .join(Genus)
-            .filter(Genus.epithet == "Calopogon")
+            .where(Genus.epithet == "Calopogon")
             .all()
         )
         vn = VernacularName(language="it", name="orchidea")
@@ -802,8 +802,8 @@ class JSONExportTests(BaubleTestCase):
         "exporting one genus which is not an accepted name."
 
         f = (
-            self.session.query(Family)
-            .filter(Family.epithet == "Orchidaceae")
+            self.session.execute(select(Family)).scalars()
+            .where(Family.epithet == "Orchidaceae")
             .one()
         )
         bu = Genus(family=f, epithet="Bulbophyllum")  # accepted
@@ -813,8 +813,8 @@ class JSONExportTests(BaubleTestCase):
         self.session.commit()
 
         selection = (
-            self.session.query(Genus)
-            .filter(Genus.epithet == "Zygoglossum")
+            self.session.execute(select(Genus)).scalars()
+            .where(Genus.epithet == "Zygoglossum")
             .all()
         )
         exporter = JSONExporter(MockView())
@@ -930,7 +930,7 @@ class JSONExportTests(BaubleTestCase):
 
         # precondition
         # Create an Accession a, then create a Source s, then assign a.source = s
-        a = self.session.query(Accession).first()
+        a = self.session.execute(select(Accession)).scalars().first()
         a.source = s = Source()
         s.source_detail = c = Contact(name="Summit")
         self.session.add_all([s, c])
@@ -999,8 +999,8 @@ class JSONImportTests(BaubleTestCase):
             f.write(json_string)
         self.assertEqual(
             len(
-                self.session.query(Genus)
-                .filter(Genus.epithet == "Neogyna")
+                self.session.execute(select(Genus)).scalars()
+                .where(Genus.epithet == "Neogyna")
                 .all()
             ),
             0,
@@ -1010,8 +1010,8 @@ class JSONImportTests(BaubleTestCase):
         importer.on_btnok_clicked(None)
         self.assertEqual(
             len(
-                self.session.query(Genus)
-                .filter(Genus.epithet == "Neogyna")
+                self.session.execute(select(Genus)).scalars()
+                .where(Genus.epithet == "Neogyna")
                 .all()
             ),
             1,
@@ -1028,8 +1028,8 @@ class JSONImportTests(BaubleTestCase):
             f.write(json_string)
         self.assertEqual(
             len(
-                self.session.query(Genus)
-                .filter(Genus.epithet == "Neogyna")
+                self.session.execute(select(Genus)).scalars()
+                .where(Genus.epithet == "Neogyna")
                 .all()
             ),
             0,
@@ -1039,8 +1039,8 @@ class JSONImportTests(BaubleTestCase):
         importer.on_btnok_clicked(None)
         self.assertEqual(
             len(
-                self.session.query(Genus)
-                .filter(Genus.epithet == "Neogyna")
+                self.session.execute(select(Genus)).scalars()
+                .where(Genus.epithet == "Neogyna")
                 .all()
             ),
             1,
@@ -1233,10 +1233,10 @@ class JSONImportTests(BaubleTestCase):
         # should check the logs
         # check the species is still not there
         sp = (
-            self.session.query(Species)
-            .filter(Species.epithet == "lawrenceae")
+            self.session.execute(select(Species)).scalars()
+            .where(Species.epithet == "lawrenceae")
             .join(Genus)
-            .filter(Genus.epithet == "Aerides")
+            .where(Genus.epithet == "Aerides")
             .all()
         )
         self.assertEqual(sp, [])
@@ -1246,10 +1246,10 @@ class JSONImportTests(BaubleTestCase):
 
         # precondition: the species is not there
         sp = (
-            self.session.query(Species)
-            .filter(Species.epithet == "lawrenceae")
+            self.session.execute(select(Species)).scalars()
+            .where(Species.epithet == "lawrenceae")
             .join(Genus)
-            .filter(Genus.epithet == "Aerides")
+            .where(Genus.epithet == "Aerides")
             .all()
         )
         self.assertEqual(sp, [])
@@ -1268,22 +1268,22 @@ class JSONImportTests(BaubleTestCase):
         self.session.commit()
         # postcondition: the species is there
         sp = (
-            self.session.query(Species)
-            .filter(Species.epithet == "lawrenceae")
+            self.session.execute(select(Species)).scalars()
+            .where(Species.epithet == "lawrenceae")
             .join(Genus)
-            .filter(Genus.epithet == "Aerides")
+            .where(Genus.epithet == "Aerides")
             .all()
         )
         self.assertEqual(len(sp), 1)
         sp = sp[0]
         genus = (
-            self.session.query(Genus)
-            .filter(Genus.epithet == "Aerides")
+            self.session.execute(select(Genus)).scalars()
+            .where(Genus.epithet == "Aerides")
             .first()
         )
         family = (
-            self.session.query(Family)
-            .filter(Family.epithet == "Orchidaceae")
+            self.session.execute(select(Family)).scalars()
+            .where(Family.epithet == "Orchidaceae")
             .first()
         )
         self.assertEqual(sp.genus, genus)
@@ -1306,12 +1306,12 @@ class JSONImportTests(BaubleTestCase):
 
         self.session.commit()
         synonym = (
-            self.session.query(Genus).filter_by(epithet="Zygoglossum").first()
+            self.session.execute(select(Genus)).scalars().where(epithet="Zygoglossum").first()
         )
         self.assertNotEqual(synonym, None)
         self.assertEqual(synonym.accepted.__class__, Genus)
         accepted = (
-            self.session.query(Genus).filter_by(epithet="Bulbophyllum").first()
+            self.session.execute(select(Genus)).scalars().where(epithet="Bulbophyllum").first()
         )
         self.assertNotEqual(accepted, None)
         self.assertEqual(synonym.accepted, accepted)
@@ -1461,11 +1461,11 @@ class JSONImportTests(BaubleTestCase):
         self.session.commit()
 
         # T_1
-        sedum = self.session.query(Genus).filter_by(epithet="Sedum").first()
+        sedum = self.session.execute(select(Genus)).scalars().where(epithet="Sedum").first()
         self.assertEqual(sedum.__class__, Genus)
         self.assertEqual(sedum.author, "L.")
         anacampseros = (
-            self.session.query(Genus).filter_by(epithet="Anacampseros").first()
+            self.session.execute(select(Genus)).scalars().where(epithet="Anacampseros").first()
         )
         self.assertEqual(anacampseros.__class__, Genus)
         self.assertEqual(anacampseros.author, "")
@@ -1495,7 +1495,7 @@ class JSONImportTests(BaubleTestCase):
         self.session.commit()
 
         # T_1
-        summit = self.session.query(Contact).first()
+        summit = self.session.execute(select(Contact)).scalars().first()
         self.assertNotEqual(summit, None)
 
 

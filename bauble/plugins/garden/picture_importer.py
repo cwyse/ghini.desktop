@@ -302,7 +302,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         if self.model.location is None:
             self.model.location = "imported"
         location = (
-            session.query(Location).filter_by(code=self.model.location).first()
+            session.execute(select(Location)).scalars().where(code=self.model.location).first()
         )
         if location is not None:
             logger.log(11, "location {} already in database".format(location))
@@ -326,10 +326,10 @@ class PictureImporterPresenter(GenericEditorPresenter):
             )
 
             # create or retrieve genus and species
-            genus = session.query(Genus).filter_by(epithet=epgn).one()
+            genus = session.execute(select(Genus)).scalars().where(epithet=epgn).one()
             species = (
-                session.query(Species)
-                .filter_by(genus=genus, epithet=epsp)
+                session.execute(select(Species)).scalars()
+                .where(genus=genus, epithet=epsp)
                 .first()
             )
             if species is not None:
@@ -351,7 +351,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
 
             # create or retrieve accession (needs species)
             accession = (
-                session.query(Accession).filter_by(code=accession_code).first()
+                session.execute(select(Accession)).scalars().where(code=accession_code).first()
             )
             if accession is not None:
                 logger.log(
@@ -379,8 +379,8 @@ class PictureImporterPresenter(GenericEditorPresenter):
 
             # create or retrieve plant (needs: accession, location)
             plant = (
-                session.query(Plant)
-                .filter_by(accession=accession, code=plant_code)
+                session.execute(select(Plant)).scalars()
+                .where(accession=accession, code=plant_code)
                 .first()
             )
             if plant is not None:
@@ -410,8 +410,8 @@ class PictureImporterPresenter(GenericEditorPresenter):
 
             # add picture note
             note = (
-                session.query(PlantNote)
-                .filter_by(plant=plant, note=filename, category="<picture>")
+                session.execute(select(PlantNote)).scalars()
+                .where(plant=plant, note=filename, category="<picture>")
                 .first()
             )
             if note is not None:
