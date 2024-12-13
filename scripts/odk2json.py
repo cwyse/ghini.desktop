@@ -81,8 +81,8 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
     if item["location"]:
         # correct location codes according to ILIKE matches,
         db_loc = (
-            session.query(Location)
-            .filter(bauble.utils.ilike(Location.code, str(item["location"])))
+            session.execute(select(Location)).scalars()
+            .where(bauble.utils.ilike(Location.code, str(item["location"])))
             .first()
         )
         if db_loc:
@@ -112,8 +112,8 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
     # ignore species=Zzz sp for already existing accessions.
     need_species = False
     db_accession = (
-        session.query(Accession)
-        .filter(Accession.code == str(accession["code"]))
+        session.execute(select(Accession)).scalars()
+        .where(Accession.code == str(accession["code"]))
         .first()
     )
 
@@ -136,15 +136,15 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
 
     if item["species"]:
         db_genus = (
-            session.query(Genus).filter(Genus.epithet == genus_epithet).first()
+            session.execute(select(Genus)).scalars().where(Genus.epithet == genus_epithet).first()
         )
         if db_genus is None:
             logger.debug("com'è possibile? %s" % item["species"])
         else:
             db_species = (
-                session.query(Species)
-                .filter(Species.genus_id == db_genus.id)
-                .filter(Species.epithet == species_epithet)
+                session.execute(select(Species)).scalars()
+                .where(Species.genus_id == db_genus.id)
+                .where(Species.epithet == species_epithet)
                 .first()
             )
             if db_species is None:

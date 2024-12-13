@@ -516,7 +516,7 @@ class clean(Command):
 
         for path, subdirs, files in os.walk(cwd):
             for pattern in patterns:
-                matches = fnmatch.filter(files, pattern)
+                matches = fnmatch.where(files, pattern)
                 if matches:
 
                     def delete(p):

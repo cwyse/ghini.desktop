@@ -140,6 +140,8 @@ class Source(db.Base):
     # ITF2 - E7 - Donor's Accession Identifier - donacc
     sources_code = Column(Unicode(32))
 
+    id = Column(Integer, primary_key=True)
+
     accession_id = Column(Integer, ForeignKey("accession.id"), unique=True)
     accession = relationship("Accession", back_populates="source")
 
@@ -280,6 +282,7 @@ class Collection(db.Base):
     __tablename__ = "collection"
 
     # columns
+    id = Column(Integer, primary_key=True)
     # ITF2 - F24 - Primary Collector's Name
     collector = Column(Unicode(64))
     # ITF2 - F.25 - Collector's Identifier
@@ -443,7 +446,7 @@ class CollectionPresenter(editor.ChildPresenter):
         self._dirty = False
 
     def set_region(self, menu_item, geo_id):
-        geographic_area = self.session.query(GeographicArea).get(geo_id)
+        geographic_area = self.session.execute(select(GeographicArea)).scalars().get(geo_id)
         self.set_model_attr("region", geographic_area)
         self.set_model_attr("geographic_area_id", geo_id)
         self.view.widgets.add_region_button.props.label = str(geographic_area)
@@ -772,10 +775,10 @@ class PropagationChooserPresenter(editor.ChildPresenter):
             from bauble.plugins.garden.plant import Plant
 
             query = (
-                self.session.query(Plant)
-                .filter(Plant.propagations.any())
+                self.session.execute(select(Plant)).scalars()
+                .where(Plant.propagations.any())
                 .join(Accession, Plant.accession_id == Accession.id)
-                .filter(Accession.id != self.model.accession.id)
+                .where(Accession.id != self.model.accession.id)
                 .order_by(Accession.code, Plant.code)
             )
             result = self.view.widgets.source_prop_plant_liststore
@@ -806,8 +809,8 @@ class PropagationChooserPresenter(editor.ChildPresenter):
             from bauble.plugins.garden.plant import Plant
 
             plant = (
-                self.session.query(Plant)
-                .filter(Plant.id == model[matches[0]][1])
+                self.session.execute(select(Plant)).scalars()
+                .where(Plant.id == model[matches[0]][1])
                 .one()
             )
             # populate the propagation browser
@@ -900,7 +903,7 @@ def source_detail_remove_callback(details):
         return
     try:
         session = db.Session()
-        obj = session.query(Contact).get(detail.id)
+        obj = session.execute(select(Contact)).scalars().get(detail.id)
         session.delete(obj)
         session.commit()
     except Exception as e:
@@ -952,6 +955,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
 
 
     # ITF2 - E6 - Donor
+    id = Column(Integer, primary_key=True)
     name = Column(Unicode(75), unique=True)
     # extra description, not included in E6
     description = Column(UnicodeText)
@@ -984,7 +988,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.query(cls).filter(cls.name == keys["name"]).one()
+            return session.execute(select(cls)).scalars().where(cls.name == keys["name"]).one()
         except:
             return None
 

@@ -142,9 +142,9 @@ class EnumTests(BaubleTestCase):
         t = self.Table(value="")
         self.session.add(t)
         self.session.flush()
-        q = self.session.query(self.Table).filter_by(value="")
+        q = self.session.execute(select(self.Table)).scalars().where(value="")
         self.assertEqual(q.all(), [])
-        q = self.session.query(self.Table).filter_by(value=None)
+        q = self.session.execute(select(self.Table)).scalars().where(value=None)
         self.assertEqual(q.all(), [t])
 
 
@@ -211,7 +211,7 @@ class BaubleTests(BaubleTestCase):
         m = meta.BaubleMeta(name="name", value="value")
         self.session.add(m)
         self.session.commit()
-        m = self.session.query(meta.BaubleMeta).filter_by(name="name").first()
+        m = self.session.execute(select(meta.BaubleMeta)).scalars().where(name="name").first()
 
         # test that _created and _last_updated were created correctly
         self.assertTrue(
@@ -261,7 +261,7 @@ class HistoryTests(BaubleTestCase):
         self.session.add(f)
         self.session.commit()
         history = (
-            self.session.query(db.History)
+            self.session.execute(select(db.History)).scalars()
             .order_by(db.History.timestamp.desc())
             .first()
         )
@@ -270,7 +270,7 @@ class HistoryTests(BaubleTestCase):
         f.family = "Family2"
         self.session.commit()
         history = (
-            self.session.query(db.History)
+            self.session.execute(select(db.History)).scalars()
             .order_by(db.History.timestamp.desc())
             .first()
         )
@@ -279,7 +279,7 @@ class HistoryTests(BaubleTestCase):
         self.session.delete(f)
         self.session.commit()
         history = (
-            self.session.query(db.History)
+            self.session.execute(select(db.History)).scalars()
             .order_by(db.History.timestamp.desc())
             .first()
         )

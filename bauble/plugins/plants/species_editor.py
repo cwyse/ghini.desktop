@@ -117,7 +117,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         list(
             [
                 model.append(p)
-                for p in [(str(h), h) for h in self.session.query(Habit)]
+                for p in [(str(h), h) for h in self.session.execute(select(Habit)).scalars()]
             ]
         )
         utils.setup_text_combobox(combo, model)
@@ -148,11 +148,11 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
 
         # connect signals
         def gen_get_completions(text):
-            clause = utils.ilike(Genus.genus, "%s%%" % str(text))
-            return (
-                self.session.query(Genus).filter(clause).order_by(Genus.genus)
+            return self.session.scalars(
+                select(Genus)
+                .where(Genus.genus.ilike(f"{text}%"))
+                .order_by(Genus.genus)
             )
-
         def sp_species_TPL_callback(found, accepted):
             # both found and accepted are dictionaries, their keys here
             # relevant: 'Species hybrid marker', 'Species', 'Authorship',
@@ -329,11 +329,10 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         def on_select(value):
             logger.debug("on select: %s" % value)
             if isinstance(value, str):
-                value = (
-                    self.session.query(Genus)
-                    .filter(Genus.genus == value)
-                    .first()
-                )
+                value = self.session.scalars(
+                    select(Genus).where(Genus.genus == value)
+                ).first()
+            
             while self.genus_check_messages:
                 kid = self.genus_check_messages.pop()
                 self.view.widgets.remove_parent(kid)
@@ -341,11 +340,10 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             if not value:  # no choice is a fine choice
                 return
             # is value considered a synonym?
-            syn = (
-                self.session.query(GenusSynonym)
-                .filter(GenusSynonym.synonym_id == value.id)
-                .first()
-            )
+
+            syn = self.session.scalars(
+                select(GenusSynonym).where(GenusSynonym.synonym_id == value.id)
+            ).first()
             if not syn:
                 # chosen value is not a synonym, also fine
                 return
@@ -552,11 +550,13 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             genus = self.model.genus
             epithet = self.view.widget_get_value("sp_species_entry")
 
-            omonym = (
-                self.session.query(Species)
-                .filter(Species.genus == genus, Species.epithet == epithet)
-                .first()
-            )
+            omonym = self.session.scalars(
+                select(Species).where(
+                    Species.genus == genus,
+                    Species.epithet == epithet
+                )
+            ).first()
+
             logger.debug(
                 "looking for %s %s, found %s" % (genus, epithet, omonym)
             )
@@ -847,7 +847,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
         logger.debug("on_activate_add_menu_item {} {}".format(widget, geoid))
         from bauble.plugins.plants.geography import GeographicArea
 
-        geo = self.session.query(GeographicArea).filter_by(id=geoid).one()
+        geo = self.session.execute(select(GeographicArea)).scalars().where(id=geoid).one()
         # check that this geography isn't already in the distributions
         if geo in [d.geographic_area for d in self.model.distribution]:
             logger.debug("{} already in {}".format(geo, self.model))
@@ -1086,10 +1086,10 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
 
         def sp_get_completions(text):
             query = (
-                self.session.query(Species)
+                self.session.execute(select(Species)).scalars()
                 .join(Genus, Species.genus_id == Genus.id)
-                .filter(utils.ilike(Genus.genus, f"{text}%"))
-                .filter(Species.id != self.model.id)
+                .where(utils.ilike(Genus.genus, f"{text}%"))
+                .where(Species.id != self.model.id)
                 .order_by(Genus.genus, Species.epithet)
             )
             return query
@@ -1470,7 +1470,7 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
         super().commit_changes()
 
     def start(self):
-        if self.session.query(Genus).count() == 0:
+        if self.session.execute(select(Genus)).scalars().count() == 0:
             msg = _(
                 "You must first add or import at least one genus into the "
                 "database before you can add species."

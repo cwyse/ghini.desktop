@@ -69,6 +69,7 @@ from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import func
 from sqlalchemy import Integer
+from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
@@ -121,7 +122,7 @@ def remove_callback(plants):
 
     session = db.Session()
     for plant in plants:
-        obj = session.query(Plant).get(plant.id)
+        obj = session.execute(select(Plant)).scalars().get(plant.id)
         session.delete(obj)
     try:
         session.commit()
@@ -179,9 +180,9 @@ def get_next_code(acc):
     from bauble.plugins.garden import Accession
 
     codes = (
-        session.query(Plant.code)
+        session.execute(select(Plant.code)).scalars()
         .join(Accession, Plant.accession_id == Accession.id)
-        .filter(Accession.id == acc.id)
+        .where(Accession.id == acc.id)
         .all()
     )
     next = 1
@@ -217,9 +218,9 @@ def is_code_unique(plant, code):
     from bauble.plugins.garden import Accession
 
     count = (
-        session.query(Plant)
+        session.execute(select(Plant)).scalars()
         .join(Accession, Plant.accession_id == Accession.id)
-        .filter(
+        .where(
             and_(
                 Accession.id == plant.accession.id,
                 Plant.code.in_(bindparam("codes", expanding=True)),
@@ -259,9 +260,9 @@ class PlantSearch(SearchStrategy):
             from bauble.plugins.garden import Accession
 
             query = (
-                session.query(Plant)
+                session.execute(select(Plant)).scalars()
                 .join(Accession, Plant.accession_id == Accession.id)
-                .filter(
+                .where(
                     Plant.code == str(plant_code),
                     utils.ilike(Accession.code, f"%{acc_code}%"),
                 )
@@ -282,19 +283,19 @@ def as_dict(self):
 
 def retrieve(cls, session, keys):
     from bauble.plugins.garden.accession import Accession
-    q = session.query(cls)
+    q = session.execute(select(cls)).scalars()
     if "plant" in keys:
         acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
         q = (
             q.join(Plant)
-            .filter(Plant.code == str(plant_code))
+            .where(Plant.code == str(plant_code))
             .join(Accession)
-            .filter(Accession.code == str(acc_code))
+            .where(Accession.code == str(acc_code))
         )
     if "date" in keys:
-        q = q.filter(cls.date == keys["date"])
+        q = q.where(cls.date == keys["date"])
     if "category" in keys:
-        q = q.filter(cls.category == keys["category"])
+        q = q.where(cls.category == keys["category"])
     try:
         return q.one()
     except:
@@ -309,10 +310,10 @@ def compute_serializable_fields(cls, session, keys):
     acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
     logger.debug("acc-plant: {}-{}".format(acc_code, plant_code))
     q = (
-        session.query(Plant)
-        .filter(Plant.code == str(plant_code))
+        session.execute(select(Plant)).scalars()
+        .where(Plant.code == str(plant_code))
         .join(Accession)
-        .filter(Accession.code == str(acc_code))
+        .where(Accession.code == str(acc_code))
     )
     plant = q.one()
 
@@ -351,6 +352,7 @@ class PlantChange(db.Base):
 
     __tablename__ = "plant_change"
 
+    id = Column(Integer, primary_key=True)
     plant_id = Column(Integer, ForeignKey("plant.id"), nullable=False)
     parent_plant_id = Column(Integer, ForeignKey("plant.id"))
 
@@ -468,6 +470,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     __table_args__ = (UniqueConstraint("code", "accession_id"), {})
 
     # columns
+    id = Column(Integer, primary_key=True)
     code = Column(Unicode(6), nullable=False)
 
     @validates("code")
@@ -654,9 +657,9 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         from bauble.plugins.garden.accession import Accession
         try:
             return (
-                session.query(cls)
+                session.execute(select(cls)).scalars()
                 .join(Accession, cls.accession_id == Accession.id)
-                .filter(
+                .where(
                     cls.code == keys["code"],
                     Accession.code == keys["accession"],
                 )
@@ -867,8 +870,8 @@ class PlantEditorPresenter(GenericEditorPresenter):
         # been filled in
         def acc_get_completions(text):
             from bauble.plugins.garden.accession import Accession
-            query = self.session.query(Accession)
-            return query.filter(
+            query = self.session.execute(select(Accession)).scalars()
+            return query.where(
                 Accession.code.like(str("%s%%" % text))
             ).order_by(Accession.code)
 
@@ -1301,7 +1304,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
         from bauble.plugins.garden.accession import Accession
 
         sub_editor = None
-        if self.session.query(Accession).count() == 0:
+        if self.session.execute(select(Accession)).scalars().count() == 0:
             msg = (
                 "You must first add or import at least one Accession into "
                 "the database before you can add plants.\n\nWould you like "
@@ -1314,7 +1317,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
 
                 sub_editor = AccessionEditor()
                 self._commited = sub_editor.start()
-        if self.session.query(Location).count() == 0:
+        if self.session.execute(select(Location)).scalars().count() == 0:
             msg = (
                 "You must first add or import at least one Location into "
                 "the database before you can add plants.\n\nWould you "

@@ -320,7 +320,7 @@ class PocketServerPresenter(GenericEditorPresenter):
 
     def read_clients_list(self):
         self.clients_ls.clear()
-        query = self.session.query(meta.BaubleMeta).filter_by(
+        query = self.session.execute(select(meta.BaubleMeta)).scalars().where(
             name="pocket-clients"
         )
         row = query.first()
@@ -332,7 +332,7 @@ class PocketServerPresenter(GenericEditorPresenter):
             self.clients_ls.append((i, key, elems[key]))
 
     def commit_changes(self):
-        query = self.session.query(meta.BaubleMeta).filter_by(
+        query = self.session.execute(select(meta.BaubleMeta)).scalars().where(
             name="pocket-clients"
         )
         row = query.first()

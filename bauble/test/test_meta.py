@@ -42,7 +42,7 @@ class MetaTests(BaubleTestCase):
         # the default value is set
         value = "value"
         meta.get_default(name, default=value)
-        obj = self.session.query(meta.BaubleMeta).filter_by(name=name).one()
+        obj = self.session.execute(select(meta.BaubleMeta)).scalars().where(name=name).one()
         self.assertTrue(obj.value == value)
 
         # test that the value isn't changed if it already exists

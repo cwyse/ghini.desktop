@@ -27,11 +27,13 @@ import os
 import re
 from gettext import gettext as _
 
+import bauble.db as db
 import bauble.editor as editor
 import bauble.meta as meta
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
+
 import gi
 from gi.repository import Champlain
 from gi.repository import Clutter
@@ -39,7 +41,8 @@ from gi.repository import Gdk
 from gi.repository import Gtk
 from gi.repository import GtkChamplain
 from gi.repository import GtkClutter
-from sqlalchemy import select
+from sqlalchemy import select, insert, update
+from sqlalchemy.orm import Session
 
 # mapping stuff
 gi.require_version("GtkClutter", "1.0")
@@ -428,45 +431,47 @@ class Institution:
     table = meta.BaubleMeta.__table__
 
     def __init__(self):
-        # initialize properties to None
-        list([setattr(self, p, None) for p in self.__properties])
-
+        # Initialize properties to None
         for prop in self.__properties:
-            db_prop = "inst_" + prop
+            setattr(self, prop, None)
 
-            # Construct the SELECT statement
-            stmt = select(self.table).where(self.table.c.name == db_prop)
-
-            import bauble.db as db
-            # Use a connection for executing the query
-            with db.engine.connect() as conn:
-                result = conn.execute(stmt)
-                row = result.fetchone()
-                if row:
-                    setattr(self, prop, row[0])
-
+        # Use a scoped session for querying the database
+        db_prop_prefix = "inst_"
+        with db.Session() as session:
+            for prop in self.__properties:
+                db_prop = db_prop_prefix + prop
+                stmt = select(self.table.c.value).where(self.table.c.name == db_prop)
+                result = session.execute(stmt).scalar_one_or_none()
+                if result is not None:
+                    setattr(self, prop, result)
 
     def write(self):
-        for prop in self.__properties:
-            value = getattr(self, prop)
-            db_prop = utils.utf8("inst_" + prop)
-            if value is not None:
-                value = utils.utf8(value)
-            result = self.table.select(self.table.c.name == db_prop).execute()
-            row = result.fetchone()
-            result.close()
-            # have to check if the property exists first because sqlite doesn't
-            # raise an error if you try to update a value that doesn't exist
-            # and do an insert and then catching the exception if it exists
-            # and then updating the value is too slow
-            if not row:
-                logger.debug("insert: {} = {}".format(prop, value))
-                self.table.insert().execute(name=db_prop, value=value)
-            else:
-                logger.debug("update: {} = {}".format(prop, value))
-                self.table.update(self.table.c.name == db_prop).execute(
-                    value=value
-                )
+        """Write the current property values to the database."""
+        db_prop_prefix = "inst_"
+        with db.Session() as session:
+            for prop in self.__properties:
+                value = getattr(self, prop)
+                db_prop = db_prop_prefix + prop
+
+                # Check if the property already exists in the database
+                stmt = select(self.table).where(self.table.c.name == db_prop)
+                row = session.execute(stmt).scalar_one_or_none()
+
+                if not row:
+                    # Insert if it does not exist
+                    logger.debug(f"insert: {prop} = {value}")
+                    stmt = insert(self.table).values(name=db_prop, value=value)
+                else:
+                    # Update if it exists
+                    logger.debug(f"update: {prop} = {value}")
+                    stmt = (
+                        update(self.table)
+                        .where(self.table.c.name == db_prop)
+                        .values(value=value)
+                    )
+
+                session.execute(stmt)
+            session.commit()
 
 
 class InstitutionPresenter(editor.GenericEditorPresenter):

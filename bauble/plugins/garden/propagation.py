@@ -107,6 +107,7 @@ class Propagation(db.Base, db.WithNotes):
     """
 
     __tablename__ = "propagation"
+    id = Column(Integer, primary_key=True, autoincrement=True)
     prop_type = Column(
         types.Enum(
             values=list(prop_type_values.keys()), translations=prop_type_values
@@ -348,6 +349,7 @@ class PropCuttingRooted(db.Base):
 
     __tablename__ = "prop_cutting_rooted"
 
+    id = Column(Integer, primary_key=True)
     date = Column(types.Date)
     quantity = Column(Integer, autoincrement=False, default=0, nullable=False)
     cutting_id = Column(Integer, ForeignKey("prop_cutting.id"), nullable=False)
@@ -363,6 +365,7 @@ class PropCutting(db.Base):
     """
 
     __tablename__ = "prop_cutting"
+    id = Column(Integer, primary_key=True)
     cutting_type = Column(
         types.Enum(
             values=list(cutting_type_values.keys()),
@@ -444,6 +447,7 @@ class PropSeed(db.Base):
     """ """
 
     __tablename__ = "prop_seed"
+    id = Column(Integer, primary_key=True)    
     pretreatment = Column(UnicodeText)
     nseeds = Column(Integer, nullable=False, autoincrement=False)
     date_sown = Column(types.Date, nullable=False)

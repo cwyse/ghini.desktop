@@ -68,6 +68,7 @@ from sqlalchemy import event
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import or_
+from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
@@ -239,7 +240,7 @@ def remove_callback(accessions):
         return
     try:
         session = db.Session()
-        obj = session.query(Accession).get(acc.id)
+        obj = session.execute(select(Accession)).scalars().get(acc.id)
         session.delete(obj)
         session.commit()
     except Exception as e:
@@ -405,6 +406,7 @@ class Voucher(db.Base):
     """
 
     __tablename__ = "voucher"
+    id = Column(Integer, primary_key=True, nullable=False)
     herbarium = Column(Unicode(5), nullable=False)
     code = Column(Unicode(32), nullable=False)
     parent_material = Column(Boolean, default=False)
@@ -766,7 +768,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             return start
         digits = len(format) - len(start)
         format = start + "%%0%dd" % digits
-        q = session.query(Accession.code).filter(
+        q = session.execute(select(Accession.code)).scalars().where(
             Accession.code.startswith(start)
         )
         next = None
@@ -950,7 +952,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.query(cls).filter(cls.code == keys["code"]).one()
+            return session.execute(select(cls)).scalars().where(cls.code == keys["code"]).one()
         except:
             return None
 
@@ -1417,10 +1419,10 @@ class VerificationPresenter(editor.GenericEditorPresenter):
 
                 query = (
                     self.presenter()
-                    .session.query(Species)
+                    .session.execute(select(Species)).scalars()
                     .join(Species.genus)
-                    .filter(ilike(Genus.genus, f"{text}%"))
-                    .filter(Species.id != self.model.id)
+                    .where(ilike(Genus.genus, f"{text}%"))
+                    .where(Species.id != self.model.id)
                     .order_by(Species.sp)
                 )
                 return query
@@ -1875,7 +1877,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         model = Gtk.ListStore(object)
         none_iter = model.append([""])
         model.append([self.garden_prop_str])
-        list([model.append([x]) for x in self.session.query(Contact)])
+        list([model.append([x]) for x in self.session.execute(select(Contact)).scalars()])
         combo.set_model(model)
         combo.get_child().get_completion().set_model(model)
 
@@ -2124,9 +2126,9 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
             genus_name = text.split(" ")[0] if " " in text else text
             query = (
-                self.session.query(Species)
+                self.session.execute(select(Species)).scalars()
                 .join(Species.genus)
-                .filter(
+                .where(
                     or_(
                         ilike(Genus.genus, f"{text}%"),
                         ilike(Genus.genus, f"{genus_name}%"),
@@ -2196,8 +2198,8 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                 return
 
             syn = (
-                self.session.query(SpeciesSynonym)
-                .filter(SpeciesSynonym.synonym_id == value.id)
+                self.session.execute(select(SpeciesSynonym)).scalars()
+                .where(SpeciesSynonym.synonym_id == value.id)
                 .first()
             )
             if not syn:
@@ -2352,8 +2354,8 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         ls.append([entry_one])
         if values is None:
             query = (
-                self.session.query(meta.BaubleMeta)
-                .filter(meta.BaubleMeta.name.like("acidf_%"))
+                self.session.execute(select(meta.BaubleMeta)).scalars()
+                .where(meta.BaubleMeta.name.like("acidf_%"))
                 .order_by(meta.BaubleMeta.name)
             )
             if query.count():
@@ -2377,8 +2379,8 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         ls = view.widgets.acc_codes_liststore
         ls.clear()
         query = (
-            self.session.query(meta.BaubleMeta)
-            .filter(meta.BaubleMeta.name.like("acidf_%"))
+            self.session.execute(select(meta.BaubleMeta)).scalars()
+            .where(meta.BaubleMeta.name.like("acidf_%"))
             .order_by(meta.BaubleMeta.name)
         )
         for i, row in enumerate(query):
@@ -2400,7 +2402,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
         presenter = Presenter(ls, view, session=db.Session())
         if presenter.start() > 0:
-            presenter.session.query(meta.BaubleMeta).filter(
+            presenter.session.execute(select(meta.BaubleMeta)).scalars().where(
                 meta.BaubleMeta.name.like("acidf_%")
             ).delete(synchronize_session=False)
             i = 1
@@ -2527,10 +2529,10 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
     def on_acc_code_entry_changed(self, entry, data=None):
         text = entry.get_text()
-        query = self.session.query(Accession)
+        query = self.session.execute(select(Accession)).scalars()
         if (
             text != self._original_code
-            and query.filter_by(code=str(text)).count() > 0
+            and query.where(code=str(text)).count() > 0
         ):
             self.add_problem(
                 self.PROBLEM_DUPLICATE_ACCESSION,
@@ -2815,7 +2817,7 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
     def start(self):
         from bauble.plugins.plants.species_model import Species
 
-        if self.session.query(Species).count() == 0:
+        if self.session.execute(select(Species)).scalars().count() == 0:
             msg = _(
                 "You must first add or import at least one species into "
                 "the database before you can add accessions."
@@ -3000,7 +3002,7 @@ class GeneralAccessionExpander(InfoExpander):
             s = "0"
         self.widget_set_value("living_plants_data", s)
 
-        nplants = session.query(Plant).filter_by(accession_id=row.id).count()
+        nplants = session.execute(select(Plant)).scalars().where(accession_id=row.id).count()
         self.widget_set_value("nplants_data", nplants)
         self.set_labeled_value("date_recvd", row.date_recvd)
         self.set_labeled_value("date_accd", row.date_accd)

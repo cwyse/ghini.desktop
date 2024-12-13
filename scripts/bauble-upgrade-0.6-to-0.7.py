@@ -139,7 +139,7 @@ def migrate_accession_geography():
     pass
 
 
-#    r = session.query(Accession).select(accession_table.c.country_id!=None)
+#    r = session.execute(select(Accession)).scalars().select(accession_table.c.country_id!=None)
 #    assert len(r) == 0
 
 

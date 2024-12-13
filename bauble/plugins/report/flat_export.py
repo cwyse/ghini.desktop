@@ -263,7 +263,7 @@ class FlatFileExporter(GenericEditorPresenter):
                     self.domain_map[self.domain], objs
                 )
             else:
-                todo = session.query(self.mapper).all()
+                todo = session.execute(select(self.mapper)).scalars().all()
             for obj in todo:
                 row = []
                 for j in self.view.widgets.exported_fields_ls:

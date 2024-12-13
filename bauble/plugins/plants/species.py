@@ -80,7 +80,7 @@ def remove_callback(values):
     session = object_session(species)
     if isinstance(species, VernacularName):
         species = species.species
-    nacc = session.query(Accession).filter_by(species_id=species.id).count()
+    nacc = session.execute(select(Accession)).scalars().where(species_id=species.id).count()
     safe_str = utils.xml_safe(species)
     if nacc > 0:
         msg = _("The species <i>%(1)s</i> has %(2)s accessions." "\n\n") % {
@@ -97,7 +97,7 @@ def remove_callback(values):
     if not utils.yes_no_dialog(msg):
         return
     try:
-        obj = session.query(Species).get(species.id)
+        obj = session.execute(select(Species)).scalars().get(species.id)
         session.delete(obj)
         session.commit()
     except Exception as e:
@@ -173,15 +173,15 @@ class SynonymSearch(search.SearchStrategy):
             # synonym of something else, include that something else. that
             # is, the accepted name.
             if isinstance(result, Species):
-                q = session.query(SpeciesSynonym).filter_by(
+                q = session.execute(select(SpeciesSynonym)).scalars().where(
                     synonym_id=result.id
                 )
                 results.extend([syn.species for syn in q])
             elif isinstance(result, Genus):
-                q = session.query(GenusSynonym).filter_by(synonym_id=result.id)
+                q = session.execute(select(GenusSynonym)).scalars().where(synonym_id=result.id)
                 results.extend([syn.genus for syn in q])
             elif isinstance(results, VernacularName):
-                q = session.query(SpeciesSynonym).filter_by(
+                q = session.execute(select(SpeciesSynonym)).scalars().where(
                     synonym_id=result.species.id
                 )
                 results.extend([syn.species for syn in q])
@@ -251,8 +251,8 @@ class SynonymsExpander(InfoExpander):
         logger.debug(row.synonyms)
         session = object_session(row)
         syn = (
-            session.query(SpeciesSynonym)
-            .filter(SpeciesSynonym.synonym_id == row.id)
+            session.execute(select(SpeciesSynonym)).scalars()
+            .where(SpeciesSynonym.synonym_id == row.id)
             .first()
         )
         accepted = syn and syn.species
@@ -414,28 +414,28 @@ class GeneralSpeciesExpander(InfoExpander):
         from bauble.plugins.garden.plant import Plant
 
         nacc = (
-            session.query(Accession)
+            session.execute(select(Accession)).scalars()
             .join(Species, Accession.species_id == Species.id)
-            .filter(Species.id == row.id)
+            .where(Species.id == row.id)
             .count()
         )
         self.widget_set_value("sp_nacc_data", nacc)
 
         nplants = (
-            session.query(Plant)
+            session.execute(select(Plant)).scalars()
             .join(Accession, Plant.accession_id == Accession.id)
             .join(Species, Accession.species_id == Species.id)
-            .filter(Species.id == row.id)
+            .where(Species.id == row.id)
             .count()
         )
         if nplants == 0:
             self.widget_set_value("sp_nplants_data", nplants)
         else:
             nacc_in_plants = (
-                session.query(Plant.accession_id)
+                session.execute(select(Plant.accession_id)).scalars()
                 .join(Accession, Plant.accession_id == Accession.id)
                 .join(Species, Accession.species_id == Species.id)
-                .filter(Species.id == row.id)
+                .where(Species.id == row.id)
                 .distinct()
                 .count()
             )
@@ -446,10 +446,10 @@ class GeneralSpeciesExpander(InfoExpander):
 
         living_plants = sum(
             i.quantity
-            for i in session.query(Plant)
+            for i in session.execute(select(Plant)).scalars()
             .join(Accession, Plant.accession_id == Accession.id)
             .join(Species, Accession.species_id == Species.id)
-            .filter(Species.id == row.id)
+            .where(Species.id == row.id)
             .all()
         )
         self.widget_set_value("living_plants_count", living_plants)

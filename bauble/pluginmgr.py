@@ -49,6 +49,7 @@ from bauble.error import BaubleError
 from gi.repository import GObject
 from gi.repository import Gtk
 from sqlalchemy import Column
+from sqlalchemy import Integer
 from sqlalchemy import select
 from sqlalchemy import Unicode
 
@@ -374,6 +375,7 @@ class PluginRegistry(db.Base):
     """
 
     __tablename__ = "plugin"
+    id = Column(Integer, primary_key=True, autoincrement=False)
     name = Column(Unicode(64), unique=True)
     version = Column(Unicode(12))
 
@@ -387,8 +389,8 @@ class PluginRegistry(db.Base):
         """
 
         p = PluginRegistry(
-            name=utils.utf8(plugin.__class__.__name__),
-            version=utils.utf8(plugin.version),
+            name=plugin.__class__.__name__,
+            version=plugin.version,
         )
         with db.Session() as session:
             session.add(p)
@@ -403,7 +405,7 @@ class PluginRegistry(db.Base):
         if name is None:
             name = plugin.__class__.__name__
         with db.Session() as session:
-            p = session.query(PluginRegistry).filter_by(name=utils.utf8(name)).one()
+            p = session.execute(select(PluginRegistry)).scalars().where(name=utils.utf8(name)).one()
             session.delete(p)
             session.commit()
 
@@ -411,7 +413,7 @@ class PluginRegistry(db.Base):
     def all(session):
         with db.Session() as local_session:
             session = session or local_session
-            q = session.query(PluginRegistry)
+            q = session.execute(select(PluginRegistry)).scalars()
             return list(q)
 
     @staticmethod
@@ -438,11 +440,14 @@ class PluginRegistry(db.Base):
         with db.Session() as session:
             try:
                 logger.debug("not using value of version (%s)." % version)
-                session.query(PluginRegistry).filter_by(name=utils.utf8(name)).one()
+                # Apply the where clause to the select object
+                query = select(PluginRegistry).where(PluginRegistry.name == name)
+                session.execute(query).scalar_one()
                 return True
             except orm_exc.NoResultFound as e:
                 logger.debug(e)
                 return False
+
 
 
 class Plugin:

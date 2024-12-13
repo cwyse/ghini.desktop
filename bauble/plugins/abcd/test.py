@@ -106,8 +106,8 @@ class ABCDTestCase(BaubleTestCase):
         """
         Test the ABCDExporter
         """
-        self.assertTrue(self.session.query(Plant).count() > 0)
-        accession = self.session.query(Accession).first()
+        self.assertTrue(self.session.execute(select(Plant)).scalars().count() > 0)
+        accession = self.session.execute(select(Accession)).scalars().first()
         source = Source()
         accession.source = source
         source.sources_code = "1"
@@ -129,7 +129,7 @@ class ABCDTestCase(BaubleTestCase):
         ABCDExporter().start(filename)
 
     def test_plants_to_abcd(self):
-        plants = self.session.query(Plant)
+        plants = self.session.execute(select(Plant)).scalars()
         assert plants.count() > 0
         # create abcd from plants
         data = plants_to_abcd(plants)

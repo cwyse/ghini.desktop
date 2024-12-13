@@ -335,9 +335,9 @@ class PlantTests(GardenTestCase):
 
         for code in utils.range_builder(rng):
             q = (
-                self.session.query(Plant)
+                self.session.execute(select(Plant)).scalars()
                 .join(Accession, Plant.accession_id == Accession.id)
-                .filter(
+                .where(
                     and_(
                         Accession.id == self.plant.accession.id,
                         Plant.code == utils.utf8(code),
@@ -370,9 +370,9 @@ class PlantTests(GardenTestCase):
             from sqlalchemy import and_
 
             q = (
-                self.session.query(Plant)
+                self.session.execute(select(Plant)).scalars()
                 .join(Accession)
-                .filter(
+                .where(
                     and_(
                         Accession.id == self.plant.accession.id,
                         Plant.code == utils.utf8(code),
@@ -386,9 +386,9 @@ class PlantTests(GardenTestCase):
 
     def test_editor(self):
         raise SkipTest("separate view from presenter, then test presenter")
-        for plant in self.session.query(Plant):
+        for plant in self.session.execute(select(Plant)).scalars():
             self.session.delete(plant)
-        for location in self.session.query(Location):
+        for location in self.session.execute(select(Location)).scalars():
             self.session.delete(location)
         self.session.commit()
 
@@ -416,7 +416,7 @@ class PlantTests(GardenTestCase):
         loc2a = (
             object_session(editor.branched_plant)
             .query(Location)
-            .filter(Location.code == "2a")
+            .where(Location.code == "2a")
             .one()
         )
         editor.branched_plant.location = loc2a
@@ -469,8 +469,8 @@ class PlantTests(GardenTestCase):
 
         # there should only be three plants,
         new_plant = (
-            self.session.query(Plant)
-            .filter(Plant.code != self.plant.code)
+            self.session.execute(select(Plant)).scalars()
+            .where(Plant.code != self.plant.code)
             .first()
         )
         # test the quantity was set properly on the new plant
@@ -495,9 +495,9 @@ class PlantTests(GardenTestCase):
 
     def test_branch_callback(self):
         raise SkipTest("Not Implemented")
-        for plant in self.session.query(Plant):
+        for plant in self.session.execute(select(Plant)).scalars():
             self.session.delete(plant)
-        for location in self.session.query(Location):
+        for location in self.session.execute(select(Location)).scalars():
             self.session.delete(location)
         self.session.commit()
 
@@ -512,7 +512,7 @@ class PlantTests(GardenTestCase):
         self.session.commit()
 
         branch_callback([plant])
-        new_plant = self.session.query(Plant).filter(Plant.code != "1").first()
+        new_plant = self.session.execute(select(Plant)).scalars().where(Plant.code != "1").first()
         self.session.refresh(plant)
         self.assertEqual(plant.quantity, quantity - new_plant.quantity)
         self.assertEqual(new_plant.changes[0].quantity, new_plant.quantity)
@@ -576,9 +576,9 @@ class PropagationTests(GardenTestCase):
         self.session.commit()
 
     def tearDown(self):
-        self.session.query(Plant).delete()
-        self.session.query(Location).delete()
-        self.session.query(Accession).delete()
+        self.session.execute(select(Plant)).scalars().delete()
+        self.session.execute(select(Location)).scalars().delete()
+        self.session.execute(select(Accession)).scalars().delete()
         self.session.commit()
         super().tearDown()
 
@@ -838,9 +838,9 @@ class PropagationTests(GardenTestCase):
         # the cutting and its rooted children to be deleted
         prop._cutting = None
         self.session.commit()
-        self.assertTrue(not self.session.query(PropCutting).get(cutting_id))
+        self.assertTrue(not self.session.execute(select(PropCutting)).scalars().get(cutting_id))
         self.assertTrue(
-            not self.session.query(PropCuttingRooted).get(rooted_id)
+            not self.session.execute(select(PropCuttingRooted)).scalars().get(rooted_id)
         )
 
     def test_accession_links_to_parent_plant(self):
@@ -868,7 +868,7 @@ class PropagationTests(GardenTestCase):
         # this should cause the cutting and its rooted children to be deleted
         prop._seed = None
         self.session.commit()
-        self.assertTrue(not self.session.query(PropSeed).get(seed_id))
+        self.assertTrue(not self.session.execute(select(PropSeed)).scalars().get(seed_id))
 
     def test_cutting_editor(self):
 
@@ -964,7 +964,7 @@ class PropagationTests(GardenTestCase):
         editor.session.close()
 
         s = db.Session()
-        propagation = s.query(Propagation).get(model_id)
+        propagation = s.execute(select(Propagation)).scalars().get(model_id)
 
         self.assertEqual(propagation.prop_type, "Seed")
         # make sure the each value in default_seed_values matches the model
@@ -1135,7 +1135,7 @@ class VoucherTests(GardenTestCase):
         voucher_id = voucher.id
         self.accession.vouchers.remove(voucher)
         self.session.commit()
-        self.assertTrue(not self.session.query(Voucher).get(voucher_id))
+        self.assertTrue(not self.session.execute(select(Voucher)).scalars().get(voucher_id))
 
         # test that if we set voucher.accession to None then the
         # voucher is deleted but not the accession
@@ -1146,8 +1146,8 @@ class VoucherTests(GardenTestCase):
         acc_id = voucher.accession.id
         voucher.accession = None
         self.session.commit()
-        self.assertTrue(not self.session.query(Voucher).get(voucher_id))
-        self.assertTrue(self.session.query(Accession).get(acc_id))
+        self.assertTrue(not self.session.execute(select(Voucher)).scalars().get(voucher_id))
+        self.assertTrue(self.session.execute(select(Accession)).scalars().get(acc_id))
 
 
 class SourceTests(GardenTestCase):
@@ -1194,9 +1194,9 @@ class SourceTests(GardenTestCase):
         # source.propagation attribute to None - and commit
         source.propagation = None
         self.session.commit()
-        self.assertTrue(not self.session.query(PropSeed).get(seed_id))
-        self.assertTrue(not self.session.query(PropCutting).get(cutting_id))
-        self.assertTrue(not self.session.query(Propagation).get(prop_id))
+        self.assertTrue(not self.session.execute(select(PropSeed)).scalars().get(seed_id))
+        self.assertTrue(not self.session.execute(select(PropCutting)).scalars().get(cutting_id))
+        self.assertTrue(not self.session.execute(select(Propagation)).scalars().get(prop_id))
 
     def test(self):
         # I consider this test a very good example of how NOT TO write unit
@@ -1235,13 +1235,13 @@ class SourceTests(GardenTestCase):
 
         # the Collection and Propagation should be
         # deleted since they are specific to the source
-        self.assertTrue(not self.session.query(Collection).get(coll_id))
-        self.assertTrue(not self.session.query(Propagation).get(prop_id))
+        self.assertTrue(not self.session.execute(select(Collection)).scalars().get(coll_id))
+        self.assertTrue(not self.session.execute(select(Propagation)).scalars().get(prop_id))
 
         # the Contact and plant Propagation shouldn't be deleted
         # since they are independent of the source
-        self.assertTrue(self.session.query(Propagation).get(plant_prop_id))
-        self.assertTrue(self.session.query(Contact).get(source_detail_id))
+        self.assertTrue(self.session.execute(select(Propagation)).scalars().get(plant_prop_id))
+        self.assertTrue(self.session.execute(select(Contact)).scalars().get(source_detail_id))
 
 
 class AccessionQualifiedTaxon(GardenTestCase):
@@ -1457,7 +1457,7 @@ class AccessionTests(GardenTestCase):
         plant_id = plant.id
         self.session.delete(acc)
         self.session.commit()
-        self.assertTrue(not self.session.query(Plant).get(plant_id))
+        self.assertTrue(not self.session.execute(select(Plant)).scalars().get(plant_id))
 
     def test_constraints(self):
         acc = Accession(species=self.species, code="1")
@@ -1536,10 +1536,10 @@ class AccessionTests(GardenTestCase):
 
         # open a separate session and make sure everything committed
         session = db.Session()
-        acc = session.query(Accession).filter_by(code="code")[0]
+        acc = session.execute(select(Accession)).scalars().where(code="code")[0]
         self.assertTrue(acc is not None)
         logger.debug(acc.id)
-        parent = session.query(Accession).filter_by(code="parent")[0]
+        parent = session.execute(select(Accession)).scalars().where(code="parent")[0]
         self.assertTrue(parent is not None)
         logger.debug(parent.id)
         logger.debug("acc plants : %s" % [str(i) for i in acc.plants])
@@ -1674,7 +1674,7 @@ class AccessionTests(GardenTestCase):
             in self.invoked
         )
         self.assertEqual(result, None)
-        q = self.session.query(Accession).filter_by(code="010101", species=sp)
+        q = self.session.execute(select(Accession)).scalars().where(code="010101", species=sp)
         matching = q.all()
         self.assertEqual(matching, [acc])
 
@@ -1716,7 +1716,7 @@ class AccessionTests(GardenTestCase):
         )
 
         self.assertEqual(result, True)
-        q = self.session.query(Species).filter_by(sp="Carica")
+        q = self.session.execute(select(Species)).scalars().where(sp="Carica")
         matching = q.all()
         self.assertEqual(matching, [])
 
@@ -1764,10 +1764,10 @@ class AccessionTests(GardenTestCase):
             )
             in self.invoked
         )
-        q = self.session.query(Accession).filter_by(species=sp)
+        q = self.session.execute(select(Accession)).scalars().where(species=sp)
         matching = q.all()
         self.assertEqual(matching, [acc])
-        q = self.session.query(Plant).filter_by(accession=acc)
+        q = self.session.execute(select(Plant)).scalars().where(accession=acc)
         matching = q.all()
         self.assertEqual(matching, [plant])
 
@@ -1911,8 +1911,8 @@ class InstitutionTests(GardenTestCase):
         o.name = "Ghini"
         o.write()
         fields = (
-            self.session.query(BaubleMeta)
-            .filter(utils.ilike(BaubleMeta.name, "inst_%"))
+            self.session.execute(select(BaubleMeta)).scalars()
+            .where(utils.ilike(BaubleMeta.name, "inst_%"))
             .all()
         )
         self.assertEqual(len(fields), 13)  # 13 props define the institution
@@ -1924,8 +1924,8 @@ class InstitutionTests(GardenTestCase):
         o.name = "Ghini"
         o.write()
         fieldObjects = (
-            self.session.query(BaubleMeta)
-            .filter(utils.ilike(BaubleMeta.name, "inst_%"))
+            self.session.execute(select(BaubleMeta)).scalars()
+            .where(utils.ilike(BaubleMeta.name, "inst_%"))
             .all()
         )
         self.assertEqual(len(fieldObjects), 13)
@@ -1962,8 +1962,8 @@ class InstitutionTests(GardenTestCase):
         o.email = "bauble@anche.no"
         o.write()
         fieldObjects = (
-            self.session.query(BaubleMeta)
-            .filter(utils.ilike(BaubleMeta.name, "inst_%"))
+            self.session.execute(select(BaubleMeta)).scalars()
+            .where(utils.ilike(BaubleMeta.name, "inst_%"))
             .all()
         )
         fields = {
@@ -2478,18 +2478,18 @@ class PlantSearchTest(GardenTestCase):
             "text is not quoted, should strategy apply?",
         )
         p = results.pop()
-        ex = self.session.query(Plant).filter(Plant.id == 1).first()
+        ex = self.session.execute(select(Plant)).scalars().where(Plant.id == 1).first()
         self.assertEqual(p, ex)
         results = mapper_search.search("1.2.1", self.session)
         logger.debug(results)
         self.assertEqual(len(results), 1)
         p = results.pop()
-        ex = self.session.query(Plant).filter(Plant.id == 2).first()
+        ex = self.session.execute(select(Plant)).scalars().where(Plant.id == 2).first()
         self.assertEqual(p, ex)
         results = mapper_search.search("1.2.2", self.session)
         self.assertEqual(len(results), 1)
         p = results.pop()
-        ex = self.session.query(Plant).filter(Plant.id == 3).first()
+        ex = self.session.execute(select(Plant)).scalars().where(Plant.id == 3).first()
         self.assertEqual(p, ex)
 
     def test_searchbyplantcode_quoted(self):
@@ -2498,18 +2498,18 @@ class PlantSearchTest(GardenTestCase):
         results = mapper_search.search('"1.1.1"', self.session)
         self.assertEqual(len(results), 1)
         p = results.pop()
-        ex = self.session.query(Plant).filter(Plant.id == 1).first()
+        ex = self.session.execute(select(Plant)).scalars().where(Plant.id == 1).first()
         self.assertEqual(p, ex)
         results = mapper_search.search("'1.2.1'", self.session)
         logger.debug(results)
         self.assertEqual(len(results), 1)
         p = results.pop()
-        ex = self.session.query(Plant).filter(Plant.id == 2).first()
+        ex = self.session.execute(select(Plant)).scalars().where(Plant.id == 2).first()
         self.assertEqual(p, ex)
         results = mapper_search.search("'1.2.2'", self.session)
         self.assertEqual(len(results), 1)
         p = results.pop()
-        ex = self.session.query(Plant).filter(Plant.id == 3).first()
+        ex = self.session.execute(select(Plant)).scalars().where(Plant.id == 3).first()
         self.assertEqual(p, ex)
 
     def test_searchbyplantcode_invalid_values(self):
@@ -2539,7 +2539,7 @@ class PlantSearchTest(GardenTestCase):
         self.assertEqual(len(results), 1)
         a = results.pop()
         expect = (
-            self.session.query(Accession).filter(Accession.id == 1).first()
+            self.session.execute(select(Accession)).scalars().where(Accession.id == 1).first()
         )
         logger.debug("{}, {}".format(a, expect))
         self.assertEqual(a, expect)
@@ -2547,7 +2547,7 @@ class PlantSearchTest(GardenTestCase):
         self.assertEqual(len(results), 1)
         a = results.pop()
         expect = (
-            self.session.query(Accession).filter(Accession.id == 2).first()
+            self.session.execute(select(Accession)).scalars().where(Accession.id == 2).first()
         )
         logger.debug("{}, {}".format(a, expect))
         self.assertEqual(a, expect)
@@ -2589,7 +2589,7 @@ class AccessionGetNextCode(GardenTestCase):
 
     def test_get_next_code_absolute_beginning(self):
         this_year = str(datetime.date.today().year)
-        self.session.query(Accession).delete()
+        self.session.execute(select(Accession)).scalars().delete()
         self.session.flush()
         self.assertEqual(Accession.get_next_code(), this_year + ".0001")
 
@@ -2726,13 +2726,13 @@ class ContactTests(GardenTestCase):
 
         # we can delete a contact even if used as source
         session = db.Session()
-        contact = session.query(Contact).filter_by(name="name").one()
+        contact = session.execute(select(Contact)).scalars().where(name="name").one()
         session.delete(contact)
         session.commit()
 
         # the source field in the accession got removed
         session = db.Session()
-        acc = session.query(Accession).filter_by(code="2001.0001").one()
+        acc = session.execute(select(Accession)).scalars().where(code="2001.0001").one()
         self.assertEqual(acc.source, None)
 
     def test_representation_of_contact(self):

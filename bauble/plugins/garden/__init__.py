@@ -61,6 +61,7 @@ from bauble.plugins.garden.source import Source
 from bauble.plugins.garden.source import source_detail_context_menu
 from bauble.utils import safe_set_text, safe_set_props
 from bauble.view import SearchView
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import object_session
 
@@ -96,13 +97,17 @@ class GardenPlugin(pluginmgr.Plugin):
 
     @classmethod
     def init(cls):
+        """Initialize the GardenPlugin."""
         pluginmgr.provided.update(cls.provides)
         cls._setup_search_metas()
         cls._setup_gui_menus()
 
         # Initialize the default plant delimiter if not already present
         import bauble.meta as meta
-        meta.get_default(plant_delimiter_key, default_plant_delimiter)
+
+        # Use the session context manager to ensure proper resource handling
+        with db.Session() as session:
+            meta.get_default(plant_delimiter_key, default_plant_delimiter, session)
 
         # Prompt for institution setup if not already configured
         institution = Institution()
@@ -143,12 +148,14 @@ class GardenPlugin(pluginmgr.Plugin):
         # Set up Contact
         def sd_kids(detail):
             session = object_session(detail)
+            if session is None:
+                raise ValueError("The provided detail object is not associated with a session.")
             results = (
-                session.query(Accession)
+                session.execute(select(Accession)).scalars()
                 .join(Source)
                 .join(Contact)
                 .options(selectinload("species"))
-                .filter(Contact.id == detail.id)
+                .where(Contact.id == detail.id)
                 .all()
             )
             return results
@@ -259,7 +266,7 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
     model = Gtk.ListStore(object)
     model.append(("",))
     for loc in sorted(
-        presenter.session.query(Location).all(),
+        presenter.session.execute(select(Location)).scalars().all(),
         key=lambda loc: utils.natsort_key(loc.code),
     ):
         model.append((loc,))
@@ -312,10 +319,10 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
             code, name = match.groups()
         else:
             code = name = text
-        codes = presenter.session.query(Location).filter(
+        codes = presenter.session.execute(select(Location)).scalars().where(
             utils.ilike(Location.code, "%s" % utils.utf8(code))
         )
-        names = presenter.session.query(Location).filter(
+        names = presenter.session.execute(select(Location)).scalars().where(
             utils.ilike(Location.name, "%s" % utils.utf8(name))
         )
         if codes.count() == 1:

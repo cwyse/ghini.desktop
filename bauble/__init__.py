@@ -37,7 +37,7 @@ from gi.repository import Gtk
 
 gi.require_version("Gtk", "3.0")
 
-debugpy.breakpoint()
+#debugpy.breakpoint()
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

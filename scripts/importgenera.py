@@ -44,12 +44,12 @@ from bauble.plugins.plants import Genus, Species
 bauble.db.open(dburi, True, True)
 session = bauble.db.Session()
 
-q = session.query(Species).filter(Species.infrasp1 == "sp")
-q = q.join(Genus).filter(Genus.epithet == "Zzz")
+q = session.execute(select(Species)).scalars().where(Species.infrasp1 == "sp")
+q = q.join(Genus).where(Genus.epithet == "Zzz")
 zzz = q.one()
 
-q = session.query(Species).filter(Species.epithet == "sp")
-q = q.join(Genus).filter(Genus.epithet == "Zzz")
+q = session.execute(select(Species)).scalars().where(Species.epithet == "sp")
+q = q.join(Genus).where(Genus.epithet == "Zzz")
 zzzsp = q.one()
 
 import sys
@@ -72,12 +72,12 @@ for line in fileinput.input():
         genus_name = location = None
 
     if genus_name:
-        genus = session.query(Genus).filter(Genus.epithet == genus_name).one()
+        genus = session.execute(select(Genus)).scalars().where(Genus.epithet == genus_name).one()
         try:
             species = (
-                session.query(Species)
-                .filter(Species.genus == genus)
-                .filter(Species.infrasp1 == "sp")
+                session.execute(select(Species)).scalars()
+                .where(Species.genus == genus)
+                .where(Species.infrasp1 == "sp")
                 .first()
             )
             if species is None:
@@ -94,7 +94,7 @@ for line in fileinput.input():
 
     try:
         accession = (
-            session.query(Accession).filter(Accession.code == text).one()
+            session.execute(select(Accession)).scalars().where(Accession.code == text).one()
         )
     except:
         unknown.append(text)

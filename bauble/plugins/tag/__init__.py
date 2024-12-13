@@ -50,6 +50,7 @@ from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
+from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
@@ -176,9 +177,10 @@ class TagsMenuManager:
         tags_menu.append(add_tag_menu_item)
 
         with session_scope() as session:
-            query = session.query(Tag)
-            query = query.order_by(Tag.tag)
-            has_tags = query.first()
+            # Fetch Tag query with ordering
+            query = session.query(Tag).order_by(Tag.tag)
+            tags = query.all()  # Retrieve all tags
+            has_tags = bool(tags)
             if has_tags:
                 tags_menu.append(Gtk.SeparatorMenuItem())
 
@@ -288,7 +290,7 @@ def remove_callback(tags):
         return
     session = object_session(tag)
     try:
-        obj = session.query(Tag).get(tag.id)
+        obj = session.execute(select(Tag)).scalars().get(tag.id)
         session.delete(obj)
         session.commit()
     except Exception as e:
@@ -381,7 +383,7 @@ class TagEditorPresenter(GenericEditorPresenter):
                     self.session.add(note)
             else:
                 # retrieve and update existing note
-                note = self.session.query(TagNote).filter_by(id=note_id).one()
+                note = self.session.execute(select(TagNote)).scalars().where(id=note_id).one()
                 if keep is False:
                     self.session.delete(note)
                 else:
@@ -471,8 +473,8 @@ class TagItemGUI(editor.GenericEditorView):
             return
         session = db.Session()
         try:
-            query = session.query(Tag)
-            tag = query.filter_by(tag=str(tag_name)).one()
+            query = session.execute(select(Tag)).scalars()
+            tag = query.where(tag=str(tag_name)).one()
             session.delete(tag)
             session.commit()
             model.remove(row_iter)
@@ -506,7 +508,7 @@ class TagItemGUI(editor.GenericEditorView):
         model = Gtk.ListStore(bool, str, bool)
         tag_all, tag_some, tag_none = get_tag_ids(self.values)
         session = db.Session()  # we need close it
-        tag_query = session.query(Tag)
+        tag_query = session.execute(select(Tag)).scalars()
         for tag in tag_query:
             model.append([tag.id in tag_all, tag.tag, tag.id in tag_some])
         self.tag_tree.set_model(model)
@@ -577,7 +579,7 @@ class Tag(db.Base, db.WithNotes):
                     TaggedObj.obj_id == obj.id,
                     TaggedObj.tag_id == self.id,
                 )
-                ntagged = session.query(TaggedObj).filter(cls).count()
+                ntagged = session.execute(select(TaggedObj)).scalars().where(cls).count()
                 if ntagged == 0:
                     tagged_obj = TaggedObj(
                         obj_class=type(obj).__name__, obj_id=obj.id, tag=self
@@ -591,7 +593,7 @@ class Tag(db.Base, db.WithNotes):
         if self.__my_own_timestamp is not None:
             with db.Session() as session:
                 last_history = (
-                    session.query(db.History.timestamp)
+                    session.execute(select(db.History.timestamp)).scalars()
                     .order_by(db.History.timestamp.desc())
                     .limit(1)
                     .scalar()
@@ -633,7 +635,7 @@ class Tag(db.Base, db.WithNotes):
 
         # Query objects for each mapper in a single query
         for mapper, ids in mapper_to_ids.items():
-            objects = session.query(mapper).filter(mapper.id.in_(ids)).all()
+            objects = session.execute(select(mapper)).scalars().where(mapper.id.in_(ids)).all()
             results.extend(objects)
 
         # Filter out None references (orphans)
@@ -644,7 +646,7 @@ class Tag(db.Base, db.WithNotes):
     def attached_to(cls, obj: bauble.db.Base) -> list:
         """Return the list of tags attached to the given object."""
         with db.Session() as session:
-            qto = session.query(TaggedObj).filter(
+            qto = session.execute(select(TaggedObj)).scalars().where(
                 TaggedObj.obj_class == type(obj).__name__,
                 TaggedObj.obj_id == obj.id,
             )
@@ -714,6 +716,7 @@ class TaggedObj(db.Base):
     __tablename__ = "tagged_obj"
 
     # columns
+    id = Column(Integer, primary_key=True)
     obj_id = Column(Integer, autoincrement=False)
     obj_class = Column(String(128))
     tag_id = Column(Integer, ForeignKey("tag.id"))
@@ -775,7 +778,7 @@ def create_named_empty_tag(name: str) -> None:
     with db.Session() as session:
         try:
             # Check if the tag already exists
-            tag = session.query(Tag).filter_by(tag=name).one()
+            tag = session.execute(select(Tag)).scalars().where(tag=name).one()
         except orm_exc.NoResultFound:
             # Create the tag if it doesn't exist
             logger.debug(f"Tag '{name}' not found, creating it.")
@@ -808,7 +811,7 @@ def untag_objects(name: str, objs: list) -> None:
 
     try:
         # Retrieve the tag
-        tag = session.query(Tag).filter_by(tag=name).one()
+        tag = session.execute(select(Tag)).scalars().where(tag=name).one()
     except orm_exc.NoResultFound:
         logger.info(f"Tag '{name}' does not exist. Nothing to remove.")
         return
@@ -851,7 +854,7 @@ def tag_objects(name: str, objects: list) -> None:
     name = utils.utf8(name)
     session = object_session(objects[0])
     try:
-        tag = session.query(Tag).filter_by(tag=name).one()
+        tag = session.execute(select(Tag)).scalars().where(tag=name).one()
     except orm_exc.NoResultFound:
         logger.debug(f"Tag '{name}' not found, creating it.")
         tag = Tag(tag=name)
@@ -888,7 +891,7 @@ def get_tag_ids(objs):
         raise ValueError("Cannot retrieve session from the provided objects.")
 
     # Fetch all tag IDs at once
-    all_tag_ids = {tag_id for tag_id, in session.query(Tag.id)}
+    all_tag_ids = {tag_id for tag_id, in session.execute(select(Tag.id)).scalars()}
 
     # Initialize sets for tags
     s_all = None
@@ -898,13 +901,17 @@ def get_tag_ids(objs):
     # Efficiently batch process objects
     for obj in objs:
         obj_classname = _classname(obj)
-        clause = and_(
-            TaggedObj.obj_class == obj_classname,
-            TaggedObj.obj_id == obj.id
+
+        applied_tag_ids = set(
+            session.scalars(
+                select(Tag.id)
+                .join(TaggedObj, TaggedObj.tag_id == Tag.id)
+                .where(
+                    TaggedObj.obj_class == obj_classname,
+                    TaggedObj.obj_id == obj.id
+                )
+            )
         )
-        applied_tag_ids = {
-            tag_id for tag_id, in session.query(Tag.id).join(TaggedObj, Tag._objects).filter(clause)
-        }
 
         if s_all is None:
             s_all = applied_tag_ids
