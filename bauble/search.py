@@ -47,6 +47,7 @@ from pyparsing import WordEnd
 from pyparsing import WordStart
 from pyparsing import ZeroOrMore
 from sqlalchemy import select
+from sqlalchemy import except_
 from sqlalchemy import not_
 from sqlalchemy import and_
 from sqlalchemy import or_
@@ -56,6 +57,8 @@ from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import class_mapper, aliased
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.properties import RelationshipProperty
+from sqlalchemy.orm.util import AliasedClass
+from sqlalchemy.sql import func
 
 
 logger = logging.getLogger(__name__)
@@ -64,6 +67,49 @@ logger.setLevel(logging.INFO)
 
 RelationProperty = RelationshipProperty
 
+from sqlalchemy.orm import RelationshipProperty
+
+
+def resolve_relationships(cls, steps, env):
+    """
+    Dynamically resolve relationships for a given class and steps.
+
+    Args:
+        cls: The current SQLAlchemy class being evaluated.
+        steps: A list of relationship steps to resolve.
+        env: The environment containing the session and other context.
+
+    Returns:
+        (stmt, current_cls): The updated statement and the final resolved class.
+    """
+    if not steps:
+        raise ValueError("No relationship steps provided to resolve.")
+        
+    stmt = select(cls)  # Start with the base class
+    current_cls = cls
+
+    for step in steps:
+        # Ensure we are inspecting the mapper of current_cls
+        mapper = inspect(current_cls).mapper if isinstance(current_cls, AliasedClass) else inspect(current_cls)
+
+        # Retrieve the relationship property
+        if step not in mapper.relationships:
+            raise ValueError(f"Relationship '{step}' not found on '{current_cls.__name__}'. Available: {list(mapper.relationships.keys())}")
+
+        relationship_property = mapper.relationships[step]
+        if not relationship_property:
+            raise ValueError(f"Relationship '{step}' not found on '{current_cls.__name__}'.")
+
+        # Resolve target class and alias it
+        target_cls = relationship_property.mapper.class_
+        if not target_cls:
+            raise ValueError(f"Unable to resolve target class for relationship '{step}'.")
+
+        aliased_entity = aliased(target_cls)
+        stmt = stmt.join(aliased_entity, getattr(current_cls, step))
+        current_cls = aliased_entity  # Update for next steps
+
+    return stmt, current_cls
 
 def search(text, session=None):
     results = set()
@@ -76,7 +122,7 @@ def search(text, session=None):
     return list(results)
 
 
-class NoneToken:
+class NoneToken(object):
     def __init__(self, t=None):
         pass
 
@@ -87,7 +133,7 @@ class NoneToken:
         return None
 
 
-class EmptyToken:
+class EmptyToken(object):
     def __init__(self, t=None):
         pass
 
@@ -95,7 +141,7 @@ class EmptyToken:
         return "Empty"
 
     def express(self):
-        return []
+        return set()
 
     def __eq__(self, other):
         if isinstance(other, EmptyToken):
@@ -105,14 +151,14 @@ class EmptyToken:
         return NotImplemented
 
 
-class ValueABC:
+class ValueABC(object):
     # abstract base class.
 
     def express(self):
         return self.value
 
 
-class ValueToken:
+class ValueToken(object):
 
     def __init__(self, t):
         self.value = t[0]
@@ -192,41 +238,7 @@ class TypedValueToken(ValueABC):
     def __repr__(self):
         return "%s" % (self.value)
 
-def resolve_relationships(cls, steps, env):
-    """
-    Dynamically resolve relationships for a given class and steps.
-
-    Args:
-        cls: The current SQLAlchemy class being evaluated.
-        steps: A list of relationship steps to resolve.
-        env: The environment containing the session and other context.
-
-    Returns:
-        (query, cls): The updated query and the final resolved class.
-    """
- 
-    stmt = select(cls)  # Start with the base class as a selectable statement
-
-    for step in steps:
-        # Resolve the relationship using inspect
-        relationship = getattr(cls, step, None)
-        if relationship is None:
-            raise ValueError(f"Cannot resolve relationship: {step} on {cls}")
-
-        mapper = inspect(cls)
-        relationship_property = mapper.relationships.get(step)
-        if not relationship_property:
-            raise ValueError(f"{step} is not a valid relationship for {cls}")
-
-        # Alias the target class and join
-        target_cls = relationship_property.mapper.class_
-        aliased_entity = aliased(target_cls)
-        stmt = stmt.join(aliased_entity, relationship)
-        cls = target_cls  # Update cls to the target for subsequent steps
-
-    return stmt, cls
-
-class IdentifierAction:
+class IdentifierAction(object):
     def __init__(self, t):
         logger.debug("IdentifierAction::__init__(%s)" % t)
         self.steps = t[0][:-2:2]
@@ -243,27 +255,31 @@ class IdentifierAction:
         The value associated with the identifier is an altered query where the
         joinpoint is the one relative to the attribute, and the attribute itself.
         """
-        query, cls = resolve_relationships(env.domain, self.steps, env)
+        # If no steps, operate directly on the base table
+        if not self.steps:
+            stmt = select(env.domain)
+            current_cls = env.domain
+        else:
+            # Resolve relationships dynamically
+            stmt, current_cls = resolve_relationships(env.domain, self.steps, env)
 
-        attr = getattr(cls, self.leaf, None)
-        if attr is None:
-            raise ValueError(f"Cannot resolve attribute: {self.leaf} on {cls}")
+            if stmt is None or current_cls is None:
+                raise ValueError(f"Failed to resolve relationships for steps: {self.steps}")
 
-        # Apply the filter clause to the query
-        # query = query.where(self.operation(attr, self.filter_value.express()))
+        # Resolve the leaf attribute on the final class
+        try:
+            attr = getattr(current_cls, self.leaf)
+        except AttributeError:
+            raise ValueError(f"Attribute '{self.leaf}' not found on class '{current_cls}'.")
 
-        logger.debug(
-            "IdentifierToken for %s, %s evaluates to %s",
-            cls, self.leaf, attr
-        )
-        return query, attr
-
+        logger.debug(f"Resolved attribute: {attr}")
+        return stmt, attr
 
     def needs_join(self, env):
-        return self.steps
+        return self.steps or []
 
 
-class FilteredIdentifierAction:
+class FilteredIdentifierAction(object):
     def __init__(self, t):
         logger.debug("FilteredIdentifierAction::__init__(%s)" % t)
         self.steps = t[0][:-7:2]
@@ -303,26 +319,32 @@ class FilteredIdentifierAction:
         )
 
     def evaluate(self, env):
-        """Return pair (stmt, attribute)."""
-        stmt, cls = resolve_relationships(env.domain, self.steps, env)
+        """
+        Evaluate the identifier and return the query and attribute.
+        """
+        # Use resolve_relationships to dynamically resolve steps
+        stmt, current_cls = resolve_relationships(env.domain, self.steps, env)
 
-        attr = getattr(cls, self.filter_attr, None)
-        if attr is None:
-            raise ValueError(f"Cannot resolve attribute: {self.filter_attr} on {cls}")
+        # Apply the filter clause on the resolved class
+        if not hasattr(current_cls, self.filter_attr):
+            raise ValueError(f"Attribute '{self.filter_attr}' not found on '{current_cls}'")
 
-        logger.debug("Filtering on attribute %s with value %s", attr, self.filter_value.express())
+        attr = getattr(current_cls, self.filter_attr)
+        clause = lambda x: self.operation(attr, x)
+        stmt = stmt.filter(clause(self.filter_value.express()))
 
-        # Add the WHERE clause dynamically to the statement
-        stmt = stmt.where(self.operation(attr, self.filter_value.express()))
+        # Resolve the final leaf attribute
+        leaf_attr = getattr(current_cls, self.leaf, None)
+        if not leaf_attr:
+            raise ValueError(f"Leaf attribute '{self.leaf}' not found on '{current_cls}'")
 
-        return stmt, attr
-
+        return stmt, leaf_attr
 
     def needs_join(self, env):
         return self.steps
 
 
-class IdentExpression:
+class IdentExpression(object):
     def __init__(self, t):
         logger.debug("IdentExpression::__init__(%s)" % t)
         self.op = t[0][1]
@@ -353,22 +375,38 @@ class IdentExpression:
         return "({} {} {})".format(self.operands[0], self.op, self.operands[1])
 
     def evaluate(self, env):
-        q, a = self.operands[0].evaluate(env)
-        if not self.operands[1].express():
-            # check against the empty set
-            if self.op in ("is", "=", "=="):
-                return q.where(~a.any()), a
-            elif self.op in ("not", "<>", "!="):
-                return q.where(a.any()), a
+        """
+        Evaluate and return the filtered query result.
+        """
+        # Unpack the query and attribute from the first operand
+        stmt, attr = self.operands[0].evaluate(env)
 
-        def clause(x):
-            return self.operation(a, x)
+        # Check if the second operand represents an empty set
+        if self.operands[1].express() == set():
+            if self.op in ('is', '=', '=='):
+                return stmt.filter(~attr.any())
+            elif self.op in ('not', '<>', '!='):
+                return stmt.filter(attr.any())
 
-        logger.debug("filtering on {}({})".format(type(a), a))
-        return q.where(self.operation(a, self.operands[1].express())), a
+        # Apply the operation
+        clause = lambda x: self.operation(attr, x)
+        logger.debug('filtering on %s(%s)', type(attr), attr)
 
+        # Directly filter using the attribute and clause
+        stmt = stmt.filter(clause(self.operands[1].express()))
+        return stmt
+    
     def needs_join(self, env):
-        return [self.operands[0].needs_join(env)]
+        """
+        Collect join steps from operands, ensuring a flat list.
+        """
+        return [self.operands[0].needs_join(env)]        
+        #joins = []
+        #for operand in self.operands:
+        #    steps = operand.needs_join(env)
+        #    if steps:  # Only extend if steps are non-empty
+        #        joins.extend(steps)
+        #return joins
 
 
 class ElementSetExpression(IdentExpression):
@@ -376,19 +414,8 @@ class ElementSetExpression(IdentExpression):
 
     def evaluate(self, env):
         q, a = self.operands[0].evaluate(env)
-        from sqlalchemy import bindparam
-
-        operand_values = self.operands[1].express()
-        # Ensure operand_values is a list
-        if not isinstance(operand_values, list):
-            if operand_values is None:
-                operand_values = []
-            else:
-                operand_values = [operand_values]
-
-        return q.where(
-            a.in_(bindparam("operand_values", expanding=True))
-        ).params(operand_values=operand_values), a
+        stmt = select(q).filter(a.in_(self.operands[1].express()))
+        return env.session.scalars(stmt)
 
 
 class AggregatedExpression(IdentExpression):
@@ -404,37 +431,34 @@ class AggregatedExpression(IdentExpression):
         logger.debug("AggregatedExpression::__init__(%s)" % t)
 
     def evaluate(self, env):
-        # operands[0] is the function/identifier pair
-        # operands[1] is the value against which to test
-        # operation implements the clause
-        q, a = self.operands[0].identifier.evaluate(env)
-        from sqlalchemy.sql import func
-
+        """
+        Evaluate the aggregated function query.
+        """
+        # Get the query and attribute
+        stmt, attr = self.operands[0].identifier.evaluate(env)
+        
+        # Resolve the aggregate function
         f = getattr(func, self.operands[0].function)
 
-        def clause(x):
-            return self.operation(f(a), x)
-
-
+        # Build HAVING clause
+        clause = lambda x: self.operation(f(attr), x)
         val = self.operands[1].express()
-        # If val is a list, extract the first element or handle empty
-        if isinstance(val, list):
-            if not val:
-                # If empty, decide how to handle. For example:
-                # Return the original query without a having clause.
-                return q, a
-            val = val[0]  # Use the first value
 
-        # group by main ID
-        # apply having
-        main_table = q.column_descriptions[0]["type"]
-        mta = getattr(main_table, "id")
-        logger.debug("filtering on {}({})".format(type(mta), mta))
-        result = q.group_by(mta).having(clause(val))
-        return result, a
+        # Group by the main table's ID
+        main_table = stmt.column_descriptions[0]["type"]
+        group_by_column = getattr(main_table, "id", None)
+        if not group_by_column:
+            raise ValueError("Main table must have an 'id' column to group by.")
+
+        logger.debug(f"Applying aggregate function {f} to attribute {attr}")
+        stmt = (
+            stmt.group_by(group_by_column)
+            .having(clause(val))
+        )
+        return stmt
 
 
-class BetweenExpressionAction:
+class BetweenExpressionAction(object):
     def __init__(self, t):
         self.operands = t[0][0::2]  # every second object is an operand
 
@@ -443,108 +467,95 @@ class BetweenExpressionAction:
 
     def evaluate(self, env):
         q, a = self.operands[0].evaluate(env)
+        clause_low = lambda low: low <= a
+        clause_high = lambda high: a <= high
 
-        low_val = self.operands[1].express()
-        high_val = self.operands[2].express()
-
-        # If low_val and high_val return lists or could be empty, handle it:
-        if isinstance(low_val, list):
-            if not low_val:
-                # handle empty scenario: maybe skip applying the condition or return q as is
-                return q, a
-            low_val = low_val[0]
-
-        if isinstance(high_val, list):
-            if not high_val:
-                # handle empty scenario similarly
-                return q, a
-            high_val = high_val[0]
-
-        return q.where(
+        stmt = select(q).filter(
             and_(
-                low_val <= a,
-                a <= high_val,
+                clause_low(self.operands[1].express()),
+                clause_high(self.operands[2].express())
             )
-        ), a
+        )
+        return env.session.scalars(stmt)
 
     def needs_join(self, env):
         return [self.operands[0].needs_join(env)]
 
 
-class UnaryLogical:
-    # abstract base class. `name` is defined in derived classes
+class UnaryLogical(object):
+    ## abstract base class. `name` is defined in derived classes
     def __init__(self, t):
         self.op, self.operand = t[0]
 
     def __repr__(self):
-        return "{} {}".format(self.name, str(self.operand))
+        return "%s %s" % (self.name, str(self.operand))
 
     def needs_join(self, env):
-        return self.operand.needs_join(env)
+        """
+        Return join steps from operand, ensuring a flat list.
+        """
+        steps = self.operand.needs_join(env)
+        return steps if steps else []
 
 
-class BinaryLogical:
-    # abstract base class. `name` is defined in derived classes
+class BinaryLogical(object):
+    ## abstract base class. `name` is defined in derived classes
     def __init__(self, t):
         self.op = t[0][1]
-        self.operands = t[0][0::2]  # every second object is an operand
+        self.operands = t[0][0::2]
 
     def __repr__(self):
-        return "({} {} {})".format(
-            self.operands[0], self.name, self.operands[1]
-        )
+        return "(%s %s %s)" % (self.operands[0], self.name, self.operands[1])
 
     def needs_join(self, env):
-        return self.operands[0].needs_join(env) + self.operands[1].needs_join(
-            env
-        )
+        return self.operands[0].needs_join(env) + \
+               self.operands[1].needs_join(env)
 
 
 class SearchAndAction(BinaryLogical):
     name = "AND"
 
     def evaluate(self, env):
-        stmt0, attr0 = self.operands[0].evaluate(env)
-        # Now stmt0 is a Select or Query. For each operand, intersect results.
-        # Assume these are Query or Select objects supporting intersection.
-        # If using Select/Query union, ensure both sides are compatible.
-        # If they're Queries, we can do:
-        # result = stmt0.intersect(stmtX) if Query objects.
-        # If they are Select objects, intersection isn't native; you'd handle differently.
-        # For simplicity, assume Query objects from previous logic:
-        # Convert all subsequent evaluations:
-        for op in self.operands[1:]:
-            stmtX, attrX = op.evaluate(env)
-            stmt0 = stmt0.intersect(stmtX)
-        return stmt0, attr0
+        result = self.operands[0].evaluate(env)
+        for operand in self.operands[1:]:
+            result = result.intersect(operand.evaluate(env))
+        return result
 
 
 class SearchOrAction(BinaryLogical):
-    name = "OR"
+    name = 'OR'
 
     def evaluate(self, env):
-        stmt0, attr0 = self.operands[0].evaluate(env)
-        for op in self.operands[1:]:
-            stmtX, attrX = op.evaluate(env)
-            stmt0 = stmt0.union(stmtX)
-        return stmt0, attr0
+        result = self.operands[0].evaluate(env)
+        for operand in self.operands[1:]:
+            result = result.union(operand.evaluate(env))
+        return result
 
 
 class SearchNotAction(UnaryLogical):
-    name = "NOT"
+    name = 'NOT'
 
     def evaluate(self, env):
-        q = env.session.execute(select(env.domain)).scalars()
-        # q is a result, not a query. If we need a query:
-        # Actually, originally it was query-based. Let's assume we have a Query.
-        # Replace with 2.0 style:
-        base = env.session.query(env.domain)
-        op_stmt, op_attr = self.operand.evaluate(env)
-        # except_ is Query operation
-        result = base.except_(op_stmt)
-        return result, None
+        """
+        Evaluate the NOT action, which excludes the results of the operand
+        from the base query.
+        """
+        # Start with a SELECT statement for the main domain
+        stmt = select(env.domain)
 
-class ParenthesisedQuery:
+        # Apply joins for all domains
+        for domain in env.domains:
+            if domain:  # Skip empty domains
+                stmt = stmt.join(domain)
+
+        # Exclude the operand's results using an EXCEPT clause
+        operand_stmt = self.operand.evaluate(env)
+        stmt = except_(stmt, operand_stmt)
+
+        return stmt
+
+
+class ParenthesisedQuery(object):
     def __init__(self, t):
         self.content = t[1]
 
@@ -552,19 +563,18 @@ class ParenthesisedQuery:
         return "(%s)" % self.content.__repr__()
 
     def evaluate(self, env):
-        return self.content.evaluate(env)  # self.content now returns (stmt, attr)
+        return self.content.evaluate(env)
 
     def needs_join(self, env):
         return self.content.needs_join(env)
 
-
-class QueryAction:
+class QueryAction(object):
     def __init__(self, t):
         self.domain = t[0]
         self.filter = t[1][0]
 
     def __repr__(self):
-        return "SELECT * FROM {} WHERE {}".format(self.domain, self.filter)
+        return "SELECT * FROM %s WHERE %s" % (self.domain, self.filter)
 
     def invoke(self, search_strategy):
         """
@@ -602,11 +612,10 @@ class QueryAction:
             self.session = search_strategy._session
 
             # Unpack the evaluated query and attribute
-            stmt, _ = self.filter.evaluate(self)
+            stmt = self.filter.evaluate(self)
 
             # Properly execute the query and fetch results
-            records = self.session.execute(stmt).scalars().all()        
-            result.update(records)
+            result.update(self.session.scalars(stmt).all())
 
         if None in result:
             logger.warning("removing None from result set")
@@ -614,16 +623,18 @@ class QueryAction:
         return result
 
 
-class StatementAction:
+class StatementAction(object):
     def __init__(self, t):
         self.content = t[0]
-        self.invoke = lambda x: self.content.invoke(x)
 
     def __repr__(self):
         return repr(self.content)
 
+    def invoke(self, search_strategy):
+        return self.content.invoke(search_strategy)
 
-class BinomialNameAction:
+
+class BinomialNameAction(object):
     """created when the parser hits a binomial_name token.
 
     Searching using binomial names returns one or more species objects.
@@ -634,35 +645,33 @@ class BinomialNameAction:
         self.species_epithet = t[1]
 
     def __repr__(self):
-        return "{} {}".format(self.genus_epithet, self.species_epithet)
+        return "%s %s" % (self.genus_epithet, self.species_epithet)
 
     def invoke(self, search_strategy):
-        logger.debug("BinomialNameAction:invoke")
         from bauble.plugins.plants.genus import Genus
         from bauble.plugins.plants.species import Species
+        logger.debug('BinomialNameAction:invoke')
 
-        result = (
-            search_strategy._session.execute(select(Species))
-            .where(
+        stmt = (
+            select(Species)
+            .filter(
                 or_(
                     Species.sp.startswith(self.species_epithet),
-                    and_(
-                        self.species_epithet == "sp", Species.infrasp1 == "sp"
-                    ),
+                    and_(self.species_epithet == 'sp', Species.infrasp1 == 'sp')
                 )
-            ).scalars()
+            )
             .join(Genus)
-            .where(Genus.genus.startswith(self.genus_epithet))
-            .all()
+            .filter(Genus.genus.startswith(self.genus_epithet))
         )
-        result = set(result)
+
+        result = set(search_strategy._session.scalars(stmt).all())
         if None in result:
-            logger.warning("removing None from result set")
+            logger.warning('removing None from result set')
             result = {i for i in result if i is not None}
         return result
 
 
-class DomainExpressionAction:
+class DomainExpressionAction(object):
     """created when the parser hits a domain_expression token.
 
     Searching using domain expressions is a little more magical than an
@@ -678,7 +687,7 @@ class DomainExpressionAction:
         self.values = t[2]
 
     def __repr__(self):
-        return "{} {} {}".format(self.domain, self.cond, self.values)
+        return "%s %s %s" % (self.domain, self.cond, self.values)
 
     def invoke(self, search_strategy):
         logger.debug("DomainExpressionAction:invoke")
@@ -702,47 +711,34 @@ class DomainExpressionAction:
         # select all objects from the domain
         if self.values == "*":
             # execute directly if we want all records
-            records = search_strategy._session.execute(stmt).scalars().all()
-            result.update(records)
+            result.update(search_strategy._session.execute(stmt).scalars().all())
+
             return result
 
         mapper = inspect(cls)
 
-        if self.cond in ("like", "ilike"):
+        def condition(col):
+            if self.cond in ('like', 'ilike'):
+                return lambda val: utils.ilike(col, '%s' % val)
+            elif self.cond in ('contains', 'icontains', 'has', 'ihas'):
+                return lambda val: utils.ilike(col, '%%%s%%' % val)
+            elif self.cond == '=':
+                return lambda val: col == utils.utf8(val)
+            else:
+                return lambda val: col.op(self.cond)(val)
 
-            def condition(col):
-                return lambda val: utils.ilike(mapper.c[col], "%s" % val)
-
-        elif self.cond in ("contains", "icontains", "has", "ihas"):
-
-            def condition(col):
-                return lambda val: utils.ilike(mapper.c[col], "%%%s%%" % val)
-
-        elif self.cond == "=":
-
-            def condition(col):
-                return lambda val: mapper.c[col] == utils.utf8(val)
-
-        else:
-
-            def condition(col):
-                return lambda val: mapper.c[col].op(self.cond)(val)
-
-        # Build the OR condition and apply it to the SELECT statement
-        ors = or_(*[condition(col)(v) for col in properties for v in self.values.express()])
-        stmt = stmt.where(ors)
-
-        # Now execute the fully constructed query
-        records = search_strategy._session.execute(stmt).scalars().all()
-        result.update(records)
+        for col in properties:
+            ors = or_(*[condition(getattr(cls, col))(val) for val in self.values.express()])
+            stmt = stmt.filter(ors)
+            result.update(search_strategy._session.scalars(stmt).all())
 
         if None in result:
-            logger.warning("removing None from result set")
+            logger.warning('removing None from result set')
             result = {i for i in result if i is not None}
         return result
 
 
-class AggregatingAction:
+class AggregatingAction(object):
 
     def __init__(self, t):
         logger.debug("AggregatingAction::__init__(%s)" % t)
@@ -750,8 +746,8 @@ class AggregatingAction:
         self.identifier = t[2]
 
     def __repr__(self):
-        return "({} {})".format(self.function, self.identifier)
-
+        return "(%s %s)" % (self.function, self.identifier)
+    
     def needs_join(self, env):
         return [self.identifier.needs_join(env)]
 
@@ -764,11 +760,11 @@ class AggregatingAction:
         WHERE.
 
         """
+        q, a = self.identifier.evaluate(env)
+        return q, a
 
-        return self.identifier.evaluate(env)
 
-
-class ValueListAction:
+class ValueListAction(object):
 
     def __init__(self, t):
         logger.debug("ValueListAction::__init__(%s)" % t)
@@ -778,14 +774,7 @@ class ValueListAction:
         return str(self.values)
 
     def express(self):
-        flattened = []
-        for val in self.values:
-            x = val.express()
-            if isinstance(x, list):
-                flattened.extend(x)
-            else:
-                flattened.append(x)
-        return flattened
+        return [i.express() for i in self.values]
 
     from sqlalchemy import select, or_
 
@@ -797,40 +786,31 @@ class ValueListAction:
         searches all the mapper and the properties configured with
         add_meta()
         """
-        logger.debug('ValueListAction:invoke')
-        like = lambda table, col, val: utils.ilike(table.c[col], f'%{val}%')
+        logger.debug("ValueListAction:invoke")
+        like = lambda table, col, val: utils.ilike(table.c[col], ("%%%s%%" % val))
 
         result = set()
         for cls, columns in search_strategy._properties.items():
             column_cross_value = [(c, v) for c in columns for v in self.express()]
-
-        def unicol(col, v):
             table = inspect(cls)
-            if isinstance(table.c[col].type, (Unicode, UnicodeText)):
-                return str(v)
-            else:
-                return v
+            stmt = select(cls)
 
-        table = inspect(cls)
-        stmt = (
-                select(cls)
-                    .where(
-                    or_(
-                        *[
-                            like(table, c, unicol(c, v))
-                            for c, v in column_cross_value
-                        ]
-                    )
-                    )
-                )
+            # Filter results using ilike or similar case-insensitive functions
+            ors = or_(*[like(table, c, v) for c, v in column_cross_value])
+            stmt = stmt.filter(ors)
 
-        records = search_strategy._session.execute(stmt).scalars().all()
-        result.update(records)
+            result.update(search_strategy._session.scalars(stmt).all())
 
-        if None in result:
-            logger.warning("removing None from result set")
-            result = {i for i in result if i is not None}
+        def replace(i):
+            try:
+                replacement = i.replacement()
+                logger.debug("replacing %s by %s in result set", i, replacement)
+                return replacement
+            except Exception:
+                return i
 
+        result = {replace(i) for i in result if i is not None}
+        logger.debug("Result is now %s", result)
         return result
 
 
@@ -970,7 +950,7 @@ class SearchParser:
         return self.statement.parseString(text)
 
 
-class SearchStrategy:
+class SearchStrategy(object):
     """
     Interface for adding search strategies to a view.
     """
@@ -1053,7 +1033,7 @@ class MapperSearch(SearchStrategy):
     @classmethod
     def get_domain_classes(cls):
         d = {}
-        for domain, item in list(cls._domains.items()):
+        for domain, item in cls._domains.items():
             d.setdefault(domain, item[0])
         return d
 
