@@ -48,6 +48,7 @@ import bauble.utils
 from bauble.plugins.garden import Accession, Location, Plant
 from bauble.plugins.garden.aggregateclient import get_image, get_submissions
 from bauble.plugins.plants import Genus, Species
+from sqlalchemy import select
 
 zzz = Genus(epithet="Zzz")
 

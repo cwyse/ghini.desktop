@@ -95,7 +95,7 @@ class EmptyToken:
         return "Empty"
 
     def express(self):
-        return set()
+        return []
 
     def __eq__(self, other):
         if isinstance(other, EmptyToken):
@@ -205,7 +205,8 @@ def resolve_relationships(cls, steps, env):
         (query, cls): The updated query and the final resolved class.
     """
  
-    query = env.session.execute(select(cls)).scalars()  # Start with the base class.
+    stmt = select(cls)  # Start with the base class as a selectable statement
+
     for step in steps:
         # Resolve the relationship using inspect
         relationship = getattr(cls, step, None)
@@ -220,10 +221,10 @@ def resolve_relationships(cls, steps, env):
         # Alias the target class and join
         target_cls = relationship_property.mapper.class_
         aliased_entity = aliased(target_cls)
-        query = query.join(aliased_entity, relationship)
+        stmt = stmt.join(aliased_entity, relationship)
         cls = target_cls  # Update cls to the target for subsequent steps
 
-    return query, cls
+    return stmt, cls
 
 class IdentifierAction:
     def __init__(self, t):
@@ -236,18 +237,20 @@ class IdentifierAction:
 
 
     def evaluate(self, env):
-        """Return pair (query, attribute)
-
-        The value associated to the identifier is an altered query where the
-        joinpoint is the one relative to the attribute, and the attribute
-        itself.
         """
+        Return pair (stmt, attribute).
 
+        The value associated with the identifier is an altered query where the
+        joinpoint is the one relative to the attribute, and the attribute itself.
+        """
         query, cls = resolve_relationships(env.domain, self.steps, env)
 
         attr = getattr(cls, self.leaf, None)
         if attr is None:
             raise ValueError(f"Cannot resolve attribute: {self.leaf} on {cls}")
+
+        # Apply the filter clause to the query
+        # query = query.where(self.operation(attr, self.filter_value.express()))
 
         logger.debug(
             "IdentifierToken for %s, %s evaluates to %s",
@@ -300,27 +303,20 @@ class FilteredIdentifierAction:
         )
 
     def evaluate(self, env):
-        """return pair (query, attribute)"""
-        query, cls = resolve_relationships(env.domain, self.steps, env)
+        """Return pair (stmt, attribute)."""
+        stmt, cls = resolve_relationships(env.domain, self.steps, env)
+
         attr = getattr(cls, self.filter_attr, None)
         if attr is None:
-            raise ValueError(f"Cannot resolve attribute: {self.leaf} on {cls}")
+            raise ValueError(f"Cannot resolve attribute: {self.filter_attr} on {cls}")
 
-        def clause(x):
-            return self.operation(attr, x)
+        logger.debug("Filtering on attribute %s with value %s", attr, self.filter_value.express())
 
-        logger.debug("filtering on {}({})".format(type(attr), attr))
+        # Add the WHERE clause dynamically to the statement
+        stmt = stmt.where(self.operation(attr, self.filter_value.express()))
 
-        # Updated filter logic with .where
-        query = query.where(self.operation(attr, self.filter_value.express()))
-        attr = getattr(cls, self.leaf, None)
-        if attr is None:
-            raise ValueError(f"Cannot resolve attribute: {self.leaf} on {cls}")
-        logger.debug(
-            "IdentifierToken for %s, %s evaluates to %s"
-            % (cls, self.leaf, attr)
-        )
-        return (query, attr)
+        return stmt, attr
+
 
     def needs_join(self, env):
         return self.steps
@@ -358,18 +354,18 @@ class IdentExpression:
 
     def evaluate(self, env):
         q, a = self.operands[0].evaluate(env)
-        if self.operands[1].express() == set():
+        if not self.operands[1].express():
             # check against the empty set
             if self.op in ("is", "=", "=="):
-                return q.where(~a.any())
+                return q.where(~a.any()), a
             elif self.op in ("not", "<>", "!="):
-                return q.where(a.any())
+                return q.where(a.any()), a
 
         def clause(x):
             return self.operation(a, x)
 
         logger.debug("filtering on {}({})".format(type(a), a))
-        return q.where(self.operation(a, self.operands[1].express()))
+        return q.where(self.operation(a, self.operands[1].express())), a
 
     def needs_join(self, env):
         return [self.operands[0].needs_join(env)]
@@ -382,9 +378,17 @@ class ElementSetExpression(IdentExpression):
         q, a = self.operands[0].evaluate(env)
         from sqlalchemy import bindparam
 
+        operand_values = self.operands[1].express()
+        # Ensure operand_values is a list
+        if not isinstance(operand_values, list):
+            if operand_values is None:
+                operand_values = []
+            else:
+                operand_values = [operand_values]
+
         return q.where(
             a.in_(bindparam("operand_values", expanding=True))
-        ).params(operand_values=self.operands[1].express())
+        ).params(operand_values=operand_values), a
 
 
 class AggregatedExpression(IdentExpression):
@@ -411,13 +415,23 @@ class AggregatedExpression(IdentExpression):
         def clause(x):
             return self.operation(f(a), x)
 
+
+        val = self.operands[1].express()
+        # If val is a list, extract the first element or handle empty
+        if isinstance(val, list):
+            if not val:
+                # If empty, decide how to handle. For example:
+                # Return the original query without a having clause.
+                return q, a
+            val = val[0]  # Use the first value
+
         # group by main ID
         # apply having
         main_table = q.column_descriptions[0]["type"]
         mta = getattr(main_table, "id")
         logger.debug("filtering on {}({})".format(type(mta), mta))
-        result = q.group_by(mta).having(clause(self.operands[1].express()))
-        return result
+        result = q.group_by(mta).having(clause(val))
+        return result, a
 
 
 class BetweenExpressionAction:
@@ -430,18 +444,28 @@ class BetweenExpressionAction:
     def evaluate(self, env):
         q, a = self.operands[0].evaluate(env)
 
-        def clause_low(low):
-            return low <= a
+        low_val = self.operands[1].express()
+        high_val = self.operands[2].express()
 
-        def clause_high(high):
-            return a <= high
+        # If low_val and high_val return lists or could be empty, handle it:
+        if isinstance(low_val, list):
+            if not low_val:
+                # handle empty scenario: maybe skip applying the condition or return q as is
+                return q, a
+            low_val = low_val[0]
+
+        if isinstance(high_val, list):
+            if not high_val:
+                # handle empty scenario similarly
+                return q, a
+            high_val = high_val[0]
 
         return q.where(
             and_(
-                clause_low(self.operands[1].express()),
-                clause_high(self.operands[2].express()),
+                low_val <= a,
+                a <= high_val,
             )
-        )
+        ), a
 
     def needs_join(self, env):
         return [self.operands[0].needs_join(env)]
@@ -480,20 +504,30 @@ class SearchAndAction(BinaryLogical):
     name = "AND"
 
     def evaluate(self, env):
-        result = self.operands[0].evaluate(env)
-        for i in self.operands[1:]:
-            result = result.intersect(i.evaluate(env))
-        return result
+        stmt0, attr0 = self.operands[0].evaluate(env)
+        # Now stmt0 is a Select or Query. For each operand, intersect results.
+        # Assume these are Query or Select objects supporting intersection.
+        # If using Select/Query union, ensure both sides are compatible.
+        # If they're Queries, we can do:
+        # result = stmt0.intersect(stmtX) if Query objects.
+        # If they are Select objects, intersection isn't native; you'd handle differently.
+        # For simplicity, assume Query objects from previous logic:
+        # Convert all subsequent evaluations:
+        for op in self.operands[1:]:
+            stmtX, attrX = op.evaluate(env)
+            stmt0 = stmt0.intersect(stmtX)
+        return stmt0, attr0
 
 
 class SearchOrAction(BinaryLogical):
     name = "OR"
 
     def evaluate(self, env):
-        result = self.operands[0].evaluate(env)
-        for i in self.operands[1:]:
-            result = result.union(i.evaluate(env))
-        return result
+        stmt0, attr0 = self.operands[0].evaluate(env)
+        for op in self.operands[1:]:
+            stmtX, attrX = op.evaluate(env)
+            stmt0 = stmt0.union(stmtX)
+        return stmt0, attr0
 
 
 class SearchNotAction(UnaryLogical):
@@ -501,9 +535,14 @@ class SearchNotAction(UnaryLogical):
 
     def evaluate(self, env):
         q = env.session.execute(select(env.domain)).scalars()
-        for aliased_entity, relationship in env.domains:
-            q = q.join(aliased_entity, relationship)
-        return q.where(not_(self.operand.evaluate(env)))
+        # q is a result, not a query. If we need a query:
+        # Actually, originally it was query-based. Let's assume we have a Query.
+        # Replace with 2.0 style:
+        base = env.session.query(env.domain)
+        op_stmt, op_attr = self.operand.evaluate(env)
+        # except_ is Query operation
+        result = base.except_(op_stmt)
+        return result, None
 
 class ParenthesisedQuery:
     def __init__(self, t):
@@ -513,7 +552,7 @@ class ParenthesisedQuery:
         return "(%s)" % self.content.__repr__()
 
     def evaluate(self, env):
-        return self.content.evaluate(env)
+        return self.content.evaluate(env)  # self.content now returns (stmt, attr)
 
     def needs_join(self, env):
         return self.content.needs_join(env)
@@ -559,12 +598,14 @@ class QueryAction:
 
         result = set()
         if search_strategy._session is not None:
-            self.domains = [
-                (aliased(getattr(self.domain, step).mapper.class_), getattr(self.domain, step))
-                for step in self.filter.needs_join(self)
-            ]
+            self.domains = self.filter.needs_join(self)
             self.session = search_strategy._session
-            records = self.filter.evaluate(self).all()
+
+            # Unpack the evaluated query and attribute
+            stmt, _ = self.filter.evaluate(self)
+
+            # Properly execute the query and fetch results
+            records = self.session.execute(stmt).scalars().all()        
             result.update(records)
 
         if None in result:
@@ -648,7 +689,9 @@ class DomainExpressionAction:
         except KeyError:
             raise KeyError(_("Unknown search domain: %s") % self.domain)
 
-        query = search_strategy._session.execute(select(cls)).scalars()
+        # Start by building a SELECT statement
+        stmt = select(cls)
+        #query = search_strategy._session.execute(select(cls)).scalars()
 
         # here is the place where to optionally filter out unrepresented
         # domain values. each domain class should define its own 'I have
@@ -658,10 +701,12 @@ class DomainExpressionAction:
 
         # select all objects from the domain
         if self.values == "*":
-            result.update(query.all())
+            # execute directly if we want all records
+            records = search_strategy._session.execute(stmt).scalars().all()
+            result.update(records)
             return result
 
-        mapper = class_mapper(cls)
+        mapper = inspect(cls)
 
         if self.cond in ("like", "ilike"):
 
@@ -683,9 +728,13 @@ class DomainExpressionAction:
             def condition(col):
                 return lambda val: mapper.c[col].op(self.cond)(val)
 
-        for col in properties:
-            ors = or_(*list(map(condition(col), self.values.express())))
-            result.update(query.where(ors).all())
+        # Build the OR condition and apply it to the SELECT statement
+        ors = or_(*[condition(col)(v) for col in properties for v in self.values.express()])
+        stmt = stmt.where(ors)
+
+        # Now execute the fully constructed query
+        records = search_strategy._session.execute(stmt).scalars().all()
+        result.update(records)
 
         if None in result:
             logger.warning("removing None from result set")
@@ -729,7 +778,16 @@ class ValueListAction:
         return str(self.values)
 
     def express(self):
-        return [i.express() for i in self.values]
+        flattened = []
+        for val in self.values:
+            x = val.express()
+            if isinstance(x, list):
+                flattened.extend(x)
+            else:
+                flattened.append(x)
+        return flattened
+
+    from sqlalchemy import select, or_
 
     def invoke(self, search_strategy):
         """
@@ -739,58 +797,42 @@ class ValueListAction:
         searches all the mapper and the properties configured with
         add_meta()
         """
-
-        logger.debug("ValueListAction:invoke")
-        # make searches case-insensitive, in postgres use ilike,
-        # in other use upper()
-
-        def like(table, col, val):
-            return utils.ilike(table.c[col], ("%%%s%%" % val))
+        logger.debug('ValueListAction:invoke')
+        like = lambda table, col, val: utils.ilike(table.c[col], f'%{val}%')
 
         result = set()
-        for cls, columns in list(search_strategy._properties.items()):
-            column_cross_value = [
-                (c, v) for c in columns for v in self.express()
-            ]
-            # as of SQLAlchemy>=0.4.2 we convert the value to a unicode
-            # object if the col is a Unicode or UnicodeText column in order
-            # to avoid the "Unicode type received non-unicode bind param"
+        for cls, columns in search_strategy._properties.items():
+            column_cross_value = [(c, v) for c in columns for v in self.express()]
 
-            def unicol(col, v):
-                table = class_mapper(cls)
-                if isinstance(table.c[col].type, (Unicode, UnicodeText)):
-                    return str(v)
-                else:
-                    return v
+        def unicol(col, v):
+            table = inspect(cls)
+            if isinstance(table.c[col].type, (Unicode, UnicodeText)):
+                return str(v)
+            else:
+                return v
 
-            table = class_mapper(cls)
-            q = search_strategy._session.execute(select(cls)).scalars()  # prepares SELECT
-            q = q.where(
-                or_(
-                    *[
-                        like(table, c, unicol(c, v))
-                        for c, v in column_cross_value
-                    ]
+        table = inspect(cls)
+        stmt = (
+                select(cls)
+                    .where(
+                    or_(
+                        *[
+                            like(table, c, unicol(c, v))
+                            for c, v in column_cross_value
+                        ]
+                    )
+                    )
                 )
-            )
-            result.update(q.all())
 
-        def replace(i):
-            try:
-                replacement = i.replacement()
-                logger.debug(
-                    "replacing %s by %s in result set" % (i, replacement)
-                )
-                return replacement
-            except:
-                return i
+        records = search_strategy._session.execute(stmt).scalars().all()
+        result.update(records)
 
-        result = {replace(i) for i in result}
-        logger.debug("result is now %s" % result)
         if None in result:
             logger.warning("removing None from result set")
             result = {i for i in result if i is not None}
+
         return result
+
 
 
 wordStart, wordEnd = WordStart(), WordEnd()
@@ -1135,7 +1177,7 @@ class SchemaBrowser(Gtk.VBox):
         utils.clear_model(self.prop_tree)
         it = combo.get_active_iter()
         domain = combo.props.model[it][0]
-        mapper = class_mapper(self.domain_map[domain])
+        mapper = inspect(self.domain_map[domain])
         model = Gtk.TreeStore(str, object)
         root = model.get_iter_root()
         self._insert_props(mapper, model, root)

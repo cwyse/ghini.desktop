@@ -223,12 +223,14 @@ class SplashInfoBox(pluginmgr.View):
         safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), "")
 
         ssn = db.Session()
-        q = ssn.execute(select(bauble.meta.BaubleMeta)).scalars()
-        q = q.where(bauble.meta.BaubleMeta.name.startswith("stqr"))
-        name_tooltip_query = {
-            int(i.name[5:]): (i.value.split(":", 2)) for i in q.all()
-        }
+        stmt = select(bauble.meta.BaubleMeta).where(bauble.meta.BaubleMeta.name.startswith('stqr'))
+        records = ssn.execute(stmt).scalars().all()
         ssn.close()
+
+        name_tooltip_query = {
+            int(i.name[5:]): (i.value.split(':', 2))
+            for i in records
+        }
 
         for i in range(1, 11):
             wname = "stqr_%02d_button" % i

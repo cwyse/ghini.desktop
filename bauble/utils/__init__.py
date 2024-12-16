@@ -933,6 +933,7 @@ def create_message_details_dialog(
         d.set_size_request(300, -1)
 
     expand = Gtk.Expander()
+    expand.set_expanded(True)
     text_view = Gtk.TextView()
     text_view.set_editable(False)
     text_view.set_wrap_mode(Gtk.WrapMode.WORD)
@@ -1389,11 +1390,15 @@ def ilike(col, val, engine=None):
     Return a cross platform ilike function.
     """
     from sqlalchemy import func
-
+    from sqlalchemy.engine import Engine
+    
     if not engine:
-        engine = bauble.db.engine
-    if engine.name == "postgresql":
-        return col.op("ILIKE")(val)
+        from bauble.db import engine as default_engine
+        engine = default_engine
+
+    if engine.url.get_dialect().name == "postgresql":
+        # Use native ilike for PostgreSQL
+        return col.ilike(val)
     else:
         return func.lower(col).like(func.lower(val))
 

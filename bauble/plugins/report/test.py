@@ -34,6 +34,7 @@ from bauble.plugins.tag import Tag
 from bauble.plugins.tag import tag_objects
 from bauble.test import BaubleTestCase
 from bauble.test import check_dupids
+from sqlalchemy import select
 
 
 def setUp_test_data():

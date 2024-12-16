@@ -46,7 +46,7 @@ from bauble.prefs import prefs
 from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import Gtk
-from sqlalchemy import union
+from sqlalchemy import union, select
 
 from .flat_export import FlatFileExportTool
 from .utils import PS

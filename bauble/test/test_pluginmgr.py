@@ -32,6 +32,7 @@ from bauble.error import BaubleError
 from bauble.pluginmgr import PluginRegistry
 from bauble.test import BaubleTestCase
 from bauble.test import uri
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 

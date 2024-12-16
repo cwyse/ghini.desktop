@@ -27,6 +27,7 @@ from bauble import meta
 from bauble import paths
 from bauble import pluginmgr
 from gi.repository import Pango
+from sqlalchemy import select
 
 
 
