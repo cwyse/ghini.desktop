@@ -355,9 +355,18 @@ class Verification(db.Base):
     prev_species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
 
     # Relationships
-    species = relationship("Species", back_populates="verifications", foreign_keys=[species_id], uselist=False)
-    prev_species = relationship("Species", back_populates="previous_verifications", foreign_keys=[prev_species_id], uselist=False)
-
+    species = relationship(
+        "Species",
+        primaryjoin="Verification.species_id == Species.id",
+        foreign_keys=[species_id],
+        uselist=False,
+    )
+    prev_species = relationship(
+        "Species",
+        primaryjoin="Verification.prev_species_id == Species.id",
+        foreign_keys=[prev_species_id],
+        uselist=False,
+    )
     notes = Column(UnicodeText)
 
 

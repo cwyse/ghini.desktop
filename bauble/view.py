@@ -52,7 +52,7 @@ from gi.repository import Pango
 from pyparsing import ParseException
 from sqlalchemy.orm import object_session
 from bauble.shared import InfoExpander
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -1407,11 +1407,15 @@ class AppendThousandRows(threading.Thread):
 
     def run(self):
         session = db.Session()
-        q = session.execute(select(db.History)).scalars().order_by(db.History.timestamp.desc())
+        q = session.execute(
+            select(db.History).order_by(db.History.timestamp.desc())
+        ).scalars()
         # add rows in small batches
         offset = 0
         step = 200
-        count = q.count()
+        # Query to count rows in the History table
+        count = session.scalar(select(func.count()).select_from(db.History))
+
         while offset < count and not self.__stopped.isSet():
             rows = q.offset(offset).limit(step).all()
             GObject.idle_add(self.callback, rows)

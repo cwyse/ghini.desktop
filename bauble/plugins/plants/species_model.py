@@ -465,7 +465,6 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         cascade="all, delete-orphan",
         uselist=True,
         back_populates="species",
-        single_parent=True,
     )
 
     # this is a dummy relation, it is only here to make cascading work
@@ -476,35 +475,32 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         primaryjoin="Species.id==SpeciesSynonym.synonym_id",
         cascade="all, delete-orphan",
         uselist=True,
-        single_parent=True,
     )
 
     # VernacularName.species gets defined here too.
-    vernacular_names = (
-        relationship(
+    vernacular_names = relationship(
             "VernacularName",
             cascade="all, delete-orphan",
             collection_class=VNList,
             back_populates="species",
-            single_parent=True,
             uselist=True,
+            single_parent=False,
         )
-        or []
-    )
+
     _default_vernacular_name = relationship(
         "DefaultVernacularName",
-        uselist=True,
+        uselist=False,
+        single_parent=False,
         cascade="all, delete-orphan",
         back_populates="species",
-        single_parent=True,
     )
     distribution = (
         relationship(
             "SpeciesDistribution",
             cascade="all, delete-orphan",
             back_populates="species",
-            single_parent=True,
-            uselist=True,
+            single_parent=False,
+            uselist=False,
         )
         or []
     )
@@ -521,16 +517,13 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     verifications = relationship(
         "Verification",
         primaryjoin="Verification.species_id == Species.id",
-        back_populates="species",
-        cascade="all, delete-orphan",
+        cascade="save-update, merge",  # Less aggressive cascade
         uselist=True,
     )
-
     previous_verifications = relationship(
         "Verification",
         primaryjoin="Verification.prev_species_id == Species.id",
-        back_populates="prev_species",
-        cascade="all, delete-orphan",
+        cascade="save-update, merge",  # Less aggressive cascade
         uselist=True,
     )
     # hardiness_zone = Column(Unicode(4))
@@ -936,20 +929,16 @@ class SpeciesSynonym(db.Base):
     )
 
     # Relationship to the main Species entity
-    species = (
-        relationship(
+    species = relationship(
             "Species",
             primaryjoin="SpeciesSynonym.species_id == Species.id",
-            back_populates="_synonyms",
-            uselist=False,
-        )
-        or []
+            uselist=False, # One-to-one relationship
     )
 
     # relations
     synonym = relationship(
         "Species", primaryjoin="SpeciesSynonym.synonym_id==Species.id",
-        uselist=False,
+        uselist=False, # One-to-one relationship
     )
 
     def __init__(self, synonym=None, **kwargs):
@@ -993,11 +982,9 @@ class VernacularName(db.Base, db.Serializable):
     )
     species = relationship(
         "Species",
-        cascade="all, delete-orphan",
-        collection_class=VNList,
         back_populates="vernacular_names",
         uselist=False,
-        single_parent=True,
+        single_parent=False,
     )
 
     def search_view_markup_pair(self):
@@ -1101,9 +1088,8 @@ class DefaultVernacularName(db.Base):
     species = relationship(
         "Species",
         uselist=False,
-        cascade="all, delete-orphan",
         back_populates="_default_vernacular_name",
-        single_parent=True,
+        single_parent=False,
     )
 
     def __str__(self):
@@ -1129,8 +1115,10 @@ class SpeciesDistribution(db.Base):
         Integer, ForeignKey("geographic_area.id"), nullable=False
     )
     species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
-    species = relationship("Species", back_populates="distribution")
-
+    species = relationship("Species", back_populates="distribution",
+            single_parent=False,
+            uselist=False,
+        )
     def __str__(self):
         return str(self.geographic_area)
 

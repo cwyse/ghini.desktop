@@ -46,7 +46,7 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm.session import object_session
-from sqlalchemy import select
+from sqlalchemy import select, func
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -1470,7 +1470,8 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
         super().commit_changes()
 
     def start(self):
-        if self.session.execute(select(Genus)).scalars().count() == 0:
+        count = self.session.scalar(select(func.count()).select_from(Genus))
+        if count == 0:
             msg = _(
                 "You must first add or import at least one genus into the "
                 "database before you can add species."
