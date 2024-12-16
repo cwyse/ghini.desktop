@@ -30,6 +30,7 @@
 # load('this_script.js')
 #
 import logging
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

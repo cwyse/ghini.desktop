@@ -231,7 +231,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
 
     __tablename__ = "genus"
     id = Column(Integer, primary_key=True)
-    epithet = Column(String(64), nullable=False, unique=True, index=True)
+    epithet = Column(String(64), nullable=False, index=True)
     __table_args__ = (
         UniqueConstraint("epithet", "author", "qualifier", "family_id"),
         {},
@@ -308,10 +308,9 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     _synonyms = relationship(
         "GenusSynonym",
         primaryjoin="Genus.id==GenusSynonym.genus_id",
-        cascade="all, delete-orphan",
         uselist=True,
+        cascade="all, delete-orphan",
         back_populates="genus",
-        single_parent=True,
     )
 
     # New relationship for synonyms via synonym_id
@@ -321,23 +320,21 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         cascade="all, delete-orphan",
         uselist=True,
         back_populates="synonym",
-        single_parent=True,
     )
 
     @property
     def accepted(self):
-        "Name that should be used if name of self should be rejected"
+        """Return the accepted name for this genus (if it is a synonym)."""
         session = object_session(self)
-        if not session:
+        if session:
+            session.flush()  # Synchronize in-memory changes with the database
+        else:
             logger.warning("genus:accepted - object not in session")
             return None
-        syn = (
-            session.execute(select(GenusSynonym)).scalars()
-            .where(GenusSynonym.synonym_id == self.id)
-            .first()
-        )
-        accepted = syn and syn.genus
-        return accepted
+        
+        if not self._synonyms_synonym:
+            return None
+        return self._synonyms_synonym[0].genus if self._synonyms_synonym else None
 
     @accepted.setter
     def accepted(self, value):
@@ -345,19 +342,32 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         assert isinstance(value, self.__class__)
         if self in value.synonyms:
             return
+        
         # remove any previous `accepted` link
         session = object_session(self)
         if not session:
             logger.warning("genus:accepted.setter - object not in session")
             return
-        session.execute(select(GenusSynonym)).scalars().where(
-            GenusSynonym.synonym_id == self.id
-        ).delete()
-        session.commit()
-        value.synonyms.append(self)
+        
+        # Remove any existing synonym relationship
+        existing_synonym = (
+            session.execute(select(GenusSynonym))
+            .scalars()
+            .where(GenusSynonym.synonym_id == self.id)
+            .first()
+        )
 
-    def __repr__(self):
-        return Genus.str(self)
+        if existing_synonym:
+            session.delete(existing_synonym)
+            session.flush()  # Ensure the deletion is reflected in the database
+
+        # Add the new synonym relationship
+        new_synonym = GenusSynonym(genus=value, synonym=self)
+        session.add(new_synonym)
+        session.flush()  # Ensure the new relationship is reflected
+
+        # Update the value to reflect the new accepted genus
+        value.synonyms.append(self)
 
     @staticmethod
     def str(genus, author=False):
@@ -462,7 +472,9 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
                 if a.source and a.source.source_detail
             },
         }
-
+    
+    def __repr__(self):
+        return f"<Genus(id={self.id}, epithet='{self.epithet}')>"
 
 def compute_serializable_fields(cls, session, keys):
     result = {"genus": None}
@@ -510,7 +522,7 @@ class GenusSynonym(db.Base):
 
     # Secondary relationship to Genus via synonym_id (if applicable)
     synonym = relationship(
-        "Genus", back_populates="_synonyms_synonym", foreign_keys=[synonym_id]
+        "Genus", uselist=False, back_populates="_synonyms_synonym", primaryjoin='GenusSynonym.synonym_id==Genus.id'
     )
 
     #    synonym = relationship('Genus', uselist=False,
@@ -525,6 +537,8 @@ class GenusSynonym(db.Base):
     def __str__(self):
         return str(self.synonym)
 
+    def __repr__(self):
+        return f"<GenusSynonym(id={self.id}, genus_id={self.genus_id}, synonym_id={self.synonym_id})>"
 
 # late bindings
 

@@ -34,6 +34,7 @@ from bauble.test import BaubleTestCase
 from bauble.test import check_dupids
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

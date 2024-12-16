@@ -36,6 +36,7 @@ from bauble.test import BaubleTestCase
 from bauble.test import check_dupids
 from bauble.test import mockfunc
 from gi.repository import Gtk
+from sqlalchemy import select
 
 
 

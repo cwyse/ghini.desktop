@@ -51,6 +51,7 @@ from bauble.test import mockfunc
 from nose import SkipTest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy import select
 
 from editor import GenericModelViewPresenterEditor
 from editor import MockView

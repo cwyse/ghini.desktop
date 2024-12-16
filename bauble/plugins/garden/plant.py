@@ -269,7 +269,7 @@ class PlantSearch(SearchStrategy):
             )
             return query.all()
         except Exception as e:
-            logger.debug("{} {}".format(e.__class__.name, e))
+            logger.debug("{} {}".format(e.__class__.__name__, e))
             return []
 
 

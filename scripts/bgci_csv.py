@@ -99,6 +99,7 @@ rows = cursor.fetchall()
 GENUS_HYBRID_COL = 0
 GENUS_COL = 1
 SP_INFRA_RANK_COL = 5
+SP_INFRASP = 5
 for row in rows:
     line = list(row)
     # change infrasp_rank and infrasp to a cultivate if infrasp_rank=='cv.'

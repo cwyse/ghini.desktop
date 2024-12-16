@@ -310,7 +310,7 @@ class CSVImporter(Importer):
                     return False
             table.drop(bind=session.bind)
             self._create_table(table, session, created_tables)
-            return True
+        return True
 
 
     def _create_table(self, table, session, created_tables):
@@ -332,14 +332,27 @@ class CSVImporter(Importer):
     Session = sessionmaker(bind=db.engine)
 
     # Instead of recreating all tables, check for and create only missing ones
-    def create_missing_tables(metadata, session):
+    def create_missing_tables(self, metadata, session):
+        """
+        Create missing tables in the correct order, respecting dependencies.
+
+        :param metadata: SQLAlchemy metadata object.
+        :param session: SQLAlchemy session object.
+        """
+        # Inspect existing tables
         inspector = inspect(session.bind)
         existing_tables = set(inspector.get_table_names())
 
-        for table in metadata.tables.values():
+        # Ensure tables are created in dependency order
+        for table in metadata.sorted_tables:
             if table.name not in existing_tables:
                 logger.info(f"Creating missing table: {table.name}")
-                table.create(bind=session.bind)
+                try:
+                    table.create(bind=session.bind)
+                    existing_tables.add(table.name)
+                except Exception as e:
+                    logger.error(f"Error creating table {table.name}: {e}")
+                    raise
 
     def run(self, filenames, metadata, force=False):
         """
@@ -359,72 +372,72 @@ class CSVImporter(Importer):
 
         try:
             # Create a new session bound to the database engine
-            with db.Session() as session, session.begin():
-                
-                configure_mappers()  # Ensure mappers are configured
-
-                # Map filenames to table names
-                try:
-                    filename_dict = self._map_filenames_to_tables(filenames)
-                except ValueError as e:
-                    utils.message_dialog(e, Gtk.MessageType.ERROR)
-                    return
-                
-                # resolve filenames to table names and return them in sorted order
-                sorted_tables = []
-                for table in metadata.sorted_tables:
-                    try:
-                        sorted_tables.insert(0, (table, filename_dict.pop(table.name)))
-                    except KeyError:
-                        # table.name not in list of filenames
-                        pass
-
-                if len(filename_dict) > 0:
-                    msg = (
-                        _("Could not match all filenames to table names.\n\n%s")
-                        % filename_dict
-                    )
-                    utils.message_dialog(msg, Gtk.MessageType.ERROR)
-                    return
-
-                # Calculate total lines and filesizes
-                try:
-                    total_lines, filesizes = self._calculate_total_lines(filenames)
-                except OSError as e:
-                    msg = _("Error reading files.\n\n%s") % utils.xml_safe(e)
-                    utils.message_dialog(msg, Gtk.MessageType.ERROR)
-                    return
-
-                created_tables = []
-
-                steps_so_far = 0
-                insert = None
-
-                # Fetch and handle dependencies
-                try:
-                    depends = self._handle_dependencies(sorted_tables, metadata, session, force)
-                except ValueError as e:
-                    utils.message_dialog(str(e), Gtk.MessageType.ERROR)
-                    return
+            with db.Session() as session:
+                with session.begin():
                     
+                    configure_mappers()  # Ensure mappers are configured
 
-
-                # import the tables one at a time, breaking every so often
-                # so the GUI can update
-                for table, filename in reversed(sorted_tables):
-                    if self.__cancel or self.__error:
-                        break
-
-                    msg = _("importing %(table)s table from %(filename)s") % {
-                        "table": table.name,
-                        "filename": filename,
-                    }
-                    logger.info(msg)
-                    bauble.task.set_message(msg)
-                    yield  # allow progress bar update
-
+                    # Map filenames to table names
                     try:
-                        with session.begin_nested():
+                        filename_dict = self._map_filenames_to_tables(filenames)
+                    except ValueError as e:
+                        utils.message_dialog(e, Gtk.MessageType.ERROR)
+                        return
+                    
+                    # resolve filenames to table names and return them in sorted order
+                    sorted_tables = []
+                    for table in metadata.sorted_tables:
+                        try:
+                            sorted_tables.insert(0, (table, filename_dict.pop(table.name)))
+                        except KeyError:
+                            # table.name not in list of filenames
+                            pass
+
+                    if len(filename_dict) > 0:
+                        msg = (
+                            _("Could not match all filenames to table names.\n\n%s")
+                            % filename_dict
+                        )
+                        utils.message_dialog(msg, Gtk.MessageType.ERROR)
+                        return
+
+                    # Calculate total lines and filesizes
+                    try:
+                        total_lines, filesizes = self._calculate_total_lines(filenames)
+                    except OSError as e:
+                        msg = _("Error reading files.\n\n%s") % utils.xml_safe(e)
+                        utils.message_dialog(msg, Gtk.MessageType.ERROR)
+                        return
+
+                    created_tables = []
+
+                    steps_so_far = 0
+
+                    # Fetch and handle dependencies
+                    try:
+                        depends = self._handle_dependencies(sorted_tables, metadata, session, force)
+                    except ValueError as e:
+                        utils.message_dialog(str(e), Gtk.MessageType.ERROR)
+                        return
+
+
+            # import the tables one at a time, breaking every so often
+            # so the GUI can update
+            for table, filename in reversed(sorted_tables):
+                if self.__cancel or self.__error:
+                    break
+
+                msg = _("importing %(table)s table from %(filename)s") % {
+                    "table": table.name,
+                    "filename": filename,
+                }
+                logger.info(msg)
+                bauble.task.set_message(msg)
+                yield  # allow progress bar update
+
+                with db.Session() as session:
+                    with session.begin():
+                        try:
                             # Prepare the table and file
                             if not self._prepare_table(table, filename, filesizes, created_tables, depends, session, force):
                                 continue
@@ -444,60 +457,35 @@ class CSVImporter(Importer):
 
                             for steps in processor.process_rows():
                                 steps_so_far += steps
-                                yield                            
+                                yield        
+                                                    
+                            # Count rows in the table
+                            row_count = session.execute(sa.select(func.count()).select_from(table)).scalar_one()
+                            logger.debug(f"{table.name}: {row_count}")
+                        
+                            # we have commit after create after each table is imported
+                            # or Postgres will complain if two tables that are
+                            # being imported have a foreign key relationship.
+                            # The commit/rollback is handled automatically when we leave the
+                            # 'with' block.
 
-                            # insert = table.insert()  # Create an insert statement, no compile()
+                            logger.info(f"Successfully imported table: {table.name}")
 
-                            # values = []
+                        except Exception as e:
+                            logger.error(f"Error processing table {table.name}: {e}")
 
-                            # def do_insert(file_columns):
-                            #     if values:
-                            #         # Include only columns that are in the file or defaults
-                            #         insert_values = [
-                            #             {col: row[col] for col in file_columns if col in row}
-                            #             for row in values
-                            #         ]
-                            #         session.execute(insert.values(insert_values))
-                            #         values.clear()  # Clear the values list after insertion
+                            raise
+                        
+                    # Update the GUI
+                    self._update_gui()
+                        
 
-                            #     # Update the progress bar
-                            #     percent = float(steps_so_far) / float(total_lines)
-                            #     if 0 < percent < 1.0:
-                            #         pb_set_fraction(percent)
-
-                            # if self.__cancel or self.__error:
-                            #     break
-
-                            # with open(filename) as f:
-                            #     reader = UnicodeReader(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
-                            #     # Process and collect rows for insertion
-                            #     steps_so_far += self._process_csv_lines(reader, table, defaults, values)
-                            #     yield
-                                
-                            # # insert the remainder that were less than update every
-                            # do_insert(column_keys)
-                            # yield
-
-                            # # we have commit after create after each table is imported
-                            # # or Postgres will complain if two tables that are
-                            # # being imported have a foreign key relationship
-                            # # Commit after each table import to avoid session issues
-
-                        # Count rows in the table
-                        row_count = session.execute(sa.select(func.count()).select_from(table)).scalar_one()
-                        logger.debug(f"{table.name}: {row_count}")
-
-                    except Exception as e:
-                        logger.error(f"Error processing table {table.name}: {e}")
-                        raise
-
-                logger.debug("creating: %s" % ", ".join([d.name for d in depends]))
+            with db.Session() as session:
 
                 # TODO: need to get those tables from depends that need to
                 # be created but weren't created already
                 # Ensure only missing tables are created
                 self.create_missing_tables(metadata, session)
-                #metadata.create_all(bind=session.bind, tables=list(depends), checkfirst=True)
 
                 # Reset sequences
                 self._reset_sequences(sorted_tables)

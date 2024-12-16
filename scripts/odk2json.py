@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

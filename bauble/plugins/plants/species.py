@@ -48,6 +48,7 @@ from bauble.view import PropertiesExpander
 from bauble.view import select_in_search_results
 from gi.repository import Gtk
 from sqlalchemy.orm.session import object_session
+from sqlalchemy import select
 
 
 logger = logging.getLogger(__name__)

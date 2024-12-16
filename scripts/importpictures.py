@@ -40,6 +40,7 @@ import bauble.db
 import bauble.utils
 from bauble.plugins.garden import Accession, Location, Plant, PlantNote
 from bauble.plugins.plants import Genus, Species
+from sqlalchemy import select
 
 bauble.db.open(dburi, True, True)
 session = bauble.db.Session()

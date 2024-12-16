@@ -30,7 +30,7 @@ from bauble import search
 from bauble.editor import GenericEditorView
 from bauble.test import BaubleTestCase
 from pyparsing import ParseException
-
+from sqlalchemy import select
 
 
 logger = logging.getLogger(__name__)

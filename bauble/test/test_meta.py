@@ -21,7 +21,7 @@
 #
 import bauble.meta as meta
 from bauble.test import BaubleTestCase
-
+from sqlalchemy import select
 
 class MetaTests(BaubleTestCase):
 

@@ -52,6 +52,7 @@ from gi.repository import Pango
 from pyparsing import ParseException
 from sqlalchemy.orm import object_session
 from bauble.shared import InfoExpander
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

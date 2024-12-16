@@ -46,6 +46,7 @@ from gi.repository import Gtk
 from gi.repository import Pango
 from sqlalchemy.orm import object_mapper
 from sqlalchemy.orm import object_session
+from sqlalchemy import select
 
 
 

@@ -37,6 +37,7 @@ from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.types import Boolean
 from sqlalchemy.types import Float
 from sqlalchemy.types import Integer
+from sqlalchemy import select
 
 
 class FlatFileExporter(GenericEditorPresenter):

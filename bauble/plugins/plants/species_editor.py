@@ -46,7 +46,7 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm.session import object_session
-
+from sqlalchemy import select
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
