@@ -317,7 +317,7 @@ class HistoryTests(BaubleTestCase):
 
         # Verify the model's Base
 
-        assert isinstance(Family, db.Base), "Family is not derived from the correct Base!"
+        assert issubclass(Family, db.Base), "Family is not derived from the correct Base!"
         logger.info("All Base and session checks passed.")
 
 class MVPTests(BaubleTestCase):
