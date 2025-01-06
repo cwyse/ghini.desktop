@@ -34,7 +34,7 @@ from bauble import editor
 from bauble import paths
 from bauble import pluginmgr
 from bauble import search
-from bauble import ui
+#from bauble import ui
 from bauble import utils
 from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorView
@@ -51,16 +51,17 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import select
-from sqlalchemy import text
+#from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.exc import InvalidRequestError
+#from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
-from sqlalchemy.orm.exc import NoResultFound
+#from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import object_session
 from contextlib import contextmanager
+from bauble.plugins.garden.propagation import Propagation
 
 gi.require_version("Gtk", "3.0")
 
@@ -178,19 +179,18 @@ class TagsMenuManager:
 
         with session_scope() as session:
             # Fetch Tag query with ordering
-            query = session.query(Tag).order_by(Tag.tag)
-            tags = query.all()  # Retrieve all tags
+            query = select(Tag).order_by(Tag.tag)
+            tags = session.execute(query).scalars().all()  # Retrieve all tags
             has_tags = bool(tags)
             if has_tags:
                 tags_menu.append(Gtk.SeparatorMenuItem())
 
             submenu = {"": [None, tags_menu]}  # Menu structure
-            for tag in query:
+            for tag in tags:
                 *path, tail = tag.tag.split("/")
                 head = "/".join(path)
-                item = Gtk.ImageMenuItem(tail)
+                item = Gtk.ImageMenuItem(label=tail)
                 submenu[tag.tag] = [item, None]
-                item.set_image(None)
                 item.set_always_show_image(True)
                 self.item_list[tag.tag] = item
                 item.connect("activate", self.item_activated, tag.tag)

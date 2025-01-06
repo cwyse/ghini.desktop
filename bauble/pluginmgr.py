@@ -56,7 +56,7 @@ from sqlalchemy import Unicode
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 gi.require_version("Gtk", "3.0")
@@ -405,9 +405,12 @@ class PluginRegistry(db.Base):
         if name is None:
             name = plugin.__class__.__name__
         with db.Session() as session:
-            p = session.execute(select(PluginRegistry)).scalars().where(name=utils.utf8(name)).one()
-            session.delete(p)
-            session.commit()
+            p = session.execute(
+                select(PluginRegistry).where(PluginRegistry.name==utils.utf8(name))
+            ).scalar_one_or_none()
+            if p:
+                session.delete(p)
+                session.commit()
 
     @staticmethod
     def all(session):

@@ -130,6 +130,39 @@ class _prefs(dict):
 
     def __init__(self, filename=default_prefs_file):
         self._filename = filename
+        self.config = None
+        
+    def _strip_prefix(self, key):
+        """
+        Strip the 'bauble.' prefix from a key if present.
+        """
+        if key.startswith("bauble."):
+            return key[len("bauble.") :]
+        return key
+        
+    @property
+    def prefs(self):
+        # Mimic the old behavior by returning self
+        return self
+    
+    def __getattr__(self, name):
+        """
+        Allow accessing keys as attributes, e.g., prefs.parse_dayfirst_pref.
+        """
+        key = f"bauble.{name}"
+        if key in self:
+            return self[key]
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+    
+    def __setattr__(self, name, value):
+        """
+        Allow setting keys as attributes, e.g., prefs.parse_dayfirst_pref = value.
+        """
+        if name in ["_filename", "config"]:
+            super().__setattr__(name, value)
+        else:
+            key = f"bauble.{name}"
+            super().__setitem__(key, value)
 
     def init(self):
         """
@@ -194,6 +227,7 @@ class _prefs(dict):
 
     def __getitem__(self, key):
         section, option = _prefs._parse_key(key)
+        key = self._strip_prefix(key)        
         # this doesn't allow None values for preferences
         if not self.config.has_section(section) or not self.config.has_option(
             section, option
@@ -224,12 +258,14 @@ class _prefs(dict):
 
     def __setitem__(self, key, value):
         section, option = _prefs._parse_key(key)
+        key = self._strip_prefix(key)
         if not self.config.has_section(section):
             self.config.add_section(section)
         self.config.set(section, option, str(value))
 
     def __contains__(self, key):
         section, option = _prefs._parse_key(key)
+        key = self._strip_prefix(key) 
         if self.config.has_section(section) and self.config.has_option(
             section, option
         ):
@@ -260,6 +296,7 @@ class _prefs(dict):
             else:
                 logger.error(msg)
 
+prefs = _prefs()
 
 class PrefsView(pluginmgr.View):
     """
@@ -319,4 +356,4 @@ class PrefsCommandHandler(pluginmgr.CommandHandler):
 
 pluginmgr.register_command(PrefsCommandHandler)
 
-prefs = _prefs()
+#prefs = _prefs()

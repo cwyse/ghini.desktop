@@ -26,7 +26,6 @@ prefs.testing = True
 
 db.sqlalchemy_debug(True)
 
-
 class GlobalFunctionsTests(BaubleTestCase):
     def test_get_next_code_first_this_year(self):
         self.assertEqual(
@@ -36,4 +35,5 @@ class GlobalFunctionsTests(BaubleTestCase):
             db.class_of_object("accession_note"),
             bauble.plugins.garden.accession.AccessionNote,
         )
-        self.assertEqual(db.class_of_object("not_existing"), None)
+        with self.assertRaises(ValueError):
+            db.class_of_object("not_existing")

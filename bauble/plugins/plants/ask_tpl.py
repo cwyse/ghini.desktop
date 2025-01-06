@@ -23,7 +23,7 @@ import threading
 import requests
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 class AskTPL(threading.Thread):

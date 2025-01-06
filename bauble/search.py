@@ -21,7 +21,7 @@ import logging
 from gettext import gettext as _
 
 import bauble.utils as utils
-from bauble.db import get_orm_entity_by_name
+#from bauble.db import get_orm_entity_by_name
 from bauble.error import check
 from gi.repository import Gtk
 from pyparsing import alphanums
@@ -48,13 +48,14 @@ from pyparsing import WordStart
 from pyparsing import ZeroOrMore
 from sqlalchemy import select
 from sqlalchemy import except_
-from sqlalchemy import not_
+#from sqlalchemy import not_
 from sqlalchemy import and_
 from sqlalchemy import or_
-from sqlalchemy import Unicode
-from sqlalchemy import UnicodeText
+#from sqlalchemy import Unicode
+#from sqlalchemy import UnicodeText
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import class_mapper, aliased
+#from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.properties import RelationshipProperty
 from sqlalchemy.orm.util import AliasedClass
@@ -62,7 +63,7 @@ from sqlalchemy.sql import func
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 RelationProperty = RelationshipProperty
@@ -715,7 +716,7 @@ class DomainExpressionAction(object):
 
             return result
 
-        mapper = inspect(cls)
+        inspect(cls)  # Validate cls as a mapped class
 
         def condition(col):
             if self.cond in ('like', 'ilike'):
@@ -1077,7 +1078,7 @@ class SchemaBrowser(Gtk.VBox):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.props.spacing = 10
+        self.set_property("spacing", 10)
         # WARNING: this is a hack from MapperSearch
         self.domain_map = MapperSearch.get_domain_classes().copy()
 
@@ -1161,4 +1162,4 @@ class SchemaBrowser(Gtk.VBox):
         model = Gtk.TreeStore(str, object)
         root = model.get_iter_root()
         self._insert_props(mapper, model, root)
-        self.prop_tree.props.model = model
+        self.prop_tree.set_property("model", model)

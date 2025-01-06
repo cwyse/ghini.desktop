@@ -46,7 +46,7 @@ from distutils.command.build import build as _build
 from setuptools import Command
 from setuptools.command.install import install as _install
 
-from bauble import version
+#from bauble import version
 
 # TODO: external dependencies not in the PyPI: PyGTK>=2.14
 # TODO: optional dependencies: MySQL-Python, psycopg2,

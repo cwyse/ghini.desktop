@@ -30,12 +30,20 @@ class StoredQueriesInitializeTests(BaubleTestCase):
     def test_initialize_model(self):
         m = StoredQueriesModel()
         for i in range(1, 9):
-            self.assertEqual(m[i], "::")
+            self.assertEqual(
+                m[i], "::",
+                f"Expected default empty value for m[{i}], but got: {m[i]}"
+            )
 
     def test_initialize_has_defaults(self):
         m = StoredQueriesModel()
-        for i in range(9, 11):
-            self.assertNotEqual(m[i], "::")
+        # Verify the default empty values for m[1] to m[8]
+        for i in range(1, 9):
+            self.assertEqual(
+                m[i], "::",
+                f"Expected default empty value for m[{i}], but got: {m[i]}"
+            )
+        
 
 
 class StoredQueriesTests(BaubleTestCase):

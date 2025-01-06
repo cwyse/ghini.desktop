@@ -36,24 +36,19 @@ import bauble.utils as utils
 from bauble.utils import parse_date
 from bauble.utils import (
     get_object_session,
-    delete_or_expunge,
     add_to_relationship,
     remove_from_relationship,
-    get_column_value,
-    set_column_value,
     sorted_relationship,
     handle_db_error,
     count_relationship_items,
 )
 from bauble.plugins.garden.constants import (
     prop_type_values,
-    prop_type_results,
     cutting_type_values,
     tip_values,
     leaves_values,
     flower_buds_values,
     wound_values,
-    hormone_values,
     bottom_heat_unit_values,
     length_unit_values,
 )
@@ -62,16 +57,16 @@ from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import Table
-from sqlalchemy import text
+#from sqlalchemy import text
 from sqlalchemy import UnicodeText
-from sqlalchemy.exc import DBAPIError
+#from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import object_session
 from sqlalchemy import asc
-from sqlalchemy.ext.declarative import declared_attr
+#from sqlalchemy.ext.declarative import declared_attr
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 PlantPropagation = Table(
@@ -160,6 +155,7 @@ class Propagation(db.Base, db.WithNotes):
     # Lazy import for Source
     def __init__(self):
         from bauble.plugins.garden.source import Source
+
 
     @property
     def accessions(self):
@@ -543,7 +539,7 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
         from bauble.plugins.garden.plant import label_size_allocate
 
         label = Gtk.Label(label=propagation.get_summary())
-        label.props.wrap = True
+        label.set_wrap(True)
         label.set_alignment(0, 0)
         label.set_padding(0, 2)
         label.connect("size-allocate", label_size_allocate)
@@ -562,7 +558,11 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
         hbox.pack_start(alignment, False, False, 0)
         button_box = Gtk.HBox(spacing=5)
         alignment.add(button_box)
-        button = Gtk.Button(stock=Gtk.STOCK_EDIT)
+        button = Gtk.Button.new_with_label("Edit")  # Replace `Gtk.STOCK_EDIT` with a text label
+        icon = Gtk.Image.new_from_icon_name("document-edit", Gtk.IconSize.BUTTON)  # Use a standard GTK icon
+        button.set_image(icon)  # Add the icon to the button
+        button.set_always_show_image(True)  # Ensure the icon is displayed
+        #button = Gtk.Button(stock=Gtk.STOCK_EDIT)
         self.view.connect(
             button, "clicked", on_edit_clicked, propagation, label
         )
@@ -615,7 +615,7 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
             self.parent_ref().refresh_sensitivity()
 
         remove_button = Gtk.Button()
-        img = Gtk.Image.new_from_stock(Gtk.STOCK_REMOVE, Gtk.IconSize.BUTTON)
+        img = Gtk.Image.new_from_icon_name("edit-delete", Gtk.IconSize.BUTTON)  # Replace Gtk.STOCK_REMOVE
         remove_button.set_image(img)
         self.view.connect(
             remove_button, "clicked", on_remove_clicked, propagation, hbox
@@ -793,7 +793,7 @@ class CuttingPresenter(editor.GenericEditorPresenter):
             (sfw.rooted_date_cell, sfw.rooted_date_column, "date"),
             (sfw.rooted_quantity_cell, sfw.rooted_quantity_column, "quantity"),
         ]:
-            cell.props.editable = True
+            cell.set_editable(True)
             self.view.connect(
                 cell, "edited", partial(on_rooted_cell_edited, attr_name)
             )

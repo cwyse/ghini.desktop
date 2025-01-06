@@ -35,7 +35,7 @@ from bauble.plugins.plants import Family
 from bauble.plugins.plants import Genus
 from bauble.plugins.plants import Species
 from dateutil.parser import parse
-
+from sqlalchemy import select
 
 
 logger = logging.getLogger(__name__)
@@ -264,13 +264,13 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
         # add new one
         lat, lon = (float(i) for i in coordinates[1:-1].split(";"))
         value = "{{lat:{:0.6f},lon:{:0.6f}}}".format(lat, lon)
-        note = lookup(
+        lookup(
             session, PlantNote, plant=plant, category="<coords>", note=value
         )
 
     for picture in pictures:
         basename = os.path.basename(picture)
-        note = lookup(
+        lookup(
             session,
             PlantNote,
             plant=plant,
@@ -298,80 +298,80 @@ def process_line(session, line, baseline):
         logger.error("unhandled category in your pocket data line ›%s‹" % line)
 
 
-if False:
-    q = (
-        session.execute(select(Species)).scalars()
-        .where(Species.infrasp1 == "sp")
-        .join(Genus, Species.genus_id == Genus.id)
-        .where(Genus.epithet == "Zzz")
-    )
-    zzz = q.one()
+# if False:
+#     q = (
+#         session.execute(select(Species)).scalars()
+#         .where(Species.infrasp1 == "sp")
+#         .join(Genus, Species.genus_id == Genus.id)
+#         .where(Genus.epithet == "Zzz")
+#     )
+#     zzz = q.one()
 
-    import sys
+#     import sys
 
-    header = ["timestamp", "location", "acc_code", "imei", "species"]
-    last_loc = None
+#     header = ["timestamp", "location", "acc_code", "imei", "species"]
+#     last_loc = None
 
-    import fileinput
+#     import fileinput
 
-    for line in fileinput.input():
-        sys.stdout.flush()
-        obj = dict(
-            list(zip(header, [i.strip() for i in str(line).split(":")]))
-        )
-        if len(obj) < 3:
-            continue  # ignore blank lines
-        obj.setdefault("species", "Zzz sp")
+#     for line in fileinput.input():
+#         sys.stdout.flush()
+#         obj = dict(
+#             list(zip(header, [i.strip() for i in str(line).split(":")]))
+#         )
+#         if len(obj) < 3:
+#             continue  # ignore blank lines
+#         obj.setdefault("species", "Zzz sp")
 
-        if not obj["location"]:
-            obj["location"] = last_loc
-        last_loc = obj["location"]
+#         if not obj["location"]:
+#             obj["location"] = last_loc
+#         last_loc = obj["location"]
 
-        loc = lookup(session, Location, code=last_loc)
-        genus = get_genus(session, obj)  # alters obj
-        species = get_species(session, obj, genus)
+#         loc = lookup(session, Location, code=last_loc)
+#         genus = get_genus(session, obj)  # alters obj
+#         species = get_species(session, obj, genus)
 
-        try:
-            q = (
-                session.execute(select(Plant)).scalars()
-                .join(Accession, Plant.accession_id == Accession.id)
-                .where(Accession.code == obj["acc_code"])
-                .where(Plant.code == "1")
-            )
-            plant = q.one()
-            if plant.location != loc:
-                plant.location = loc
-                sys.stdout.write(":")  # we altered a plant location
-            else:
-                sys.stdout.write(".")  # we confirmed a plant location
-        except Exception:
-            try:
-                accession = (
-                    session.execute(select(Accession)).scalars()
-                    .where(Accession.code == obj["acc_code"])
-                    .one()
-                )
-            except Exception:
-                accession = Accession(species=species, code=obj["acc_code"])
-                session.add(accession)
-                sys.stdout.write("a")  # we added a new accession
-            plant = Plant(
-                accession=accession, location=loc, quantity=1, code="1"
-            )
-            session.add(plant)
-            session.flush()
-            sys.stdout.write("p")  # we added a new plant
-        # operación perro - mark the plant as seen today
-        q = session.execute(select(PlantNote)).scalars()
-        q = q.where(PlantNote.plant == plant)
-        q = q.where(PlantNote.category == "inventario")
-        q = q.where(PlantNote.note == obj["timestamp"][:8])
-        if q.count() == 0:
-            note = PlantNote(
-                plant=plant, category="inventario", note=obj["timestamp"][:8]
-            )
-            session.add(note)
-            session.flush()
+#         try:
+#             q = (
+#                 session.execute(select(Plant)).scalars()
+#                 .join(Accession, Plant.accession_id == Accession.id)
+#                 .where(Accession.code == obj["acc_code"])
+#                 .where(Plant.code == "1")
+#             )
+#             plant = q.one()
+#             if plant.location != loc:
+#                 plant.location = loc
+#                 sys.stdout.write(":")  # we altered a plant location
+#             else:
+#                 sys.stdout.write(".")  # we confirmed a plant location
+#         except Exception:
+#             try:
+#                 accession = (
+#                     session.execute(select(Accession)).scalars()
+#                     .where(Accession.code == obj["acc_code"])
+#                     .one()
+#                 )
+#             except Exception:
+#                 accession = Accession(species=species, code=obj["acc_code"])
+#                 session.add(accession)
+#                 sys.stdout.write("a")  # we added a new accession
+#             plant = Plant(
+#                 accession=accession, location=loc, quantity=1, code="1"
+#             )
+#             session.add(plant)
+#             session.flush()
+#             sys.stdout.write("p")  # we added a new plant
+#         # operación perro - mark the plant as seen today
+#         q = session.execute(select(PlantNote)).scalars()
+#         q = q.where(PlantNote.plant == plant)
+#         q = q.where(PlantNote.category == "inventario")
+#         q = q.where(PlantNote.note == obj["timestamp"][:8])
+#         if q.count() == 0:
+#             note = PlantNote(
+#                 plant=plant, category="inventario", note=obj["timestamp"][:8]
+#             )
+#             session.add(note)
+#             session.flush()
 
-    print()
-    session.commit()
+#     print()
+#     session.commit()

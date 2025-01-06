@@ -29,8 +29,8 @@ from bauble.error import CheckConditionError
 from bauble.test import BaubleTestCase
 from bauble.utils import topological_sort
 from nose import SkipTest
-from pyparsing import *
-from sqlalchemy import *
+#from pyparsing import *
+#from sqlalchemy import *
 from sqlalchemy import MetaData, Table, ForeignKey, Column, Integer, Sequence
 
 
@@ -173,8 +173,7 @@ class UtilsDBTests(BaubleTestCase):
         metadata.drop_all(engine)
 
     def test_find_dependent_tables(self):
-        metadata = MetaData()
-        metadata.bind = db.engine
+
         from bauble.db import engine, metadata
 
         # table1 does't depend on any tables
@@ -207,7 +206,9 @@ class UtilsDBTests(BaubleTestCase):
             Column("table2", Integer, ForeignKey("table2.id")),
         )
 
-        metadata.create_all(engine)
+        # Use the same connection and metadata as the application
+        with db.engine.begin() as connection:
+            metadata.create_all(bind=connection)
 
         # tables that depend on table 1 are 3, 4, 2
         depends = list(utils.find_dependent_tables(table1, metadata))
@@ -237,16 +238,23 @@ class ResetSequenceTests(BaubleTestCase):
         # self.metadata = MetaData()
         # self.metadata.bind = db.engine
         from sqlalchemy.orm import configure_mappers
-
+        from bauble.db import engine, metadata        
 
         configure_mappers()
 
+        # Drop and recreate tables to start with a clean database
+        with engine.begin() as connection:
+            metadata.drop_all(bind=connection, checkfirst=True)
+            metadata.create_all(bind=connection)
+
     def tearDown(self):
-        super().tearDown()
-        # self.metadata.drop_all()
         from bauble.db import engine, metadata
 
-        metadata.drop_all(engine)
+        # Clean up database after tests
+        with engine.begin() as connection:
+            metadata.drop_all(bind=connection)
+
+        super().tearDown()
 
     @staticmethod
     def get_currval(col):
@@ -272,10 +280,15 @@ class ResetSequenceTests(BaubleTestCase):
             self.metadata,
             Column("id", Integer, primary_key=True),
         )
-        #        self.metadata.create_all()
-        metadata.create_all(engine)
-        self.insert = table.insert()  # .compile()
-        db.engine.execute(self.insert, values=[{"id": 1}])
+
+        # Create the table in the database
+        with engine.begin() as connection:
+            metadata.create_all(bind=connection)
+        
+        # Insert a record into the table
+        with engine.begin() as connection:
+            connection.execute(table.insert().values(id=1))
+
         utils.reset_sequence(table.c.id)
 
     def test_empty_col_sequence(self):
@@ -283,25 +296,34 @@ class ResetSequenceTests(BaubleTestCase):
         #
         # This only tests that reset_sequence() doesn't fail if there is
         # no sequence.
+        from bauble.db import metadata, engine
 
-        # test that a column without an explicit sequence works
+        # Define a table without an explicit sequence
         table = Table(
             "test_reset_sequence",
-            self.metadata,
+            metadata,
             Column("id", Integer, primary_key=True),
         )
-        self.metadata.create_all()
-        # self.insert = table.insert()#.compile()
-        # db.engine.execute(self.insert, values=[{'id': 1}])
+
+        # Create the table
+        with engine.begin() as connection:
+            metadata.create_all(bind=connection)
+
+        # Test reset_sequence on the column (table is empty)
         utils.reset_sequence(table.c.id)
 
     def test_with_col_sequence(self):
         # UPDATE: 10/18/2011 -- we don't use Sequence() explicitly,
         # just autoincrement=True on primary_key columns so this test
         # probably isn't necessary
+
+        from bauble.db import metadata, engine
+        import bauble.utils as utils
+
+        # Define a table with an explicit sequence
         table = Table(
             "test_reset_sequence",
-            self.metadata,
+            metadata,
             Column(
                 "id",
                 Integer,
@@ -310,14 +332,23 @@ class ResetSequenceTests(BaubleTestCase):
                 unique=True,
             ),
         )
-        self.metadata.create_all()
-        rangemax = 10
-        for i in range(1, rangemax + 1):
-            table.insert().values(id=i).execute()
-        utils.reset_sequence(table.c.id)
-        currval = self.get_currval(table.c.id)
-        self.assertTrue(currval > rangemax, currval)
 
+        # Create the table
+        with engine.begin() as connection:
+            metadata.create_all(bind=connection)
+
+        # Insert records into the table
+        rangemax = 10
+        with engine.begin() as connection:
+            for i in range(1, rangemax + 1):
+                connection.execute(table.insert().values(id=i))
+
+        # Reset the sequence
+        utils.reset_sequence(table.c.id)
+
+        # Verify the sequence has been reset
+        currval = self.get_currval(table.c.id)
+        self.assertTrue(currval > rangemax, f"Sequence value {currval} is not greater than {rangemax}.")
 
 class TopologicalSortTests(unittest.TestCase):
     def test_empty_dependencies(self):

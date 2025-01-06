@@ -52,7 +52,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import select
 from sqlalchemy import String
-from sqlalchemy import text
+#from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.exc import DBAPIError
@@ -62,7 +62,8 @@ from sqlalchemy.orm import synonym
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy import asc
-
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import MultipleResultsFound
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +153,7 @@ def remove_callback(genera):
     try:
         # If 'Yes, remove genus and synonyms' was selected, delete the synonyms
         if response == utils.DialogResponse.YES:
-            for synonym in genus.synonyms:
+            for unused_var in genus.synonyms:
                 synonym_obj = session.execute(select(Genus)).scalars().get(synonym.id)
                 session.delete(synonym_obj)
 
@@ -242,9 +243,12 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
 
     family = relationship("Family", back_populates="genera", lazy="joined", uselist=False)
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.species_editor = get_species_editor()
-        
+        # Use keyword arguments to initialize attributes
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
         return utils.xml_safe(self), utils.xml_safe(self.family)
@@ -415,24 +419,28 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
 
     @classmethod
     def retrieve(cls, session, keys):
+        """
+        Retrieves an instance of the model based on the provided keys.
+
+        :param session: SQLAlchemy session object.
+        :param keys: A dictionary of search criteria (e.g., {"epithet": ..., "author": ...}).
+        :return: The retrieved instance or None if no matching instance is found.
+        """
         try:
-            return (
-                session.execute(select(cls)).scalars().where(cls.epithet == keys["epithet"]).one()
-            )
-        except:
-            if "author" not in keys:
-                return None
-        try:
-            return (
-                session.execute(select(cls)).scalars()
-                .where(
-                    cls.epithet == keys["epithet"],
-                    cls.author == keys["author"],
-                )
-                .one()
-            )
-        except:
+            stmt = select(cls).where(cls.epithet == keys["epithet"])
+            if "author" in keys:
+                stmt = stmt.where(cls.author == keys["author"])
+            return session.execute(stmt).scalars().one()
+        except NoResultFound:
+            logger.warning(f"No result found for keys: {keys}")
             return None
+        except MultipleResultsFound:
+            logger.warning(f"Multiple results found for keys: {keys}")
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving {cls.__name__} with keys {keys}: {e}")
+            return None
+
 
     @classmethod
     def correct_field_names(cls, keys):
@@ -657,9 +665,9 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
         self.refresh_view()  # put model values in view
 
         # connect signals
-        def fam_get_completions(text):
+        def fam_get_completions(text_val):
             query = self.session.execute(select(family_instance)).scalars()
-            return query.where(family_instance.epithet.like("%s%%" % text)).order_by(
+            return query.where(family_instance.epithet.like("%s%%" % text_val)).order_by(
                 family_instance.epithet
             )
 
@@ -784,11 +792,11 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         safe_set_props(self.view.widgets.gen_syn_entry, "text", "")
         self.init_treeview()
 
-        def gen_get_completions(text):
+        def gen_get_completions(text_val):
             query = self.session.execute(select(Genus)).scalars()
             return query.where(
                 and_(
-                    Genus.epithet.like("%s%%" % text),
+                    Genus.epithet.like("%s%%" % text_val),
                     Genus.id != self.model.id,
                 )
             ).order_by(Genus.epithet)
@@ -1327,8 +1335,8 @@ class GenusInfoBox(InfoBox):
         self.add_expander(self.synonyms)
         self.links = view.LinksExpander("notes", button_defs)
         self.add_expander(self.links)
-        self.props = PropertiesExpander()
-        self.add_expander(self.props)
+        self.properties_expander = PropertiesExpander()
+        self.add_expander(self.properties_expander)
 
         if "GardenPlugin" not in pluginmgr.plugins:
             self.widgets.remove_parent("gen_nacc_label")
@@ -1340,7 +1348,7 @@ class GenusInfoBox(InfoBox):
         self.general.update(row)
         self.synonyms.update(row)
         self.links.update(row)
-        self.props.update(row)
+        self.properties_expander.update(row)
 
 
 db.Genus = Genus

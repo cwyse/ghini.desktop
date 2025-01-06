@@ -53,7 +53,7 @@ from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 SpeciesDistribution  # will be imported by clients of this module
@@ -564,8 +564,8 @@ class SpeciesInfoBox(InfoBox):
         self.add_expander(self.synonyms)
         self.links = view.LinksExpander("notes", links=button_defs)
         self.add_expander(self.links)
-        self.props = PropertiesExpander()
-        self.add_expander(self.props)
+        self.properties_expander = PropertiesExpander()
+        self.add_expander(self.properties_expander)
         self.label = _("General")
 
         if "GardenPlugin" not in pluginmgr.plugins:
@@ -584,7 +584,7 @@ class SpeciesInfoBox(InfoBox):
         self.vernacular.update(row)
         self.synonyms.update(row)
         self.links.update(row)
-        self.props.update(row)
+        self.properties_expander.update(row)
 
 
 # it's easier just to put this here instead of playing around with imports

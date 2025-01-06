@@ -39,6 +39,7 @@ from bauble.plugins.plants import Species
 from bauble.plugins.plants import SpeciesNote
 from bauble.plugins.plants import VernacularName
 from gi.repository import Gtk
+from sqlalchemy import select
 
 
 logger = logging.getLogger(__name__)

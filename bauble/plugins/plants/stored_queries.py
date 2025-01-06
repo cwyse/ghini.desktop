@@ -29,55 +29,67 @@ from bauble import pluginmgr
 from gi.repository import Pango
 from sqlalchemy import select
 
-
-
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 class StoredQueriesModel:
     def __init__(self):
-        self.__label = [""] * 11
-        self.__tooltip = [""] * 11
-        self.__query = [""] * 11
-        ssn = db.Session()
-        q = ssn.execute(select(meta.BaubleMeta)).scalars()
-        stqrq = q.where(meta.BaubleMeta.name.startswith("stqr_"))
-        for item in stqrq:
-            if item.name[4] != "_":
-                continue
-            index = int(item.name[5:])
-            self[index] = item.value
-        ssn.close()
+        self._label = [""] * 11
+        self._tooltip = [""] * 11
+        self._query = [""] * 11
+
+        # Use a context manager to ensure session cleanup
+        with db.Session() as session:
+            query = select(meta.BaubleMeta).filter(meta.BaubleMeta.name.startswith("stqr_"))
+            for item in session.scalars(query):
+                if str(item.name)[4] != "_":
+                    continue
+                index = int(str(item.name)[5:])
+                self[index] = item.value
+
         self.page = 1
 
     def __repr__(self):
         return "[p:%d; l:%s; t:%s; q:%s" % (
             self.page,
-            self.__label[1:],
-            self.__tooltip[1:],
-            self.__query[1:],
+            self._label[1:],
+            self._tooltip[1:],
+            self._query[1:],
         )
 
     def save(self):
-        ssn = db.Session()
-        for index in range(1, 11):
-            if self.__label[index] == "":
-                ssn.execute(select(meta.BaubleMeta)).scalars().where(
-                    name="stqr_%02d" % index
-                ).delete()
-            else:
-                obj = db.get_or_create(
-                    ssn, meta.BaubleMeta, name="stqr_%02d" % index
-                )
-                if obj.value != self[index]:
-                    obj.value = self[index]
-        ssn.commit()
-        ssn.close()
+        """
+        Save the current state of stored queries to the database.
+        """
+        try:
+            with db.Session() as session:
+                for index in range(1, 11):
+                    query_name = f"stqr_{index:02d}"
+
+                    # If the label is empty, remove the corresponding record
+                    if self._label[index] == "":
+                        stmt = select(meta.BaubleMeta).filter_by(name=query_name)
+                        obj = session.scalars(stmt).first()  # Retrieve the model instance
+                        if obj:
+                            session.delete(obj)
+                    else:
+                        # Use get_or_create to retrieve or create the object
+                        obj, created = db.get_or_create(session, meta.BaubleMeta, name=query_name)
+
+                        # Update the object's value if it differs
+                        if obj.value != self[index]:
+                            obj.value = self[index]
+
+                # Commit the changes
+                session.commit()
+        except Exception as e:
+            logger.error(f"Error during save: {e}")
+            raise
 
     def __getitem__(self, index):
         return "{}:{}:{}".format(
-            self.__label[index], self.__tooltip[index], self.__query[index]
+            self._label[index], self._tooltip[index], self._query[index]
         )
 
     def __setitem__(self, index, value):
@@ -97,27 +109,27 @@ class StoredQueriesModel:
 
     @property
     def label(self):
-        return self.__label[self.page]
+        return self._label[self.page]
 
     @label.setter
     def label(self, value):
-        self.__label[self.page] = value
+        self._label[self.page] = value
 
     @property
     def tooltip(self):
-        return self.__tooltip[self.page]
+        return self._tooltip[self.page]
 
     @tooltip.setter
     def tooltip(self, value):
-        self.__tooltip[self.page] = value
+        self._tooltip[self.page] = value
 
     @property
     def query(self):
-        return self.__query[self.page]
+        return self._query[self.page]
 
     @query.setter
     def query(self, value):
-        self.__query[self.page] = value
+        self._query[self.page] = value
 
 
 class StoredQueriesPresenter(editor.GenericEditorPresenter):
@@ -179,28 +191,25 @@ class StoredQueriesPresenter(editor.GenericEditorPresenter):
     def on_stqr_query_textbuffer_changed(self, widget, value=None, attr=None):
         return self.on_textbuffer_changed(widget, value, attr="query")
 
-
 def edit_callback():
-    session = db.Session()
-    view = editor.GenericEditorView(
-        os.path.join(
-            paths.lib_dir(), "plugins", "plants", "stored_queries.glade"
-        ),
-        parent=None,
-        root_widget_name="stqr_dialog",
-    )
-    stored_queries = StoredQueriesModel()
-    presenter = StoredQueriesPresenter(
-        stored_queries, view, session=session, refresh_view=True
-    )
-    error_state = presenter.start()
-    if error_state > 0:
-        stored_queries.save()
-        bauble.gui.get_view().update()
-    session.close()
-    return error_state
-
-
+    with db.Session() as session:
+        view = editor.GenericEditorView(
+            os.path.join(
+                paths.lib_dir(), "plugins", "plants", "stored_queries.glade"
+            ),
+            parent=None,
+            root_widget_name="stqr_dialog",
+        )
+        stored_queries = StoredQueriesModel()
+        presenter = StoredQueriesPresenter(
+            stored_queries, view, session=session, refresh_view=True
+        )
+        error_state = presenter.start()
+        if error_state > 0:
+            stored_queries.save()
+            bauble.gui.get_view().update()
+        return error_state
+    
 class StoredQueryEditorTool(pluginmgr.Tool):
     item_position = 20
     label = _("Edit stored queries")

@@ -20,11 +20,11 @@
 # report/jinja2/
 #
 import logging
-import math
+#import math
 import os
 import re
-import shutil
-import tempfile
+#import shutil
+#import tempfile
 from gettext import gettext as _
 
 from bauble import paths

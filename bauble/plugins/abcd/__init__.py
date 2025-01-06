@@ -253,7 +253,7 @@ def create_abcd(decorated_objects, authors=True, validate=True):
     )
     revision = ABCDElement(metadata, "RevisionData")
     ABCDElement(revision, "DateModified", text="2001-03-01T00:00:00")
-    title = ABCDElement(representation, "Title", text="TheTitle")
+    ABCDElement(representation, "Title", text="TheTitle")
     units = ABCDElement(ds, "Units")
 
     # build the ABCD unit
@@ -264,7 +264,7 @@ def create_abcd(decorated_objects, authors=True, validate=True):
         # TODO: don't really understand the SourceID element
         ABCDElement(unit, "SourceID", text="Ghini")
 
-        unit_id = ABCDElement(unit, "UnitID", text=obj.get_UnitID())
+        ABCDElement(unit, "UnitID", text=obj.get_UnitID())
         ABCDElement(unit, "DateLastEdited", text=obj.get_DateLastEdited())
 
         # TODO: add list of verifications to Identifications
@@ -279,10 +279,10 @@ def create_abcd(decorated_objects, authors=True, validate=True):
 
         # TODO: ABCDDecorator should provide an iterator so that we can
         # have multiple HigherTaxonName's
-        higher_taxon_name = ABCDElement(
+        ABCDElement(
             higher_taxon, "HigherTaxonName", text=obj.get_family()
         )
-        higher_taxon_rank = ABCDElement(
+        ABCDElement(
             higher_taxon, "HigherTaxonRank", text="familia"
         )
 
@@ -373,9 +373,9 @@ class ABCDExporter:
                 self,
                 Gtk.FileChooserAction.SAVE,
                 (
-                    Gtk.STOCK_OK,
+                    _("OK"),
                     Gtk.ResponseType.ACCEPT,
-                    Gtk.STOCK_CANCEL,
+                    _("Cancel"),
                     Gtk.ResponseType.CANCEL,
                 ),
             )

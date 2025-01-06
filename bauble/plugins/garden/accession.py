@@ -52,7 +52,6 @@ from bauble.plugins.garden.source import Source
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species_model import Species
 from bauble.plugins.plants.species_model import SpeciesSynonym
-from bauble.shared import InfoExpander, Action
 from bauble.utils import safe_int, handle_db_error
 from bauble.view import Action
 from bauble.view import InfoBox
@@ -69,7 +68,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import or_
 from sqlalchemy import select
-from sqlalchemy import text
+#from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy.exc import DBAPIError
@@ -82,7 +81,7 @@ from sqlalchemy import asc
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 # TODO: underneath the species entry create a label that shows information
@@ -1113,7 +1112,7 @@ class AccessionEditorView(editor.GenericEditorView):
             "acc_recvd_type_comboentry", recvd_type_values
         )
         adjustment = self.widgets.source_sw.get_vadjustment()
-        adjustment.props.value = 0.0
+        adjustment.set_property("value", 0.0)
         self.widgets.source_sw.set_vadjustment(adjustment)
 
         # set current page so we don't open the last one that was open
@@ -1211,7 +1210,7 @@ class VoucherPresenter(editor.GenericEditorPresenter):
             column = self.view.widgets[column]
             cell = self.view.widgets[cell]
             column.clear_attributes(cell)  # get rid of some warnings
-            cell.props.editable = True
+            cell.set_property("editable", True)
             self.view.connect(
                 cell, "edited", self.on_cell_edited, (tree, prop)
             )
@@ -1480,10 +1479,10 @@ class VerificationPresenter(editor.GenericEditorPresenter):
 
             combo = self.widgets.ver_level_combo
             renderer = Gtk.CellRendererText()
-            renderer.props.wrap_mode = Pango.WrapMode.WORD
+            renderer.set_property("wrap-mode", Pango.WrapMode.WORD)
             # TODO: should auto calculate the wrap width with a
             # on_size_allocation callback
-            renderer.props.wrap_width = 400
+            renderer.set_property("wrap-width", 400)
             combo.pack_start(renderer, True)
 
             def cell_data_func(col, cell, model, treeiter, data=None):
@@ -1627,8 +1626,9 @@ class VerificationPresenter(editor.GenericEditorPresenter):
                 species=self.model.species,
                 verifier=self.model.verifier,
             )
-            self.widgets.ver_expander_label.props.use_markup = True
-            self.widgets.ver_expander_label.props.label = label
+            self.widgets.ver_expander_label.set_property("use-markup", True)
+            self.widgets.ver_expander_label.set_property("label", label)
+
 
         def set_expanded(self, expanded):
             self.widgets.ver_expander.set_expanded = expanded
@@ -3033,11 +3033,11 @@ class GeneralAccessionExpander(InfoExpander):
             )
         self.set_labeled_value("prov", prov_str)
 
-        image_size = Gtk.IconSize.MENU
-        stock = Gtk.STOCK_NO
+        image_size = Gtk.IconSize.SMALL_TOOLBAR
+        icon_name = "dialog-no"
         if row.private:
-            stock = Gtk.STOCK_YES
-        self.widgets.private_image.set_from_stock(stock, image_size)
+            icon_name = "dialog-yes"
+        self.widgets.private_image.set_from_icon_name(icon_name, image_size)
 
         loc_map = (
             ("intended_loc", "intended_location"),
@@ -3257,16 +3257,16 @@ class AccessionInfoBox(InfoBox):
         self.mapinfo = MapInfoExpander(self.get_map_extents)
         self.add_expander(self.mapinfo)
 
-        self.props = PropertiesExpander()
-        self.add_expander(self.props)
+        self.properties_expander = PropertiesExpander()  
+        self.add_expander(self.properties_expander)
 
     def get_map_extents(self, accession):
         result = []
         for plant in accession.plants:
             try:
                 result.append(plant.coords)
-            except:
-                pass
+            except Exception as e:
+                logging.debug(f"Skipping plant without coordinates: {e}")
         return result
 
     def update(self, row):
@@ -3275,7 +3275,7 @@ class AccessionInfoBox(InfoBox):
 
         self.general.update(row)
         self.mapinfo.update(row)
-        self.props.update(row)
+        self.properties_expander.update(row)
 
         # if row.verifications:
         #     self.verifications.update(row)

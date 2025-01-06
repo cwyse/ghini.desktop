@@ -36,7 +36,7 @@ from bauble import editor
 from bauble import paths
 from bauble import pictures_view
 from bauble import pluginmgr
-from bauble import prefs
+#from bauble import prefs
 from bauble import search
 from bauble import utils
 from bauble.error import BaubleError
@@ -55,7 +55,7 @@ from bauble.shared import InfoExpander
 from sqlalchemy import select, func
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 gi.require_version("Champlain", "0.12")
@@ -139,72 +139,70 @@ class Action(Gtk.Action):
 
 
 class PropertiesExpander(InfoExpander):
-
     def __init__(self):
         super().__init__(_("Properties"))
         table = Gtk.Grid()
-
         table.set_column_spacing(15)
         table.set_row_spacing(8)
 
-        # database id
-        id_label = Gtk.Label(label="<b>" + _("ID:") + "</b>")
-        id_label.set_use_markup(True)
-        id_label.set_alignment(1, 0.5)
-        self.id_data = Gtk.Label(label="--")
-        self.id_data.set_alignment(0, 0.5)
+        # Helper to create labels with alignment and markup
+        def create_label(text, use_markup=False, align=(1, 0.5)):
+            label = Gtk.Label(label=text)
+            label.set_use_markup(use_markup)
+            label.set_xalign(align[0])
+            label.set_yalign(align[1])
+            return label
+
+        # Database ID
+        id_label = create_label("<b>" + _("ID:") + "</b>", use_markup=True)
+        self.id_data = create_label("--", align=(0, 0.5))
 
         table.attach(id_label, 0, 0, 1, 1)
         table.attach(self.id_data, 1, 0, 1, 1)
 
-        # object type
-        type_label = Gtk.Label(label="<b>" + _("Type:") + "</b>")
-        type_label.set_use_markup(True)
-        type_label.set_alignment(1, 0.5)
-        self.type_data = Gtk.Label(label="--")
-        self.type_data.set_alignment(0, 0.5)
+        # Object type
+        type_label = create_label("<b>" + _("Type:") + "</b>", use_markup=True)
+        self.type_data = create_label("--", align=(0, 0.5))
 
-        table.attach(type_label, 0, 1, 1, 2)
-        table.attach(self.type_data, 1, 1, 1, 2)
+        table.attach(type_label, 0, 1, 1, 1)
+        table.attach(self.type_data, 1, 1, 1, 1)
 
-        # date created
-        created_label = Gtk.Label(label="<b>" + _("Date created:") + "</b>")
-        created_label.set_use_markup(True)
-        created_label.set_alignment(1, 0.5)
-        self.created_data = Gtk.Label(label="--")
-        self.created_data.set_alignment(0, 0.5)
+        # Date created
+        created_label = create_label(
+            "<b>" + _("Date created:") + "</b>", use_markup=True
+        )
+        self.created_data = create_label("--", align=(0, 0.5))
+
         table.attach(created_label, 0, 2, 1, 1)
         table.attach(self.created_data, 1, 2, 1, 1)
 
-        # date last updated
-        updated_label = Gtk.Label(label="<b>" + _("Last updated:") + "</b>")
-        updated_label.set_use_markup(True)
-        updated_label.set_alignment(1, 0.5)
-        self.updated_data = Gtk.Label(label="--")
-        self.updated_data.set_alignment(0, 0.5)
+        # Last updated
+        updated_label = create_label(
+            "<b>" + _("Last updated:") + "</b>", use_markup=True
+        )
+        self.updated_data = create_label("--", align=(0, 0.5))
+
         table.attach(updated_label, 0, 3, 1, 1)
         table.attach(self.updated_data, 1, 3, 1, 1)
 
-        box = Gtk.HBox()
+        # Use Gtk.Box instead of deprecated HBox/VBox
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         box.pack_start(table, False, False, 0)
         self.vbox.pack_start(box, False, False, 0)
 
     def update(self, row):
-        """ "
-        Update the widget in the expander.
-        """
-
+        """Update the widget in the expander."""
         safe_set_text(self.id_data, str(row.id))
         safe_set_text(self.type_data, str(type(row).__name__))
         safe_set_text(
             self.created_data,
-            row._created and row._created.strftime("%Y-%m-%d %H:%m:%S") or "",
+            row._created.strftime("%Y-%m-%d %H:%M:%S") if row._created else "",
         )
         safe_set_text(
             self.updated_data,
-            row._last_updated
-            and row._last_updated.strftime("%Y-%m-%d %H:%m:%S")
-            or "",
+            row._last_updated.strftime("%Y-%m-%d %H:%M:%S")
+            if row._last_updated
+            else "",
         )
 
 
@@ -256,7 +254,7 @@ class InfoBoxPage(Gtk.ScrolledWindow):
     def __init__(self):
         super().__init__()
         self.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.vbox = Gtk.VBox()
+        self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.vbox.set_spacing(10)
         viewport = Gtk.Viewport()
         viewport.add(self.vbox)
@@ -1362,9 +1360,9 @@ class SearchView(pluginmgr.View):
         otherColumns = (c for c in treeview.get_columns() if c != column)
         newWidth = allocation.width - sum(c.get_width() for c in otherColumns)
         newWidth -= treeview.style_get_property("horizontal-separator") * 2
-        if cell.props.wrap_width == newWidth or newWidth <= 0:
+        if cell.get_property("wrap-width") == newWidth or newWidth <= 0:
             return
-        cell.props.wrap_width = newWidth
+        cell.set_property("wrap-width", newWidth)
         store = treeview.get_model()
         treeiter = store.get_iter_first()
         while treeiter and store.iter_is_valid(treeiter):

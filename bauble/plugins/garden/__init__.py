@@ -32,7 +32,7 @@ from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.accession import AccessionEditor
 from bauble.plugins.garden.accession import AccessionInfoBox
 from bauble.plugins.garden.accession import AccessionNote
-from bauble.plugins.garden.accession import Verification
+#from bauble.plugins.garden.accession import Verification
 from bauble.plugins.garden.institution import Institution
 from bauble.plugins.garden.institution import InstitutionCommand
 from bauble.plugins.garden.institution import InstitutionTool
@@ -55,7 +55,7 @@ from bauble.plugins.garden.source import Collection
 from bauble.plugins.garden.source import collection_context_menu
 from bauble.plugins.garden.source import Contact
 from bauble.plugins.garden.source import ContactInfoBox
-from bauble.plugins.garden.source import ContactPresenter
+#from bauble.plugins.garden.source import ContactPresenter
 from bauble.plugins.garden.source import create_contact
 from bauble.plugins.garden.source import Source
 from bauble.plugins.garden.source import source_detail_context_menu
@@ -66,7 +66,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import object_session
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 # from bauble.plugins.garden.propagation import *
@@ -200,7 +200,7 @@ class GardenPlugin(pluginmgr.Plugin):
         from gi.repository import Gtk
         insert_menu.append(Gtk.SeparatorMenuItem())
  
-        from bauble.ui import GUI 
+        #from bauble.ui import GUI 
 
         # Add items to Insert menu
         bauble.gui.add_to_insert_menu(
@@ -253,7 +253,7 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
     cell = Gtk.CellRendererText()  # set up the completion renderer
     completion.pack_start(cell, True)
     completion.set_cell_data_func(cell, cell_data_func)
-    completion.props.popup_set_width = False
+    completion.set_popup_set_width(False)
 
     entry = combo.get_child()
     entry.set_completion(completion)
@@ -295,7 +295,7 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
 
     def on_entry_changed(entry, presenter):
         logger.debug("on_entry_changed(%s, %s)", entry, presenter)
-        text = utils.utf8(entry.props.text)
+        text = utils.utf8(entry.get_text())
 
         if not text and not required:
             presenter.remove_problem(PROBLEM, entry)

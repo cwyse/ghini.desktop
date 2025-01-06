@@ -20,7 +20,7 @@
 # meta.py
 #
 import bauble.db as db
-import bauble.utils as utils
+#import bauble.utils as utils
 from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import select
