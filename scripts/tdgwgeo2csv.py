@@ -210,16 +210,16 @@ def convert_gazetteer():
             continue
         try:
             r.parent_id = converted_rows[line["L4_code"]]["id"]
-        except KeyError as e:
+        except KeyError:
             try:
                 r.parent_id = converted_rows[line["L3_code"]]["id"]
-            except KeyError as e:
+            except KeyError:
                 try:
                     r.parent_id = converted_rows[line["L2_code"]]["id"]
-                except KeyError as e:
+                except KeyError:
                     try:
                         r.parent_id = converted_rows[line["L1_code"]]["id"]
-                    except KeyError as e:
+                    except KeyError:
                         pass
 
         # add the converted rows and print out the csv line

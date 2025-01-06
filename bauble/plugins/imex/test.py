@@ -48,6 +48,7 @@ from bauble.test import BaubleTestCase
 from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 

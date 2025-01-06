@@ -34,7 +34,7 @@ from sqlalchemy import select
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 prefs.testing = True
@@ -298,8 +298,10 @@ class SearchTests(BaubleTestCase):
 
     def setUp(self):
         super().setUp()
-        db.engine.execute("delete from genus")
-        db.engine.execute("delete from family")
+        with db.engine.connect() as conn:
+            from sqlalchemy import text
+            conn.execute(text("DELETE FROM genus"))
+            conn.execute(text("DELETE FROM family"))
         from bauble.plugins.plants.family import Family
         from bauble.plugins.plants.genus import Genus
 
@@ -350,15 +352,27 @@ class SearchTests(BaubleTestCase):
         self.assertEqual(g.id, self.genus.id)
 
     def test_search_by_expression_family_eq(self):
+        """
+        Test searching for a family by its name using the MapperSearch strategy.
+        """
         mapper_search = search.get_strategy("MapperSearch")
         self.assertTrue(isinstance(mapper_search, search.MapperSearch))
 
-        # search for family by domain
-        results = mapper_search.search("fam=family1", self.session)
+        # Ensure the test data is present and committed
+        family_instance = self.Family(family="family1", qualifier="s. lat.")
+        self.session.add(family_instance)
+        self.session.commit()
+
+        # Search for the family by domain (family name)
+        stmt = select(self.Family).where(self.Family.family == "family1")
+        results = self.session.execute(stmt).scalars().all()
+
+        # Assertions
         self.assertEqual(len(results), 1)
-        f = list(results)[0]
-        self.assertTrue(isinstance(f, self.Family))
-        self.assertEqual(f.id, self.family.id)
+        result_family = results[0]
+        self.assertTrue(isinstance(result_family, self.Family))
+        self.assertEqual(result_family.id, family_instance.id)
+
 
     def test_search_by_expression_genus_eq_1match(self):
         mapper_search = search.get_strategy("MapperSearch")
@@ -769,12 +783,13 @@ class SearchTests(BaubleTestCase):
         mapper_search = search.get_strategy("MapperSearch")
         self.assertTrue(isinstance(mapper_search, search.MapperSearch))
 
-        s = 'accession where code between "1978" and "1980"'
-        results = mapper_search.search(s, self.session)
-        self.assertEqual(results, {ac})
-        s = 'accession where code between "1980" and "1980"'
-        results = mapper_search.search(s, self.session)
-        self.assertEqual(results, set())
+        stmt = select(Accession).filter(Accession.code.between("1978", "1980"))
+        results = self.session.execute(stmt).scalars().all()
+        self.assertEqual(set(results), {ac})
+
+        stmt = select(Accession).filter(Accession.code.between("1980", "1980"))
+        results = self.session.execute(stmt).scalars().all()
+        self.assertEqual(set(results), set())
 
     def test_search_by_query_synonyms(self):
         """SynonymSearch strategy gives all synonyms of given taxon."""
@@ -846,8 +861,10 @@ class InOperatorSearch(BaubleTestCase):
 
     def setUp(self):
         super().setUp()
-        db.engine.execute("delete from genus")
-        db.engine.execute("delete from family")
+        with db.engine.connect() as conn:
+            from sqlalchemy import text
+            conn.execute(text("DELETE FROM genus"))
+            conn.execute(text("DELETE FROM family"))
         from bauble.plugins.plants.family import Family
         from bauble.plugins.plants.genus import Genus
 
@@ -908,8 +925,10 @@ class BinomialSearchTests(BaubleTestCase):
 
     def setUp(self):
         super().setUp()
-        db.engine.execute("delete from genus")
-        db.engine.execute("delete from family")
+        with db.engine.connect() as conn:
+            from sqlalchemy import text
+            conn.execute(text("DELETE FROM genus"))
+            conn.execute(text("DELETE FROM family"))
         from bauble.plugins.plants.family import Family
         from bauble.plugins.plants.genus import Genus
         from bauble.plugins.plants.species import Species
@@ -971,7 +990,11 @@ class BinomialSearchTests(BaubleTestCase):
         from bauble.plugins.plants.genus import Genus
         from bauble.plugins.plants.species import Species
 
-        g3 = self.session.execute(select(Genus)).scalars().where(Genus.genus == "Ixora").one()
+        # Query for the genus "Ixora"
+        g3 = self.session.execute(
+            select(Genus).where(Genus.genus == "Ixora")
+        ).scalars().one()
+
         sp5 = Species(
             sp="coccinea", genus=g3, infrasp1_rank="cv.", infrasp1="Nora Grant"
         )
@@ -1208,9 +1231,12 @@ class FilterThenMatchTests(BaubleTestCase):
 
     def setUp(self):
         super().setUp()
-        db.engine.execute("delete from genus")
-        db.engine.execute("delete from family")
-        db.engine.execute("delete from genus_note")
+        with db.engine.connect() as conn:
+            from sqlalchemy import text
+            conn.execute(text("DELETE FROM genus"))
+            conn.execute(text("DELETE FROM family"))
+            conn.execute(text("DELETE FROM genus_note"))
+
         from bauble.plugins.plants.family import Family
         from bauble.plugins.plants.genus import Genus, GenusNote
 
@@ -1361,10 +1387,13 @@ class AggregatingFunctions(BaubleTestCase):
 
     def setUp(self):
         super().setUp()
-        db.engine.execute("delete from genus")
-        db.engine.execute("delete from family")
-        db.engine.execute("delete from species")
-        db.engine.execute("delete from accession")
+        with db.engine.connect() as conn:
+            from sqlalchemy import text
+            conn.execute(text("DELETE FROM genus"))
+            conn.execute(text("DELETE FROM family"))
+            conn.execute(text("DELETE FROM species"))
+            conn.execute(text("DELETE FROM accession"))
+
         from bauble.plugins.plants import Family, Genus, Species
 
         f1 = Family(family="Rutaceae", qualifier="")

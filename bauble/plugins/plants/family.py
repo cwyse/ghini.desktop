@@ -47,18 +47,19 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import select
-from sqlalchemy import text
+#from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.ext.declarative import declared_attr
+#from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import synonym
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
-from sqlalchemy.types import Enum
+#from sqlalchemy.types import Enum
 from sqlalchemy import asc
+from sqlalchemy.orm import Session
 
 
 logger = logging.getLogger(__name__)
@@ -73,14 +74,16 @@ def edit_callback(families):
 
 
 def add_genera_callback(families):
-    session = db.Session()
-    family = session.merge(families[0])
-    genus_instance = genus_instance()
-    genus_editor = get_genus_editor()
-    e = genus_editor(model=genus_instance(family=family))
-    # session creates unbound object.  editor decides what to do with it.
-    session.close()
-    return e.start() is not None
+    """
+    Callback to add a genus to the first family in the provided list.
+    """
+    with Session(db.engine) as session:  # Use SQLAlchemy 2.0 context manager
+        family = session.merge(families[0])  # Ensure family is in the session
+        genus_instance = get_genus_class()
+        genus_editor = get_genus_editor()
+        e = genus_editor(model=genus_instance(family=family))
+        # The editor decides what to do with the object
+        return e.start() is not None
 
 
 def remove_callback(families):
@@ -88,35 +91,40 @@ def remove_callback(families):
     The callback function to remove a family from the family context menu.
     """
     family = families[0]
-    session = object_session(family)
-    genus_instance = get_genus_class()
-    ngen = session.execute(select(genus_instance)).scalars().where(family_id=family.id).count()
-    safe_str = utils.xml_safe(str(family))
-    if ngen > 0:
-        msg = _("The family <i>%(1)s</i> has %(2)s genera." "\n\n") % {
-            "1": safe_str,
-            "2": ngen,
-        } + _("You cannot remove a family with genera.")
-        utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
-        return
-    else:
-        msg = (
-            _("Are you sure you want to remove the family <i>%s</i>?")
-            % safe_str
-        )
-    if not utils.yes_no_dialog(msg):
-        return
-    try:
-        obj = session.execute(select(Family)).scalars().get(family.id)
-        session.delete(obj)
-        session.commit()
-    except Exception as e:
-        msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
-        utils.message_details_dialog(
-            msg, traceback.format_exc(), type=Gtk.MessageType.ERROR
-        )
-    finally:
-        session.close()
+    from bauble.plugins.plants.genus import Genus
+
+    with Session(db.engine) as session:  # Use SQLAlchemy 2.0 context manager
+        family = session.merge(family)  # Ensure the family is in the session
+        
+        # Use SQLAlchemy 2.0-style query
+        ngen = session.execute(
+            select(Genus).filter_by(family_id=family.id)
+        ).scalars().count()
+        
+        safe_str = utils.xml_safe(str(family))
+        if ngen > 0:
+            msg = (_('The family <i>%(1)s</i> has %(2)s genera.'
+                     '\n\n') % {'1': safe_str, '2': ngen} +
+                   _('You cannot remove a family with genera.'))
+            utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
+            return
+        else:
+            msg = _("Are you sure you want to remove the family <i>%s</i>?") \
+                % safe_str
+        
+        if not utils.yes_no_dialog(msg):
+            return
+        
+        try:
+            # Use SQLAlchemy 2.0-style query for deletion
+            obj = session.execute(select(Family).filter_by(id=family.id)).scalar_one()
+            session.delete(obj)
+            session.commit()
+        except Exception as e:
+            msg = _('Could not delete.\n\n%s') % utils.xml_safe(str(e))
+            utils.message_details_dialog(msg, traceback.format_exc(),
+                                         type=Gtk.MessageType.ERROR)
+
     return True
 
 
@@ -872,44 +880,47 @@ class FamilyEditor(editor.GenericModelViewPresenterEditor):
         the list should either be empty or the list of committed values, return
         None if we want to keep editing
         """
-        genus_instance = get_genus_class()
-        genus_editor = get_genus_editor()
-        not_ok_msg = "Are you sure you want to lose your changes?"
-        if response == Gtk.ResponseType.OK or response in self.ok_responses:
-            if self.presenter.dirty():
-                if not handle_db_error(
-                    lambda: self.commit_changes(), self.session, context="committing family changes"
-                ):
-                    return False
-            self._committed.append(self.model)
-        
-        # Handle rollback or losing changes
-        elif (
-            self.presenter.dirty() and utils.yes_no_dialog(not_ok_msg)
-        ) or not self.presenter.dirty():
-            self.session.rollback()
+        try:
+            genus_editor = get_genus_editor()
+            not_ok_msg = "Are you sure you want to lose your changes?"
+            if response == Gtk.ResponseType.OK or response in self.ok_responses:
+                if self.presenter.dirty():
+                    self.commit_changes()
+                    self._committed.append(self.model)
+
+            elif (self.presenter.dirty() and utils.yes_no_dialog(not_ok_msg)) or \
+                    not self.presenter.dirty():
+                self.session.rollback()
+                return True
+            else:
+                return False
+
+            # respond to responses
+            more_committed = None
+            if response == self.RESPONSE_NEXT:
+                self.presenter.cleanup()
+                e = FamilyEditor(parent=self.parent)
+                more_committed = e.start()
+            elif response == self.RESPONSE_OK_AND_ADD:
+                genus_instance = get_genus_class()
+                e = genus_editor(genus_instance(family=self.model), self.parent)
+                more_committed = e.start()
+
+            if more_committed is not None:
+                if isinstance(more_committed, list):
+                    self._committed.extend(more_committed)
+                else:
+                    self._committed.append(more_committed)
+
             return True
-        else:
+        
+        except DBAPIError as db_err:
+            handle_db_error(db_err, context=_("committing changes"))
             return False
 
-        # respond to responses
-        more_committed = None
-        if response == self.RESPONSE_NEXT:
-            self.presenter.cleanup()
-            e = FamilyEditor(parent=self.parent)
-            more_committed = e.start()
-        elif response == self.RESPONSE_OK_AND_ADD:
-            genus_instance = get_genus_class()
-            e = genus_editor(genus_instance(family=self.model), self.parent)
-            more_committed = e.start()
-
-        if more_committed is not None:
-            if isinstance(more_committed, list):
-                self._committed.extend(more_committed)
-            else:
-                self._committed.append(more_committed)
-
-        return True
+        except Exception as exc:
+            handle_db_error(exc, context=_("unknown error during commit"))
+            return False
 
     def start(self):
         while True:
@@ -1220,8 +1231,8 @@ class FamilyInfoBox(InfoBox):
         self.add_expander(self.synonyms)
         self.links = view.LinksExpander("notes", links=button_defs)
         self.add_expander(self.links)
-        self.props = PropertiesExpander()
-        self.add_expander(self.props)
+        self.properties_expander = PropertiesExpander()
+        self.add_expander(self.properties_expander)
 
         if "GardenPlugin" not in pluginmgr.plugins:
             self.widgets.remove_parent("fam_nacc_label")
@@ -1234,7 +1245,7 @@ class FamilyInfoBox(InfoBox):
         self.general.update(row)
         self.synonyms.update(row)
         self.links.update(row)
-        self.props.update(row)
+        self.properties_expander.update(row)
 
 
 db.Family = Family

@@ -40,8 +40,8 @@ gi.require_version("Gtk", "3.0")
 #debugpy.breakpoint()
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-consoleLevel = logging.DEBUG
+logger.setLevel(logging.WARNING)
+consoleLevel = logging.WARNING
 
 
 try:
@@ -113,7 +113,7 @@ sys.path.append(paths.lib_dir())
 
 # set SQLAlchemy logging level
 
-logging.getLogger("sqlalchemy").setLevel(logging.DEBUG)
+logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
 gui = None
 """bauble.gui is the instance :class:`bauble.ui.GUI`
@@ -144,7 +144,7 @@ def quit():
     """
     Stop all tasks and quit Ghini.
     """
-    from gi.repository import Gtk
+    #from gi.repository import Gtk
 
     import bauble.utils as utils
 
@@ -175,7 +175,7 @@ def command_handler(cmd, arg):
     :type arg: list
     """
     logger.debug("entering ui.command_handler {} {}".format(cmd, arg))
-    from gi.repository import Gtk
+    #from gi.repository import Gtk
 
     import bauble.pluginmgr as pluginmgr
     import bauble.utils as utils
@@ -229,7 +229,8 @@ dbengine.html#create-engine-url-arguments>`_
     :type uri: str
     """
     try:
-        from gi.repository import GObject, Gtk
+        from gi.repository import GObject
+        #from gi.repository import Gtk
     except ImportError as e:
         print(_("** Error: could not import gtk and/or gobject"))
         print(e)
@@ -261,7 +262,7 @@ dbengine.html#create-engine-url-arguments>`_
     logging.getLogger().addHandler(consoleHandler)
     fileHandler.setFormatter(formatter)
     consoleHandler.setFormatter(formatter)
-    fileHandler.setLevel(logging.DEBUG)
+    fileHandler.setLevel(logging.WARNING)
     consoleHandler.setLevel(consoleLevel)
 
     # intialize the user preferences

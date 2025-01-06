@@ -35,7 +35,7 @@ from gi.repository import Gtk
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 # TODO: single file or one file per table

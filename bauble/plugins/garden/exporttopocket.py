@@ -25,7 +25,7 @@ from bauble import db
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
 from gi.repository import GObject
-from sqlalchemy import bindparam
+from sqlalchemy import bindparam, select
 
 
 

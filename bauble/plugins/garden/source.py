@@ -45,15 +45,15 @@ from sqlalchemy import Float
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import select
-from sqlalchemy import text
+#from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy.orm import relationship
-from bauble.shared import InfoExpander
+#from bauble.shared import InfoExpander
 from sqlalchemy import asc
-from bauble.plugins.garden.propagation import Propagation
-from sqlalchemy.orm import configure_mappers
-from sqlalchemy.ext.declarative import declared_attr
+#from bauble.plugins.garden.propagation import Propagation
+#from sqlalchemy.orm import configure_mappers
+#from sqlalchemy.ext.declarative import declared_attr
 
 
 logger = logging.getLogger(__name__)
@@ -449,7 +449,7 @@ class CollectionPresenter(editor.ChildPresenter):
         geographic_area = self.session.execute(select(GeographicArea)).scalars().get(geo_id)
         self.set_model_attr("region", geographic_area)
         self.set_model_attr("geographic_area_id", geo_id)
-        self.view.widgets.add_region_button.props.label = str(geographic_area)
+        self.view.widgets.add_region_button.set_label(str(geographic_area))
 
     def set_model_attr(self, field, value, validator=None):
         """

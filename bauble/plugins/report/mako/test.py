@@ -39,6 +39,7 @@ from bauble.plugins.report import SVG
 from bauble.plugins.report.mako import MakoFormatterPlugin
 from bauble.plugins.report.utils import Code39
 from bauble.test import BaubleTestCase
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -254,7 +255,7 @@ class SvgProductionTest(TestCase):
             "</g>",
         )
 
-    def test_add_text_align_right(self):
+    def test_add_text_align_right1(self):
         g, x, y = SVG.add_text(0, 0, "áà", 2, align=1)
         self.assertEqual(y, 0)
         self.assertEqual(x, 0)
@@ -266,7 +267,7 @@ class SvgProductionTest(TestCase):
             "</g>",
         )
 
-    def test_add_text_align_right(self):
+    def test_add_text_align_right2(self):
         g, x, y = SVG.add_text(0, 0, "áà", 2, align=0.5)
         self.assertEqual(y, 0)
         self.assertEqual(x, 31.0)

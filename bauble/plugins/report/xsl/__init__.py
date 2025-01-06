@@ -30,12 +30,12 @@ convert the stylesheet to PDF.
 import logging
 import os
 import re
-import shutil
+#import shutil
 import sys
 import tempfile
 from gettext import gettext as _
 
-import bauble.db as db
+#import bauble.db as db
 import bauble.paths as bpaths
 import bauble.prefs as prefs
 import bauble.utils as butils

@@ -28,7 +28,7 @@
 # dynamically
 import logging
 import os
-import sys
+#import sys
 from functools import partial
 from gettext import gettext as _
 from threading import Thread
@@ -67,7 +67,7 @@ from bauble.ui import DefaultView
 from bauble.utils import safe_set_text
 from bauble.view import SearchView
 from gi.repository import GObject
-from gi.repository import Gtk
+#from gi.repository import Gtk
 from sqlalchemy import select
 from sqlalchemy import text
 
@@ -78,7 +78,7 @@ from .taxonomy_check import TaxonomyCheckTool
 # database is created there should be a way to recreate everything from scratch
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 # naming locally unused objects. will be imported by clients of the module

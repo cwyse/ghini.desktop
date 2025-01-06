@@ -28,7 +28,7 @@ from bauble.error import BaubleError
 from bauble.prefs import prefs
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 # for sake of testing, just use sqlite3.
@@ -86,7 +86,7 @@ class MockLoggingHandler(logging.Handler):
 
     def __init__(self, *args, **kwargs):
         self.reset()
-        logging.Handler.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def emit(self, record):
         received = self.messages.setdefault(record.name, {}).setdefault(
@@ -99,7 +99,9 @@ class MockLoggingHandler(logging.Handler):
 
 
 class BaubleTestCase(unittest.TestCase):
-
+    """
+    Base test case for Bauble tests, providing common setup and teardown.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         prefs.testing = True
@@ -110,6 +112,8 @@ class BaubleTestCase(unittest.TestCase):
         self.session = db.Session()
         self.handler = MockLoggingHandler()
         logging.getLogger().addHandler(self.handler)
+        logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
+        logging.getLogger("bauble").setLevel(logging.WARNING)
 
     def tearDown(self):
         logging.getLogger().removeHandler(self.handler)

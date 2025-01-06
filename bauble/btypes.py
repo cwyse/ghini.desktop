@@ -25,6 +25,7 @@ from gettext import gettext as _
 import bauble.error as error
 import sqlalchemy.types as types
 from bauble.utils import parse_date
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -37,175 +38,193 @@ class EnumError(error.BaubleError):
 
 #        types.Enum("s. lat.", "s. str.", "", name="qualifier_enum"),
 class Enum(types.TypeDecorator):
-    """A database independent Enum type. The value is stored in the
-    database as a Unicode string.
-    """
-
+    """A database independent Enum type. The value is stored in the database as a Unicode string."""
+    
     impl = types.Unicode  # Stored as Unicode in the database
-    cache_ok = True  # SQLAlchemy caching compatibility
 
-    def __init__(
-        self,
-        values,
-        empty_to_none=False,
-        strict=True,
-        translations={},
-        **kwargs
-    ):
+    def __init__(self, values, empty_to_none=False, strict=True, translations=None, **kwargs):
         """
-        : param values: A list of valid values for column.
-        :param empty_to_none: Treat the empty string '' as None.  None
-        must be in the values list in order to set empty_to_none=True.
-        :param strict:
-        :param translations: A dictionary of values->translation
+        :param values: A list of valid values for the column.
+        :param empty_to_none: Treat the empty string '' as None. None must be in the values list for this to be set.
+        :param strict: Enforce strict validation on the values.
+        :param translations: A dictionary of value -> translation mappings.
         """
-        # create the translations from the values and set those from
-        # the translations argument, this way if some translations are
-        # missing then the translation will be the same as value
-        logger.debug(
-            "Enum::init {} {} {}".format(
-                type(self).__name__, values, empty_to_none
-            )
-        )
-        # Ensure all values are unique and non-empty
-#        if not values or len(set(values)) != len(values):
-#            duplicates = [v for v in values if values.count(v) > 1]
-#            raise EnumError(_("Enum requires unique, non-empty values. Duplicates: {}").format(duplicates))
+        logger.debug("Enum::init %s %s %s", type(self).__name__, values, empty_to_none)
+        
+        # Validate the provided values
         if values is None or len(values) == 0:
             raise EnumError(_("Enum requires a list of values"))
-
-        # Ensure all values are strings or None
-        if not {type(x) for x in values}.issubset({type(None), str}):
+        if not set(type(x) for x in values).issubset({type(None), str}):
             raise EnumError(_("Enum requires string values (or None)"))
-
-        # Configure translations
-        self.translations = {v: v for v in values}
-        if translations:
-            self.translations.update(translations)
+        if len(values) != len(set(values)):
+            raise EnumError(_("Enum requires the values to be unique"))
         
-        if empty_to_none and (None not in values):
-            raise EnumError(
-                _(
-                    "You have configured empty_to_none=True but "
-                    "None is not in the values lists"
-                )
-            )        
-        self.values = values[:]  # copy, not reference
+        # Configure translations
+        translations = translations or {}
+        self.translations = {v: v for v in values}
+        self.translations.update(translations)
+        
+        # Ensure None is present if `empty_to_none` is True
+        if empty_to_none and None not in values:
+            raise EnumError(_("You have configured empty_to_none=True, but None is not in the values list"))
+        
+        self.values = values[:]  # Copy values to avoid reference issues
         self.strict = strict
         self.empty_to_none = empty_to_none
-        # the length of the string/unicode column should be the
-        # longest string in values
-        max_length = max([len(v) for v in values if v is not None])
-        self.impl = types.Unicode(max_length)
+
+        # Determine the maximum length of the values for the column size
+        max_length = max(len(v) for v in values if v is not None)
+        self.impl = types.Unicode(max_length)  # Set the underlying SQL column type
+
+        # Call the parent class's constructor
         super().__init__(**kwargs)
+
 
     def process_bind_param(self, value, dialect):
         """
         Process the value going into the database.
         """
-        logger.debug(
-            "Enum::process_bind_param {} {}({})".format(
-                type(self).__name__, type(value).__name__, value
-            )
-        )
-        if (self.empty_to_none) and (not value):
+        logger.debug(f"Enum::process_bind_param {type(self).__name__} {type(value).__name__}({value})")
+
+        # Handle empty strings as None if configured
+        if self.empty_to_none and not value:
             value = None
-        if value is None and None not in self.values and "" in self.values:
-            value = ""
+
+        # Convert None to empty string if None is not in values but an empty string is
+        if value is None and None not in self.values and '' in self.values:
+            value = ''
+
+        # Validate the value against the allowed values
         if value not in self.values:
             raise EnumError(
                 _(
-                    "%(type_name)s(%(value)s) not in Enum.values: %(all_values)s"
+                    f"{type(value).__name__}({value}) not in Enum.values: {self.values}"
                 )
-                % {
-                    "value": value,
-                    "type_name": type(value).__name__,
-                    "all_values": self.values,
-                }
             )
+
         return value
+
 
     def process_result_value(self, value, dialect):
         """
         Process the value returned from the database.
         """
-        # if self.strict and value not in self.values:
-        #     raise ValueError(_('"%s" not in Enum.values') % value)
+        if self.strict and value not in self.values:
+            raise EnumError(
+                _(
+                    f"Value '{value}' is not in Enum.values: {self.values}"
+                )
+            )
         return value
 
     def copy(self):
-        return Enum(self.values, self.empty_to_none, self.strict)
+        """
+        Create a copy of the Enum type with the same configuration.
+        """
+        return Enum(
+            values=self.values,
+            empty_to_none=self.empty_to_none,
+            strict=self.strict,
+            translations=self.translations,
+        )
 
-
-def get_dayfirst_yearfirst():
-    """
-    Retrieve preferences for dayfirst and yearfirst parsing.
-    """
-    from bauble.prefs import prefs, parse_dayfirst_pref, parse_yearfirst_pref
-    return prefs[parse_dayfirst_pref], prefs[parse_yearfirst_pref]
 
 class DateTime(types.TypeDecorator):
     """
-    A DateTime type that allows strings
+    A DateTime type that ensures timezone-aware storage and retrieval.
     """
-
     impl = types.DateTime
-    cache_ok = True
 
     import re
-
-    _rx_tz = re.compile("[+-]")
+    _rx_tz = re.compile('[+-]')
 
     def process_bind_param(self, value, dialect):
-        if not isinstance(value, str):
+        """
+        Convert value (string or datetime) into a proper datetime object, 
+        ensuring timezone awareness if needed.
+        """
+        if value is None:
             return value
-        try:
-            DateTime._dayfirst
-            DateTime._yearfirst
-        except AttributeError:
-            #import bauble.prefs as prefs
-            #DateTime._dayfirst = prefs.prefs[prefs.parse_dayfirst_pref]
-            #DateTime._yearfirst = prefs.prefs[prefs.parse_yearfirst_pref]
-            from bauble.prefs import prefs, parse_dayfirst_pref, parse_yearfirst_pref
-            DateTime._dayfirst = prefs.prefs[parse_dayfirst_pref]
-            DateTime._yearfirst = prefs.prefs[parse_yearfirst_pref]
-        result = parse_date(
-            value, dayfirst=DateTime._dayfirst, yearfirst=DateTime._yearfirst
-        )
-        return result
+
+        if isinstance(value, str):
+            # Dynamically fetch preferences for date parsing
+            from bauble import prefs
+            dayfirst = prefs.parse_dayfirst_pref
+            yearfirst = prefs.parse_yearfirst_pref
+
+            # Parse the string into a datetime object
+            from bauble.utils import parse_date  # Ensure this is available
+            result = parse_date(value, dayfirst=dayfirst, yearfirst=yearfirst)
+            return result
+
+        if isinstance(value, datetime) and value.tzinfo is None:
+            # Assume naive datetime is in UTC
+            value = value.replace(tzinfo=timezone.utc)
+
+        return value
+
 
     def process_result_value(self, value, dialect):
+        """
+        Ensure retrieved datetime is timezone-aware.
+        """
+        if value is None:
+            return value
+
+        if isinstance(value, datetime) and value.tzinfo is None:
+            # Convert naive datetime to UTC
+            value = value.replace(tzinfo=timezone.utc)
+
         return value
 
     def copy(self):
+        """
+        Return a copy of this type.
+        """
         return DateTime()
-
 
 class Date(types.TypeDecorator):
     """
     A Date type that allows Date strings
     """
-
     impl = types.Date
-    cache_ok = True
+    cache_ok = True  # SQLAlchemy caching compatibility
+
+    def __init__(self):
+        super().__init__()
+        self._dayfirst = None
+        self._yearfirst = None
+
+    def _initialize_date_prefs(self):
+        """
+        Initialize dayfirst and yearfirst preferences if not already set.
+        """
+        if self._dayfirst is None or self._yearfirst is None:
+            from bauble import prefs
+            self._dayfirst = prefs.prefs[prefs.parse_dayfirst_pref]
+            self._yearfirst = prefs.prefs[prefs.parse_yearfirst_pref]
+            logger.debug(f"Date preferences initialized: dayfirst={self._dayfirst}, yearfirst={self._yearfirst}")
 
     def process_bind_param(self, value, dialect):
+        """
+        Convert value to a database-compatible date format.
+        """
         if not isinstance(value, str):
             return value
-        try:
-            Date._dayfirst
-            Date._yearfirst
-        except AttributeError:
-            import bauble.prefs as prefs
-
-            Date._dayfirst = prefs.prefs[prefs.parse_dayfirst_pref]
-            Date._yearfirst = prefs.prefs[prefs.parse_yearfirst_pref]
-        return parse_date(
-            value, dayfirst=Date._dayfirst, yearfirst=Date._yearfirst
-        ).date()
+        self._initialize_date_prefs()
+        parsed_date = parse_date(value, dayfirst=self._dayfirst, yearfirst=self._yearfirst)
+        logger.debug(f"Processed bind param: input={value}, parsed_date={parsed_date}")
+        return parsed_date.date()
 
     def process_result_value(self, value, dialect):
+        """
+        Convert the database value back to a Python date object.
+        """
+        logger.debug(f"Processing result value: {value}")
         return value
 
     def copy(self):
+        """
+        Create a copy of the Date type with the same configuration.
+        """
         return Date()

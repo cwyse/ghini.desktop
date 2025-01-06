@@ -37,7 +37,7 @@ from sqlalchemy import Integer
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 """Tests for the main bauble module.
@@ -70,7 +70,9 @@ class EnumTests(BaubleTestCase):
         BaubleTestCase.tearDown(self)
 
     def test_insert_low_level(self):
-        db.engine.execute(self.table.insert(), {"id": 1})
+        with db.engine.connect() as conn:
+            conn.execute(self.table.insert().values(id=1))
+            conn.commit()
 
     def test_insert_alchemic(self):
         t = self.Test(id=1)
@@ -143,9 +145,9 @@ class EnumTests(BaubleTestCase):
         t = self.Table(value="")
         self.session.add(t)
         self.session.flush()
-        q = self.session.execute(select(self.Table)).scalars().where(value="")
+        q = self.session.execute(select(self.Table).where(self.Table.value == "")).scalars()
         self.assertEqual(q.all(), [])
-        q = self.session.execute(select(self.Table)).scalars().where(value=None)
+        q = self.session.execute(select(self.Table).where(self.Table.value == None)).scalars()
         self.assertEqual(q.all(), [t])
 
 
@@ -212,7 +214,10 @@ class BaubleTests(BaubleTestCase):
         m = meta.BaubleMeta(name="name", value="value")
         self.session.add(m)
         self.session.commit()
-        m = self.session.execute(select(meta.BaubleMeta)).scalars().where(name="name").first()
+        m = self.session.execute(
+            select(meta.BaubleMeta).where(meta.BaubleMeta.name == "name")
+        ).scalars().first()
+
 
         # test that _created and _last_updated were created correctly
         self.assertTrue(
@@ -254,16 +259,20 @@ class BaubleTests(BaubleTestCase):
 
 
 class HistoryTests(BaubleTestCase):
-
+        
     def test(self):
         from bauble.plugins.plants import Family
+        # Verify the Base and session configuration
+        self.verify_base_and_session()
 
         f = Family(family="Family")
         self.session.add(f)
         self.session.commit()
         history = (
-            self.session.execute(select(db.History)).scalars()
-            .order_by(db.History.timestamp.desc())
+            self.session.execute(
+                select(db.History).order_by(db.History.timestamp.desc())
+            )
+            .scalars()
             .first()
         )
         assert history.table_name == "family" and history.operation == "insert"
@@ -271,8 +280,10 @@ class HistoryTests(BaubleTestCase):
         f.family = "Family2"
         self.session.commit()
         history = (
-            self.session.execute(select(db.History)).scalars()
-            .order_by(db.History.timestamp.desc())
+            self.session.execute(
+                select(db.History).order_by(db.History.timestamp.desc())
+            )
+            .scalars()
             .first()
         )
         assert history.table_name == "family" and history.operation == "update"
@@ -280,12 +291,34 @@ class HistoryTests(BaubleTestCase):
         self.session.delete(f)
         self.session.commit()
         history = (
-            self.session.execute(select(db.History)).scalars()
-            .order_by(db.History.timestamp.desc())
+            self.session.execute(
+                select(db.History).order_by(db.History.timestamp.desc())
+            )
+            .scalars()
             .first()
         )
         assert history.table_name == "family" and history.operation == "delete"
 
+    def verify_base_and_session(self):
+        """
+        Verify that the Base, session, and engine configurations are correct.
+        """
+        from bauble.plugins.plants import Family
+        print(f"Family Base: {Family.__bases__}")
+        print(f"db.Base class: {db.Base.__class__}")
+        print(f"Family table: {Family.__table__}")
+        print(f"Base metadata tables: {db.Base.metadata.tables.keys()}")
+        print(f"Engine metadata bind: {db.Base.metadata.bind}")
+        # Verify Base metadata binding
+        assert db.Base.metadata.bind == db.engine, "Base metadata is not bound to the correct engine!"
+
+        # Verify session binding
+        assert self.session.bind == db.engine, "Session is not bound to the correct engine!"
+
+        # Verify the model's Base
+
+        assert isinstance(Family, db.Base), "Family is not derived from the correct Base!"
+        logger.info("All Base and session checks passed.")
 
 class MVPTests(BaubleTestCase):
 

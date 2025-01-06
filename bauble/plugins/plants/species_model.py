@@ -35,16 +35,16 @@ from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.ext.declarative import declared_attr
+#from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import foreign
+#from sqlalchemy.orm import foreign
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import synonym
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 def _remove_zws(s):
@@ -216,20 +216,37 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     @classmethod
     def retrieve(cls, session, keys):
+        """
+        Retrieve a single Species instance based on the provided keys.
+        
+        :param session: SQLAlchemy session.
+        :param keys: Dictionary of filtering criteria (e.g., {"epithet": ..., "ht-epithet": ...}).
+        :return: The Species instance if found, otherwise None.
+        """
         from .genus import Genus
 
-        query = session.execute(select(cls)).scalars()
-        if "epithet" in keys:
-            query = query.where(cls.epithet == keys["epithet"])
-        if "ht-epithet" in keys:
-            query = query.join(cls.genus).where(
-                Genus.epithet == keys["ht-epithet"]
-            )
         try:
-            return query.one()
-        except NoResultFound:
+            # Build the base query
+            stmt = select(cls)
+
+            # Add conditions for `epithet`
+            if "epithet" in keys:
+                stmt = stmt.filter(cls.epithet == keys["epithet"])
+
+            # Add conditions for `ht-epithet` (genus epithet)
+            if "ht-epithet" in keys:
+                stmt = stmt.join(cls.genus).filter(Genus.epithet == keys["ht-epithet"])
+
+            # Execute the query and fetch one result
+            result = session.execute(stmt).scalars().one_or_none()
+
+            if result:
+                return result
+
+            # Log warning if no result is found
             logger.warning(f"No Species found for criteria: {keys}")
             return None
+
         except MultipleResultsFound:
             logger.warning(f"Multiple Species found for criteria: {keys}")
             return None
@@ -237,47 +254,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             logger.error(f"Error retrieving Species with criteria {keys}: {e}")
             return None
 
-    @classmethod
-    def retrieve_or_create(cls, session, keys, create=False):
-        """
-        Retrieves an existing Species instance based on keys.
-        If not found and create=True, creates a new instance.
-        Returns the Species instance or None.
-        """
-        query = session.execute(select(cls)).scalars()
-        if "epithet" in keys:
-            query = query.where(cls.epithet == keys["epithet"])
-        if "ht-epithet" in keys:
-            query = query.join(cls.genus).where(
-                get_genus().epithet == keys["ht-epithet"]
-            )
-        try:
-            return query.one()
-        except NoResultFound:
-            if create:
-                genus_instance = get_genus().retrieve_or_create(
-                    session, {"epithet": keys.get("ht-epithet")}, create=True
-                )
-                if not genus_instance:
-                    logger.error(
-                        f"Genus '{keys.get('ht-epithet')}' could not be created."
-                    )
-                    return None
-                species_instance = cls(
-                    epithet=keys["epithet"], genus=genus_instance
-                )
-                session.add(species_instance)
-                session.commit()
-                return species_instance
-            else:
-                return None
-        except MultipleResultsFound:
-            logger.warning(f"Multiple Species found for criteria: {keys}")
-            return None
-        except Exception as e:
-            logger.error(f"Error retrieving Species with criteria {keys}: {e}")
-            return None
-
+       
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
         try:
@@ -705,51 +682,82 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     @property
     def accepted(self):
-        "Name that should be used if name of self should be rejected"
+        """
+        Name that should be used if the name of self should be rejected.
+        
+        :return: The accepted Species instance if found, otherwise None.
+        """
         from sqlalchemy.orm.session import object_session
 
         session = object_session(self)
         if not session:
             logger.warning("species:accepted - object not in session")
             return None
-        syn = (
-            session.execute(select(SpeciesSynonym)).scalars()
-            .where(SpeciesSynonym.synonym_id == self.id)
-            .first()
-        )
-        accepted = syn and syn.species
-        return accepted
+
+        try:
+            # Query the SpeciesSynonym table for the synonym relationship
+            stmt = select(SpeciesSynonym).where(SpeciesSynonym.synonym_id == self.id)
+            synonym = session.execute(stmt).scalars().first()
+
+            # Return the associated species if found
+            return synonym.species if synonym else None
+
+        except Exception as e:
+            logger.error(f"Error retrieving accepted species for id {self.id}: {e}")
+            return None
+
+
+
 
     @accepted.setter
     def accepted(self, value):
-        "Name that should be used if name of self should be rejected"
-        logger.debug("Accepted taxon: {} {}".format(type(value), value))
-        assert isinstance(value, self.__class__)
+        """
+        Name that should be used if the name of self should be rejected.
+        
+        :param value: The Species instance to set as the accepted name.
+        """
+        from sqlalchemy.orm import object_session
+        
+        logger.debug(f"Accepted taxon: {type(value)} {value}")
+        assert isinstance(value, self.__class__), "Value must be an instance of the same class"
+
         if self in value.synonyms:
+            # Avoid circular synonym relationships
             return
-        # remove any previous `accepted` link
-        from sqlalchemy.orm.session import object_session
 
         session = object_session(self)
         if not session:
             logger.warning("species:accepted.setter - object not in session")
             return
-        previous_synonymy_link = (
-            session.execute(select(SpeciesSynonym)).scalars()
-            .where(SpeciesSynonym.synonym_id == self.id)
-            .first()
-        )
-        if previous_synonymy_link:
-            a = (
-                session.execute(select(Species)).scalars()
-                .where(Species.id == previous_synonymy_link.species_id)
-                .one()
-            )
-            a.synonyms.remove(self)
-        session.flush()
-        if value != self:
-            value.synonyms.append(self)
-        session.flush()
+
+        try:
+            # Remove any previous `accepted` link
+            stmt = select(SpeciesSynonym).where(SpeciesSynonym.synonym_id == self.id)
+            previous_synonymy_link = session.execute(stmt).scalars().first()
+
+            if previous_synonymy_link:
+                # Retrieve the previously accepted species
+                previous_accepted_species_stmt = select(Species).where(
+                    Species.id == previous_synonymy_link.species_id
+                )
+                previous_accepted_species = session.execute(previous_accepted_species_stmt).scalars().one()
+                
+                # Remove the current species from its synonyms
+                previous_accepted_species.synonyms.remove(self)
+
+            # Flush the session to ensure changes are applied
+            session.flush()
+
+            # Create the new synonym relationship if `value` is not `self`
+            if value != self:
+                value.synonyms.append(self)
+
+            # Flush changes to persist the updates
+            session.flush()
+
+        except Exception as e:
+            logger.error(f"Error updating accepted species for {self}: {e}")
+
 
     def has_accessions(self):
         """true if species is linked to at least one accession"""
@@ -819,21 +827,6 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         pass
 
     @classmethod
-    def retrieve(cls, session, keys):
-        from .genus import Genus
-
-        try:
-            return (
-                session.execute(select(cls)).scalars()
-                .where(cls.epithet == keys["epithet"])
-                .join(Genus)
-                .where(Genus.epithet == keys["ht-epithet"])
-                .one()
-            )
-        except:
-            return None
-
-    @classmethod
     def compute_serializable_fields(cls, session, keys):
         from .genus import Genus
 
@@ -883,24 +876,24 @@ def compute_serializable_fields(cls, session, keys):
     )
     return result
 
-
-def retrieve(cls, session, keys):
+def retrieve(session, keys):
     from .genus import Genus
 
     genus, epithet = keys["species"].split(" ", 1)
     try:
         return (
-            session.execute(select(cls)).scalars()
-            .where(cls.category == keys["category"])
-            .join(Species)
+            session.execute(select(Species))
+            .scalars()
+            .where(Species.category == keys["category"])
+            .join(Species.genus)
             .where(Species.epithet == epithet)
             .join(Genus)
             .where(Genus.epithet == genus)
             .one()
         )
-    except:
+    except Exception as e:
+        logger.error(f"Error retrieving species with keys {keys}: {e}")
         return None
-
 
 SpeciesNote = db.make_note_class(
     "Species", Species, compute_serializable_fields, as_dict, retrieve

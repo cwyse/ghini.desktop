@@ -78,7 +78,7 @@ from nose import SkipTest
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import object_session
-
+from sqlalchmy import select
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,6 @@ default_seed_values = {
     "location": "mist tent",
     "moved_from": "mist tent",
     "moved_to": "hardening table",
-    "media": "standard mix",
     "germ_date": datetime.date(2017, 2, 1),
     "germ_pct": 99,
     "nseedlings": 23,
@@ -367,7 +366,7 @@ class PlantTests(GardenTestCase):
         self.editor.handle_response(Gtk.ResponseType.OK)
 
         for code in utils.range_builder(rng):
-            from sqlalchemy import and_
+            #from sqlalchemy import and_
 
             q = (
                 self.session.execute(select(Plant)).scalars()
@@ -1004,25 +1003,25 @@ class PropagationTests(GardenTestCase):
 
         update_gui()
 
-        # check that the values loaded correctly from the model in the
-        # editor widget
-        def get_widget_text(w):
-            if isinstance(w, Gtk.TextView):
-                return w.get_buffer().set_text
-            elif isinstance(w, Gtk.Entry):
-                return w.set_text
-            elif (
-                isinstance(w, Gtk.ComboBox)
-                and w.get_child()
-                and isinstance(w.get_child(), Gtk.Entry)
-            ):
-                return w.get_child().get_active_text()
-            elif isinstance(w, Gtk.ComboBox):
-                if w.get_model() is None or w.get_active_iter() is None:
-                    return None
-                return w.get_model()[w.get_active_iter()][0]
-            else:
-                raise ValueError("%s not supported" % type(w))
+        # # check that the values loaded correctly from the model in the
+        # # editor widget
+        # def get_widget_text(w):
+        #     if isinstance(w, Gtk.TextView):
+        #         return w.get_buffer().set_text
+        #     elif isinstance(w, Gtk.Entry):
+        #         return w.set_text
+        #     elif (
+        #         isinstance(w, Gtk.ComboBox)
+        #         and w.get_child()
+        #         and isinstance(w.get_child(), Gtk.Entry)
+        #     ):
+        #         return w.get_child().get_active_text()
+        #     elif isinstance(w, Gtk.ComboBox):
+        #         if w.get_model() is None or w.get_active_iter() is None:
+        #             return None
+        #         return w.get_model()[w.get_active_iter()][0]
+        #     else:
+        #         raise ValueError("%s not supported" % type(w))
 
         # check that the values loaded correctly from the model in the
         # editor widget
@@ -2469,7 +2468,7 @@ class PlantSearchTest(GardenTestCase):
         mapper_search = search.get_strategy("PlantSearch")
         import bauble.plugins.garden.plant
 
-        bauble.plugins.garden.plant.logger.setLevel(logging.DEBUG)
+        bauble.plugins.garden.plant.logger.setLevel(logging.WARNING)
 
         results = mapper_search.search("1.1.1", self.session)
         self.assertEqual(len(results), 1)
@@ -2516,7 +2515,7 @@ class PlantSearchTest(GardenTestCase):
         mapper_search = search.get_strategy("PlantSearch")
         import bauble.plugins.garden.plant
 
-        bauble.plugins.garden.plant.logger.setLevel(logging.DEBUG)
+        bauble.plugins.garden.plant.logger.setLevel(logging.WARNING)
 
         results = mapper_search.search("1.11", self.session)
         self.assertEqual(len(results), 0)
@@ -2785,7 +2784,7 @@ class ContactPresenterTests(BaubleTestCase):
 
 class BaubleSearchSearchTest(BaubleTestCase):
     def test_search_search_uses_Plant_Search(self):
-        bauble.search.logger.setLevel(logging.DEBUG)
+        bauble.search.logger.setLevel(logging.WARNING)
         bauble.search.search("genus like %", self.session)
         self.assertTrue(
             'SearchStrategy "genus like %"(PlantSearch)'

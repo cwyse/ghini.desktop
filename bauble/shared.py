@@ -1,23 +1,25 @@
 # shared.py
 
 import logging
-from gi.repository import Gtk, Pango
-from bauble.utils import safe_set_text, set_widget_value
+from gi.repository import Gtk
+#from gi.repository import Pango
+from bauble.utils import set_widget_value
+#from bauble.utils import safe_set_text
 from bauble import prefs
 
 logger = logging.getLogger(__name__)
 
-class InfoExpander(Gtk.Expander):
-    """
-    Abstract class for an expandable info box.
-    """
+# class InfoExpander(Gtk.Expander):
+#     """
+#     Abstract class for an expandable info box.
+#     """
 
-    def __init__(self, label):
-        super().__init__()
-        self.set_label(label)
-        self.vbox = Gtk.VBox()
-        self.add(self.vbox)
-        self.set_expanded(True)
+#     def __init__(self, label):
+#         super().__init__()
+#         self.set_label(label)
+#         self.vbox = Gtk.VBox()
+#         self.add(self.vbox)
+#         self.set_expanded(True)
 
 
 class InfoExpander(Gtk.Expander):
@@ -43,11 +45,6 @@ class InfoExpander(Gtk.Expander):
         if not self.expanded_pref:
             self.set_expanded(True)
         self.connect("notify::expanded", self.on_expanded)
-
-    def on_expanded(self, expander, *args):
-        if self.expanded_pref:
-            prefs.prefs[self.expanded_pref] = expander.get_expanded()
-            prefs.prefs.save()
 
     def on_expanded(self, expander, *args):
         """

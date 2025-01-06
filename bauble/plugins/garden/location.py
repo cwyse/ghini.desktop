@@ -42,7 +42,7 @@ from gi.repository import Gtk
 from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import select
-from sqlalchemy import text
+#from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy.exc import DBAPIError
@@ -52,7 +52,7 @@ from sqlalchemy.orm.session import object_session
 from sqlalchemy import asc
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 def edit_callback(locations):
@@ -623,8 +623,8 @@ class LocationInfoBox(InfoBox):
         self.add_expander(self.description)
         self.mapinfo = MapInfoExpander(self.get_map_extents)
         self.add_expander(self.mapinfo)
-        self.props = PropertiesExpander()
-        self.add_expander(self.props)
+        self.properties_expander = PropertiesExpander()
+        self.add_expander(self.properties_expander)
 
     def get_map_extents(self, location):
         result = []
@@ -640,4 +640,4 @@ class LocationInfoBox(InfoBox):
         self.general.update(row)
         self.description.update(row)
         self.mapinfo.update(row)
-        self.props.update(row)
+        self.properties_expander.update(row)  

@@ -40,18 +40,6 @@ from bauble.editor import GenericModelViewPresenterEditor
 from bauble.editor import NotesPresenter
 from bauble.editor import PicturesPresenter
 from bauble.error import CheckConditionError
-from bauble.plugins.garden.constants import (
-    prop_type_values,
-    prop_type_results,
-    cutting_type_values,
-    tip_values,
-    leaves_values,
-    flower_buds_values,
-    wound_values,
-    hormone_values,
-    bottom_heat_unit_values,
-    length_unit_values,
-)
 from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.location import LocationEditor
 from bauble.search import SearchStrategy
@@ -70,10 +58,10 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import func
 from sqlalchemy import Integer
 from sqlalchemy import select
-from sqlalchemy import text
+#from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
-from sqlalchemy.exc import DBAPIError
+#from sqlalchemy.exc import DBAPIError
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import object_mapper
 from sqlalchemy.orm import relationship
@@ -83,7 +71,7 @@ from sqlalchemy import asc
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 # TODO: might be worthwhile to have a label or textview next to the
@@ -1099,8 +1087,9 @@ class PlantEditorPresenter(GenericEditorPresenter):
         msg_box_parent = self.view.widgets.message_box_parent
         list(map(msg_box_parent.remove, msg_box_parent.get_children()))
         # the entry is made not editable for branch mode
-        self.view.widgets.plant_acc_entry.props.editable = True
-        self.view.get_window().props.title = _("Plant Editor")
+        self.view.widgets.plant_acc_entry.set_editable(True)
+        self.view.get_window().set_title(_("Plant Editor"))
+
 
     def start(self):
         return self.view.start()
@@ -1331,9 +1320,9 @@ class PlantEditor(GenericModelViewPresenterEditor):
 
         if self.branched_plant:
             # set title if in branch mode
-            self.presenter.view.get_window().props.title += utils.utf8(
-                " - %s" % _("Split Mode")
-            )
+            current_title = self.presenter.view.get_window().get_title()
+            new_title = current_title + utils.utf8(" - %s" % _("Split Mode"))
+            self.presenter.view.get_window().set_title(new_title)
             message_box_parent = self.presenter.view.widgets.message_box_parent
             list(
                 map(
@@ -1350,7 +1339,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
             box.show_all()
 
             # don't allow editing the accession code in a branched plant
-            self.presenter.view.widgets.plant_acc_entry.props.editable = False
+            self.presenter.view.widgets.plant_acc_entry.set_editable(False)
 
         if not sub_editor:
             while True:
@@ -1430,11 +1419,11 @@ class GeneralPlantExpander(InfoExpander):
             "type_data", acc_type_values[row.acc_type], False
         )
 
-        image_size = Gtk.IconSize.MENU
-        stock = Gtk.STOCK_NO
+        image_size = Gtk.IconSize.SMALL_TOOLBAR
+        icon_name = "dialog-no"
         if row.memorial:
-            stock = Gtk.STOCK_YES
-        self.widgets.memorial_image.set_from_stock(stock, image_size)
+            icon_name = "dialog-yes" 
+        self.widgets.memorial_image.set_from_icon_name(icon_name, image_size)
 
 
 class ChangesExpander(InfoExpander):
@@ -1445,11 +1434,13 @@ class ChangesExpander(InfoExpander):
     def __init__(self, widgets):
         """ """
         super().__init__(_("Changes"), widgets)
-        self.vbox.props.spacing = 5
+        self.vbox.set_spacing(5)  # Replace self.vbox.props.spacing
+
         self.table = Gtk.Grid()
         self.vbox.pack_start(self.table, False, False, 0)
-        self.table.props.row_spacing = 3
-        self.table.props.column_spacing = 5
+
+        self.table.set_row_spacing(3)       # Replace self.table.props.row_spacing
+        self.table.set_column_spacing(5)    # Replace self.table.props.column_spacing
 
     def update(self, row):
         """ """
@@ -1606,20 +1597,19 @@ class PropagationExpander(InfoExpander):
             v2.pack_start(label, True, True, 0)
 
             safe_set_text(label, prop.get_summary(partial=2))
-            label.props.wrap = True
+            label.set_wrap(True)  # Replace label.props.wrap = True
             label.set_alignment(0.0, 0.0)
             label.connect("size-allocate", label_size_allocate)
             self.vbox.pack_start(label, True, True, 0)
         self.vbox.show_all()
 
-
 class PlantInfoBox(InfoBox):
     """
-    an InfoBox for a Plants table row
+    An InfoBox for a Plants table row.
     """
 
     def __init__(self):
-        """ """
+        """Initialize PlantInfoBox."""
         super().__init__()
         filename = os.path.join(
             paths.lib_dir(), "plugins", "garden", "plant_infobox.glade"
@@ -1640,39 +1630,48 @@ class PlantInfoBox(InfoBox):
         self.mapinfo = MapInfoExpander(self.get_map_extents)
         self.add_expander(self.mapinfo)
 
-        self.props = PropertiesExpander()
-        self.add_expander(self.props)
+        self.properties_expander = PropertiesExpander()
+        self.add_expander(self.properties_expander)
 
     def get_map_extents(self, plant):
+        """Get map extents for the given plant."""
         result = []
         try:
             result.append(plant.coords)
-        except:
+        except AttributeError:  # Specify exception type for clarity
             pass
         return result
 
     def update(self, row):
-        """ """
+        """Update the InfoBox with data from a row."""
         # TODO: don't really need a location expander, could just
         # use a label in the general section
         # loc = self.get_expander("Location")
         # loc.update(row.location)
+        # 
+        # General section
         self.general.update(row)
+
+        # Transfers section
         self.transfers.update(row)
+
+        # Propagations section
         self.propagations.update(row)
 
+        # Links section
         urls = [
             x
             for x in [utils.get_urls(note.note) for note in row.notes]
-            if x != []
+            if x
         ]
-        if not urls:
-            self.links.set_visible = False
-            self.links._sep.set_visible = False
-        else:
-            self.links.set_visible = True
-            self.links._sep.set_visible = True
+        is_visible = bool(urls)
+        self.links.set_visible(is_visible)
+        self.links._sep.set_visible(is_visible)
+        if is_visible:
             self.links.update(row)
 
+        # Map info
         self.mapinfo.update(row)
-        self.props.update(row)
+
+        # Properties expander
+        self.properties_expander.update(row)

@@ -117,7 +117,7 @@ except ImportError:
         return opener.poll() == 0
 
 
-import subprocess
+#import subprocess
 
 #
 # Private functions.

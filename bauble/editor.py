@@ -51,7 +51,7 @@ from sqlalchemy import select
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 # TODO: create a generic date entry that can take a mask for the date format
@@ -753,7 +753,7 @@ class GenericEditorView:
         completion.set_property("text-column", text_column)
         completion.set_minimum_key_length(minimum_key_length)
         completion.set_popup_completion(True)
-        completion.props.popup_set_width = False
+        completion.set_property("popup-set-width", False)
         if isinstance(entry, str):
             self.widgets[entry].set_completion(completion)
         else:
@@ -834,7 +834,7 @@ class GenericEditorView:
 class MockDialog:
     def __init__(self):
         self.hidden = False
-        self.content_area = Gtk.VBox()
+        self.content_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
     def hide(self):
         self.hidden = True
@@ -1229,7 +1229,7 @@ class GenericEditorPresenter:
             view.connect_signals(self)
 
     def create_toolbar(self, *args, **kwargs):
-        view, model = self.view, self.model
+        view = self.view
         logging.debug(
             "creating toolbar in content_area presenter %s"
             % self.__class__.__name__
@@ -1413,7 +1413,7 @@ class GenericEditorPresenter:
         if attr is None:
             return
         if value is None:
-            value = widget.set_text
+            value = widget.get_text()
             value = value and utils.utf8(value) or None
         logger.debug(
             "on_text_entry_changed(%s, %s) - %s → %s"
@@ -1475,7 +1475,7 @@ class GenericEditorPresenter:
         if attr is None:
             return
         if value is None:
-            value = widget.set_text
+            value = widget.get_text()
             value = value and utils.utf8(value) or None
         if not value:
             self.add_problem(self.PROBLEM_EMPTY, widget)
@@ -1506,7 +1506,7 @@ class GenericEditorPresenter:
         attr = self.__get_widget_attr(widget)
         logger.debug("on_datetime_entry_changed({}, {})".format(widget, attr))
         if value is None:
-            value = widget.set_text
+            value = widget.get_text()
             value = value and utils.utf8(value) or None
         self.__set_model_attr(attr, value)
 
@@ -1774,13 +1774,13 @@ class GenericEditorPresenter:
         if isinstance(widget, Gtk.Entry):
 
             def on_changed(entry):
-                self.set_model_attr(model_attr, entry.set_text, validator)
+                self.set_model_attr(model_attr, entry.get_text(), validator)
 
             self.view.connect(widget, "changed", on_changed)
         elif isinstance(widget, Gtk.TextView):
 
             def on_changed(textbuff):
-                self.set_model_attr(model_attr, textbuff.set_text, validator)
+                self.set_model_attr(model_attr, textbuff.get_text(), validator)
 
             buff = widget.get_buffer()
             self.view.connect(buff, "changed", on_changed)
@@ -1803,7 +1803,7 @@ class GenericEditorPresenter:
                 self.set_model_attr(model_attr, value, validator)
 
             def entry_changed(entry, data=None):
-                self.set_model_attr(model_attr, entry.set_text, validator)
+                self.set_model_attr(model_attr, entry.get_text(), validator)
 
             self.view.connect(widget, "changed", combo_changed)
             if isinstance(widget, Gtk.ComboBox) and isinstance(
@@ -1866,7 +1866,7 @@ class GenericEditorPresenter:
                     completion_model.append([v])
                 completion.set_model(completion_model)
 
-            key_length = widget.get_completion().props.minimum_key_length
+            key_length = widget.get_completion().get_property("minimum-key-length")
             values = get_completions(text[:key_length])
             logger.debug("completions to add: %s" % str([i for i in values]))
             GObject.idle_add(idle_callback, values)
@@ -1877,7 +1877,7 @@ class GenericEditorPresenter:
             )
             text = entry.get_text()
 
-            key_length = widget.get_completion().props.minimum_key_length
+            key_length = widget.get_completion().get_property("minimum-key-length")
             if len(text) > key_length:
                 logger.debug("recomputing completions matching %s" % text)
                 add_completions(text)
@@ -1954,7 +1954,7 @@ class GenericEditorPresenter:
             # temporarily block the changed ID so that this function
             # doesn't get called twice
             widget.handler_block(_changed_sid)
-            widget.set_text = utils.utf8(value)
+            widget.set_text(utils.utf8(value))
             widget.handler_unblock(_changed_sid)
             self.remove_problem(PROBLEM, widget)
             on_select(value)
@@ -2074,7 +2074,7 @@ class GenericModelViewPresenterEditor:
             self.session.close()
 
 
-class NoteBox(Gtk.HBox):
+class NoteBox(Gtk.Box):
     glade_ui = "notes.glade"
 
     def set_content(self, text):
@@ -2090,7 +2090,7 @@ class NoteBox(Gtk.HBox):
         )
 
     def __init__(self, presenter, model=None):
-        super().__init__()
+        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
 
         # open the glade file and extract the markup that the
         # expander will use
@@ -2121,11 +2121,12 @@ class NoteBox(Gtk.HBox):
         else:
             self.model = presenter.note_cls()
 
-        self.widgets.notes_expander.props.use_markup = True
-        self.widgets.notes_expander.props.label = ""
-        self.widgets.notes_expander.props.label_widget.ellipsize = (
-            Pango.EllipsizeMode.END
-        )
+        self.widgets.notes_expander.set_property("use-markup", True)
+        self.widgets.notes_expander.set_property("label", "")
+
+        label_widget = self.widgets.notes_expander.get_label_widget()
+        if label_widget:
+            label_widget.set_property("ellipsize", Pango.EllipsizeMode.END)
 
         # set the model values on the widgets
         mapper = object_mapper(self.model)
@@ -2175,7 +2176,7 @@ class NoteBox(Gtk.HBox):
 
     def on_date_entry_changed(self, entry, *args):
         PROBLEM = "BAD_DATE"
-        text = entry.set_text
+        text = entry.get_text()
         try:
             text = DateValidator().to_python(text)
         except Exception as e:
@@ -2186,7 +2187,7 @@ class NoteBox(Gtk.HBox):
             self.set_model_attr("date", text)
 
     def on_user_entry_changed(self, entry, *args):
-        value = utils.utf8(entry.set_text)
+        value = utils.utf8(entry.get_text())
         if not value:  # if value == ''
             value = None
         self.set_model_attr("user", value)
@@ -2202,19 +2203,19 @@ class NoteBox(Gtk.HBox):
             text = utils.utf8(combo.get_model()[treeiter][0])
         else:
             return
-        self.widgets.category_comboentry.get_child().set_text = utils.utf8(
+        self.widgets.category_comboentry.get_child().set_text(utils.utf8(
             text
-        )
+        ))
 
     def on_category_entry_changed(self, entry, *args):
         """ """
-        value = utils.utf8(entry.set_text)
+        value = utils.utf8(entry.get_text())
         if not value:  # if value == ''
             value = None
         self.set_model_attr("category", value)
 
     def on_note_buffer_changed(self, buff, widget, *args):
-        value = utils.utf8(buff.set_text)
+        value = utils.utf8(buff.get_text())
         if not value:  # if value == ''
             value = None
             self.presenter.add_problem(self.presenter.PROBLEM_EMPTY, widget)
@@ -2231,7 +2232,7 @@ class NoteBox(Gtk.HBox):
         elif self.model.date:
             date_str = utils.xml_safe(self.model.date)
         else:
-            date_str = self.widgets.date_entry.set_text
+            date_str = self.widgets.date_entry.get_text()
 
         if self.model.user and date_str:  # and self.model.date:
             label.append(
@@ -2354,9 +2355,9 @@ class PictureBox(NoteBox):
             _("Choose a file…"), parent=self, action=Gtk.FileChooserAction.OPEN
         )
         fileChooserDialog.add_buttons(
-            Gtk.STOCK_OK,
+            _("OK"),
             Gtk.ResponseType.ACCEPT,
-            Gtk.STOCK_CANCEL,
+            _("Cancel"),
             Gtk.ResponseType.CANCEL,
         )
         try:

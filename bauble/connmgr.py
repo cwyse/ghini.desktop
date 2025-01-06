@@ -332,9 +332,9 @@ class ConnMgrPresenter(GenericEditorPresenter):
             parent=self,
             action=Gtk.FileChooserAction.SAVE,
             buttons=(
-                Gtk.STOCK_OK,
+                _("OK"),
                 Gtk.ResponseType.ACCEPT,
-                Gtk.STOCK_CANCEL,
+                 _("Cancel"),
                 Gtk.ResponseType.CANCEL,
             ),
             last_folder=last_folder,
@@ -350,9 +350,9 @@ class ConnMgrPresenter(GenericEditorPresenter):
             parent=self,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
             buttons=(
-                Gtk.STOCK_OK,
+                _("OK"),
                 Gtk.ResponseType.ACCEPT,
-                Gtk.STOCK_CANCEL,
+                _("Cancel"),
                 Gtk.ResponseType.CANCEL,
             ),
             last_folder=last_folder,
@@ -368,9 +368,9 @@ class ConnMgrPresenter(GenericEditorPresenter):
             parent=self,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
             buttons=(
-                Gtk.STOCK_OK,
+                _("OK"),
                 Gtk.ResponseType.ACCEPT,
-                Gtk.STOCK_CANCEL,
+                _("Cancel"),
                 Gtk.ResponseType.CANCEL,
             ),
             last_folder=last_folder,
@@ -498,7 +498,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             _("Enter a connection name"),
             self.view.get_window(),
             Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            (Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT),
+            (_("OK"), Gtk.ResponseType.ACCEPT),
         )
         if name != "":
             self.connection_name = name
@@ -597,7 +597,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             title,
             self.view.get_window(),
             Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            (Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT),
+            (_("OK"), Gtk.ResponseType.ACCEPT),
             visible=False,
         )
         return passwd

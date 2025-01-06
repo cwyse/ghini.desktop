@@ -36,14 +36,14 @@ import bauble.task
 import bauble.utils as utils
 from bauble import pb_set_fraction
 from bauble.error import BaubleError
-from bauble.plugins.imex.unicode_utils import UnicodeWriter, InvalidDataError
+from bauble.plugins.imex.unicode_utils import UnicodeWriter
 from gi.repository import Gtk
 import sqlalchemy as sa
-from sqlalchemy import Boolean
+#from sqlalchemy import Boolean
 from sqlalchemy import ColumnDefault
 from sqlalchemy import inspect
 from sqlalchemy import func
-from sqlalchemy.exc import DataError
+#from sqlalchemy.exc import DataError
 from sqlalchemy.orm import configure_mappers
 from sqlalchemy.orm import sessionmaker
 
@@ -202,7 +202,7 @@ class CSVImporter(Importer):
         :raises ValueError: If user declines to drop required tables.
         """
         depends = set()
-        for table, _ in sorted_tables:
+        for table, unused_var in sorted_tables:
             if self.__cancel or self.__error:
                 break
             logger.debug(f"Get dependencies for table {table.name}")
@@ -366,7 +366,7 @@ class CSVImporter(Importer):
         """
         import logging
         logging.basicConfig()
-        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
 
         self.__error_exc = BaubleError(_("Unknown Error."))
 
@@ -513,14 +513,14 @@ class CSVImporter(Importer):
         # has a sequence doesn't update the sequence, we shortcut this
         # by setting the sequence manually to the max(column)+1
         try:
-            for table, _ in sorted_tables:
+            for table, unused_var in sorted_tables:
                 for column in table.c:
                     try:
                         utils.reset_sequence(column)
                     except Exception as e:
                         logger.error(f"Failed to reset sequence for column {column.name} in table {table.name}: {e}")
                         raise
-        except Exception as e:
+        except Exception:
             col_name = column.name if 'column' in locals() else "Unknown"
             msg = (
                 _("Error: Could not set the sequence for column: %s") % col_name

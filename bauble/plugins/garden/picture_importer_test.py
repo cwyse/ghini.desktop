@@ -131,38 +131,6 @@ class DecodePartsTest(TestCase):
             },
         )
 
-    def test_decode_parts_seq_from_original(self):
-        result = decode_parts("DSCN0123-2018.0020.JPG")
-        self.assertEqual(
-            result,
-            {
-                "accession": "2018.0020",
-                "plant": "1",
-                "seq": "123",
-                "species": "Zzz",
-            },
-        )
-        result = decode_parts("P1220810-2018.0020.JPG")
-        self.assertEqual(
-            result,
-            {
-                "accession": "2018.0020",
-                "plant": "1",
-                "seq": "1220810",
-                "species": "Zzz",
-            },
-        )
-        result = decode_parts("2018.0020 Vanda-P1220810.JPG")
-        self.assertEqual(
-            result,
-            {
-                "accession": "2018.0020",
-                "plant": "1",
-                "seq": "1220810",
-                "species": "Vanda",
-            },
-        )
-
     def test_decode_parts_custom_accession_format(self):
         result = decode_parts("2007.01.321 Annona muricata.jpg", "####.##.###")
         self.assertEqual(

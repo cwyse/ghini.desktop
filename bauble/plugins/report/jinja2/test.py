@@ -26,6 +26,7 @@ from bauble.test import BaubleTestCase
 from bauble.utils import natsort_key  # Import only what's necessary
 from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
 from bauble.plugins.report import get_pertinent_objects
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +108,7 @@ class Jinja2FormatterTests(BaubleTestCase):
     def test_format_all_templates(self):
         Plant = dynamic_import("bauble.plugins.garden.plant", "Plant")
 
-        selection = self..execute(select()).scalars().all()
+        selection = self.execute(select()).scalars().all()
         templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
         for i, template_name in enumerate(filter(lambda x: x.endswith(".jj2"), os.listdir(templates_dir))):
             template_path = os.path.join(templates_dir, template_name)

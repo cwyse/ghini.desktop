@@ -42,7 +42,7 @@ from gi.repository import Gtk
 from gi.repository import GtkChamplain
 from gi.repository import GtkClutter
 from sqlalchemy import select, insert, update
-from sqlalchemy.orm import Session
+#from sqlalchemy.orm import Session
 
 # mapping stuff
 gi.require_version("GtkClutter", "1.0")
@@ -572,11 +572,11 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
 
         # create the handler first
         handler = self.get_sentry_handler()
-        handler.setLevel(logging.INFO)
+        handler.setLevel(logging.WARNING)
 
         # the registration logger gets the above handler
         registrations = logging.getLogger("bauble.registrations")
-        registrations.setLevel(logging.INFO)
+        registrations.setLevel(logging.WARNING)
         registrations.addHandler(handler)
 
         # produce the log record

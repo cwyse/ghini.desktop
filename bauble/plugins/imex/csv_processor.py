@@ -26,25 +26,25 @@
 import csv
 import logging
 import os
-import traceback
-from gettext import gettext as _
+#import traceback
+#from gettext import gettext as _
 
-import bauble.db as db
-import bauble.pluginmgr as pluginmgr
-import bauble.task
+#import bauble.db as db
+#import bauble.pluginmgr as pluginmgr
+#import bauble.task
 import bauble.utils as utils
-from bauble import pb_set_fraction
-from bauble.error import BaubleError
-from gi.repository import Gtk
+#from bauble import pb_set_fraction
+#from bauble.error import BaubleError
+#from gi.repository import Gtk
 from bauble.plugins.imex.unicode_utils import UnicodeReader, UnicodeWriter, InvalidDataError
 import sqlalchemy as sa
 from sqlalchemy import Boolean
-from sqlalchemy import ColumnDefault
-from sqlalchemy import inspect
-from sqlalchemy import func
-from sqlalchemy.exc import DataError
-from sqlalchemy.orm import configure_mappers
-from sqlalchemy.orm import sessionmaker
+#from sqlalchemy import ColumnDefault
+#from sqlalchemy import inspect
+#from sqlalchemy import func
+#from sqlalchemy.exc import DataError
+#from sqlalchemy.orm import configure_mappers
+#from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.elements import ClauseElement
 
 

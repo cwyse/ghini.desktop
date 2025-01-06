@@ -57,7 +57,7 @@ def get_submissions(user, pw, host, form_id, to_skip=[]):
                 ),
                 auth=auth,
             )
-        except requests.exceptions.ConnectionError as e:
+        except requests.exceptions.ConnectionError:
             continue
         root = ET.fromstring(reply.text)
         data = root[0]  # media may follow

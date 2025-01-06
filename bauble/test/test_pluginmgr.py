@@ -170,7 +170,8 @@ class PluginMgrTests(BaubleTestCase):
                     raise
                 from bauble.plugins.plants import Family
 
-                self.assertEqual(self.session.execute(select(Family)).scalars().count(), 1387)
+                results = self.session.execute(select(Family)).scalars().all()
+                self.assertEqual(len(results), 1387)
 
         pluginmgr.plugins[Dummy.__name__] = Dummy
         pluginmgr.install([Dummy])
@@ -352,6 +353,10 @@ class PluginRegistryTests(BaubleTestCase):
         # this is the plugin object
         p = A()
 
+        # Ensure the plugin is not already in the registry
+        if PluginRegistry.exists(p):
+            PluginRegistry.remove(p)
+        
         # test that adding works
         PluginRegistry.add(p)
         self.assertTrue(PluginRegistry.exists(p))

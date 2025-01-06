@@ -36,6 +36,7 @@ from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorView
 from bauble.utils import safe_set_text
 from gi.repository import GLib
+from sqlalchemy import select
 
 
 

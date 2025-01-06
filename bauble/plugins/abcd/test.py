@@ -31,12 +31,13 @@ import bauble.paths as paths
 import bauble.plugins.garden.test as garden_test
 import bauble.plugins.plants.test as plants_test
 import lxml.etree as etree
-from bauble.plugins.abcd import *
+from bauble.plugins.abcd import ABCDElement, DataSets, plants_to_abcd, ABCDExporter
 from bauble.plugins.garden import Accession
 from bauble.plugins.garden import Collection
 from bauble.plugins.garden import Plant
 from bauble.plugins.garden import Source
 from bauble.test import BaubleTestCase
+from sqlalchemy import select
 
 
 
@@ -91,12 +92,12 @@ class ABCDTestCase(BaubleTestCase):
         )
         revision = ABCDElement(metadata, "RevisionData")
         ABCDElement(revision, "DateModified", text="2001-03-01T00:00:00")
-        title = ABCDElement(representation, "Title", text="TheTitle")
+        ABCDElement(representation, "Title", text="TheTitle")
         units = ABCDElement(ds, "Units")
         unit = ABCDElement(units, "Unit")
         ABCDElement(unit, "SourceInstitutionID", text="BBG")
         ABCDElement(unit, "SourceID", text="1111")
-        unit_id = ABCDElement(unit, "UnitID", text="2222")
+        ABCDElement(unit, "UnitID", text="2222")
 
         self.assertTrue(
             self.abcd_schema.validate(datasets), self.abcd_schema.error_log

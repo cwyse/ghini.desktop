@@ -25,7 +25,7 @@ import unittest
 from babel.messages.pofile import read_po
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class PoTests(unittest.TestCase):

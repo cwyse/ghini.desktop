@@ -43,7 +43,7 @@ from bauble.plugins.plants import Species
 from bauble.plugins.plants import VernacularName
 from bauble.plugins.tag import Tag
 from bauble.prefs import prefs
-from gi.repository import Gdk
+#from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import Gtk
 from sqlalchemy import union, select
@@ -613,7 +613,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             bpaths.lib_dir(), "plugins", "report", "report.glade"
         )
         view = GenericEditorView(filename, root_widget_name="choose_dialog")
-        presenter = GenericEditorPresenter(model=self, view=view)
+        GenericEditorPresenter(model=self, view=view)
         signaller = view.widgets.choose_thaw
         handler_id = signaller.connect("clicked", self.thaw_templates)
 

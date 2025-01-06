@@ -26,9 +26,9 @@ import bauble.plugins.users as users
 from bauble.test import BaubleTestCase
 from bauble.test import check_dupids
 from nose import SkipTest
-from sqlalchemy import *
-from sqlalchemy.exc import *
-from sqlalchemy.orm import *
+#from sqlalchemy import *
+#from sqlalchemy.exc import *
+#from sqlalchemy.orm import *
 from sqlalchemy import Table, Column, Integer, Sequence, String
 
 

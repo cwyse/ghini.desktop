@@ -29,15 +29,15 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 from bauble.error import check
-from bauble.error import CheckConditionError
+#from bauble.error import CheckConditionError
 from gi.repository import Gtk
-from sqlalchemy import *
+#from sqlalchemy import *
 from sqlalchemy import Integer
-from sqlalchemy.exc import *
+#from sqlalchemy.exc import *
 from sqlalchemy.exc import ProgrammingError
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm.exc import *
+#from sqlalchemy.ext.declarative import declarative_base
+#from sqlalchemy.ext.declarative import DeclarativeMeta
+#from sqlalchemy.orm.exc import *
 
 
 
@@ -782,15 +782,15 @@ class UsersEditor(editor.GenericEditorView):
                 self.widgets[self.buttons[mode]].set_active(True)
             not_modes = [p for p in list(self.buttons.keys()) if p != mode]
             for m in not_modes:
-                self.widgets[self.buttons[m]].props.active = False
+                self.widgets[self.buttons[m]].set_active(False)
 
         role = self.get_selected_user()
         if role not in get_users():
-            # the cell is being editing and the user hasn't been added
+            # the cell is being edited and the user hasn't been added
             # to the database
             column = tree.get_column(0)
             cell = column.get_cell_renderers()[0]
-            cell.props.editable = True
+            cell.set_property("editable", True)
             _set_buttons(None)
             return
 
@@ -821,8 +821,8 @@ class UsersEditor(editor.GenericEditorView):
             )
             model.remove(model.get_iter(path))
         else:
-            self.widgets.read_button.props.active = True
-            cell.props.editable = False
+            self.widgets.read_button.set_active(True)
+            cell.set_property("editable", False)
         return False
 
 

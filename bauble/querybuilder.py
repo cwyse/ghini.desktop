@@ -89,13 +89,13 @@ class SchemaMenu(Gtk.Menu):
     def on_activate(self, menuitem, prop):
         """invoke activate_cb on selected menu item"""
         path = []
-        path = [menuitem.get_child().props.label]
+        path = [menuitem.get_child().get_property("label")]
         menu = menuitem.get_parent()
         while menu is not None:
-            menuitem = menu.props.attach_widget
+            menuitem = menu.get_attach_widget()  # Replaces menu.props.attach_widget
             if not menuitem:
                 break
-            label = menuitem.get_child().props.label
+            label = menuitem.get_child().get_property("label")  # Access label property
             path.append(label)
             menu = menuitem.get_parent()
         full_path = ".".join(reversed(path))
@@ -197,7 +197,7 @@ class ExpressionRow:
             self.table.attach(self.and_or_combo, 0, row_number, 1, 1)
 
         self.prop_button = Gtk.Button(_("Choose a property…"))
-        self.prop_button.props.use_underline = False
+        self.prop_button.set_property("use-underline", False)
 
         def on_prop_button_clicked(button, event, menu):
             menu.popup(None, None, None, None, event.button, event.time)
@@ -225,11 +225,11 @@ class ExpressionRow:
         self.table.attach(self.value_widget, 3, row_number, 1, 1)
 
         if row_number != 1:
-            image = Gtk.Image.new_from_stock(
-                Gtk.STOCK_REMOVE, Gtk.IconSize.BUTTON
+            image = Gtk.Image.new_from_icon_name(
+                "edit-delete", Gtk.IconSize.BUTTON
             )
             self.remove_button = Gtk.Button()
-            self.remove_button.props.image = image
+            self.remove_button.set_image(image)
             self.remove_button.connect(
                 "clicked", lambda b: remove_callback(self)
             )
@@ -246,7 +246,7 @@ class ExpressionRow:
         """
         Called when an item in the schema menu is activated
         """
-        self.prop_button.props.label = path
+        self.prop_button.set_property("label", path)
         self.menu_item_activated = True
         row = self.table.child_get_property(self.value_widget, "top-attach")
         width = self.table.child_get_property(self.value_widget, "width")
@@ -283,7 +283,7 @@ class ExpressionRow:
                 ]
             for value, translation in prop_values:
                 model.append([value, translation])
-            self.value_widget.props.model = model
+            self.value_widget.set_property("model", model)
             self.value_widget.connect("changed", self.on_value_changed)
         elif not isinstance(self.value_widget, Gtk.Entry):
             self.value_widget = Gtk.Entry()
@@ -330,7 +330,7 @@ class ExpressionRow:
 
         value = ""
         if isinstance(self.value_widget, Gtk.ComboBox):
-            model = self.value_widget.props.model
+            model = self.value_widget.get_property("model")
             active_iter = self.value_widget.get_active_iter()
             if active_iter:
                 value = model[active_iter][0]
@@ -341,7 +341,7 @@ class ExpressionRow:
         and_or = ""
         if self.and_or_combo:
             and_or = self.and_or_combo.get_active_text()
-        field_name = self.prop_button.props.label
+        field_name = self.prop_button.get_property("label")
         if value == EmptyToken():
             field_name = field_name.rsplit(".", 1)[0]
         result = " ".join(
@@ -513,7 +513,9 @@ class QueryBuilder(GenericEditorPresenter):
             if isinstance(row.value_widget, Gtk.Entry):
                 safe_set_text(row.value_widget, clause.value)
             elif isinstance(row.value_widget, Gtk.ComboBox):
-                for item in row.value_widget.props.model:
+                model = row.value_widget.get_property("model")
+                for item in model:
+                    # Process each item
                     if item[0] == clause.value:
                         row.value_widget.set_active_iter(item.iter)
                         break

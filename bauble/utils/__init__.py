@@ -30,7 +30,7 @@ import re
 import textwrap
 import threading
 import traceback
-import xml.sax.saxutils as saxutils
+#import xml.sax.saxutils as saxutils
 from gettext import gettext as _
 
 import bauble
@@ -46,7 +46,7 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from bauble import utils
 from sqlalchemy.orm.session import object_session
-from sqlalchemy.exc import DBAPIError
+#from sqlalchemy.exc import DBAPIError
 from sqlalchemy import select
 
 gi.require_version("Gtk", "3.0")
@@ -185,11 +185,11 @@ def safe_set_props(widget, prop, value):
     # Check if the widget has a specific method for the property
     setter_method = f"set_{prop}"
     if hasattr(widget, setter_method):
-        # Use the method if it exists
+        # Use the set_<property> method if it exists
         getattr(widget, setter_method)(value)
     else:
-        # Fallback to setting the property via setattr
-        setattr(widget.props, prop, value)
+        # Fallback to set_property for dynamic property setting
+        widget.set_property(prop, value)
 
 
 def read_in_chunks(file_object, chunk_size=1024):
@@ -357,7 +357,7 @@ class ImageLoader(threading.Thread):
         )
         try:
             self.loader.close()
-        except GLib.GError as e:
+        except GLib.GError:
             logger.debug("broken picture %s" % self.url)
 
     def read_base64(self):
@@ -620,7 +620,7 @@ def get_widget_value(w, index=0):
     elif isinstance(w, (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)):
         return w.get_active()
     elif isinstance(w, Gtk.Button):
-        return w.props.label
+        return w.get_property("label")
 
     else:
         raise TypeError(
@@ -717,9 +717,9 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
             widget.set_active(False)
     elif isinstance(widget, Gtk.Button):
         if value is None:
-            widget.props.label = ""
+            widget.set_label("")
         else:
-            widget.props.label = utf8(value)
+            widget.set_label(utf8(value))
 
     else:
         raise TypeError(
@@ -1023,7 +1023,7 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
     cell = Gtk.CellRendererText()  # set up the completion renderer
     completion.pack_start(cell, True)
     completion.set_cell_data_func(cell, compl_cell_data_func)
-    completion.props.text_column = 0
+    completion.set_property("text-column", 0)
     # combo.get_child().set_completion(completion)
 
     def match_func(completion, key, treeiter, data=None):
@@ -1390,8 +1390,8 @@ def ilike(col, val, engine=None):
     Return a cross platform ilike function.
     """
     from sqlalchemy import func
-    from sqlalchemy.engine import Engine
-    
+    #from sqlalchemy.engine import Engine
+
     if not engine:
         from bauble.db import engine as default_engine
         engine = default_engine
@@ -1605,8 +1605,8 @@ class MessageBox(GenericMessageBox):
         self.box.pack_start(button_box, False, False, 0)
         button = Gtk.Button()
         image = Gtk.Image()
-        image.set_from_stock(Gtk.STOCK_CLOSE, Gtk.IconSize.BUTTON)
-        button.props.image = image
+        image.set_from_icon_name("window-close", Gtk.IconSize.BUTTON)
+        button.set_image(image)
         button.set_relief(Gtk.ReliefStyle.NONE)
         button_box.pack_start(button, False, False, 0)
 
@@ -1627,7 +1627,7 @@ class MessageBox(GenericMessageBox):
         def on_expanded(*args):
             requisition = self.size_request()  # Get the Gtk.Requisition object
             width = requisition.width  # Access the width attribute
-            height = requisition.height  # Access the height attribute
+            #height = requisition.height  # Access the height attribute
             self.set_size_request(width, -1)
             self.queue_resize()
 
@@ -1694,14 +1694,14 @@ class YesNoMessageBox(GenericMessageBox):
 
         button_box = Gtk.VBox()
         self.box.pack_start(button_box, False, False, 0)
-        self.yes_button = Gtk.Button(stock=Gtk.STOCK_YES)
+        self.yes_button = Gtk.Button(label=_("Yes"))
         if on_response:
             self.yes_button.connect("clicked", on_response, True)
         button_box.pack_start(self.yes_button, False, False, 0)
 
         button_box = Gtk.VBox()
         self.box.pack_start(button_box, False, False, 0)
-        self.no_button = Gtk.Button(stock=Gtk.STOCK_NO)
+        self.no_button = Gtk.Button(label=_("No"))
         if on_response:
             self.no_button.connect("clicked", on_response, False)
         button_box.pack_start(self.no_button, False, False, 0)
