@@ -216,15 +216,69 @@ class MapperBase(DeclarativeMeta):
 
         super().__init__(classname, bases, dict_)
 
-        @classmethod
-        def query_with_default_order(cls, session):
-            """
-            Return a query object for the class, applying the default order if specified.
-            """
-            query = session.query(cls)
-            if hasattr(cls, "order_by") and cls.order_by:
-                query = query.order_by(*cls.order_by)
-            return query
+        # Automatically add event listeners for insert, update, delete
+        MapperBase._register_event_listeners(cls)
+
+    @staticmethod
+    def add_history_entry(operation, instance):
+        """
+        Helper function to add a history entry.
+
+        This logs changes to the history table for a given operation
+        (`insert`, `update`, or `delete`) on an ORM-mapped instance.
+        """
+        session = orm.object_session(instance)
+        if not session:
+            logger.warning("No session found for instance: %s", instance)
+            return
+
+        user = current_user() or "unknown"
+        row = {
+            c.name: utils.utf8(getattr(instance, c.name))
+            for c in instance.__table__.columns
+        }
+
+        table = History.__table__
+        stmt = table.insert().values(
+            table_name=instance.__tablename__,
+            table_id=getattr(instance, "id", None),
+            values=str(row),
+            operation=operation,
+            user=user,
+            timestamp=datetime.datetime.now(),
+        )
+        session.execute(stmt)
+        logger.debug("History entry added: %s", stmt)
+        
+    @staticmethod
+    def _register_event_listeners(cls):
+        """
+        Registers SQLAlchemy ORM event listeners for a mapped class.
+        """
+        @event.listens_for(cls, "after_insert")
+        def after_insert(mapper, connection, target):
+            logger.debug(f"Insert event for {target.__tablename__}")
+            MapperBase.add_history_entry("insert", target)
+
+        @event.listens_for(cls, "after_update")
+        def after_update(mapper, connection, target):
+            logger.debug(f"Update event for {target.__tablename__}")
+            MapperBase.add_history_entry("update", target)
+
+        @event.listens_for(cls, "after_delete")
+        def after_delete(mapper, connection, target):
+            logger.debug(f"Delete event for {target.__tablename__}")
+            MapperBase.add_history_entry("delete", target)
+
+    @classmethod
+    def query_with_default_order(cls, session):
+        """
+        Return a query object for the class, applying the default order if specified.
+        """
+        query = session.query(cls)
+        if hasattr(cls, "order_by") and cls.order_by:
+            query = query.order_by(*cls.order_by)
+        return query
         
 engine = None
 """A :class:`sqlalchemy.engine.base.Engine` used as the default
@@ -254,43 +308,6 @@ plugin for declaring tables and mappers should derive from this class.
 
 An instance of :class:`sqlalchemy.ext.declarative.Base`
 """
-
-
-def add_history_entry(operation, instance):
-    """Helper function to add history entry."""
-    session = orm.object_session(instance)
-    user = current_user()
-    row = {
-        c.name: utils.utf8(getattr(instance, c.name))
-        for c in instance.__table__.columns
-    }
-
-    table = History.__table__
-    stmt = table.insert().values(
-        table_name=instance.__tablename__,
-        table_id=instance.id,
-        values=str(row),
-        operation=operation,
-        user=user,
-        timestamp=datetime.datetime.now(),
-    )
-    session.execute(stmt)
-
-
-# Define event listeners
-@event.listens_for(Base, "after_insert")
-def after_insert(mapper, connection, target):
-    add_history_entry("insert", target)
-
-
-@event.listens_for(Base, "after_update")
-def after_update(mapper, connection, target):
-    add_history_entry("update", target)
-
-
-@event.listens_for(Base, "after_delete")
-def after_delete(mapper, connection, target):
-    add_history_entry("delete", target)
 
 
 metadata = Base.metadata
