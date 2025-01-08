@@ -36,6 +36,8 @@ uri = "sqlite:///:memory:"
 
 
 def init_bauble(uri, create=False):
+    prefs.init()
+    prefs.testing = True
     try:
         db.open(uri, verify=False)
     except Exception as e:
@@ -43,8 +45,7 @@ def init_bauble(uri, create=False):
         # debug e
     if not bauble.db.engine:
         raise BaubleError("not connected to a database")
-    prefs.init()
-    prefs.testing = True
+
     pluginmgr.load()
     db.create(create)
     pluginmgr.init(force=True)

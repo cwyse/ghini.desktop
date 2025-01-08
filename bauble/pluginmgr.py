@@ -403,10 +403,16 @@ class PluginRegistry(db.Base):
         """
         # debug('PluginRegistry.remove()')
         if name is None:
+            if plugin is None:
+                raise ValueError("Either 'plugin' or 'name' must be provided.")
             name = plugin.__class__.__name__
+
+        # Decode name if it's in bytes
+        decoded_name = name.decode() if isinstance(name, bytes) else name
+
         with db.Session() as session:
             p = session.execute(
-                select(PluginRegistry).where(PluginRegistry.name==utils.utf8(name))
+                select(PluginRegistry).where(PluginRegistry.name==decoded_name)
             ).scalar_one_or_none()
             if p:
                 session.delete(p)
@@ -433,12 +439,16 @@ class PluginRegistry(db.Base):
         """
         Check if plugin exists in the plugin registry.
         """
+            
         if isinstance(plugin, str):
             name = plugin
             version = None
         else:
             name = plugin.__class__.__name__
             version = plugin.version
+
+        # Decode name if it's in bytes
+        decoded_name = name.decode() if isinstance(name, bytes) else name
 
         with db.Session() as session:
             try:

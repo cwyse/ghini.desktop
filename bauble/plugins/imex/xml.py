@@ -31,7 +31,7 @@ import bauble.pluginmgr as pluginmgr
 import bauble.task
 import bauble.utils as utils
 from gi.repository import Gtk
-
+from sqlalchemy import select
 
 
 logger = logging.getLogger(__name__)
@@ -135,9 +135,17 @@ class XMLExporter:
 
 
     def __export_task(self, path, one_file=True):
+        # Get all tables from metadata
         tables = list(db.metadata.tables.items())
         total_tables = len(tables)
+        tableset_el = None
+
+        if one_file:
+            # Create a single XML root element for all tables
+            tableset_el = etree.Element("tableset")
+
         for index, (table_name, table) in enumerate(tables):
+            # Update progress bar
             self.progress_bar.set_fraction((index + 1) / total_tables)
             self.progress_bar.set_text(f"Exporting {table_name}... ({index + 1}/{total_tables})")
             while Gtk.events_pending():
@@ -150,17 +158,22 @@ class XMLExporter:
             table_el = ElementFactory(
                 tableset_el, "table", attrib={"name": table_name}
             )
-            results = table.select().execute().fetchall()
-            columns = list(table.c.keys())
+
+            # Query the data using SQLAlchemy 2.x's session
+            stmt = select(table)
+
             try:
+                results = self.session.execute(stmt).fetchall()
+                columns = list(table.c.keys())
                 for row in results:
+                    # Create a row element
                     row_el = ElementFactory(table_el, "row")
                     for col in columns:
                         ElementFactory(
                             row_el,
                             "column",
                             attrib={"name": col},
-                            text=row[col],
+                            text=str(row[col]) if row[col] is not None else "",
                         )
             except ValueError as e:
                 utils.message_details_dialog(
@@ -171,6 +184,7 @@ class XMLExporter:
                 return
             else:
                 if one_file:
+                    # Write the individual table's XML to a file
                     tree = etree.ElementTree(tableset_el)
                     filename = os.path.join(path, "%s.xml" % table_name)
                     tree.write(filename, encoding="utf8", xml_declaration=True)

@@ -31,7 +31,7 @@ from sqlalchemy import String
 from sqlalchemy import Unicode
 from sqlalchemy.orm import object_session
 from sqlalchemy.orm import relationship
-
+from sqlalchemy.orm import Session
 
 def get_species_in_geographic_area(geo):
     """
@@ -56,13 +56,27 @@ def get_species_in_geographic_area(geo):
     # the children of particular geographic_area id
 
     def get_geographic_area_children(parent_id):
-        stmt = select([geo_table.c.id], geo_table.c.parent_id == parent_id)
-        kids = [r[0] for r in db.engine.execute(stmt).fetchall()]
+        """
+        Recursively retrieve the children geographic areas of a given parent.
+
+        Args:
+            parent_id (int): The ID of the parent geographic area.
+
+        Returns:
+            list: A list of IDs representing the children geographic areas.
+        """
+        stmt = select(geo_table.c.id).where(geo_table.c.parent_id == parent_id)
+
+        # Use the session for query execution
+        result = db.session.execute(stmt)
+        kids = [row.id for row in result.scalars()]
+        
         for kid in kids:
+            # Recursively fetch the children of the current child
             grand_kids = get_geographic_area_children(kid)
             master_ids.update(grand_kids)
-        return kids
 
+        return kids
     geokids = get_geographic_area_children(geo.id)
     master_ids.update(geokids)
     from sqlalchemy import bindparam
@@ -85,28 +99,27 @@ class GeographicAreaMenu(Gtk.Menu):
     def __init__(self, callback):
         super().__init__()
         geographic_area_table = GeographicArea.__table__
-        geos = (
+
+        # Query the database for the geographic area information
+        geos = db.session.execute(
             select(
-                [
-                    geographic_area_table.c.id,
-                    geographic_area_table.c.name,
-                    geographic_area_table.c.parent_id,
-                ]
+                geographic_area_table.c.id,
+                geographic_area_table.c.name,
+                geographic_area_table.c.parent_id
             )
-            .execute()
-            .fetchall()
-        )
+        ).fetchall()
+
         geos_hash = {}
         # TODO: i think the geo_hash should be calculated in an idle
         # function so that starting the editor isn't delayed while the
         # hash is being built
         for geo_id, name, parent_id in geos:
-            try:
-                geos_hash[parent_id].append((geo_id, name))
-            except KeyError:
-                geos_hash[parent_id] = [(geo_id, name)]
+            if parent_id not in geos_hash:
+                geos_hash[parent_id] = []
+            geos_hash[parent_id].append((geo_id, name))
 
-        for kids in list(geos_hash.values()):
+        # Sort each list of children by name
+        for kids in geos_hash.values():
             kids.sort(key=itemgetter(1))  # sort by name
 
         def get_kids(pid):

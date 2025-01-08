@@ -382,11 +382,13 @@ def open(uri, verify=True, show_error_dialogs=False):
         poolclass = (
             SingletonThreadPool if bauble.prefs.testing else NullPool
         )
+        connect_args = {"timeout": 30} if bauble.prefs.testing else {}
         new_engine = sa.create_engine(
             uri,
             echo=SQLALCHEMY_DEBUG,
             poolclass=poolclass,
             future=True,  # Enable SQLAlchemy 2.0 features
+            connect_args=connect_args  # Add connect_args here
         )
         # TODO: there is a problem here: the code may cause an exception, but we
         # immediately loose the 'new_engine', which should know about the

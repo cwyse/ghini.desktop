@@ -344,7 +344,7 @@ class StandalonePluginMgrTests(unittest.TestCase):
 
 
 class PluginRegistryTests(BaubleTestCase):
-
+      
     def test_registry(self):
         """
         Test bauble.pluginmgr.PluginRegistry
