@@ -297,23 +297,41 @@ class SearchTests(BaubleTestCase):
         prefs.testing = True
 
     def setUp(self):
+        """
+        Start a new transaction for the test and add initial test data.
+        """
         super().setUp()
-        with db.engine.connect() as conn:
-            from sqlalchemy import text
-            conn.execute(text("DELETE FROM genus"))
-            conn.execute(text("DELETE FROM family"))
+        # Start a new transaction
+        self.connection = db.engine.connect()
+        self.transaction = self.connection.begin()
+
+        # Bind the session to the transaction connection
+        self.session.bind = self.connection
+
         from bauble.plugins.plants.family import Family
         from bauble.plugins.plants.genus import Genus
 
+        # Add test data
         self.family = Family(family="family1", qualifier="s. lat.")
         self.genus = Genus(family=self.family, genus="genus1")
         self.Family = Family
         self.Genus = Genus
         self.session.add_all([self.family, self.genus])
-        self.session.commit()
+        self.session.commit()  # Commit only within the transaction
 
     def tearDown(self):
+        """
+        Rollback the transaction to clean up after the test.
+        """
         super().tearDown()
+        # Rollback the transaction
+        self.transaction.rollback()
+
+        # Close the connection
+        self.connection.close()
+
+        # Remove session binding
+        self.session.bind = None
 
     def test_find_correct_strategy_internal(self):
         "verify the MapperSearch strategy is available (low-level)"
@@ -358,6 +376,10 @@ class SearchTests(BaubleTestCase):
         mapper_search = search.get_strategy("MapperSearch")
         self.assertTrue(isinstance(mapper_search, search.MapperSearch))
 
+        # Clean up the family table
+        self.session.query(self.Family).delete()
+        self.session.commit()
+    
         # Ensure the test data is present and committed
         family_instance = self.Family(family="family1", qualifier="s. lat.")
         self.session.add(family_instance)
@@ -377,7 +399,7 @@ class SearchTests(BaubleTestCase):
     def test_search_by_expression_genus_eq_1match(self):
         mapper_search = search.get_strategy("MapperSearch")
         self.assertTrue(isinstance(mapper_search, search.MapperSearch))
-
+              
         # search for genus by domain
         results = mapper_search.search("gen=genus1", self.session)
         self.assertEqual(len(results), 1)
@@ -520,7 +542,7 @@ class SearchTests(BaubleTestCase):
         s = "genus where id>0 AND id<3"
         results = list(mapper_search.search(s, self.session))
         self.assertEqual(len(results), 2)
-        self.assertEqual({i.id for i in results}, {1, 2})
+        self.assertEqual(sorted([i.id for i in results]), {1, 2})
 
     def test_search_by_query21(self):
         "query with MapperSearch, joined tables, one predicate"

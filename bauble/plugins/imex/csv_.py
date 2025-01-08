@@ -580,6 +580,17 @@ class CSVImporter(Importer):
         logger.debug("on_response")
         logger.debug(response)
 
+from sqlalchemy import select
+from contextlib import contextmanager
+
+@contextmanager
+def open_file_safe(filename, mode="w"):
+    """Context manager for opening a file safely."""
+    try:
+        f = open(filename, mode)
+        yield f
+    finally:
+        f.close()
 
 class CSVExporter:
 
@@ -616,6 +627,8 @@ class CSVExporter:
         filename_template = os.path.join(path, "%s.txt")
         steps_so_far = 0
         ntables = 0
+
+        # Count the number of tables   
         for table in db.metadata.sorted_tables:
             ntables += 1
             filename = filename_template % table.name
@@ -634,18 +647,18 @@ class CSVExporter:
             return s
 
         def write_csv(filename, rows):
-            f = open(filename, "w")
-            writer = UnicodeWriter(
-                f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE
-            )
-            writer.writerows(rows)
-            f.close()
+            with open_file_safe(filename, "w") as f:
+                writer = UnicodeWriter(
+                    f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE
+                )
+                writer.writerows(rows)
 
         update_every = 30
         # spinner = '⣀⡄⠆⠃⠉⠘⠰⢠'
         spinner = "⡆⠇⠋⠙⠸⢰⣠⣄"
         # spinner = ('⣀⡀', '⣄ ', '⡆ ', '⠇ ', '⠋ ', '⠉⠁',
         #           '⠈⠉', ' ⠙', ' ⠸', ' ⢰', ' ⣠', '⢀⣀')
+
         for table in db.metadata.sorted_tables:
             filename = filename_template % table.name
             steps_so_far += 1
@@ -660,8 +673,9 @@ class CSVExporter:
             bauble.task.set_message(msg)
             logger.info("exporting %s" % table.name)
 
-            # get the data
-            results = table.select().execute().fetchall()
+            # Query the data
+            stmt = select(table)
+            results = self.session.execute(stmt).fetchall()  # Use the session for execution
 
             # create empty files with only the column names
             if len(results) == 0:
@@ -673,7 +687,7 @@ class CSVExporter:
             rows.append(list(table.c.keys()))  # append col names
             ctr = 0
             for row in results:
-                values = list(map(replace, list(row.values())))
+                values = list(map(replace, list(row)))
                 rows.append(values)
                 if ctr == update_every:
                     spinner_index = (spinner_index + 1) % len(spinner)

@@ -108,9 +108,17 @@ class Jinja2FormatterTests(BaubleTestCase):
     def test_format_all_templates(self):
         Plant = dynamic_import("bauble.plugins.garden.plant", "Plant")
 
-        selection = self.execute(select()).scalars().all()
-        templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
-        for i, template_name in enumerate(filter(lambda x: x.endswith(".jj2"), os.listdir(templates_dir))):
+        # Adjusted query execution with SQLAlchemy 2.x API
+        selection = self.session.execute(select(Plant)).scalars().all()
+
+        templates_dir = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "templates"
+        )
+        template_files = filter(
+            lambda x: x.endswith(".jj2"), os.listdir(templates_dir)
+        )
+
+        for i, template_name in enumerate(template_files):
             template_path = os.path.join(templates_dir, template_name)
             domain = Jinja2FormatterPlugin.get_iteration_domain(template_path)
 
@@ -118,6 +126,7 @@ class Jinja2FormatterTests(BaubleTestCase):
                 self.assertEqual(template_name[:5], "base.")
                 continue
 
+            # Map domains to appropriate classes
             cls = {
                 "plant": Plant,
                 "accession": dynamic_import("bauble.plugins.garden", "Accession"),
@@ -125,13 +134,16 @@ class Jinja2FormatterTests(BaubleTestCase):
                 "location": dynamic_import("bauble.plugins.garden", "Location"),
             }.get(domain, Plant)  # Default to Plant if domain is unknown
 
-            todo = (
-                sorted(get_pertinent_objects(cls, selection), key=natsort_key)
-                if cls
-                else selection
-            )
+            # Fetch relevant objects or use the existing selection
+            if cls:
+                todo = sorted(
+                    get_pertinent_objects(cls, selection), key=natsort_key
+                )
+            else:
+                todo = selection
 
             logger.debug(f"Formatting template: {template_path}")
             report = Jinja2FormatterPlugin.format(todo, template=template_path)
-            self.assertIsInstance(report, bytes)
 
+            # Ensure the report is a bytes object
+            self.assertIsInstance(report, bytes)

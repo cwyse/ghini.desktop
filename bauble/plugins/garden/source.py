@@ -1036,30 +1036,38 @@ class GeneralSourceDetailExpander(view.InfoExpander):
         self.vbox.pack_start(gen_box, True, True, 0)
 
     def update(self, row):
-        # from textwrap import TextWrapper
+        from sqlalchemy.sql import func
+
+        # Set the name with markup
+        # # from textwrap import TextWrapper
         # wrapper = TextWrapper(width=50, subsequent_indent='  ')
         self.widget_set_value(
             "sd_name_data",
             "<big>%s</big>" % utils.xml_safe(row.name),
             markup=True,
         )
+
+        # Handle the source type
         source_type = ""
         if row.source_type:
             source_type = utils.xml_safe(row.source_type)
         self.widget_set_value("sd_type_data", source_type)
 
+        # Handle the description
         description = ""
         if row.description:
             description = utils.xml_safe(row.description)
         self.widget_set_value("sd_desc_data", description)
 
+        # Update source details
         source = Source.__table__
-        nacc = (
-            select([source.c.id], source.c.source_detail_id == row.id)
-            .count()
-            .execute()
-            .fetchone()[0]
-        )
+
+        # Create the query to count the number of associated sources
+        stmt = select(func.count(source.c.id)).where(source.c.source_detail_id == row.id)
+        
+        # Execute the query using the session
+        nacc = self.session.execute(stmt).scalar()
+
         self.widget_set_value("sd_nacc_data", nacc)
 
 

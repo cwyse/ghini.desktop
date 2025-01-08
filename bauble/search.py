@@ -59,8 +59,10 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.properties import RelationshipProperty
 from sqlalchemy.orm.util import AliasedClass
+from sqlalchemy.sql import Select, Alias, Subquery
 from sqlalchemy.sql import func
 
+from sqlalchemy.exc import NoInspectionAvailable
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -415,9 +417,14 @@ class ElementSetExpression(IdentExpression):
 
     def evaluate(self, env):
         q, a = self.operands[0].evaluate(env)
+
+        # Ensure 'q' is turned into a subquery
+        if not isinstance(q, AliasedClass):
+            q = q.subquery()
+
         stmt = select(q).filter(a.in_(self.operands[1].express()))
         return env.session.scalars(stmt)
-
+        
 
 class AggregatedExpression(IdentExpression):
     """select on value of aggregated function
@@ -438,6 +445,14 @@ class AggregatedExpression(IdentExpression):
         # Get the query and attribute
         stmt, attr = self.operands[0].identifier.evaluate(env)
         
+        if not isinstance(stmt, AliasedClass):
+            stmt = stmt.subquery()
+
+        stmt = (
+            stmt.group_by(group_by_column)
+            .having(clause(val))
+        )
+
         # Resolve the aggregate function
         f = getattr(func, self.operands[0].function)
 
@@ -468,16 +483,46 @@ class BetweenExpressionAction(object):
 
     def evaluate(self, env):
         q, a = self.operands[0].evaluate(env)
+
+        # Validate the type of `q`
+        if not isinstance(q, (AliasedClass, Alias)):
+            raise ValueError(f"Invalid type for q: {type(q)}. Expected AliasedClass or subquery.")
+
+        # Ensure `q` is a subquery
+        if not isinstance(q, Subquery):
+            q = q.subquery()
+
+        # Validate the attribute `a`
+        if not hasattr(a, 'clause_element'):
+            raise ValueError(f"Invalid attribute for a: {a}. Expected SQLAlchemy column or expression.")
+
+        # Build the filter clauses
         clause_low = lambda low: low <= a
         clause_high = lambda high: a <= high
 
+        # Check operand values
+        low_value = self.operands[1].express()
+        high_value = self.operands[2].express()
+        if low_value is None or high_value is None:
+            raise ValueError("Operands[1] or Operands[2] returned None for express().")
+
+        logger.debug(f"Building query with low={low_value}, high={high_value}")
+
+        # Construct the statement
         stmt = select(q).filter(
             and_(
-                clause_low(self.operands[1].express()),
-                clause_high(self.operands[2].express())
+                clause_low(low_value),
+                clause_high(high_value)
             )
         )
-        return env.session.scalars(stmt)
+
+        # Execute and return the results
+        try:
+            return env.session.scalars(stmt)
+        except Exception as e:
+            logger.error(f"Failed to execute statement: {stmt}. Error: {e}")
+            raise
+
 
     def needs_join(self, env):
         return [self.operands[0].needs_join(env)]
@@ -615,8 +660,11 @@ class QueryAction(object):
             # Unpack the evaluated query and attribute
             stmt = self.filter.evaluate(self)
 
-            # Properly execute the query and fetch results
+            if isinstance(stmt, Select):
+                stmt = stmt.subquery()
+
             result.update(self.session.scalars(stmt).all())
+
 
         if None in result:
             logger.warning("removing None from result set")
@@ -701,7 +749,6 @@ class DomainExpressionAction(object):
 
         # Start by building a SELECT statement
         stmt = select(cls)
-        #query = search_strategy._session.execute(select(cls)).scalars()
 
         # here is the place where to optionally filter out unrepresented
         # domain values. each domain class should define its own 'I have
@@ -709,33 +756,48 @@ class DomainExpressionAction(object):
 
         result = set()
 
-        # select all objects from the domain
+        # Handle wildcard case
         if self.values == "*":
             # execute directly if we want all records
-            result.update(search_strategy._session.execute(stmt).scalars().all())
+            result.update(search_strategy._session.scalars(stmt).all())
 
             return result
 
+        try:
+            mapper = inspect(cls).mapper  # Use inspect to get mapper
+        except NoInspectionAvailable:
+            raise ValueError(f"Cannot inspect class {cls}. Ensure it's mapped.")
+
         inspect(cls)  # Validate cls as a mapped class
 
-        def condition(col):
-            if self.cond in ('like', 'ilike'):
-                return lambda val: utils.ilike(col, '%s' % val)
-            elif self.cond in ('contains', 'icontains', 'has', 'ihas'):
-                return lambda val: utils.ilike(col, '%%%s%%' % val)
-            elif self.cond == '=':
-                return lambda val: col == utils.utf8(val)
-            else:
-                return lambda val: col.op(self.cond)(val)
+        # Define conditions
+        if self.cond in ('like', 'ilike'):
+            condition = lambda col: lambda val: getattr(col, self.cond)(f'{val}')
+        elif self.cond in ('contains', 'icontains', 'has', 'ihas'):
+            condition = lambda col: lambda val: getattr(col, 'ilike')(f'%{val}%')
+        elif self.cond == '=':
+            condition = lambda col: lambda val: col == utils.utf8(val)
+        else:
+            condition = lambda col: lambda val: col.op(self.cond)(val)
 
-        for col in properties:
-            ors = or_(*[condition(getattr(cls, col))(val) for val in self.values.express()])
-            stmt = stmt.filter(ors)
-            result.update(search_strategy._session.scalars(stmt).all())
+        # Apply filters for the properties
+        for col_name in properties:
+            try:
+                col = getattr(cls, col_name)
+            except AttributeError:
+                logger.warning(f"Column '{col_name}' not found on class '{cls}'.")
+                continue
 
+            ors = or_(*[condition(col)(val) for val in self.values.express()])
+            stmt = stmt.filter(ors)  # Add filter to statement
+
+        result.update(search_strategy._session.scalars(stmt).all())
+
+        # Remove None values from result
         if None in result:
             logger.warning('removing None from result set')
             result = {i for i in result if i is not None}
+
         return result
 
 
@@ -796,7 +858,9 @@ class ValueListAction(object):
             table = inspect(cls)
             stmt = select(cls)
 
-            # Filter results using ilike or similar case-insensitive functions
+            if isinstance(stmt, Select):
+                stmt = stmt.subquery()
+
             ors = or_(*[like(table, c, v) for c, v in column_cross_value])
             stmt = stmt.filter(ors)
 
@@ -1052,10 +1116,26 @@ class MapperSearch(SearchStrategy):
         self._results.clear()
         statement = self.parser.parse_string(text).statement
         logger.debug("statement : {}({})".format(type(statement), statement))
-        self._results.update(statement.invoke(self))
-        logger.debug(
-            "search returns %s(%s)" % (type(self._results), self._results)
-        )
+
+        raw_results = statement.invoke(self)  # Likely a set of IDs
+        logger.debug("raw_results : {}".format(raw_results))
+
+        if raw_results:
+            # Identify the domain class dynamically
+            domain_name = text.split(' ')[0]  # Assuming the domain is the first word
+            domain_class = self._domains.get(domain_name, [None])[0]
+
+            if domain_class is not None:
+                # Map IDs to ORM objects dynamically
+                orm_results = (
+                    self._session.query(domain_class)
+                    .filter(domain_class.id.in_(raw_results))
+                    .all()
+                )
+                self._results.update(orm_results)
+            else:
+                logger.warning(f"Domain '{domain_name}' not found in _domains.")
+        logger.debug("search returns %s(%s)" % (type(self._results), self._results))
 
         # these _results get filled in when the parse actions are called
         return self._results
