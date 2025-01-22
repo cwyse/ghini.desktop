@@ -856,12 +856,11 @@ class ValueListAction(object):
         result = set()
         for cls, columns in search_strategy._properties.items():
             column_cross_value = [(c, v) for c in columns for v in self.express()]
-            table = inspect(cls)
             stmt = select(cls)  # Create the initial SELECT statement
 
             # Apply the filter before converting to a subquery
-            ors = or_(*[like(table, c, v) for c, v in column_cross_value])
-            stmt = stmt.where(ors)  # Use .where() to apply filters
+            ors = or_(*[like(getattr(cls, c), v) for c, v in column_cross_value])
+            stmt = stmt.filter(ors)  # Use .where() to apply filters
 
             # Execute the query and collect results
             logger.debug(f"Executing query: {stmt}")
