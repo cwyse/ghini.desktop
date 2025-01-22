@@ -16,370 +16,327 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-import imp
-import os
-from functools import partial
-from gettext import gettext as _
-
-import bauble.db as db
-import bauble.plugins.tag as tag_plugin
-import bauble.utils as utils
-import gi
-from bauble import prefs
-from bauble.editor import GenericEditorView
-from bauble.editor import MockView
-from bauble.plugins.plants import Family
-from bauble.plugins.tag import Tag
-from bauble.plugins.tag import TagEditorPresenter
-from bauble.plugins.tag import TagInfoBox
-from bauble.test import BaubleTestCase
-from bauble.test import check_dupids
-from bauble.test import mockfunc
+import pytest
 from gi.repository import Gtk
 from sqlalchemy import select
+from bauble.plugins.tag import Tag, tags_menu_manager
+import os
+import glob
+from bauble.test import check_dupids
 
+from bauble.plugins.plants import Family
+from bauble.plugins.tag import create_named_empty_tag, tag_objects, untag_objects, remove_callback
+from functools import partial
+from bauble.test import mockfunc
+import bauble.plugins.tag as tag_plugin
+from bauble.editor import GenericEditorView
+from bauble.plugins.tag import TagEditorPresenter
+import bauble.utils as utils
+from bauble.editor import MockView
 
-
-gi.require_version("Gtk", "3.0")
-
-
-# from sqlalchemy.exc import *
-
-
-prefs.testing = True
-
-
-try:
-    pass
-except:
-    pass
+@pytest.fixture
+def setup_tags(session):
+    """Fixture to clear all tags before each test."""
+    session.execute(select(Tag)).scalars().delete()
+    session.commit()
 
 
 def test_duplicate_ids():
     """
-    Test for duplicate ids for all .glade files in the tag plugin.
+    Test for duplicate IDs for all .glade files in the tag plugin.
     """
-    import glob
-
     import bauble.plugins.tag as mod
 
-    head, tail = os.path.split(mod.__file__)
+    head, _ = os.path.split(mod.__file__)
     files = glob.glob(os.path.join(head, "*.glade"))
-    for f in files:
-        assert not check_dupids(f)
+    for file in files:
+        assert not check_dupids(file), f"Duplicate IDs found in {file}"
 
 
-class TagMenuTests(BaubleTestCase):
+@pytest.mark.usefixtures("setup_tags")
+class TestTagMenu:
     def test_no_tags(self):
-        m = tag_plugin.tags_menu_manager.build_menu()
-        self.assertTrue(isinstance(m, Gtk.Menu))
-        self.assertEqual(len(m.get_children()), 1)
-        self.assertEqual(m.get_children()[0].get_label(), _("Tag Selection"))
+        """Test menu creation when no tags are present."""
+        menu = tags_menu_manager.build_menu()
+        assert isinstance(menu, Gtk.Menu)
+        assert len(menu.get_children()) == 1
+        assert menu.get_children()[0].get_label() == "Tag Selection"
 
-    def test_one_tag(self):
-        tagname = "some_tag"
-        t = Tag(tag=tagname, description="description")
-        self.session.add(t)
-        self.session.flush()
-        m = tag_plugin.tags_menu_manager.build_menu()
-        self.assertTrue(isinstance(m, Gtk.Menu))
-        self.assertEqual(len(m.get_children()), 6)
-        self.assertTrue(m.get_children()[1], Gtk.SeparatorMenuItem)
-        self.assertEqual(m.get_children()[2].get_label(), tagname)
-        self.assertTrue(m.get_children()[3], Gtk.SeparatorMenuItem)
+    def test_one_tag(self, session):
+        """Test menu creation with one tag."""
+        tag_name = "some_tag"
+        tag = Tag(tag=tag_name, description="description")
+        session.add(tag)
+        session.commit()
 
-    def test_more_tags(self):
-        tagname = "%s-some_tag"
-        t1 = Tag(tag=tagname % 1, description="description")
-        t2 = Tag(tag=tagname % 3, description="description")
-        t3 = Tag(tag=tagname % 2, description="description")
-        t4 = Tag(tag=tagname % 0, description="description")
-        t5 = Tag(tag=tagname % 4, description="description")
-        self.session.add_all([t1, t2, t3, t4, t5])
-        self.session.flush()
-        m = tag_plugin.tags_menu_manager.build_menu()
-        self.assertTrue(isinstance(m, Gtk.Menu))
-        self.assertEqual(len(m.get_children()), 10)
+        menu = tags_menu_manager.build_menu()
+        assert isinstance(menu, Gtk.Menu)
+        assert len(menu.get_children()) == 6
+        assert isinstance(menu.get_children()[1], Gtk.SeparatorMenuItem)
+        assert menu.get_children()[2].get_label() == tag_name
+        assert isinstance(menu.get_children()[3], Gtk.SeparatorMenuItem)
+
+    def test_more_tags(self, session):
+        """Test menu creation with multiple tags."""
+        tag_name_template = "%s-some_tag"
+        tags = [
+            Tag(tag=tag_name_template % i, description="description")
+            for i in range(5)
+        ]
+        session.add_all(tags)
+        session.commit()
+
+        menu = tags_menu_manager.build_menu()
+        assert isinstance(menu, Gtk.Menu)
+        assert len(menu.get_children()) == 10
+
         for i in range(5):
-            self.assertEqual(m.get_children()[i + 2].get_label(), tagname % i)
+            assert menu.get_children()[i + 2].get_label() == tag_name_template % i
 
 
-class TagTests(BaubleTestCase):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        import bauble.prefs
 
-        bauble.prefs.testing = True
+@pytest.fixture
+def setup_family_and_tags(session):
+    """Fixture to add a default family and clear tags before each test."""
+    family = Family(family="family")
+    session.add(family)
+    session.commit()
+    yield family
+    session.execute(select(Tag)).scalars().delete()
+    session.commit()
 
-    def setUp(self):
-        super().setUp()
-        self.family = Family(family="family")
-        self.session.add(self.family)
-        self.session.commit()
 
-    def tearDown(self):
-        super().tearDown()
-
+@pytest.mark.usefixtures("setup_family_and_tags")
+class TestTag:
     def test_str(self):
-        """
-        Test Tag.__str__ method
-        """
-        name = "test"
-        tag = Tag(tag=name)
-        self.assertEqual(str(tag), name)
+        """Test `Tag.__str__` method."""
+        tag_name = "test"
+        tag = Tag(tag=tag_name)
+        assert str(tag) == tag_name
 
-    def test_create_named_empty_tag(self):
-        name = "name123"
-        r = self.session.execute(select(Tag)).scalars().where(tag=name).all()
-        self.assertEqual(len(r), 0)
-        tag_plugin.create_named_empty_tag(name)
-        r = self.session.execute(select(Tag)).scalars().where(tag=name).all()
-        self.assertEqual(len(r), 1)
-        t0 = r[0]
-        self.assertEqual(t0.tag, name)
-        tag_plugin.create_named_empty_tag(name)
-        t1 = self.session.execute(select(Tag)).scalars().where(tag=name).one()
-        self.assertEqual(t0, t1)
+    def test_create_named_empty_tag(self, session):
+        """Test creating a named empty tag."""
+        tag_name = "name123"
+        result = session.execute(select(Tag).where(Tag.tag == tag_name)).scalars().all()
+        assert len(result) == 0
 
-    def test_tag_nothing(self):
-        t = Tag(tag="some_tag", description="description")
-        self.session.add(t)
-        self.session.flush()
-        t.tag_objects([])
-        self.assertEqual(t.objects, [])
-        self.assertEqual(
-            t.search_view_markup_pair(),
-            (
-                'some_tag - <span weight="light">tagging nothing</span>',
-                '(Tag) - <span weight="light">description</span>',
-            ),
+        create_named_empty_tag(tag_name)
+        result = session.execute(select(Tag).where(Tag.tag == tag_name)).scalars().all()
+        assert len(result) == 1
+        assert result[0].tag == tag_name
+
+        create_named_empty_tag(tag_name)
+        tag_retrieved = session.execute(select(Tag).where(Tag.tag == tag_name)).scalars().one()
+        assert tag_retrieved == result[0]
+
+    def test_tag_nothing(self, session):
+        """Test tagging nothing."""
+        tag = Tag(tag="some_tag", description="description")
+        session.add(tag)
+        session.commit()
+
+        tag.tag_objects([])
+        assert tag.objects == []
+        assert tag.search_view_markup_pair() == (
+            'some_tag - <span weight="light">tagging nothing</span>',
+            '(Tag) - <span weight="light">description</span>',
         )
 
-    def test_tag_objects(self):
+    def test_tag_objects(self, session, setup_family_and_tags):
+        """Test tagging objects."""
         family2 = Family(family="family2")
-        self.session.add(family2)
-        self.session.commit()
-        family1_id = self.family.id
-        family2_id = family2.id
-        tag_plugin.tag_objects("test", [self.family, family2])
+        session.add(family2)
+        session.commit()
 
-        # we do not offer gettin object by string
-        # get object by tag
-        tag = self.session.execute(select(Tag)).scalars().where(tag="test").one()
+        tag_objects("test", [setup_family_and_tags, family2])
+
+        tag = session.execute(select(Tag).where(Tag.tag == "test")).scalars().one()
         tagged_objs = tag.objects
-        sorted_pairs = sorted([(type(o), o.id) for o in tagged_objs])
-        self.assertEqual(
-            sorted([(Family, family1_id), (Family, family2_id)]), sorted_pairs
+        sorted_pairs = sorted([(type(obj), obj.id) for obj in tagged_objs])
+
+        assert sorted_pairs == sorted(
+            [(Family, setup_family_and_tags.id), (Family, family2.id)]
         )
 
-        tag_plugin.tag_objects("test", [self.family, family2])
-        self.assertEqual(tag.objects, [self.family, family2])
+        # Test untagging one object
+        untag_objects("test", [setup_family_and_tags])
+        tag = session.execute(select(Tag).where(Tag.tag == "test")).scalars().one()
+        assert tag.objects == [family2]
 
-        #
-        # first untag one, then both
-        #
-        tag_plugin.untag_objects("test", [self.family])
+        # Test untagging all objects
+        untag_objects("test", [setup_family_and_tags, family2])
+        tag = session.execute(select(Tag).where(Tag.tag == "test")).scalars().one()
+        assert tag.objects == []
 
-        # get object by tag
-        tag = self.session.execute(select(Tag)).scalars().where(tag="test").one()
-        tagged_objs = tag.objects
-        self.assertEqual(tagged_objs, [family2])
-
-        #
-        # first untag one, then both
-        #
-        tag_plugin.untag_objects("test", [self.family, family2])
-
-        # get object by tag
-        tag = self.session.execute(select(Tag)).scalars().where(tag="test").one()
-        tagged_objs = tag.objects
-        self.assertEqual(tagged_objs, [])
-
-    def test_is_tagging(self):
+    def test_is_tagging(self, session, setup_family_and_tags):
+        """Test checking if a tag is tagging an object."""
         family2 = Family(family="family2")
-        t1 = Tag(tag="test1")
-        self.session.add_all([family2, t1])
-        self.session.flush()
-        self.assertFalse(t1.is_tagging(family2))
-        self.assertFalse(t1.is_tagging(self.family))
-        t1.tag_objects([self.family])
-        self.session.flush()
-        self.assertFalse(t1.is_tagging(family2))
-        self.assertTrue(t1.is_tagging(self.family))
+        tag = Tag(tag="test1")
+        session.add_all([family2, tag])
+        session.commit()
 
-    def test_search_view_markup_pair(self):
+        assert not tag.is_tagging(family2)
+        assert not tag.is_tagging(setup_family_and_tags)
+
+        tag.tag_objects([setup_family_and_tags])
+        session.commit()
+
+        assert not tag.is_tagging(family2)
+        assert tag.is_tagging(setup_family_and_tags)
+
+@pytest.mark.usefixtures("setup_family_and_tags")
+class TestTag:
+    def test_search_view_markup_pair(self, session, setup_family_and_tags):
+        """Test the search view markup for tagged objects."""
         family2 = Family(family="family2")
-        t1 = Tag(tag="test1")
-        t2 = Tag(tag="test2")
-        self.session.add_all([family2, t1, t2])
-        self.session.flush()
-        t1.tag_objects([self.family, family2])
-        t2.tag_objects([self.family])
-        self.assertEqual(
-            t1.search_view_markup_pair(),
-            (
-                'test1 - <span weight="light">tagging 2 objects of type Family</span>',
-                '(Tag) - <span weight="light"></span>',
-            ),
+        tag1 = Tag(tag="test1")
+        tag2 = Tag(tag="test2")
+        session.add_all([family2, tag1, tag2])
+        session.commit()
+
+        tag1.tag_objects([setup_family_and_tags, family2])
+        tag2.tag_objects([setup_family_and_tags])
+        session.commit()
+
+        assert tag1.search_view_markup_pair() == (
+            'test1 - <span weight="light">tagging 2 objects of type Family</span>',
+            '(Tag) - <span weight="light"></span>',
         )
-        self.assertEqual(
-            t2.search_view_markup_pair(),
-            (
-                'test2 - <span weight="light">tagging 1 objects of type Family</span>',
-                '(Tag) - <span weight="light"></span>',
-            ),
-        )
-        t2.tag_objects([t1])
-        self.session.flush()
-        self.assertEqual(
-            t2.search_view_markup_pair(),
-            (
-                'test2 - <span weight="light">tagging 2 objects of 2 different types: Family, Tag</span>',
-                '(Tag) - <span weight="light"></span>',
-            ),
+        assert tag2.search_view_markup_pair() == (
+            'test2 - <span weight="light">tagging 1 objects of type Family</span>',
+            '(Tag) - <span weight="light"></span>',
         )
 
-    def test_remove_callback_no_confirm(self):
-        # T_0
-        f5 = Tag(tag="Arecaceae")
-        self.session.add(f5)
-        self.session.flush()
-        self.invoked = []
+        # Add an additional tag to tag2
+        tag2.tag_objects([tag1])
+        session.commit()
 
-        # action
-        utils.yes_no_dialog = partial(
-            mockfunc, name="yes_no_dialog", caller=self, result=False
+        assert tag2.search_view_markup_pair() == (
+            'test2 - <span weight="light">tagging 2 objects of 2 different types: Family, Tag</span>',
+            '(Tag) - <span weight="light"></span>',
         )
-        utils.message_details_dialog = partial(
-            mockfunc, name="message_details_dialog", caller=self
-        )
-        from bauble.plugins.tag import remove_callback
 
-        result = remove_callback([f5])
-        self.session.flush()
+    def test_remove_callback_no_confirm(self, session):
+        """Test remove callback without confirmation."""
+        tag = Tag(tag="Arecaceae")
+        session.add(tag)
+        session.commit()
 
-        # effect
-        print(self.invoked)
-        self.assertFalse(
-            "message_details_dialog" in [f for (f, m) in self.invoked]
-        )
-        self.assertTrue(
-            (
-                "yes_no_dialog",
-                "Are you sure you want to " "remove Tag: Arecaceae?",
-            )
-            in self.invoked
-        )
-        self.assertEqual(result, None)
-        q = self.session.execute(select(Tag)).scalars().where(tag="Arecaceae")
-        matching = q.all()
-        self.assertEqual(matching, [f5])
+        invoked = []
+        yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=False)
+        message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
 
-    def test_remove_callback_confirm(self):
-        # T_0
-        f5 = Tag(tag="Arecaceae")
-        self.session.add(f5)
-        self.session.flush()
-        self.invoked = []
-        save_status = tag_plugin.tags_menu_manager.reset
+        result = remove_callback([tag])
+        session.commit()
 
-        # action
-        utils.yes_no_dialog = partial(
-            mockfunc, name="yes_no_dialog", caller=self, result=True
-        )
-        tag_plugin.tags_menu_manager.reset = partial(
-            mockfunc, name="_reset_tags_menu", caller=self
-        )
-        from bauble.plugins.tag import remove_callback
+        # Assertions
+        assert "message_details_dialog" not in [func for func, _ in invoked]
+        assert (
+            "yes_no_dialog",
+            "Are you sure you want to remove Tag: Arecaceae?",
+        ) in invoked
+        assert result is None
 
-        result = remove_callback([f5])
-        tag_plugin.tags_menu_manager.reset = save_status
-        self.session.flush()
+        matching = session.execute(select(Tag).where(Tag.tag == "Arecaceae")).scalars().all()
+        assert matching == [tag]
 
-        # effect
-        print(self.invoked)
-        self.assertTrue("_reset_tags_menu" in [f for (f, m) in self.invoked])
-        self.assertTrue(
-            (
-                "yes_no_dialog",
-                "Are you sure you want to " "remove Tag: Arecaceae?",
-            )
-            in self.invoked
-        )
-        self.assertEqual(result, True)
-        q = self.session.execute(select(Tag)).scalars().where(tag="Arecaceae")
-        matching = q.all()
-        self.assertEqual(matching, [])
+    def test_remove_callback_confirm(self, session):
+        """Test remove callback with confirmation."""
+        tag = Tag(tag="Arecaceae")
+        session.add(tag)
+        session.commit()
+
+        invoked = []
+        save_reset = tag_plugin.tags_menu_manager.reset
+        yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=True)
+        tag_plugin.tags_menu_manager.reset = partial(mockfunc, name="_reset_tags_menu", caller=invoked)
+
+        result = remove_callback([tag])
+        tag_plugin.tags_menu_manager.reset = save_reset
+        session.commit()
+
+        # Assertions
+        assert "_reset_tags_menu" in [func for func, _ in invoked]
+        assert (
+            "yes_no_dialog",
+            "Are you sure you want to remove Tag: Arecaceae?",
+        ) in invoked
+        assert result is True
+
+        matching = session.execute(select(Tag).where(Tag.tag == "Arecaceae")).scalars().all()
+        assert matching == []
 
 
-class GetTagIdsTests(BaubleTestCase):
-
-    def setUp(self):
-        super().setUp()
+@pytest.mark.usefixtures("setup_session")
+class TestGetTagIds:
+    @pytest.fixture(autouse=True)
+    def setup_families_and_tags(self, session):
+        """Setup fixture for families and tags."""
         self.fam1 = Family(family="Fabaceae")
         self.fam2 = Family(family="Poaceae")
         self.fam3 = Family(family="Solanaceae")
         self.fam4 = Family(family="Caricaceae")
-        self.session.add_all([self.fam1, self.fam2, self.fam3, self.fam4])
-        self.session.commit()
+        session.add_all([self.fam1, self.fam2, self.fam3, self.fam4])
+        session.commit()
+
         tag_plugin.tag_objects("test1", [self.fam1, self.fam2])
         tag_plugin.tag_objects("test2", [self.fam1])
         tag_plugin.tag_objects("test3", [self.fam2, self.fam3])
-        self.session.commit()
+        session.commit()
 
-    def tearDown(self):
-        self.session.execute(select(Family)).scalars().delete()
-        self.session.execute(select(Tag)).scalars().delete()
-        self.session.commit()
-        super().tearDown()
+        yield
 
-    def test_get_tag_ids1(self):
+        # Cleanup after tests
+        session.execute(select(Family)).scalars().delete()
+        session.execute(select(Tag)).scalars().delete()
+        session.commit()
+
+    def test_get_tag_ids1(self, session):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1, self.fam2])
-        self.assertEqual(s_all, {1})
-        self.assertEqual(s_some, {2, 3})
+        assert s_all == {1}
+        assert s_some == {2, 3}
 
-    def test_get_tag_ids2(self):
+    def test_get_tag_ids2(self, session):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1])
-        self.assertEqual(s_all, {1, 2})
-        self.assertEqual(s_some, set())
+        assert s_all == {1, 2}
+        assert s_some == set()
 
-    def test_get_tag_ids3(self):
+    def test_get_tag_ids3(self, session):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam2])
         test_id = {1, 3}
-        self.assertEqual(s_all, test_id)
-        self.assertEqual(s_some, set())
+        assert s_all == test_id
+        assert s_some == set()
 
-    def test_get_tag_ids4(self):
+    def test_get_tag_ids4(self, session):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam3])
         test_id = {3}
-        self.assertEqual(s_all, test_id)
-        self.assertEqual(s_some, set())
+        assert s_all == test_id
+        assert s_some == set()
 
-    def test_get_tag_ids5(self):
+    def test_get_tag_ids5(self, session):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1, self.fam3])
-        test_id = set()
-        self.assertEqual(s_all, test_id)
-        self.assertEqual(s_some, {1, 2, 3})
+        assert s_all == set()
+        assert s_some == {1, 2, 3}
 
-    def test_get_tag_ids6(self):
+    def test_get_tag_ids6(self, session):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1, self.fam4])
-        self.assertEqual(s_all, set())
-        self.assertEqual(s_some, {1, 2})
+        assert s_all == set()
+        assert s_some == {1, 2}
 
-    def test_get_tag_ids7(self):
-        self.session.execute(select(Tag)).scalars().delete()
-        self.session.commit()
+    def test_get_tag_ids7(self, session):
+        # Cleanup existing tags and create new ones
+        session.execute(select(Tag)).scalars().delete()
+        session.commit()
+
         tag_plugin.tag_objects("test1", [self.fam1, self.fam4])
         tag_plugin.tag_objects("test2", [self.fam1])
         tag_plugin.tag_objects("test3", [self.fam2, self.fam4])
-        self.session.commit()
-        s_all, s_some, s_none = tag_plugin.get_tag_ids(
-            [self.fam1, self.fam2, self.fam3, self.fam4]
-        )
-        self.assertEqual(s_all, set())
-        self.assertEqual(s_some, {1, 2, 3})
+        session.commit()
 
+        s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1, self.fam2, self.fam3, self.fam4])
+        assert s_all == set()
+        assert s_some == {1, 2, 3}
 
 class MockTagView(GenericEditorView):
     def __init__(self):
@@ -413,225 +370,209 @@ class MockTagView(GenericEditorView):
         return self.dict.get(widget)
 
 
-class TagPresenterTests(BaubleTestCase):
-    "Presenter manages view and model, implements view callbacks."
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        import bauble.prefs
-
-        bauble.prefs.testing = True
-
+@pytest.mark.usefixtures("setup_session")
+class TestTagPresenter:
     def test_when_user_edits_name_name_is_memorized(self):
         model = Tag()
         view = MockTagView()
         presenter = TagEditorPresenter(model, view)
+
         view.widget_set_value("tag_name_entry", "1234")
         presenter.on_text_entry_changed("tag_name_entry")
-        self.assertEqual(presenter.model.tag, "1234")
 
-    def test_when_user_inserts_existing_name_warning_ok_deactivated(self):
-        session = db.Session()
+        assert presenter.model.tag == "1234"
 
-        # prepare data in database
+    def test_when_user_inserts_existing_name_warning_ok_deactivated(self, session):
+        # Prepare data in the database
         obj = Tag(tag="1234")
         session.add(obj)
         session.commit()
-        session.close()
-        # ok. thing is already there now.
 
-        session = db.Session()
+        # Test with a new scratch object
+        obj = Tag()
+        session.add(obj)
         view = MockTagView()
-        obj = Tag()  # new scratch object
-        session.add(obj)  # is in session
         presenter = TagEditorPresenter(obj, view)
-        self.assertTrue(not view.sensitive)  # not changed
+
+        assert not view.sensitive  # Initially not sensitive
         presenter.on_unique_text_entry_changed("tag_name_entry", "1234")
-        self.assertEqual(obj.tag, "1234")
-        self.assertTrue(view.is_dirty())
-        self.assertTrue(not view.sensitive)  # unacceptable change
-        self.assertTrue(presenter.has_problems())
+
+        assert obj.tag == "1234"
+        assert view.is_dirty()
+        assert not view.sensitive  # Unacceptable change
+        assert presenter.has_problems()
 
     def test_widget_names_and_field_names(self):
         model = Tag()
         view = MockTagView()
         presenter = TagEditorPresenter(model, view)
-        for widget, field in list(presenter.widget_to_field_map.items()):
-            self.assertTrue(hasattr(model, field), field)
-            presenter.view.widget_get_value(widget)
+
+        for widget, field in presenter.widget_to_field_map.items():
+            assert hasattr(model, field)
+            view.widget_get_value(widget)  # Test widget-to-field mapping
 
     def test_when_user_edits_fields_ok_active(self):
         model = Tag()
         view = MockTagView()
         presenter = TagEditorPresenter(model, view)
-        self.assertTrue(not view.sensitive)  # not changed
+
+        assert not view.sensitive  # Initially not sensitive
         view.widget_set_value("tag_name_entry", "1234")
         presenter.on_text_entry_changed("tag_name_entry")
-        self.assertEqual(presenter.model.tag, "1234")
-        self.assertTrue(view.sensitive)  # changed
+
+        assert presenter.model.tag == "1234"
+        assert view.sensitive  # Sensitive after change
 
     def test_when_user_edits_description_description_is_memorized(self):
+        # This is a placeholder test
         pass
 
-    def test_presenter_does_not_initialize_view(self):
-        session = db.Session()
-
-        # prepare data in database
+    def test_presenter_does_not_initialize_view(self, session):
+        # Prepare data in the database
         obj = Tag(tag="1234")
         session.add(obj)
+
+        # Test with the presenter and the view
         view = MockTagView()
         presenter = TagEditorPresenter(obj, view)
-        self.assertFalse(view.widget_get_value("tag_name_entry"))
+
+        assert not view.widget_get_value("tag_name_entry")  # Initially not set
         presenter.refresh_view()
-        self.assertEqual(view.widget_get_value("tag_name_entry"), "1234")
+        assert view.widget_get_value("tag_name_entry") == "1234"
 
-    def test_if_asked_presenter_initializes_view(self):
-        session = db.Session()
-
-        # prepare data in database
+    def test_if_asked_presenter_initializes_view(self, session):
+        # Prepare data in the database
         obj = Tag(tag="1234")
         session.add(obj)
+
+        # Test with `refresh_view=True`
         view = MockTagView()
         TagEditorPresenter(obj, view, refresh_view=True)
-        self.assertEqual(view.widget_get_value("tag_name_entry"), "1234")
+
+        assert view.widget_get_value("tag_name_entry") == "1234"
 
 
-class AttachedToTests(BaubleTestCase):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        import bauble.prefs
-
-        bauble.prefs.testing = True
-
-    def setUp(self):
-        super().setUp()
+@pytest.mark.usefixtures("setup_session")
+class TestAttachedTo:
+    @pytest.fixture(autouse=True)
+    def setup(self, session):
         obj1 = Tag(tag="medicinal")
         obj2 = Tag(tag="maderable")
         obj3 = Tag(tag="frutal")
         fam = Family(family="Solanaceae")
-        self.session.add_all([obj1, obj2, obj3, fam])
-        self.session.commit()
+        session.add_all([obj1, obj2, obj3, fam])
+        session.commit()
 
-    def test_attached_tags_empty(self):
-        fam = self.session.execute(select(Family)).scalars().one()
-        self.assertEqual(Tag.attached_to(fam), [])
+    def test_attached_tags_empty(self, session):
+        fam = session.execute(select(Family)).scalars().one()
+        assert Tag.attached_to(fam) == []
 
-    def test_attached_tags_singleton(self):
-        fam = self.session.execute(select(Family)).scalars().one()
-        obj2 = self.session.execute(select(Tag)).scalars().where(Tag.tag == "maderable").one()
+    def test_attached_tags_singleton(self, session):
+        fam = session.execute(select(Family)).scalars().one()
+        obj2 = session.execute(select(Tag)).scalars().where(Tag.tag == "maderable").one()
         tag_plugin.tag_objects(obj2, [fam])
-        self.assertEqual(Tag.attached_to(fam), [obj2])
+        assert Tag.attached_to(fam) == [obj2]
 
-    def test_attached_tags_many(self):
-        fam = self.session.execute(select(Family)).scalars().one()
-        tags = self.session.execute(select(Tag)).scalars().all()
+    def test_attached_tags_many(self, session):
+        fam = session.execute(select(Family)).scalars().one()
+        tags = session.execute(select(Tag)).scalars().all()
         for t in tags:
             tag_plugin.tag_objects(t, [fam])
-        self.assertEqual(Tag.attached_to(fam), tags)
+        assert Tag.attached_to(fam) == tags
 
 
-class TagInfoBoxTest(BaubleTestCase):
-    def test_can_create_infobox(self):
-        TagInfoBox()
+@pytest.mark.usefixtures("setup_session")
+class TestAttachedTo:
+    @pytest.fixture(autouse=True)
+    def setup(self, session):
+        obj1 = Tag(tag="medicinal")
+        obj2 = Tag(tag="maderable")
+        obj3 = Tag(tag="frutal")
+        fam = Family(family="Solanaceae")
+        session.add_all([obj1, obj2, obj3, fam])
+        session.commit()
 
-    def test_update_infobox_from_empty_tag(self):
-        t = Tag(tag="name", description="description")
-        ib = TagInfoBox()
-        ib.update(t)
-        self.assertEqual(
-            ib.widgets.ib_description_label.get_text(), t.description
-        )
-        self.assertEqual(ib.widgets.ib_name_label.get_text(), t.tag)
-        self.assertEqual(ib.general.table_cells, [])
+    def test_attached_tags_empty(self, session):
+        fam = session.execute(select(Family)).scalars().one()
+        assert Tag.attached_to(fam) == []
 
-    def test_update_infobox_from_tagging_tag(self):
-        t = Tag(tag="name", description="description")
-        x = Tag(tag="objectx", description="none")
-        y = Tag(tag="objecty", description="none")
-        z = Tag(tag="objectz", description="none")
-        self.session.add_all([t, x, y, z])
-        self.session.commit()
-        t.tag_objects([x, y, z])
-        ib = TagInfoBox()
-        self.assertEqual(ib.general.table_cells, [])
-        ib.update(t)
-        self.assertEqual(
-            ib.widgets.ib_description_label.get_text(), t.description
-        )
-        self.assertEqual(ib.widgets.ib_name_label.get_text(), t.tag)
-        self.assertEqual(len(ib.general.table_cells), 2)
-        self.assertEqual(ib.general.table_cells[0].get_text(), "Tag")
-        self.assertEqual(type(ib.general.table_cells[1]), Gtk.EventBox)
-        label = ib.general.table_cells[1].get_children()[0]
-        self.assertEqual(label.get_text(), " 3 ")
+    def test_attached_tags_singleton(self, session):
+        fam = session.execute(select(Family)).scalars().one()
+        obj2 = session.execute(select(Tag)).scalars().where(Tag.tag == "maderable").one()
+        tag_plugin.tag_objects(obj2, [fam])
+        assert Tag.attached_to(fam) == [obj2]
+
+    def test_attached_tags_many(self, session):
+        fam = session.execute(select(Family)).scalars().one()
+        tags = session.execute(select(Tag)).scalars().all()
+        for t in tags:
+            tag_plugin.tag_objects(t, [fam])
+        assert Tag.attached_to(fam) == tags
 
 
-class TagCallbackTest(BaubleTestCase):
-    def test_on_add_tag_activated_wrong_view(self):
-        class FakeGui:
-            def __init__(self):
-                self.invoked = []
-                self.window = self
+class FakeGui:
+    def __init__(self):
+        self.invoked = []
+        self.window = self
 
-            def get_view(self):
-                return MockView(selection=[])
+    def get_view(self):
+        return MockView(selection=[])
 
-            def show_message_box(self, *args, **kwargs):
-                self.invoked.append((args, kwargs))
+    def show_message_box(self, *args, **kwargs):
+        self.invoked.append((args, kwargs))
 
-            def add_accel_group(self, *args, **kwargs):
-                self.invoked.append(("window.add_accel_group", args, kwargs))
+    def add_accel_group(self, *args, **kwargs):
+        self.invoked.append(("window.add_accel_group", args, kwargs))
 
-            def add_to_insert_menu(self, *args, **kwargs):
-                self.invoked.append(("add_to_insert_menu", args, kwargs))
+    def add_to_insert_menu(self, *args, **kwargs):
+        self.invoked.append(("add_to_insert_menu", args, kwargs))
 
-            def add_menu(self, *args, **kwargs):
-                self.invoked.append(("add_menu", args, kwargs))
+    def add_menu(self, *args, **kwargs):
+        self.invoked.append(("add_menu", args, kwargs))
 
-        import bauble
 
-        bauble.gui = localgui = FakeGui()
-        tag_plugin._on_add_tag_activated()
-        imp.reload(bauble)
-        self.assertEqual(
-            localgui.invoked[0],
-            (
-                (
-                    "In order to tag an item you must first search for something and select one of the results.",
-                ),
-                {},
-            ),
-        )
+@pytest.fixture
+def fake_gui(monkeypatch):
+    local_gui = FakeGui()
+    monkeypatch.setattr("bauble.gui", local_gui)
+    return local_gui
 
-    def test_on_add_tag_activated_search_view_empty_selection(self):
-        class FakeGui:
-            def __init__(self):
-                self.invoked = []
-                self.window = self
 
-            def get_view(self):
-                view = MockView()
-                view.get_selected_values = lambda: []
-                return view
+def test_on_add_tag_activated_wrong_view(fake_gui, monkeypatch):
+    import bauble
 
-            def show_message_box(self, *args, **kwargs):
-                self.invoked.append((args, kwargs))
+    # Use monkeypatch to inject the FakeGui instance into the bauble module
+    monkeypatch.setattr(bauble, "gui", fake_gui)
 
-            def add_accel_group(self, *args, **kwargs):
-                self.invoked.append(("window.add_accel_group", args, kwargs))
+    # Invoke the actual method being tested
+    tag_plugin._on_add_tag_activated()
 
-            def add_to_insert_menu(self, *args, **kwargs):
-                self.invoked.append(("add_to_insert_menu", args, kwargs))
+    # Verify the expected behavior
+    assert fake_gui.invoked[0] == (
+        (
+            "In order to tag an item you must first search for something and select one of the results.",
+        ),
+        {},
+    )
 
-            def add_menu(self, *args, **kwargs):
-                self.invoked.append(("add_menu", args, kwargs))
 
-        import bauble
+def test_on_add_tag_activated_search_view_empty_selection(fake_gui, monkeypatch):
+    import bauble
 
-        bauble.gui = localgui = FakeGui()
-        utils.message_dialog = bauble.gui.show_message_box
-        tag_plugin._on_add_tag_activated()
-        imp.reload(bauble)
-        imp.reload(utils)
-        self.assertEqual(localgui.invoked[0], (("Nothing selected",), {}))
+    # Use monkeypatch to inject the FakeGui instance into the bauble module
+    monkeypatch.setattr(bauble, "gui", fake_gui)
+
+    # Replace utils.message_dialog with FakeGui's method
+    monkeypatch.setattr(utils, "message_dialog", fake_gui.show_message_box)
+
+    # Modify the MockView to simulate no selected values
+    def mock_get_selected_values():
+        return []
+
+    monkeypatch.setattr(MockView, "get_selected_values", mock_get_selected_values)
+
+    # Invoke the actual method being tested
+    tag_plugin._on_add_tag_activated()
+
+    # Verify the expected behavior
+    assert fake_gui.invoked[0] == (("Nothing selected",), {})

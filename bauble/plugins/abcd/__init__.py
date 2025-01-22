@@ -32,9 +32,10 @@ import bauble.utils as utils
 import gi
 from bauble.error import check
 from bauble.plugins.garden.plant import Plant
-from gi.repository import Gtk
 
 gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+
 
 
 # NOTE: see biocase provider software for reading and writing ABCD data

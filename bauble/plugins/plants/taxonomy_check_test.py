@@ -1,4 +1,3 @@
-#
 # Copyright 2018 Mario Frasca <mario@anche.no>.
 #
 # This file is part of ghini.desktop.
@@ -15,37 +14,60 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-#
+
+import pytest
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
-from bauble.test import BaubleTestCase
-
 from .taxonomy_check import species_to_fix
+from sqlalchemy import text
 
+@pytest.fixture(scope="function")
+def setup_data(db_session):
+    """
+    Fixture to initialize the test database with required data.
+    """
+    family1 = Family(epithet="Amaranthaceae")
+    family2 = Family(epithet="Fabaceae")
+    genus1 = Genus(family=family1, epithet="Salsola")
+    genus2 = Genus(family=family2, epithet="Trifolium")
+    db_session.add_all([family1, family2, genus1, genus2])
+    db_session.commit()
+    return db_session
 
-class TestOne(BaubleTestCase):
+@pytest.fixture(autouse=True)
+def clear_family_table(db_session):
+    """
+    Ensure the family table is cleared before each test.
+    """
+    db_session.execute(text("DELETE FROM genus"))
+    db_session.execute(text("DELETE FROM family"))
+    db_session.commit()
 
-    def setUp(self):
-        super().setUp()
-        family = Family(epithet="Amaranthaceae")
-        genus = Genus(family=family, epithet="Salsola")
-        self.session.add_all([family, genus])
-        self.session.commit()
+@pytest.mark.usefixtures("db_session", "setup_data")
+class TestTaxonomyCheck:
 
-    def test_species_author(self):
-        s = species_to_fix(self.session, "Salsola kali", "L.", True)
-        self.assertEqual(s.epithet, "kali")
-        self.assertEqual(s.author, "L.")
-        self.assertEqual(s.infraspecific_rank, "")
-        self.assertEqual(s.infraspecific_epithet, "")
-        self.assertEqual(s.infraspecific_author, "")
+    def test_species_author(self, db_session):
+        """
+        Test that the species author is correctly handled.
+        """
+        s = species_to_fix(db_session, "Salsola kali", "L.", True)
+        assert s is not None
+        assert s.epithet == "kali"
+        assert s.author == "L."
+        assert s.infraspecific_rank == ""
+        assert s.infraspecific_epithet == ""
+        assert s.infraspecific_author == ""
 
-    def test_subspecies_author(self):
+    def test_subspecies_author(self, db_session):
+        """
+        Test that the subspecies author is correctly handled.
+        """
         s = species_to_fix(
-            self.session, "Salsola kali subsp. tragus", "(L.) Čelak.", True
+            db_session, "Salsola kali subsp. tragus", "(L.) Čelak.", True
         )
-        self.assertEqual(s.epithet, "kali")
-        self.assertEqual(s.author, None)
-        self.assertEqual(s.infraspecific_rank, "subsp.")
-        self.assertEqual(s.infraspecific_epithet, "tragus")
-        self.assertEqual(s.infraspecific_author, "(L.) Čelak.")
+        assert s is not None
+        assert s.epithet == "kali"
+        assert s.author is None
+        assert s.infraspecific_rank == "subsp."
+        assert s.infraspecific_epithet == "tragus"
+        assert s.infraspecific_author == "(L.) Čelak."

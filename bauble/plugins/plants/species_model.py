@@ -494,14 +494,18 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     verifications = relationship(
         "Verification",
         primaryjoin="Verification.species_id == Species.id",
+        back_populates="species",
         cascade="save-update, merge",  # Less aggressive cascade
         uselist=True,
+        overlaps="prev_species",
     )
     previous_verifications = relationship(
         "Verification",
         primaryjoin="Verification.prev_species_id == Species.id",
+        back_populates="prev_species",
         cascade="save-update, merge",  # Less aggressive cascade
         uselist=True,
+        overlaps="species",
     )
     # hardiness_zone = Column(Unicode(4))
 

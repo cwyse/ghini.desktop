@@ -39,6 +39,7 @@ import gi
 import sqlalchemy
 from bauble import paths
 from bauble.error import check
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import GLib
@@ -49,7 +50,7 @@ from sqlalchemy.orm.session import object_session
 #from sqlalchemy.exc import DBAPIError
 from sqlalchemy import select
 
-gi.require_version("Gtk", "3.0")
+
 
 
 logger = logging.getLogger(__name__)

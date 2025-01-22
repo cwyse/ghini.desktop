@@ -18,38 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
-import sys
-import unittest
 
-import bauble
-import bauble.db as db
-import bauble.pluginmgr as pluginmgr
-from bauble.error import BaubleError
-from bauble.prefs import prefs
-
+# Global configuration
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-
-
-# for sake of testing, just use sqlite3.
-uri = "sqlite:///:memory:"
-
-
-def init_bauble(uri, create=False):
-    prefs.init()
-    prefs.testing = True
-    try:
-        db.open(uri, verify=False)
-    except Exception as e:
-        print(e, file=sys.stderr)
-        # debug e
-    if not bauble.db.engine:
-        raise BaubleError("not connected to a database")
-
-    pluginmgr.load()
-    db.create(create)
-    pluginmgr.init(force=True)
-
 
 def update_gui():
     """
@@ -67,10 +39,10 @@ def check_dupids(filename):
     """
     ids = set()
     duplicates = set()
-    import lxml.etree as etree
+    from lxml import etree
 
     tree = etree.parse(filename)
-    for el in tree.getiterator():
+    for el in tree.iter():
         if el.tag == "col":
             continue
         elid = el.get("id")
@@ -97,40 +69,6 @@ class MockLoggingHandler(logging.Handler):
 
     def reset(self):
         self.messages = {}
-
-
-class BaubleTestCase(unittest.TestCase):
-    """
-    Base test case for Bauble tests, providing common setup and teardown.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        prefs.testing = True
-
-    def setUp(self):
-        assert uri is not None, "The database URI is not set"
-        init_bauble(uri)
-        self.session = db.Session()
-        self.handler = MockLoggingHandler()
-        logging.getLogger().addHandler(self.handler)
-        logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
-        logging.getLogger("bauble").setLevel(logging.WARNING)
-
-    def tearDown(self):
-        logging.getLogger().removeHandler(self.handler)
-        self.session.close()
-        db.metadata.drop_all(bind=db.engine)
-        bauble.pluginmgr.commands.clear()
-        pluginmgr.plugins.clear()
-
-    # assertIsNone is not available before 2.7
-    import sys
-
-    if sys.version_info[:2] < (2, 7):
-
-        def assertIsNone(self, item):
-            self.assertTrue(item is None)
-
 
 def mockfunc(msg=None, name=None, caller=None, result=False, *args, **kwargs):
     caller.invoked.append((name, msg))

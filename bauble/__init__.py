@@ -33,9 +33,10 @@ import bauble.paths as paths
 import debugpy
 import gi
 from bauble.version import version
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-gi.require_version("Gtk", "3.0")
+
 
 #debugpy.breakpoint()
 

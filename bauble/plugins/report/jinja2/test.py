@@ -18,29 +18,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-import logging
 import os
-
-# Delayed imports to resolve circular dependencies
-from bauble.test import BaubleTestCase
-from bauble.utils import natsort_key  # Import only what's necessary
+import logging
+from sqlalchemy import select
+import pytest
 from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
 from bauble.plugins.report import get_pertinent_objects
-from sqlalchemy import select
+from bauble.utils import natsort_key
 
 logger = logging.getLogger(__name__)
-
-
-# Modify desktop.open here to avoid cyclic import
-def disable_desktop_open():
-    try:
-        import bauble.utils.desktop as desktop
-        desktop.open = lambda x: x
-    except ImportError:
-        logger.error("Failed to import and disable desktop.open")
-
-
-disable_desktop_open()
 
 
 # Centralize delayed imports
@@ -48,102 +34,96 @@ def dynamic_import(module_name, class_name):
     module = __import__(module_name, fromlist=[class_name])
     return getattr(module, class_name)
 
-class Jinja2FormatterTests(BaubleTestCase):
 
-    def __init__(self, *args):
-        super().__init__(*args)
+@pytest.fixture(scope="module")
+def populate_test_data(session):
+    """
+    Populates the database with test data.
+    """
+    Family = dynamic_import("bauble.plugins.plants", "Family")
+    Genus = dynamic_import("bauble.plugins.plants", "Genus")
+    Species = dynamic_import("bauble.plugins.plants", "Species")
+    GeographicArea = dynamic_import("bauble.plugins.plants", "GeographicArea")
+    SpeciesDistribution = dynamic_import("bauble.plugins.plants", "SpeciesDistribution")
+    VernacularName = dynamic_import("bauble.plugins.plants", "VernacularName")
+    Accession = dynamic_import("bauble.plugins.garden", "Accession")
+    Location = dynamic_import("bauble.plugins.garden", "Location")
+    Plant = dynamic_import("bauble.plugins.garden.plant", "Plant")
 
-    def setUp(self, *args):
-        super().setUp()
-        self._populate_test_data()
+    fctr = gctr = sctr = actr = pctr = 0
+    for f in range(2):
+        fctr += 1
+        family = Family(id=fctr, family=f"fam{fctr}")
+        session.add(family)
+        for g in range(2):
+            gctr += 1
+            genus = Genus(id=gctr, family=family, genus=f"gen{gctr}")
+            session.add(genus)
+            for s in range(2):
+                sctr += 1
+                sp = Species(id=sctr, genus=genus, sp=f"sp{sctr}")
+                geo = GeographicArea(id=sctr, name=f"Mexico{sctr}")
+                dist = SpeciesDistribution(geographic_area_id=sctr)
+                sp.distribution.append(dist)
+                vn = VernacularName(id=sctr, species=sp, name=f"name{sctr}")
+                session.add_all([sp, geo, dist, vn])
+                for a in range(2):
+                    actr += 1
+                    acc = Accession(id=actr, species=sp, code=f"{actr}")
+                    session.add(acc)
+                    for p in range(2):
+                        pctr += 1
+                        loc = Location(id=pctr, code=f"{pctr}", name=f"site{pctr}")
+                        plant = Plant(
+                            id=pctr,
+                            accession=acc,
+                            location=loc,
+                            code=f"{pctr}",
+                            quantity=1,
+                        )
+                        session.add_all([loc, plant])
+    session.commit()
 
-    def tearDown(self, *args):
-        super().tearDown()
 
-    def _populate_test_data(self):
-        Family = dynamic_import("bauble.plugins.plants", "Family")
-        Genus = dynamic_import("bauble.plugins.plants", "Genus")
-        Species = dynamic_import("bauble.plugins.plants", "Species")
-        GeographicArea = dynamic_import("bauble.plugins.plants", "GeographicArea")
-        SpeciesDistribution = dynamic_import("bauble.plugins.plants", "SpeciesDistribution")
-        VernacularName = dynamic_import("bauble.plugins.plants", "VernacularName")
-        Accession = dynamic_import("bauble.plugins.garden", "Accession")
-        Location = dynamic_import("bauble.plugins.garden", "Location")
-        Plant = dynamic_import("bauble.plugins.garden.plant", "Plant")
+@pytest.mark.usefixtures("populate_test_data")
+def test_format_all_templates(session):
+    """
+    Tests the formatting of all Jinja2 templates.
+    """
+    Plant = dynamic_import("bauble.plugins.garden.plant", "Plant")
+    selection = session.execute(select(Plant)).scalars().all()
 
-        fctr = gctr = sctr = actr = pctr = 0
-        for f in range(2):
-            fctr += 1
-            family = Family(id=fctr, family=f"fam{fctr}")
-            self.session.add(family)
-            for g in range(2):
-                gctr += 1
-                genus = Genus(id=gctr, family=family, genus=f"gen{gctr}")
-                self.session.add(genus)
-                for s in range(2):
-                    sctr += 1
-                    sp = Species(id=sctr, genus=genus, sp=f"sp{sctr}")
-                    geo = GeographicArea(id=sctr, name=f"Mexico{sctr}")
-                    dist = SpeciesDistribution(geographic_area_id=sctr)
-                    sp.distribution.append(dist)
-                    vn = VernacularName(id=sctr, species=sp, name=f"name{sctr}")
-                    self.session.add_all([sp, geo, dist, vn])
-                    for a in range(2):
-                        actr += 1
-                        acc = Accession(id=actr, species=sp, code=f"{actr}")
-                        self.session.add(acc)
-                        for p in range(2):
-                            pctr += 1
-                            loc = Location(id=pctr, code=f"{pctr}", name=f"site{pctr}")
-                            plant = Plant(
-                                id=pctr,
-                                accession=acc,
-                                location=loc,
-                                code=f"{pctr}",
-                                quantity=1,
-                            )
-                            self.session.add_all([loc, plant])
-        self.session.commit()
+    templates_dir = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "templates"
+    )
+    template_files = filter(
+        lambda x: x.endswith(".jj2"), os.listdir(templates_dir)
+    )
 
-    def test_format_all_templates(self):
-        Plant = dynamic_import("bauble.plugins.garden.plant", "Plant")
+    for template_name in template_files:
+        template_path = os.path.join(templates_dir, template_name)
+        domain = Jinja2FormatterPlugin.get_iteration_domain(template_path)
 
-        # Adjusted query execution with SQLAlchemy 2.x API
-        selection = self.session.execute(select(Plant)).scalars().all()
+        if domain == "":
+            assert template_name.startswith("base.")
+            continue
 
-        templates_dir = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "templates"
-        )
-        template_files = filter(
-            lambda x: x.endswith(".jj2"), os.listdir(templates_dir)
-        )
+        cls = {
+            "plant": Plant,
+            "accession": dynamic_import("bauble.plugins.garden", "Accession"),
+            "species": dynamic_import("bauble.plugins.plants", "Species"),
+            "location": dynamic_import("bauble.plugins.garden", "Location"),
+        }.get(domain, Plant)
 
-        for i, template_name in enumerate(template_files):
-            template_path = os.path.join(templates_dir, template_name)
-            domain = Jinja2FormatterPlugin.get_iteration_domain(template_path)
+        if cls:
+            todo = sorted(
+                get_pertinent_objects(cls, selection), key=natsort_key
+            )
+        else:
+            todo = selection
 
-            if domain == "":
-                self.assertEqual(template_name[:5], "base.")
-                continue
+        logger.debug(f"Formatting template: {template_path}")
+        report = Jinja2FormatterPlugin.format(todo, template=template_path)
 
-            # Map domains to appropriate classes
-            cls = {
-                "plant": Plant,
-                "accession": dynamic_import("bauble.plugins.garden", "Accession"),
-                "species": dynamic_import("bauble.plugins.plants", "Species"),
-                "location": dynamic_import("bauble.plugins.garden", "Location"),
-            }.get(domain, Plant)  # Default to Plant if domain is unknown
+        assert isinstance(report, bytes)
 
-            # Fetch relevant objects or use the existing selection
-            if cls:
-                todo = sorted(
-                    get_pertinent_objects(cls, selection), key=natsort_key
-                )
-            else:
-                todo = selection
-
-            logger.debug(f"Formatting template: {template_path}")
-            report = Jinja2FormatterPlugin.format(todo, template=template_path)
-
-            # Ensure the report is a bytes object
-            self.assertIsInstance(report, bytes)

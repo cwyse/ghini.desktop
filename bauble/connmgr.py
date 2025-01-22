@@ -40,6 +40,7 @@ from gi.repository import Gtk
 
 
 logger = logging.getLogger(__name__)
+logger._cache.clear()
 logger.setLevel(logging.INFO)
 
 
@@ -270,7 +271,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
 
     view_accept_buttons = ["cancel_button", "connect_button"]
 
-    def __init__(self, view=None):
+    def __init__(self, view=None, prefs=None):
         self.filename = self.database = self.host = self.port = self.user = (
             self.pictureroot
         ) = self.connection_name = self.prev_connection_name = None
@@ -286,6 +287,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         view.combobox_init("name_combo")
         view.combobox_init("type_combo", dbtypes, type_combo_cell_data_func)
         self.connection_names = []
+        # Use the provided prefs or fall back to the global prefs
         self.connections = prefs.prefs[bauble.conn_list_pref] or {}
         for ith_connection_name in sorted(self.connections):
             view.combobox_append_text("name_combo", ith_connection_name)
@@ -302,7 +304,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             self.dbtype = ""
             self.connection_name = None
         GenericEditorPresenter.__init__(
-            self, model=self, view=view, refresh_view=True
+            self, model=self, view=view, refresh_view=True, prefs=prefs
         )
         logo_path = os.path.join(paths.lib_dir(), "images", "bauble_logo.png")
         view.image_set_from_file("logo_image", logo_path)
@@ -390,6 +392,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
     def refresh_view(self):
         GenericEditorPresenter.refresh_view(self)
         conn_dict = self.connections
+
         if conn_dict is None or len(list(conn_dict.keys())) == 0:
             self.view.widget_set_visible("noconnectionlabel", True)
             self.view.widget_set_visible("expander", False)
@@ -418,7 +421,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         self.view.widget_set_sensitive("file_btnbrowse", x)
         self.view.widget_set_sensitive("pictureroot_btnbrowse", x)
 
-    def on_dialog_response(self, dialog, response, data=None):
+    def on_dialog_response(self, dialog, response, data=None, prefs=None):
         """
         The dialog's response signal handler.
         """

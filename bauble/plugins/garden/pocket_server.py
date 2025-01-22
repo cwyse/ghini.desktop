@@ -35,6 +35,8 @@ from bauble import pluginmgr
 from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorView
 from bauble.utils import safe_set_text
+
+gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from sqlalchemy import select
 
@@ -43,7 +45,6 @@ from sqlalchemy import select
 logger = logging.getLogger(__name__)
 
 
-gi.require_version("Gtk", "3.0")
 
 
 def get_ip():

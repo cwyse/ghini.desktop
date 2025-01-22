@@ -20,152 +20,109 @@
 # test for bauble.plugins.users
 #
 import os
-
-import bauble.db as db
-import bauble.plugins.users as users
-from bauble.test import BaubleTestCase
-from bauble.test import check_dupids
-from nose import SkipTest
-#from sqlalchemy import *
-#from sqlalchemy.exc import *
-#from sqlalchemy.orm import *
+import pytest
+import glob
 from sqlalchemy import Table, Column, Integer, Sequence, String
+from sqlalchemy.exc import OperationalError
+from bauble import db
+import bauble.plugins.users as users
+from bauble.test import check_dupids
 
 
-def test_duplicate_ids():
-    """
-    Test for duplicate ids for all .glade files in the users plugin.
-    """
-    import glob
-
-    import bauble.plugins.users as mod
-
-    head, tail = os.path.split(mod.__file__)
-    files = glob.glob(os.path.join(head, "*.glade"))
-    for f in files:
-        assert not check_dupids(f)
+@pytest.fixture
+def test_user():
+    """Fixture for setting up and tearing down a test user."""
+    user = "_test_user"
+    if user not in users.get_users():
+        users.create_user(user)
+    yield user
+    users.delete(user, revoke=True)
 
 
-class UsersTests(BaubleTestCase):
+@pytest.fixture
+def test_group():
+    """Fixture for setting up and tearing down a test group."""
+    group = "_test_group"
+    if group not in users.get_groups():
+        users.create_group(group)
+    yield group
+    users.delete(group, revoke=True)
 
+
+@pytest.fixture
+def test_table():
+    """Fixture for creating and dropping a test table."""
     table = Table(
         "test_users",
         db.metadata,
         Column("id", Integer, Sequence("test_users_id_seq"), primary_key=True),
         Column("test", String(128)),
     )
+    table.create(checkfirst=True)
+    yield table
+    table.drop(checkfirst=True)
 
-    def __init__(self, *args):
-        self.user = "_test_user"
-        self.group = "_test_group"
-        super().__init__(*args)
 
-    def setUp(self):
-        super().setUp()
+@pytest.fixture
+def test_connection():
+    """Fixture for creating and closing a database connection."""
+    conn = db.engine.connect()
+    yield conn
+    conn.close()
 
-        # these tests are for postgres only
-        if db.engine.name != "postgresql":
-            raise SkipTest("users management only on PostgreSQL")
 
-        # the test user and group may still exist if a test didn't
-        # clean up properly
-        if self.user not in users.get_users():
-            users.create_user(self.user)
-        if self.group not in users.get_groups():
-            users.create_group(self.group)
+def test_duplicate_ids():
+    """Test for duplicate IDs in .glade files within the users plugin."""
+    import bauble.plugins.users as mod
 
-        # create a connection where the current user is set to
-        # self.name
-        # self.conn = users.connect_as_user(self.user)
-        self.conn = db.engine.connect()
+    head, _ = os.path.split(mod.__file__)
+    files = glob.glob(os.path.join(head, "*.glade"))
+    for f in files:
+        assert not check_dupids(f)
 
-        # the tables are created and owned by the user who we used to
-        # connect to the database in the first place, not our test
-        # user
-        self.table.create(checkfirst=True)
 
-    def tearDown(self):
-        if self.conn:
-            self.conn.close()
-        users.delete(self.group, revoke=True)
-        users.delete(self.user, revoke=True)
-        self.table.drop(checkfirst=True)
-        super().tearDown()
+@pytest.mark.skipif(db.engine.name != "postgresql", reason="Requires PostgreSQL")
+def test_group_members(test_user, test_group):
+    """Test adding and removing a user from a group."""
+    # Add the user to the group
+    users.add_member(test_user, [test_group])
+    members = users.get_members(test_group)
+    assert test_user in members
 
-    def test_group_members(self):
-        if db.engine.name != "postgresql":
-            raise SkipTest("users management only on PostgreSQL")
+    # Remove the user from the group
+    users.remove_member(test_user, [test_group])
+    members = users.get_members(test_group)
+    assert test_user not in members
 
-        # test adding a member to a group
-        users.add_member(self.user, [self.group])
-        members = users.get_members(self.group)
-        self.assertTrue(self.user in members, members)
 
-        # test removing a member from a group
-        users.remove_member(self.user, [self.group])
-        members = users.get_members(self.group)
-        self.assertTrue(self.user not in members, members)
+@pytest.mark.skipif(db.engine.name != "postgresql", reason="Requires PostgreSQL")
+def test_has_privileges(test_user):
+    """Test setting and checking user privileges."""
+    # Grant admin privileges
+    users.set_privilege(test_user, "admin")
+    assert users.has_privileges(test_user, "admin")
+    assert users.has_privileges(test_user, "write")
+    assert users.has_privileges(test_user, "read")
 
-    def test_has_privileges(self):
+    # Change to write privileges
+    users.set_privilege(test_user, "write")
+    assert not users.has_privileges(test_user, "admin")
+    assert users.has_privileges(test_user, "write")
+    assert users.has_privileges(test_user, "read")
 
-        # test setting admin privileges
-        users.set_privilege(self.user, "admin")
-        self.assertTrue(
-            users.has_privileges(self.user, "admin"),
-            "%s doesn't have admin privileges" % self.user,
-        )
-        self.assertTrue(
-            users.has_privileges(self.user, "write"),
-            "%s doesnt' have write privileges" % self.user,
-        )
-        self.assertTrue(
-            users.has_privileges(self.user, "read"),
-            "%s doesn't have read privileges" % self.user,
-        )
+    # Change to read-only privileges
+    users.set_privilege(test_user, "read")
+    assert not users.has_privileges(test_user, "admin")
+    assert not users.has_privileges(test_user, "write")
+    assert users.has_privileges(test_user, "read")
 
-        users.set_privilege(self.user, "write")
-        self.assertTrue(
-            not users.has_privileges(self.user, "admin"),
-            "%s has admin privileges" % self.user,
-        )
-        self.assertTrue(
-            users.has_privileges(self.user, "write"),
-            "%s doesn't have write privileges" % self.user,
-        )
-        self.assertTrue(
-            users.has_privileges(self.user, "read"),
-            "%s doesn't have read privileges" % self.user,
-        )
+    # Revoke all privileges
+    users.set_privilege(test_user, None)
+    assert not users.has_privileges(test_user, "admin")
+    assert not users.has_privileges(test_user, "write")
+    assert not users.has_privileges(test_user, "read")
 
-        users.set_privilege(self.user, "read")
-        self.assertTrue(
-            not users.has_privileges(self.user, "admin"),
-            "%s has admin privileges" % self.user,
-        )
-        self.assertTrue(
-            not users.has_privileges(self.user, "write"),
-            "%s has write privileges" % self.user,
-        )
-        self.assertTrue(
-            users.has_privileges(self.user, "read"),
-            "%s doesn't have read privileges" % self.user,
-        )
 
-        # revoke all
-        users.set_privilege(self.user, None)
-        self.assertTrue(
-            not users.has_privileges(self.user, "admin"),
-            "%s has admin privileges" % self.user,
-        )
-        self.assertTrue(
-            not users.has_privileges(self.user, "write"),
-            "%s has write privileges" % self.user,
-        )
-        self.assertTrue(
-            not users.has_privileges(self.user, "read"),
-            "%s has read privileges" % self.user,
-        )
-
-    def test_tool(self):
-        raise SkipTest("Not Implemented")
-        users.UsersEditor().start()
+def test_tool():
+    """Placeholder for testing the UsersEditor tool."""
+    pytest.skip("Not Implemented")

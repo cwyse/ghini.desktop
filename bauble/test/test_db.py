@@ -16,24 +16,36 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-import bauble.plugins.garden.accession
-import bauble.plugins.plants.genus
+# Refactored for Pytest and SQLAlchemy 2.0.36 compatibility
+
+import pytest
 from bauble import db
-from bauble import prefs
-from bauble.test import BaubleTestCase
+from bauble.prefs import prefs
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.garden.accession import AccessionNote
 
 prefs.testing = True
 
 db.sqlalchemy_debug(True)
 
-class GlobalFunctionsTests(BaubleTestCase):
-    def test_get_next_code_first_this_year(self):
-        self.assertEqual(
-            db.class_of_object("genus"), bauble.plugins.plants.genus.Genus
-        )
-        self.assertEqual(
-            db.class_of_object("accession_note"),
-            bauble.plugins.garden.accession.AccessionNote,
-        )
-        with self.assertRaises(ValueError):
-            db.class_of_object("not_existing")
+# Tests
+def test_class_of_object_genus():
+    """
+    Verify that db.class_of_object('genus') returns the correct Genus class.
+    """
+    assert db.class_of_object("genus") == Genus
+
+
+def test_class_of_object_accession_note():
+    """
+    Verify that db.class_of_object('accession_note') returns the correct AccessionNote class.
+    """
+    assert db.class_of_object("accession_note") == AccessionNote
+
+
+def test_class_of_object_not_existing():
+    """
+    Verify that db.class_of_object raises a ValueError for an invalid object type.
+    """
+    with pytest.raises(ValueError, match="Class not found for object: not_existing"):
+        db.class_of_object("not_existing")

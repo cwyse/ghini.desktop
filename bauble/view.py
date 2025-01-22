@@ -41,6 +41,11 @@ from bauble import search
 from bauble import utils
 from bauble.error import BaubleError
 from bauble.error import check
+
+gi.require_version("Champlain", "0.12")
+gi.require_version("GtkChamplain", "0.12")
+gi.require_version("GtkClutter", "1.0")
+
 from gi.repository import Champlain
 from gi.repository import Clutter
 from gi.repository import Gdk
@@ -58,9 +63,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-gi.require_version("Champlain", "0.12")
-gi.require_version("GtkChamplain", "0.12")
-gi.require_version("GtkClutter", "1.0")
 
 GtkClutter.init([])
 

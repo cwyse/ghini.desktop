@@ -68,7 +68,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session
 from sqlalchemy import asc
-
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -363,7 +363,7 @@ class PlantChange(db.Base):
     )
 
     # date of change
-    date = Column(types.DateTime, default=func.now())
+    date = Column(types.DateTime, default=datetime.utcnow)
     order_by = [asc(date)]
 
     # Relationships

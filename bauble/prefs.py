@@ -27,6 +27,7 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 from gi.repository import Gtk
 from sqlalchemy import select
+import copy
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -132,6 +133,24 @@ class _prefs(dict):
         self._filename = filename
         self.config = None
         
+    def __deepcopy__(self, memo):
+        """
+        Custom deepcopy implementation for `_prefs`.
+        Ensures `config` and `_filename` are appropriately handled.
+        """
+        # Create a new instance of `_prefs`
+        new_prefs = _prefs(self._filename)
+        
+        # Copy additional attributes
+        new_prefs._filename = copy.deepcopy(self._filename, memo)
+        new_prefs.config = copy.deepcopy(self.config, memo) if self.config else None
+  
+          # Deepcopy the dictionary items
+        for key, value in self.items():
+            new_prefs[key] = copy.deepcopy(value, memo)
+        
+        return new_prefs
+    
     def _strip_prefix(self, key):
         """
         Strip the 'bauble.' prefix from a key if present.
@@ -164,7 +183,7 @@ class _prefs(dict):
             key = f"bauble.{name}"
             super().__setitem__(key, value)
 
-    def init(self):
+    def init(self, prefs=None):
         """
         initialize the preferences, should only be called from app.main
         """

@@ -20,6 +20,7 @@ import glob
 import logging
 import os
 import re
+import pytest
 import unittest
 
 from babel.messages.pofile import read_po
@@ -27,22 +28,38 @@ from babel.messages.pofile import read_po
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+@pytest.fixture
+def po_files():
+    """
+    Fixture to locate all .po files in the 'po' directory.
+    """
+    pattern = __file__.split(os.path.sep)[:-3]
+    po_dir = os.path.sep.join(pattern)
+    files = glob.glob(os.path.join(po_dir, "po", "*.po"))
+    return files
 
-class PoTests(unittest.TestCase):
-    def test_same_keys(self):
-        pattern = re.compile(r"%\([a-z0-9_]*\)s")
-        parts = __file__.split(os.path.sep)[:-3]
-        po_dir = os.path.sep.join(parts)
-        files = glob.glob(os.path.join(po_dir, "po", "*.po"))
-        for filename in files:
-            catalog = read_po(open(filename))
+@pytest.fixture
+def translation_pattern():
+    """
+    Fixture to compile the translation key pattern.
+    """
+    return re.compile(r"%\([a-z0-9_]*\)s")
+
+def test_same_keys(po_files, translation_pattern):
+    """
+    Test that keys in the original message and translations match for all .po files.
+    """
+    for filename in po_files:
+        with open(filename, 'r', encoding='utf-8') as po_file:
+            catalog = read_po(po_file)
             for msg in catalog:
-                if not msg.id:
-                    # not a translation
+                if not msg.id or not msg.string:
+                    # Skip non-translation or untranslated entries
                     continue
-                if not msg.string:
-                    # not translated
-                    continue
-                incoming = set(pattern.findall(msg.id))
-                translated = set(pattern.findall(msg.string))
-                self.assertEqual((filename, incoming), (filename, translated))
+                incoming = set(translation_pattern.findall(msg.id))
+                translated = set(translation_pattern.findall(msg.string))
+                assert incoming == translated, (
+                    f"Mismatch in {filename}: "
+                    f"original keys {incoming} do not match translated keys {translated}"
+                )
+
