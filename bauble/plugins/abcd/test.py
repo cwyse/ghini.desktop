@@ -26,116 +26,123 @@ import datetime
 import logging
 import os
 import tempfile
-
-import bauble.paths as paths
-import bauble.plugins.garden.test as garden_test
-import bauble.plugins.plants.test as plants_test
-import lxml.etree as etree
-from bauble.plugins.abcd import ABCDElement, DataSets, plants_to_abcd, ABCDExporter
-from bauble.plugins.garden import Accession
-from bauble.plugins.garden import Collection
-from bauble.plugins.garden import Plant
-from bauble.plugins.garden import Source
-from bauble.test import BaubleTestCase
+import pytest
+from lxml import etree
 from sqlalchemy import select
-
+from bauble.plugins.abcd import ABCDElement, DataSets, plants_to_abcd, ABCDExporter
+from bauble.plugins.garden import Accession, Collection, Plant, Source
+import bauble.plugins.plants.test as plants_test
+import bauble.plugins.garden.test as garden_test
+import bauble.paths as paths
 
 
 logger = logging.getLogger(__name__)
 
 
-# TODO: the ABCD tests need to be completely reworked
+@pytest.fixture(scope="module")
+def abcd_schema():
+    """
+    Fixture to load and parse the ABCD schema for XML validation.
+    """
+    schema_file = os.path.join(
+        paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd"
+    )
+    xmlschema_doc = etree.parse(schema_file)
+    return etree.XMLSchema(xmlschema_doc)
 
 
-class ABCDTestCase(BaubleTestCase):
+@pytest.fixture
+def setup_test_data(db_session):
+    """
+    Fixture to set up test data for plants and gardens.
+    """
+    plants_test.setUp_data()
+    garden_test.setUp_data()
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    from bauble.plugins.garden import Institution
 
-    def setUp(self):
-        super().setUp()
-        plants_test.setUp_data()
-        garden_test.setUp_data()
+    inst = Institution()
+    inst.name = inst.code = inst.contact = inst.technical_contact = inst.email = "test"
+    inst.write()
+    db_session.commit()
 
-        schema_file = os.path.join(
-            paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd"
-        )
-        xmlschema_doc = etree.parse(schema_file)
-        self.abcd_schema = etree.XMLSchema(xmlschema_doc)
-        from bauble.plugins.garden import Institution
 
-        inst = Institution()
-        inst.name = inst.code = inst.contact = inst.technical_contact = (
-            inst.email
-        ) = "test"
-        inst.write()
-        self.session.commit()
+def test_abcd_structure(abcd_schema, setup_test_data):
+    """
+    Test the structure and validation of an ABCD dataset.
+    """
+    datasets = DataSets()
+    ds = ABCDElement(datasets, "DataSet")
+    tech_contacts = ABCDElement(ds, "TechnicalContacts")
+    tech_contact = ABCDElement(tech_contacts, "TechnicalContact")
+    ABCDElement(tech_contact, "Name", text="Brett")
+    ABCDElement(tech_contact, "Email", text="brett@belizebotanic.org")
+    cont_contacts = ABCDElement(ds, "ContentContacts")
+    cont_contact = ABCDElement(cont_contacts, "ContentContact")
+    ABCDElement(cont_contact, "Name", text="Brett")
+    ABCDElement(cont_contact, "Email", text="brett@belizebotanic.org")
+    metadata = ABCDElement(ds, "Metadata")
+    description = ABCDElement(metadata, "Description")
+    representation = ABCDElement(
+        description, "Representation", attrib={"language": "en"}
+    )
+    revision = ABCDElement(metadata, "RevisionData")
+    ABCDElement(revision, "DateModified", text="2001-03-01T00:00:00")
+    ABCDElement(representation, "Title", text="TheTitle")
+    units = ABCDElement(ds, "Units")
+    unit = ABCDElement(units, "Unit")
+    ABCDElement(unit, "SourceInstitutionID", text="BBG")
+    ABCDElement(unit, "SourceID", text="1111")
+    ABCDElement(unit, "UnitID", text="2222")
 
-    def test_abcd(self):
-        datasets = DataSets()
-        ds = ABCDElement(datasets, "DataSet")
-        tech_contacts = ABCDElement(ds, "TechnicalContacts")
-        tech_contact = ABCDElement(tech_contacts, "TechnicalContact")
-        ABCDElement(tech_contact, "Name", text="Brett")
-        ABCDElement(tech_contact, "Email", text="brett@belizebotanic.org")
-        cont_contacts = ABCDElement(ds, "ContentContacts")
-        cont_contact = ABCDElement(cont_contacts, "ContentContact")
-        ABCDElement(cont_contact, "Name", text="Brett")
-        ABCDElement(cont_contact, "Email", text="brett@belizebotanic.org")
-        metadata = ABCDElement(
-            ds,
-            "Metadata",
-        )
-        description = ABCDElement(metadata, "Description")
-        representation = ABCDElement(
-            description, "Representation", attrib={"language": "en"}
-        )
-        revision = ABCDElement(metadata, "RevisionData")
-        ABCDElement(revision, "DateModified", text="2001-03-01T00:00:00")
-        ABCDElement(representation, "Title", text="TheTitle")
-        units = ABCDElement(ds, "Units")
-        unit = ABCDElement(units, "Unit")
-        ABCDElement(unit, "SourceInstitutionID", text="BBG")
-        ABCDElement(unit, "SourceID", text="1111")
-        ABCDElement(unit, "UnitID", text="2222")
+    # Validate the ABCD structure
+    assert abcd_schema.validate(datasets), abcd_schema.error_log
 
-        self.assertTrue(
-            self.abcd_schema.validate(datasets), self.abcd_schema.error_log
-        )
 
-    def test_export(self):
-        """
-        Test the ABCDExporter
-        """
-        self.assertTrue(self.session.execute(select(Plant)).scalars().count() > 0)
-        accession = self.session.execute(select(Accession)).scalars().first()
-        source = Source()
-        accession.source = source
-        source.sources_code = "1"
-        collection = Collection(
-            collector="Bob",
-            collectors_code="1",
-            geographic_area_id=1,
-            locale="locale",
-            date=datetime.date.today(),
-            latitude="1.1",
-            longitude="1.1",
-            habitat="habitat description",
-            elevation=1,
-            elevation_accy=1,
-            notes="some notes",
-        )
-        source.collection = collection
-        dummy, filename = tempfile.mkstemp()
+def test_abcd_export(db_session, setup_test_data):
+    """
+    Test the ABCDExporter functionality.
+    """
+    plants_count = db_session.execute(select(Plant)).scalars().count()
+    assert plants_count > 0, "No plants available for export."
+
+    accession = db_session.execute(select(Accession)).scalars().first()
+    source = Source()
+    accession.source = source
+    source.sources_code = "1"
+    collection = Collection(
+        collector="Bob",
+        collectors_code="1",
+        geographic_area_id=1,
+        locale="locale",
+        date=datetime.date.today(),
+        latitude="1.1",
+        longitude="1.1",
+        habitat="habitat description",
+        elevation=1,
+        elevation_accy=1,
+        notes="some notes",
+    )
+    source.collection = collection
+
+    dummy, filename = tempfile.mkstemp()
+    try:
         ABCDExporter().start(filename)
+    finally:
+        os.close(dummy)
+        os.remove(filename)
 
-    def test_plants_to_abcd(self):
-        plants = self.session.execute(select(Plant)).scalars()
-        assert plants.count() > 0
-        # create abcd from plants
-        data = plants_to_abcd(plants)
-        self.assertNotEqual(data, None)
-        # assert validate abcd
-        self.assertTrue(
-            self.abcd_schema.validate(data), self.abcd_schema.error_log
-        )
+
+def test_plants_to_abcd(db_session, abcd_schema, setup_test_data):
+    """
+    Test conversion of plants to ABCD format and validate the result.
+    """
+    plants = db_session.execute(select(Plant)).scalars().all()
+    assert len(plants) > 0, "No plants available for conversion to ABCD."
+
+    # Convert plants to ABCD XML
+    data = plants_to_abcd(plants)
+    assert data is not None, "Failed to convert plants to ABCD format."
+
+    # Validate the ABCD XML
+    assert abcd_schema.validate(data), abcd_schema.error_log

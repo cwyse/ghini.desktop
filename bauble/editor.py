@@ -237,7 +237,7 @@ class GenericEditorView:
 
     _tooltips = {}
 
-    def __init__(self, filename, parent=None, root_widget_name=None):
+    def __init__(self, filename, parent=None, root_widget_name=None, prefs=None):
         self.root_widget_name = root_widget_name
         builder = self.builder = Gtk.Builder()
         builder.add_from_file(filename)
@@ -1182,6 +1182,7 @@ class GenericEditorPresenter:
         session=None,
         do_commit=False,
         committing_results=[Gtk.ResponseType.OK],
+        prefs=None,
     ):
         self.model = model
         self.view = view
@@ -2007,8 +2008,8 @@ class ChildPresenter(GenericEditorPresenter):
     methods that reference the view.
     """
 
-    def __init__(self, model, view):
-        super().__init__(model, view)
+    def __init__(self, model, view, prefs=None):
+        super().__init__(model, view, prefs=prefs)
         # self._view_ref = weakref.ref(view)
 
     def _get_view(self):
@@ -2044,7 +2045,7 @@ class GenericModelViewPresenterEditor:
 
     ok_responses = ()
 
-    def __init__(self, model, parent=None):
+    def __init__(self, model, parent=None, prefs=None):
         self.session = db.Session()
         self.model = self.session.merge(model)
 
@@ -2089,8 +2090,8 @@ class NoteBox(Gtk.Box):
             "changed", self.on_note_buffer_changed, self.widgets.note_textview
         )
 
-    def __init__(self, presenter, model=None):
-        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+    def __init__(self, presenter, model=None, prefs=None):
+        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=6, prefs=prefs)
 
         # open the glade file and extract the markup that the
         # expander will use
@@ -2294,8 +2295,8 @@ class PictureBox(NoteBox):
     glade_ui = "pictures.glade"
     last_folder = "."
 
-    def __init__(self, presenter, model=None):
-        super().__init__(presenter, model)
+    def __init__(self, presenter, model=None, prefs=None):
+        super().__init__(presenter, model, prefs=prefs)
         utils.set_widget_value(self.widgets.category_comboentry, "<picture>")
         self.presenter._dirty = False
 
@@ -2416,8 +2417,8 @@ class NotesPresenter(GenericEditorPresenter):
 
     ContentBox = NoteBox
 
-    def __init__(self, presenter, notes_property, parent_container):
-        super().__init__(presenter.model, None)
+    def __init__(self, presenter, notes_property, parent_container, prefs=None):
+        super().__init__(presenter.model, None, prefs=prefs)
 
         # The glade file named in ContentBox is structured with two top
         # GtkWindow next to each other. Here, by not doing any lookup, we
@@ -2488,8 +2489,8 @@ class PicturesPresenter(NotesPresenter):
 
     ContentBox = PictureBox
 
-    def __init__(self, presenter, notes_property, parent_container):
-        super().__init__(presenter, notes_property, parent_container)
+    def __init__(self, presenter, notes_property, parent_container, prefs=None):
+        super().__init__(presenter, notes_property, parent_container, prefs=prefs)
 
         notes = self.box.get_children()
         if notes:

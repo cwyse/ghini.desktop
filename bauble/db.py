@@ -31,6 +31,7 @@ import bauble.utils as utils
 import gi
 import sqlalchemy.orm as orm
 from bauble.utils import parse_date
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import event
 from sqlalchemy import inspect
@@ -42,7 +43,7 @@ from sqlalchemy.orm import class_mapper
 from sqlalchemy import insert
 #from sqlalchemy.orm import Query
 
-gi.require_version("Gtk", "3.0")
+
 
 
 logger = logging.getLogger(__name__)
@@ -195,13 +196,13 @@ class MapperBase(DeclarativeMeta):
             cls._created = sa.Column(
                 "_created",
                 types.DateTime(),
-                default=sa.func.now(),
+                default=datetime.datetime.utcnow(),
             )
             cls._last_updated = sa.Column(
                 "_last_updated",
                 types.DateTime(),
-                default=sa.func.now(),
-                onupdate=sa.func.now(),
+                default=datetime.datetime.utcnow(),
+                onupdate=datetime.datetime.utcnow(),
             )
         if "top_level_count" not in dict_:
             cls.top_level_count = lambda x: {classname: 1}
@@ -698,7 +699,7 @@ def make_note_class(
     fields = {
         "__tablename__": table_name,
         "id": sa.Column(Integer, primary_key=True, autoincrement=True),
-        "date": sa.Column(types.Date, default=sa.func.now()),
+        "date": sa.Column(types.Date, default=datetime.datetime.utcnow()),
         "user": sa.Column(sa.Unicode(64), default=""),
         "category": sa.Column(sa.Unicode(32), default=""),
         "type": sa.Column(sa.Unicode(32), default=""),

@@ -46,6 +46,7 @@ import bauble.utils as utils
 import gi
 import sqlalchemy.orm.exc as orm_exc
 from bauble.error import BaubleError
+gi.require_version("Gtk", "3.0")
 from gi.repository import GObject
 from gi.repository import Gtk
 from sqlalchemy import Column
@@ -59,7 +60,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-gi.require_version("Gtk", "3.0")
+
 
 
 plugins = {}

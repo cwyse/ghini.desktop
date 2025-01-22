@@ -43,6 +43,8 @@ from bauble.view import Action
 from bauble.view import InfoBox
 from bauble.shared import InfoExpander
 from bauble.view import SearchView
+
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk
 from gi.repository import Gtk
 from sqlalchemy import and_
@@ -63,7 +65,6 @@ from sqlalchemy.orm.session import object_session
 from contextlib import contextmanager
 from bauble.plugins.garden.propagation import Propagation
 
-gi.require_version("Gtk", "3.0")
 
 
 logger = logging.getLogger(__name__)

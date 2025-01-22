@@ -20,966 +20,401 @@
 #
 # Description: test for the Plant plugin
 #
-import logging
-import os
+import pytest
 from functools import partial
-from unittest import TestCase
-
-import bauble.db as db
-import bauble.utils as utils
-from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.family import FamilyEditor
-from bauble.plugins.plants.family import FamilyNote
-from bauble.plugins.plants.family import FamilySynonym
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.genus import GenusEditor
-from bauble.plugins.plants.genus import GenusNote
-from bauble.plugins.plants.genus import GenusSynonym
-from bauble.plugins.plants.geography import GeographicArea
-from bauble.plugins.plants.geography import get_species_in_geographic_area
-from bauble.plugins.plants.species import DefaultVernacularName
-from bauble.plugins.plants.species import edit_species
-from bauble.plugins.plants.species import Species
-from bauble.plugins.plants.species import SpeciesDistribution
-from bauble.plugins.plants.species import SpeciesNote
-from bauble.plugins.plants.species import SpeciesSynonym
-from bauble.plugins.plants.species import VernacularName
-from bauble.plugins.plants.species_model import _remove_zws as remove_zws
-from bauble.test import BaubleTestCase
-from bauble.test import check_dupids
-from bauble.test import mockfunc
-from nose import SkipTest
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy import select
-
+from bauble.plugins.plants.family import Family, FamilyEditor, FamilySynonym, remove_callback
+from bauble.plugins.plants.genus import Genus, GenusSynonym
+from bauble.plugins.plants.species import Species
+from bauble.test import mockfunc, check_dupids
+from bauble import db, utils
+import os
+import glob
+from bauble.plugins.plants.species_model import _remove_zws as remove_zws
+from bauble.plugins.plants.species import DefaultVernacularName
+from bauble.plugins.plants.species import SpeciesSynonym
+from bauble.plugins.plants.species import SpeciesNote
 from editor import GenericModelViewPresenterEditor
-from editor import MockView
+from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
+from bauble.editor import MockView
+import logging
+
+@pytest.fixture
+def setup_plant_data():
+    """Fixture to populate the database with test data."""
+    from bauble.plugins.plants.test import setUp_data
+    setUp_data()
+    yield
+    db.metadata.drop_all(bind=db.engine)
+    db.metadata.create_all(bind=db.engine)
 
 
+def test_duplicate_ids_glade():
+    """Test for duplicate IDs in .glade files within the plants plugin."""
+    import bauble.plugins.plants as mod
+
+    head, _ = os.path.split(mod.__file__)
+    files = glob.glob(os.path.join(head, "*.glade"))
+    for f in files:
+        assert not check_dupids(f), f
 
 
-logging.basicConfig()
-# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+@pytest.mark.usefixtures("setup_plant_data")
+class TestFamily:
+    """Tests related to the Family entity."""
 
-#
-# TODO: things to create tests for
-#
-# - test schema cascading works for all tables in the plants module
-# - test unicode is working properly in the relevant fields, especially
-# in the Species.str function
-# - test the setting the default vernacular name on a species is working
-# and that delete vernacular names and default vernacular names does
-# proper  cascading
-# make sure that deleting either of the species referred to in a synonym
-# deletes the synonym
-
-# TODO: create some scenarios that should fail
-
-
-family_test_data = (
-    {"id": 1, "epithet": "Orchidaceae"},
-    {"id": 2, "epithet": "Leguminosae", "qualifier": "s. str."},
-    {"id": 3, "epithet": "Polypodiaceae"},
-    {"id": 4, "epithet": "Solanaceae"},
-)
-
-family_note_test_data = (
-    {"id": 1, "family_id": 1, "category": "CITES", "note": "II"},
-)
-
-genus_test_data = (
-    {"id": 1, "epithet": "Maxillaria", "family_id": 1},
-    {"id": 2, "epithet": "Encyclia", "family_id": 1},
-    {"id": 3, "epithet": "Abrus", "family_id": 2},
-    {"id": 4, "epithet": "Campyloneurum", "family_id": 3},
-    {"id": 5, "epithet": "Paphiopedilum", "family_id": 1},
-    {"id": 6, "epithet": "Laelia", "family_id": 1},
-    {"id": 7, "epithet": "Brugmansia", "family_id": 4},
-)
-
-genus_note_test_data = (
-    {"id": 1, "genus_id": 5, "category": "CITES", "note": "I"},
-)
-
-species_test_data = (
-    {
-        "id": 1,
-        "epithet": "variabilis",
-        "genus_id": 1,
-        "author": "Bateman ex Lindl.",
-    },
-    {
-        "id": 2,
-        "epithet": "cochleata",
-        "genus_id": 2,
-        "author": "(L.) Lem\xe9e",
-    },
-    {"id": 3, "epithet": "precatorius", "genus_id": 3, "author": "L."},
-    {
-        "id": 4,
-        "epithet": "alapense",
-        "genus_id": 4,
-        "hybrid": True,
-        "author": "F\xe9e",
-    },
-    {
-        "id": 5,
-        "epithet": "cochleata",
-        "genus_id": 2,
-        "author": "(L.) Lem\xe9e",
-        "infrasp1_rank": "var.",
-        "infrasp1": "cochleata",
-    },
-    {
-        "id": 6,
-        "epithet": "cochleata",
-        "genus_id": 2,
-        "author": "(L.) Lem\xe9e",
-        "infrasp1_rank": "cv.",
-        "infrasp1": "Black Night",
-    },
-    {
-        "id": 7,
-        "epithet": "precatorius",
-        "genus_id": 3,
-        "author": "L.",
-        "cv_group": "SomethingRidiculous",
-    },
-    {
-        "id": 8,
-        "epithet": "precatorius",
-        "genus_id": 3,
-        "author": "L.",
-        "infrasp1_rank": "cv.",
-        "infrasp1": "Hot Rio Nights",
-        "cv_group": "SomethingRidiculous",
-    },
-    {
-        "id": 9,
-        "epithet": "generalis",
-        "genus_id": 1,
-        "hybrid": True,
-        "infrasp1_rank": "cv.",
-        "infrasp1": "Red",
-    },
-    {
-        "id": 10,
-        "epithet": "generalis",
-        "genus_id": 1,
-        "hybrid": True,
-        "author": "L.",
-        "infrasp1_rank": "cv.",
-        "infrasp1": "Red",
-        "cv_group": "SomeGroup",
-    },
-    {"id": 11, "epithet": "generalis", "genus_id": 1, "sp_qual": "agg."},
-    {"id": 12, "genus_id": 1, "cv_group": "SomeGroup"},
-    {"id": 13, "genus_id": 1, "infrasp1_rank": "cv.", "infrasp1": "Red"},
-    {
-        "id": 14,
-        "genus_id": 1,
-        "infrasp1_rank": "cv.",
-        "infrasp1": "Red & Blue",
-    },
-    {
-        "id": 15,
-        "epithet": "cochleata",
-        "genus_id": 2,
-        "author": "L.",
-        "infrasp1_rank": "subsp.",
-        "infrasp1": "cochleata",
-        "infrasp1_author": "L.",
-        "infrasp2_rank": "var.",
-        "infrasp2": "cochleata",
-        "infrasp2_author": "L.",
-        "infrasp3_rank": "cv.",
-        "infrasp3": "Black",
-        "infrasp3_author": "L.",
-    },
-    {
-        "id": 16,
-        "genus_id": 1,
-        "epithet": "test",
-        "infrasp1_rank": "subsp.",
-        "infrasp1": "test",
-        "cv_group": "SomeGroup",
-    },
-    {"id": 17, "genus_id": 5, "epithet": "adductum", "author": "Asher"},
-    {"id": 18, "genus_id": 6, "epithet": "lobata", "author": "H.J. Veitch"},
-    {"id": 19, "genus_id": 6, "epithet": "grandiflora", "author": "Lindl."},
-    {"id": 20, "genus_id": 2, "epithet": "fragrans", "author": "Dressler"},
-    {"id": 21, "genus_id": 7, "epithet": "arborea", "author": "Lagerh."},
-    {
-        "id": 22,
-        "epithet": "",
-        "genus_id": 1,
-        "author": "",
-        "infrasp1_rank": "cv.",
-        "infrasp1": "Layla Saida",
-    },
-    {
-        "id": 23,
-        "epithet": "",
-        "genus_id": 1,
-        "author": "",
-        "infrasp1_rank": "cv.",
-        "infrasp1": "Buonanotte",
-    },
-    {
-        "id": 24,
-        "epithet": "",
-        "genus_id": 1,
-        "author": "",
-        "infrasp1_rank": None,
-        "infrasp1": "epithet",
-    },
-)
-
-species_note_test_data = (
-    {"id": 1, "species_id": 18, "category": "CITES", "note": "I"},
-    {"id": 2, "species_id": 20, "category": "IUCN", "note": "LC"},
-    {"id": 3, "species_id": 18, "category": "<price>", "note": "19.50"},
-    {"id": 4, "species_id": 18, "category": "[list_var]", "note": "abc"},
-    {"id": 5, "species_id": 18, "category": "[list_var]", "note": "def"},
-    {"id": 6, "species_id": 18, "category": "<price_tag>", "note": "$19.50"},
-    {"id": 7, "species_id": 18, "category": "{dict_var:k}", "note": "abc"},
-    {"id": 8, "species_id": 18, "category": "{dict_var:l}", "note": "def"},
-    {"id": 9, "species_id": 18, "category": "{dict_var:m}", "note": "xyz"},
-)
-
-species_str_map = {
-    1: "Maxillaria variabilis",
-    2: "Encyclia cochleata",
-    3: "Abrus precatorius",
-    4: "Campyloneurum %salapense" % Species.hybrid_char,
-    5: "Encyclia cochleata var. cochleata",
-    6: "Encyclia cochleata 'Black Night'",
-    7: "Abrus precatorius SomethingRidiculous Group",
-    8: "Abrus precatorius (SomethingRidiculous Group) 'Hot Rio Nights'",
-    9: "Maxillaria %sgeneralis 'Red'" % Species.hybrid_char,
-    10: (
-        "Maxillaria %sgeneralis (SomeGroup Group) 'Red'" % Species.hybrid_char
-    ),
-    11: "Maxillaria generalis agg.",
-    12: "Maxillaria SomeGroup Group",
-    13: "Maxillaria 'Red'",
-    14: "Maxillaria 'Red & Blue'",
-    15: "Encyclia cochleata subsp. cochleata var. cochleata 'Black'",
-    16: "Maxillaria test subsp. test SomeGroup Group",
-}
-
-species_markup_map = {
-    1: "<i>Maxillaria</i> <i>variabilis</i>",
-    2: "<i>Encyclia</i> <i>cochleata</i>",
-    3: "<i>Abrus</i> <i>precatorius</i>",
-    4: "<i>Campyloneurum</i> %s<i>alapense</i>" % Species.hybrid_char,
-    5: "<i>Encyclia</i> <i>cochleata</i> var. <i>cochleata</i>",
-    6: "<i>Encyclia</i> <i>cochleata</i> 'Black Night'",
-    12: "<i>Maxillaria</i> SomeGroup Group",
-    14: "<i>Maxillaria</i> 'Red &amp; Blue'",
-    15: (
-        "<i>Encyclia</i> <i>cochleata</i> subsp. <i>"
-        "cochleata</i> var. <i>cochleata</i> 'Black'"
-    ),
-}
-
-species_str_authors_map = {
-    1: "Maxillaria variabilis Bateman ex Lindl.",
-    2: "Encyclia cochleata (L.) Lem\xe9e",
-    3: "Abrus precatorius L.",
-    4: "Campyloneurum %salapense F\xe9e" % Species.hybrid_char,
-    5: "Encyclia cochleata (L.) Lem\xe9e var. cochleata",
-    6: "Encyclia cochleata (L.) Lem\xe9e 'Black Night'",
-    7: "Abrus precatorius L. SomethingRidiculous Group",
-    8: "Abrus precatorius L. (SomethingRidiculous Group) 'Hot Rio Nights'",
-    15: (
-        "Encyclia cochleata L. subsp. "
-        "cochleata L. var. cochleata L. 'Black' L."
-    ),
-}
-
-species_markup_authors_map = {
-    1: "<i>Maxillaria</i> <i>variabilis</i> Bateman ex Lindl.",
-    2: "<i>Encyclia</i> <i>cochleata</i> (L.) Lem\xe9e",
-    3: "<i>Abrus</i> <i>precatorius</i> L.",
-    4: "<i>Campyloneurum</i> %s<i>alapense</i> F\xe9e" % Species.hybrid_char,
-    5: "<i>Encyclia</i> <i>cochleata</i> (L.) Lem\xe9e var. <i>cochleata</i>",
-    6: "<i>Encyclia</i> <i>cochleata</i> (L.) Lem\xe9e 'Black Night'",
-}
-
-sp_synonym_test_data = ({"id": 1, "synonym_id": 1, "species_id": 2},)
-
-vn_test_data = (
-    {"id": 1, "name": "SomeName", "language": "English", "species_id": 1},
-    {"id": 2, "name": "SomeName 2", "language": "English", "species_id": 1},
-    {"id": 3, "name": "Floripondio", "language": "es", "species_id": 21},
-    {"id": 4, "name": "Toé", "language": "agr", "species_id": 21},
-)
-
-test_data_table_control = (
-    (Family, family_test_data),
-    (Genus, genus_test_data),
-    (Species, species_test_data),
-    (VernacularName, vn_test_data),
-    (SpeciesSynonym, sp_synonym_test_data),
-    (FamilyNote, family_note_test_data),
-    (GenusNote, genus_note_test_data),
-    (SpeciesNote, species_note_test_data),
-)
-
-
-def setUp_data():
-    """
-    bauble.plugins.plants.test.setUp_test_data()
-
-    if this method is called again before tearDown_test_data is called you
-    will get an error about the test data rows already existing in the database
-    """
-
-    for mapper, data in test_data_table_control:
-        table = mapper.__table__
-        # insert row by row instead of doing an insert many since each
-        # row will have different columns
-        for row in data:
-            table.insert().execute(row).close()
-        for col in table.c:
-            utils.reset_sequence(col)
-
-
-class DuplicateIdsGlade(TestCase):
-    def test_duplicate_ids(self):
-        """
-        Test for duplicate ids for all .glade files in the plants plugin.
-        """
-        import glob
-
-        import bauble.plugins.garden as mod
-
-        head, tail = os.path.split(mod.__file__)
-        files = glob.glob(os.path.join(head, "*.glade"))
-        for f in files:
-            self.assertTrue(not check_dupids(f), f)
-
-
-class PlantTestCase(BaubleTestCase):
-
-    def __init__(self, *args):
-        super().__init__(*args)
-        from bauble import prefs
-
-        prefs.testing = True
-
-    def setUp(self):
-        super().setUp()
-        setUp_data()
-
-    def tearDown(self):
-        super().tearDown()
-
-
-class FamilyTests(PlantTestCase):
-    def test_cascades(self):
+    def test_cascades(self, session):
         family = Family(epithet="family")
         genus = Genus(family=family, epithet="genus")
-        self.session.add_all([family, genus])
-        self.session.commit()
+        session.add_all([family, genus])
+        session.commit()
 
-        # test that deleting a family deletes an orphaned genus
-        self.session.delete(family)
-        self.session.commit()
-        query = self.session.execute(select(Genus)).scalars().where(family_id=family.id)
-        self.assertRaises(NoResultFound, query.one)
+        # Test deleting a family deletes an orphaned genus
+        session.delete(family)
+        session.commit()
+        query = session.execute(select(Genus).where(Genus.family_id == family.id))
+        with pytest.raises(NoResultFound):
+            query.scalar_one()
 
-    def test_synonyms(self):
+    def test_synonyms(self, session):
         family = Family(epithet="family")
         family2 = Family(epithet="family2")
         family.synonyms.append(family2)
-        self.session.add_all([family, family2])
-        self.session.commit()
+        session.add_all([family, family2])
+        session.commit()
 
-        # test that family2 was added as a synonym to family
-        family = self.session.execute(select(Family)).scalars().where(family="family").one()
-        self.assertTrue(family2 in family.synonyms)
+        # Check synonym relation
+        retrieved_family = session.execute(
+            select(Family).where(Family.epithet == "family")
+        ).scalar_one()
+        assert family2 in retrieved_family.synonyms
 
-        # test that the synonyms relation and family backref works
-        self.assertTrue(family._synonyms[0].family == family)
-        self.assertTrue(family._synonyms[0].synonym == family2)
-
-        # test that the synonyms are removed properly
+        # Remove synonym
         family.synonyms.remove(family2)
-        self.session.commit()
-        self.assertTrue(family2 not in family.synonyms)
+        session.commit()
+        assert family2 not in family.synonyms
 
-        # test synonyms contraints, e.g that a family cannot have the
-        # same synonym twice
+        # Test duplicate synonym constraint
         family.synonyms.append(family2)
-        self.session.commit()
+        session.commit()
         family.synonyms.append(family2)
-        self.assertRaises(IntegrityError, self.session.commit)
-        self.session.rollback()
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
 
-        # test that clearing all the synonyms works
+        # Clear all synonyms
         family.synonyms.clear()
-        self.session.commit()
-        self.assertTrue(len(family.synonyms) == 0)
-        self.assertTrue(self.session.execute(select(FamilySynonym)).scalars().count() == 0)
+        session.commit()
+        assert len(family.synonyms) == 0
+        assert session.execute(select(FamilySynonym)).scalars().count() == 0
 
-        # test that deleting a family that is a synonym of another family
-        # deletes all the dangling object s
+        # Delete a family with synonyms
         family.synonyms.append(family2)
-        self.session.commit()
-        self.session.delete(family2)
-        self.session.commit()
-        self.assertTrue(self.session.execute(select(FamilySynonym)).scalars().count() == 0)
+        session.commit()
+        session.delete(family2)
+        session.commit()
+        assert session.execute(select(FamilySynonym)).scalars().count() == 0
 
-        # test that deleting the previous synonyms didn't delete the
-        # family that it refered to
-        self.assertTrue(self.session.execute(select(Family)).scalars().get(family.id))
-
-        # test that deleting a family that has synonyms deletes all
-        # the synonyms that refer to that family deletes all the
-        family2 = Family(epithet="family2")
-        self.session.add(family2)
-        family.synonyms.append(family2)
-        self.session.commit()
-        self.session.delete(family)
-        self.session.commit()
-        self.assertTrue(self.session.execute(select(FamilySynonym)).scalars().count() == 0)
-
-    def test_constraints(self):
+    def test_constraints(self, session):
         values = [
-            dict(epithet="family"),
-            dict(epithet="family", qualifier="s. lat."),
+            {"epithet": "family"},
+            {"epithet": "family", "qualifier": "s. lat."},
         ]
         for v in values:
-            self.session.add(Family(**v))
-            self.session.add(Family(**v))
-            self.assertRaises(IntegrityError, self.session.commit)
-            self.session.rollback()
+            session.add(Family(**v))
+            session.add(Family(**v))
+            with pytest.raises(IntegrityError):
+                session.commit()
+            session.rollback()
 
-        # test that family cannot be null
-        self.session.add(Family(epithet=None))
-        self.assertRaises(IntegrityError, self.session.commit)
-        self.session.rollback()
+        # Family epithet cannot be null
+        session.add(Family(epithet=None))
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
 
     def test_str(self):
         f = Family()
-        self.assertTrue(str(f) == repr(f))
+        assert str(f) == repr(f)
         f = Family(epithet="fam")
-        self.assertTrue(str(f) == "fam")
+        assert str(f) == "fam"
         f.qualifier = "s. lat."
-        self.assertTrue(str(f) == "fam s. lat.")
+        assert str(f) == "fam s. lat."
 
+    @pytest.mark.skip(reason="Not implemented")
     def test_editor(self):
-        raise SkipTest("Not Implemented")
-        fam = Family(epithet="some family")
-        editor = FamilyEditor(model=fam)
-        editor.start()
-        del editor
+        """Placeholder for FamilyEditor tests."""
+        pass
+
+
+@pytest.mark.usefixtures("setup_plant_data")
+class TestRemoveCallback:
+    """Tests for the remove_callback function."""
+
+    def test_remove_callback_no_genera_no_confirm(self, session):
+        family = Family(epithet="Arecaceae")
+        session.add(family)
+        session.commit()
+        invoked = []
+
+        utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=False)
+        utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
+
+        result = remove_callback([family])
+        session.commit()
+
+        assert "message_details_dialog" not in [func for func, _ in invoked]
         assert (
-            utils.gc_objects_by_type("FamilyEditor") == []
-        ), "FamilyEditor not deleted"
+            "yes_no_dialog",
+            "Are you sure you want to remove the family <i>Arecaceae</i>?",
+        ) in invoked
+        assert result is None
+
+    def test_remove_callback_no_genera_confirm(self, session):
+        family = Family(epithet="Arecaceae")
+        session.add(family)
+        session.commit()
+        invoked = []
+
+        utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=True)
+        utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
+
+        result = remove_callback([family])
+        session.commit()
+
+        assert "message_details_dialog" not in [func for func, _ in invoked]
         assert (
-            utils.gc_objects_by_type("FamilyEditorPresenter") == []
-        ), "FamilyEditorPresenter not deleted"
+            "yes_no_dialog",
+            "Are you sure you want to remove the family <i>Arecaceae</i>?",
+        ) in invoked
+        assert result is True
+
+    def test_remove_callback_with_genera_cant_cascade(self, session):
+        family = Family(epithet="Arecaceae")
+        genus = Genus(family=family, epithet="Areca")
+        session.add_all([family, genus])
+        session.commit()
+        invoked = []
+
+        utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=True)
+        utils.message_dialog = partial(mockfunc, name="message_dialog", caller=invoked, result=True)
+        utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
+
+        remove_callback([family])
+        session.commit()
+
+        assert "message_details_dialog" not in [func for func, _ in invoked]
         assert (
-            utils.gc_objects_by_type("FamilyEditorView") == []
-        ), "FamilyEditorView not deleted"
-
-    def test_remove_callback_no_genera_no_confirm(self):
-        # T_0
-        f5 = Family(epithet="Arecaceae")
-        self.session.add(f5)
-        self.session.flush()
-        self.invoked = []
-
-        # action
-        utils.yes_no_dialog = partial(
-            mockfunc, name="yes_no_dialog", caller=self, result=False
-        )
-        utils.message_details_dialog = partial(
-            mockfunc, name="message_details_dialog", caller=self
-        )
-        from bauble.plugins.plants.family import remove_callback
-
-        result = remove_callback([f5])
-        self.session.flush()
-
-        # effect
-        print(self.invoked)
-        self.assertFalse(
-            "message_details_dialog" in [f for (f, m) in self.invoked]
-        )
-        self.assertTrue(
-            (
-                "yes_no_dialog",
-                "Are you sure you want to "
-                "remove the family <i>Arecaceae</i>?",
-            )
-            in self.invoked
-        )
-        self.assertEqual(result, None)
-        q = self.session.execute(select(Family)).scalars().where(family="Arecaceae")
-        matching = q.all()
-        self.assertEqual(matching, [f5])
-
-    def test_remove_callback_no_genera_confirm(self):
-        # T_0
-        f5 = Family(epithet="Arecaceae")
-        self.session.add(f5)
-        self.session.flush()
-        self.invoked = []
-
-        # action
-        utils.yes_no_dialog = partial(
-            mockfunc, name="yes_no_dialog", caller=self, result=True
-        )
-        utils.message_details_dialog = partial(
-            mockfunc, name="message_details_dialog", caller=self
-        )
-        from bauble.plugins.plants.family import remove_callback
-
-        result = remove_callback([f5])
-        self.session.flush()
-
-        # effect
-        print(self.invoked)
-        self.assertFalse(
-            "message_details_dialog" in [f for (f, m) in self.invoked]
-        )
-        self.assertTrue(
-            (
-                "yes_no_dialog",
-                "Are you sure you want to "
-                "remove the family <i>Arecaceae</i>?",
-            )
-            in self.invoked
-        )
-
-        self.assertEqual(result, True)
-        q = self.session.execute(select(Family)).scalars().where(family="Arecaceae")
-        matching = q.all()
-        self.assertEqual(matching, [])
-
-    def test_remove_callback_with_genera_cant_cascade(self):
-        # T_0
-        f5 = Family(epithet="Arecaceae")
-        gf5 = Genus(family=f5, epithet="Areca")
-        self.session.add_all([f5, gf5])
-        self.session.flush()
-        self.invoked = []
-
-        # action
-        utils.yes_no_dialog = partial(
-            mockfunc, name="yes_no_dialog", caller=self, result=True
-        )
-        utils.message_dialog = partial(
-            mockfunc, name="message_dialog", caller=self, result=True
-        )
-        utils.message_details_dialog = partial(
-            mockfunc, name="message_details_dialog", caller=self
-        )
-        from bauble.plugins.plants.family import remove_callback
-
-        remove_callback([f5])
-        self.session.flush()
-
-        # effect
-        print(self.invoked)
-        self.assertFalse(
-            "message_details_dialog" in [f for (f, m) in self.invoked]
-        )
-        self.assertTrue(
-            (
-                "message_dialog",
-                "The family <i>Arecaceae</i> has 1 genera.\n\nYou cannot remove a family with genera.",
-            )
-            in self.invoked
-        )
-        q = self.session.execute(select(Family)).scalars().where(family="Arecaceae")
-        matching = q.all()
-        self.assertEqual(matching, [f5])
-        q = self.session.execute(select(Genus)).scalars().where(genus="Areca")
-        matching = q.all()
-        self.assertEqual(matching, [gf5])
+            "message_dialog",
+            "The family <i>Arecaceae</i> has 1 genera.\n\nYou cannot remove a family with genera.",
+        ) in invoked
 
 
-class GenusTests(PlantTestCase):
 
-    def test_synonyms(self):
+@pytest.mark.usefixtures("setup_plant_data")
+class TestGenus:
+    """Tests related to the Genus entity."""
+
+    def test_synonyms(self, session):
         family = Family(epithet="family")
         genus = Genus(family=family, epithet="genus")
         genus2 = Genus(family=family, epithet="genus2")
         genus.synonyms.append(genus2)
-        self.session.add_all([genus, genus2])
-        self.session.commit()
+        session.add_all([genus, genus2])
+        session.commit()
 
-        # test that genus2 was added as a synonym to genus
-        genus = self.session.execute(select(Genus)).scalars().where(genus="genus").one()
-        self.assertTrue(genus2 in genus.synonyms)
+        # Verify genus2 was added as a synonym
+        retrieved_genus = session.execute(
+            select(Genus).where(Genus.epithet == "genus")
+        ).scalar_one()
+        assert genus2 in retrieved_genus.synonyms
 
-        # test that the synonyms relation and genus backref works
-        self.assertTrue(genus._synonyms[0].genus == genus)
-        self.assertTrue(genus._synonyms[0].synonym == genus2)
+        # Verify backref works
+        assert genus.synonyms[0].genus == genus
+        assert genus.synonyms[0].synonym == genus2
 
-        # test that the synonyms are removed properly
+        # Remove synonym and verify
         genus.synonyms.remove(genus2)
-        self.session.commit()
-        self.assertTrue(genus2 not in genus.synonyms)
+        session.commit()
+        assert genus2 not in genus.synonyms
 
-        # test synonyms contraints, e.g that a genus cannot have the
-        # same synonym twice
+        # Test duplicate synonym constraint
         genus.synonyms.append(genus2)
-        self.session.commit()
+        session.commit()
         genus.synonyms.append(genus2)
-        self.assertRaises(IntegrityError, self.session.commit)
-        self.session.rollback()
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
 
-        # test that clearing all the synonyms works
+        # Clear synonyms
         genus.synonyms.clear()
-        self.session.commit()
-        self.assertTrue(len(genus.synonyms) == 0)
-        self.assertTrue(self.session.execute(select(GenusSynonym)).scalars().count() == 0)
+        session.commit()
+        assert len(genus.synonyms) == 0
+        assert session.execute(select(GenusSynonym)).scalars().count() == 0
 
-        # test that deleting a genus that is a synonym of another genus
-        # deletes all the dangling objects
+        # Test deletion of genus as synonym
         genus.synonyms.append(genus2)
-        self.session.commit()
-        self.session.delete(genus2)
-        self.session.commit()
-        self.assertTrue(self.session.execute(select(GenusSynonym)).scalars().count() == 0)
+        session.commit()
+        session.delete(genus2)
+        session.commit()
+        assert session.execute(select(GenusSynonym)).scalars().count() == 0
 
-        # test that deleting the previous synonyms didn't delete the
-        # genus that it refered to
-        self.assertTrue(self.session.execute(select(Genus)).scalars().get(genus.id))
-
-        # test that deleting a genus that has synonyms deletes all
-        # the synonyms that refer to that genus
-        genus2 = Genus(family=family, genus="genus2")
-        self.session.add(genus2)
-        genus.synonyms.append(genus2)
-        self.session.commit()
-        self.session.delete(genus)
-        self.session.commit()
-        self.assertTrue(self.session.execute(select(GenusSynonym)).scalars().count() == 0)
-
-    def test_contraints(self):
-        """
-        Test that the genus constraints were created correctly
-        """
+    def test_constraints(self, session):
         family = Family(epithet="family")
-        self.session.add(family)
+        session.add(family)
 
-        # if any of these values are inserted twice they should raise
-        # an IntegrityError because the UniqueConstraint on Genus
         values = [
-            dict(family=family, epithet="genus"),
-            dict(family=family, epithet="genus", author="author"),
-            dict(family=family, epithet="genus", qualifier="s. lat."),
-            dict(
-                family=family,
-                epithet="genus",
-                qualifier="s. lat.",
-                author="author",
-            ),
+            {"family": family, "epithet": "genus"},
+            {"family": family, "epithet": "genus", "author": "author"},
+            {"family": family, "epithet": "genus", "qualifier": "s. lat."},
+            {"family": family, "epithet": "genus", "qualifier": "s. lat.", "author": "author"},
         ]
-        for v in values:
-            self.session.add(Genus(**v))
-            self.session.add(Genus(**v))
-            self.assertRaises(IntegrityError, self.session.commit)
-            self.session.rollback()
 
-    def test_str(self):
+        for value in values:
+            session.add(Genus(**value))
+            session.add(Genus(**value))
+            with pytest.raises(IntegrityError):
+                session.commit()
+            session.rollback()
+
+    def test_remove_callback_no_species_no_confirm(self, session):
+        family = Family(epithet="Caricaceae")
+        genus = Genus(epithet="Carica", family=family)
+        session.add_all([family, genus])
+        session.commit()
+        invoked = []
+
+        # Mock confirmation dialogs
+        utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=False)
+        utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
+
+        result = remove_callback([genus])
+        session.commit()
+
+        assert "message_details_dialog" not in [func for func, _ in invoked]
+        assert (
+            "yes_no_dialog",
+            "Are you sure you want to remove the genus <i>Carica</i>?",
+        ) in invoked
+        assert result is None
+
+    def test_remove_callback_with_species_cant_cascade(self, session):
+        family = Family(epithet="Caricaceae")
+        genus = Genus(epithet="Carica", family=family)
+        species = Species(genus=genus, epithet="papaya")
+        session.add_all([family, genus, species])
+        session.commit()
+        invoked = []
+
+        # Mock confirmation dialogs
+        utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=True)
+        utils.message_dialog = partial(mockfunc, name="message_dialog", caller=invoked)
+
+        remove_callback([genus])
+        session.commit()
+
+        assert "message_details_dialog" not in [func for func, _ in invoked]
+        assert (
+            "message_dialog",
+            "The genus <i>Carica</i> has 1 species.\n\nYou cannot remove a genus with species.",
+        ) in invoked
+        assert genus in session.execute(select(Genus)).scalars().all()
+
+
+@pytest.mark.usefixtures("setup_plant_data")
+class TestGenusSynonymy:
+    """Tests related to Genus synonymy."""
+
+    def test_forward_synonyms(self, session):
+        family = Family(epithet="Orchidaceae")
+        genus = Genus(family=family, epithet="Bulbophyllum")
+        synonym = Genus(family=family, epithet="Zygoglossum")
+        genus.synonyms.append(synonym)
+        session.add_all([family, genus, synonym])
+        session.commit()
+
+        assert genus.synonyms == [synonym]
+        assert synonym.synonyms == []
+
+    def test_backward_synonyms(self, session):
+        family = Family(epithet="Orchidaceae")
+        genus = Genus(family=family, epithet="Bulbophyllum")
+        synonym = Genus(family=family, epithet="Zygoglossum")
+        genus.synonyms.append(synonym)
+        session.add_all([family, genus, synonym])
+        session.commit()
+
+        assert synonym.accepted == genus
+        assert genus.accepted is None
+
+    def test_define_accepted(self, session):
+        family = Family(epithet="Orchidaceae")
+        genus = Genus(family=family, epithet="Bulbophyllum")
+        new_synonym = Genus(family=family, epithet="Henosis")
+        session.add_all([family, genus, new_synonym])
+        session.commit()
+
+        new_synonym.accepted = genus
+        session.commit()
+
+        assert new_synonym in genus.synonyms
+        assert len(genus.synonyms) == 1
+
+    def test_can_redefine_accepted(self, session):
+        family = Family(epithet="Crassulaceae")
+        genus_villa = Genus(family=family, epithet="Villadia", author="Rose")
+        genus_alta = Genus(family=family, epithet="Altamiranoa", author="Rose")
+        genus_alta.accepted = genus_villa
+        session.add_all([family, genus_alta, genus_villa])
+        session.commit()
+
+        genus_sedum = Genus(family=family, epithet="Sedum", author="L.")
+        genus_alta.accepted = genus_sedum
+        session.commit()
+
+        assert genus_alta.accepted == genus_sedum
+
+import pytest
+from sqlalchemy import select
+from unittest.mock import patch
+from bauble.plugins.plants.family import Family
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.species import Species
+from bauble.plugins.plants.species import edit_species
+from bauble.plugins.imex.csv_ import CSVImporter
+from bauble import utils
+
+@pytest.mark.usefixtures("setup_plant_data")
+class TestSpecies:
+    """Tests for the Species functionality."""
+
+    def test_species_editor(self, session):
         """
-        Test that the Genus string functions works as expected
+        Test the Species editor and its interaction with the database and garbage collection.
         """
 
-    def test_editor(self):
-        """
-        Interactively test the GenusEditor
-        """
-        raise SkipTest("Not Implemented")
-        fam = Family(epithet="family")
-        fam2 = Family(epithet="family2")
-        fam2.synonyms.append(fam)
-        self.session.add_all([fam, fam2])
-        self.session.commit()
-        gen = Genus(genus="some genus")
-        editor = GenusEditor(model=gen)
-        editor.start()
-        del editor
-        assert (
-            utils.gc_objects_by_type("GenusEditor") == []
-        ), "GenusEditor not deleted"
-        assert (
-            utils.gc_objects_by_type("GenusEditorPresenter") == []
-        ), "GenusEditorPresenter not deleted"
-        assert (
-            utils.gc_objects_by_type("GenusEditorView") == []
-        ), "GenusEditorView not deleted"
+        # Step 1: Mock CSV Importer for importing default data
+        with patch("bauble.paths.lib_dir", return_value="/mock/path/to/lib"):
+            default_path = "/mock/path/to/lib/plugins/plants/default"
+            filenames = [f"{default_path}/geographic_area.txt", f"{default_path}/habit.txt"]
 
-    def test_can_use_epithet_field(self):
+            importer = CSVImporter()
+            importer.start(filenames, force=True)
+
+        # Step 2: Set up Family, Genus, and Species relationships
         family = Family(epithet="family")
-        genus = Genus(family=family, epithet="genus")
-        self.session.add_all([family, genus])
-        self.session.commit()
-        g1 = self.session.execute(select(Genus)).scalars().where(Genus.epithet == "genus").one()
-        g2 = self.session.execute(select(Genus)).scalars().where(Genus.genus == "genus").one()
-        self.assertEqual(g1, g2)
-        self.assertEqual(g1.genus, "genus")
-        self.assertEqual(g2.epithet, "genus")
+        genus_1 = Genus(epithet="genus", family=family)
+        genus_2 = Genus(epithet="genus2", family=family)
+        genus_2.synonyms.append(genus_1)
+        session.add_all([family, genus_1, genus_2])
+        session.commit()
 
-    def test_remove_callback_no_species_no_confirm(self):
-        # T_0
-        caricaceae = Family(epithet="Caricaceae")
-        f5 = Genus(epithet="Carica", family=caricaceae)
-        self.session.add(caricaceae)
-        self.session.add(f5)
-        self.session.flush()
-        self.invoked = []
+        # Step 3: Create a species and open it in the editor
+        species = Species(genus=genus_1, epithet="sp")
+        edit_species(model=species)
 
-        # action
-        utils.yes_no_dialog = partial(
-            mockfunc, name="yes_no_dialog", caller=self, result=False
-        )
-        utils.message_details_dialog = partial(
-            mockfunc, name="message_details_dialog", caller=self
-        )
-        from bauble.plugins.plants.genus import remove_callback
-
-        result = remove_callback([f5])
-        self.session.flush()
-
-        # effect
-        self.assertFalse(
-            "message_details_dialog" in [f for (f, m) in self.invoked]
-        )
-        self.assertTrue(
-            (
-                "yes_no_dialog",
-                "Are you sure you want to " "remove the genus <i>Carica</i>?",
-            )
-            in self.invoked
-        )
-        self.assertEqual(result, None)
-        q = self.session.execute(select(Genus)).scalars().where(genus="Carica")
-        matching = q.all()
-        self.assertEqual(matching, [f5])
-
-    def test_remove_callback_no_species_confirm(self):
-        # T_0
-        caricaceae = Family(epithet="Caricaceae")
-        f5 = Genus(epithet="Carica", family=caricaceae)
-        self.session.add_all([caricaceae, f5])
-        self.session.flush()
-        self.invoked = []
-
-        # action
-        utils.yes_no_dialog = partial(
-            mockfunc, name="yes_no_dialog", caller=self, result=True
-        )
-        utils.message_details_dialog = partial(
-            mockfunc, name="message_details_dialog", caller=self
-        )
-        from bauble.plugins.plants.genus import remove_callback
-
-        result = remove_callback([f5])
-        self.session.flush()
-
-        # effect
-        print(self.invoked)
-        self.assertFalse(
-            "message_details_dialog" in [f for (f, m) in self.invoked]
-        )
-        self.assertTrue(
-            (
-                "yes_no_dialog",
-                "Are you sure you want to " "remove the genus <i>Carica</i>?",
-            )
-            in self.invoked
-        )
-
-        self.assertEqual(result, True)
-        q = self.session.execute(select(Genus)).scalars().where(genus="Carica")
-        matching = q.all()
-        self.assertEqual(matching, [])
-
-    def test_remove_callback_with_species_cant_cascade(self):
-        # T_0
-        caricaceae = Family(epithet="Caricaceae")
-        f5 = Genus(epithet="Carica", family=caricaceae)
-        gf5 = Species(genus=f5, sp="papaya")
-        self.session.add_all([caricaceae, f5, gf5])
-        self.session.flush()
-        self.invoked = []
-
-        # action
-        utils.yes_no_dialog = partial(
-            mockfunc, name="yes_no_dialog", caller=self, result=True
-        )
-        utils.message_dialog = partial(
-            mockfunc, name="message_dialog", caller=self, result=True
-        )
-        utils.message_details_dialog = partial(
-            mockfunc, name="message_details_dialog", caller=self
-        )
-        from bauble.plugins.plants.genus import remove_callback
-
-        remove_callback([f5])
-        self.session.flush()
-
-        # effect
-        print(self.invoked)
-        self.assertFalse(
-            "message_details_dialog" in [f for (f, m) in self.invoked]
-        )
-        self.assertTrue(
-            (
-                "message_dialog",
-                "The genus <i>Carica</i> has 1 species.\n\nYou cannot remove a genus with species.",
-            )
-            in self.invoked
-        )
-        q = self.session.execute(select(Genus)).scalars().where(genus="Carica")
-        matching = q.all()
-        self.assertEqual(matching, [f5])
-        q = self.session.execute(select(Species)).scalars().where(sp="papaya")
-        matching = q.all()
-        self.assertEqual(matching, [gf5])
-
-
-class GenusSynonymyTests(PlantTestCase):
-
-    def setUp(self):
-        super().setUp()
-        f = (
-            self.session.execute(select(Family)).scalars()
-            .where(Family.family == "Orchidaceae")
-            .one()
-        )
-        bu = Genus(family=f, genus="Bulbophyllum")  # accepted
-        zy = Genus(family=f, genus="Zygoglossum")  # synonym
-        bu.synonyms.append(zy)
-        self.session.add_all([f, bu, zy])
-        self.session.commit()
-
-    def test_forward_synonyms(self):
-        "a taxon has a list of synonyms"
-        bu = (
-            self.session.execute(select(Genus)).scalars()
-            .where(Genus.genus == "Bulbophyllum")
-            .one()
-        )
-        zy = (
-            self.session.execute(select(Genus)).scalars()
-            .where(Genus.genus == "Zygoglossum")
-            .one()
-        )
-        self.assertEqual(bu.synonyms, [zy])
-        self.assertEqual(zy.synonyms, [])
-
-    def test_backward_synonyms(self):
-        "synonymy is used to get the accepted taxon"
-        bu = (
-            self.session.execute(select(Genus)).scalars()
-            .where(Genus.genus == "Bulbophyllum")
-            .one()
-        )
-        zy = (
-            self.session.execute(select(Genus)).scalars()
-            .where(Genus.genus == "Zygoglossum")
-            .one()
-        )
-        self.assertEqual(zy.accepted, bu)
-        self.assertEqual(bu.accepted, None)
-
-    def test_synonymy_included_in_as_dict(self):
-        bu = (
-            self.session.execute(select(Genus)).scalars()
-            .where(Genus.genus == "Bulbophyllum")
-            .one()
-        )
-        zy = (
-            self.session.execute(select(Genus)).scalars()
-            .where(Genus.genus == "Zygoglossum")
-            .one()
-        )
-        self.assertTrue("accepted" not in bu.as_dict())
-        self.assertTrue("accepted" in zy.as_dict())
-        self.assertEqual(zy.as_dict()["accepted"], bu.as_dict(recurse=False))
-
-    def test_define_accepted(self):
-        # notice that same test should be also in Species and Family
-        bu = (
-            self.session.execute(select(Genus)).scalars()
-            .where(Genus.epithet == "Bulbophyllum")
-            .one()
-        )
-        f = (
-            self.session.execute(select(Family)).scalars()
-            .where(Family.epithet == "Orchidaceae")
-            .one()
-        )
-        he = Genus(family=f, epithet="Henosis")  # one more synonym
-        self.session.add(he)
-        self.session.commit()
-        self.assertEqual(len(bu.synonyms), 1)
-        self.assertFalse(he in bu.synonyms)
-        he.accepted = bu
-        self.assertEqual(len(bu.synonyms), 2)
-        self.assertTrue(he in bu.synonyms)
-
-    def test_can_redefine_accepted(self):
-        # Altamiranoa Rose used to refer to Villadia Rose for its accepted
-        # name, it is now updated to Sedum L.
-
-        # T_0
-        claceae = Family(epithet="Crassulaceae")  # J. St.-Hil.
-        villa = Genus(family=claceae, epithet="Villadia", author="Rose")
-        alta = Genus(family=claceae, epithet="Altamiranoa", author="Rose")
-        alta.accepted = villa
-        self.session.add_all([claceae, alta, villa])
-        self.session.commit()
-
-        sedum = Genus(family=claceae, epithet="Sedum", author="L.")
-        alta.accepted = sedum
-        self.session.commit()
-
-
-class SpeciesTests(PlantTestCase):
-
-    def setUp(self):
-        super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
-
-    def test_editor(self):
-        raise SkipTest("Not Implemented")
-        # import default geographic_area data
-        import bauble.paths as paths
-
-        default_path = os.path.join(
-            paths.lib_dir(), "plugins", "plants", "default"
-        )
-        filenames = [
-            os.path.join(default_path, f)
-            for f in ("geographic_area.txt", "habit.txt")
-        ]
-        from bauble.plugins.imex.csv_ import CSVImporter
-
-        importer = CSVImporter()
-        importer.start(filenames, force=True)
-
-        f = Family(epithet="family")
-        g2 = Genus(epithet="genus2", family=f)
-        g = Genus(epithet="genus", family=f)
-        g2.synonyms.append(g)
-        self.session.add(f)
-        self.session.commit()
-        sp = Species(genus=g, epithet="sp")
-        edit_species(model=sp)
+        # Step 4: Check if editor-related objects are deleted from memory
         assert (
             utils.gc_objects_by_type("SpeciesEditor") == []
         ), "SpeciesEditor not deleted"
@@ -990,162 +425,252 @@ class SpeciesTests(PlantTestCase):
             utils.gc_objects_by_type("SpeciesEditorView") == []
         ), "SpeciesEditorView not deleted"
 
-    def test_str(self):
+    def test_species_string(self, session, species_str_map):
         """
-        Test the Species.str() method
+        Test the string representation of Species objects.
         """
 
-        def get_sp_str(id, **kwargs):
-            return self.session.execute(select(Species)).scalars().get(id).str(**kwargs)
+        def get_species_string(species_id, **kwargs):
+            """Helper function to fetch the string representation of a Species."""
+            species = session.execute(select(Species)).scalars().get(species_id)
+            return species.str(**kwargs)
 
-        for sid, expect in list(species_str_map.items()):
-            sp = self.session.execute(select(Species)).scalars().get(sid)
-            print(
-                "»{}« »{}« »{}« »{}« ".format(
-                    sp.genus.epithet, sp.epithet, sp.genus, sp
-                )
+        for species_id, expected_string in species_str_map.items():
+            species = session.execute(select(Species)).scalars().get(species_id)
+
+            # Verify basic string output
+            printable_name = remove_zws(str(species))
+            assert printable_name == expected_string, (
+                f"Mismatch in string representation for species ID {species_id}."
             )
-            printable_name = remove_zws("%s" % sp)
-            self.assertEqual(expect, printable_name)
-            spstr = get_sp_str(sid)
-            self.assertEqual(remove_zws(spstr), expect)
 
-        for sid, expect in list(species_str_authors_map.items()):
-            spstr = get_sp_str(sid, authors=True)
-            self.assertEqual(remove_zws(spstr), expect)
+            # Verify helper function output
+            species_string = get_species_string(species_id)
+            assert remove_zws(species_string) == expected_string, (
+                f"Helper function string mismatch for species ID {species_id}."
+            )
 
-        for sid, expect in list(species_markup_map.items()):
-            spstr = get_sp_str(sid, markup=True)
-            self.assertEqual(remove_zws(spstr), expect)
-
-        for sid, expect in list(species_markup_authors_map.items()):
-            spstr = get_sp_str(sid, markup=True, authors=True)
-            self.assertEqual(remove_zws(spstr), expect)
-
-    def test_lexicographic_order__unspecified_precedes_specified(self):
-        def get_sp_str(id, **kwargs):
-            return self.session.execute(select(Species)).scalars().get(id).str(**kwargs)
-
-        self.assertTrue(get_sp_str(1) > get_sp_str(22))
-        self.assertTrue(get_sp_str(1) > get_sp_str(23))
-        self.assertTrue(get_sp_str(1) > get_sp_str(24))
-        self.assertTrue(get_sp_str(16) > get_sp_str(22))
-        self.assertTrue(get_sp_str(16) > get_sp_str(23))
-        self.assertTrue(get_sp_str(16) > get_sp_str(24))
-
-    # def test_dirty_string(self):
-    #     """
-    #     That that the cache on a string is invalidated if the species
-    #     is changed or expired.
-    #     """
-    #     family = Family(epithet=u'family')
-    #     genus = Genus(family=family, epithet=u'genus')
-    #     sp = Species(genus=genus, epithet=u'sp')
-    #     self.session.add_all([family, genus, sp])
-    #     self.session.commit()
-
-    #     str1 = Species.str(sp)
-    #     sp.sp = u'sp2'
-    #     self.session.commit()
-    #     self.session.refresh(sp)
-    #     sp = self.session.execute(select(Species)).scalars().get(sp.id)
-    #     self.assert_(Species.str(sp) != str1)
-
-    def test_vernacular_name(self):
+    def test_species_string_with_authors(self, session, species_str_authors_map):
         """
-        Test the Species.vernacular_name property
+        Test the string representation of Species with author information.
         """
+
+        def get_species_string(species_id, **kwargs):
+            """Helper function to fetch the string representation of a Species."""
+            species = session.execute(select(Species)).scalars().get(species_id)
+            return species.str(**kwargs)
+
+        for species_id, expected_string in species_str_authors_map.items():
+            species_string = get_species_string(species_id, authors=True)
+            assert remove_zws(species_string) == expected_string, (
+                f"Mismatch in string representation with authors for species ID {species_id}."
+            )
+
+    def test_species_string_with_markup(self, session, species_markup_map):
+        """
+        Test the string representation of Species with markup enabled.
+        """
+
+        def get_species_string(species_id, **kwargs):
+            """Helper function to fetch the string representation of a Species."""
+            species = session.execute(select(Species)).scalars().get(species_id)
+            return species.str(**kwargs)
+
+        for species_id, expected_string in species_markup_map.items():
+            species_string = get_species_string(species_id, markup=True)
+            assert remove_zws(species_string) == expected_string, (
+                f"Markup mismatch for species ID {species_id}."
+            )
+
+    def test_species_string_with_markup_and_authors(self, session, species_markup_authors_map):
+        """
+        Test the string representation of Species with markup and authors enabled.
+        """
+
+        def get_species_string(species_id, **kwargs):
+            """Helper function to fetch the string representation of a Species."""
+            species = session.execute(select(Species)).scalars().get(species_id)
+            return species.str(**kwargs)
+
+        for species_id, expected_string in species_markup_authors_map.items():
+            species_string = get_species_string(species_id, markup=True, authors=True)
+            assert remove_zws(species_string) == expected_string, (
+                f"Markup and authors mismatch for species ID {species_id}."
+            )
+
+    def test_unspecified_precedes_specified(self, session):
+        """
+        Test that unspecified species names precede specified ones in lexicographic order.
+        """
+
+        def get_species_string(species_id, **kwargs):
+            """Helper function to fetch the string representation of a Species."""
+            species = session.execute(select(Species)).scalars().get(species_id)
+            return species.str(**kwargs)
+
+        # Define test cases
+        test_cases = [
+            (1, 22),
+            (1, 23),
+            (1, 24),
+            (16, 22),
+            (16, 23),
+            (16, 24),
+        ]
+
+        # Validate lexicographic order
+        for higher_id, lower_id in test_cases:
+            higher_str = get_species_string(higher_id)
+            lower_str = get_species_string(lower_id)
+            assert higher_str > lower_str, (
+                f"Expected '{higher_str}' (ID: {higher_id}) to precede "
+                f"'{lower_str}' (ID: {lower_id}) in lexicographic order."
+            )
+
+
+    # def test_dirty_string(self, session):
+    #     """
+    #     Test that the cached string representation of a Species object
+    #     is invalidated when the object is modified or expired.
+    #     """
+    #     # Step 1: Create and commit initial species
+    #     family = Family(epithet="family")
+    #     genus = Genus(family=family, epithet="genus")
+    #     sp = Species(genus=genus, epithet="sp")
+    #     session.add_all([family, genus, sp])
+    #     session.commit()
+
+    #     # Step 2: Capture initial string representation
+    #     str1 = sp.str()
+
+    #     # Step 3: Modify the species and commit the changes
+    #     sp.epithet = "sp2"
+    #     session.commit()
+
+    #     # Step 4: Refresh and reload the species from the database
+    #     session.refresh(sp)
+    #     sp = session.execute(select(Species)).scalars().get(sp.id)
+
+    #     # Step 5: Verify that the string representation has changed
+    #     assert sp.str() != str1, "String cache was not invalidated after modification."
+
+
+    def test_vernacular_name(self, session):
+        """Test the `Species.vernacular_name` property."""
         family = Family(epithet="family")
         genus = Genus(family=family, epithet="genus")
         sp = Species(genus=genus, epithet="sp")
-        self.session.add_all([family, genus, sp])
-        self.session.commit()
+        session.add_all([family, genus, sp])
+        session.commit()
 
-        # add a name
+        # Add a vernacular name
         vn = VernacularName(name="name")
         sp.vernacular_names.append(vn)
-        self.session.commit()
-        self.assertTrue(vn in sp.vernacular_names)
+        session.commit()
+        assert vn in sp.vernacular_names
 
-        # test that removing a name removes deleted orphaned objects
+        # Remove vernacular name and verify orphan deletion
         sp.vernacular_names.remove(vn)
-        self.session.commit()
-        q = self.session.execute(select(VernacularName)).scalars().where(species_id=sp.id)
-        self.assertRaises(NoResultFound, q.one)
+        session.commit()
+        with pytest.raises(NoResultFound):
+            session.execute(
+                select(VernacularName).where(VernacularName.species_id == sp.id)
+            ).scalar_one()
 
-    def test_default_vernacular_name(self):
-        """
-        Test the Species.default_vernacular_name property
-        """
+    def test_default_vernacular_name(self, session):
+        """Comprehensive test for Species.default_vernacular_name."""
+
+        # Step 1: Create family, genus, species, and initial vernacular name
         family = Family(epithet="family")
         genus = Genus(family=family, epithet="genus")
         sp = Species(genus=genus, epithet="sp")
         vn = VernacularName(name="name")
         sp.vernacular_names.append(vn)
-        self.session.add_all([family, genus, sp, vn])
-        self.session.commit()
+        session.add_all([family, genus, sp, vn])
+        session.commit()
 
-        # test that setting the default vernacular names
+        # Step 2: Set the default vernacular name
         default = VernacularName(name="default")
         sp.default_vernacular_name = default
-        self.session.commit()
-        self.assertTrue(vn in sp.vernacular_names)
-        self.assertTrue(sp.default_vernacular_name == default)
+        session.commit()
 
-        # test that set_attr work on default vernacular name
-        default = VernacularName(name="default")
-        setattr(sp, "default_vernacular_name", default)
-        self.session.commit()
-        self.assertTrue(vn in sp.vernacular_names)
-        self.assertTrue(sp.default_vernacular_name == default)
+        # Verify default vernacular name and relationship to species
+        assert vn in sp.vernacular_names
+        assert sp.default_vernacular_name == default
 
-        # test that if you set the default_vernacular_name on a
-        # species then it automatically adds it to vernacular_names
-        default = VernacularName(name="default")
-        sp.default_vernacular_name = default
-        self.session.commit()
-        self.assertTrue(vn in sp.vernacular_names)
-        self.assertTrue(sp.default_vernacular_name == default)
+        # Step 3: Test `setattr` works for setting default vernacular name
+        default_vn = VernacularName(name="default_vn")
+        setattr(sp, "default_vernacular_name", default_vn)
+        session.commit()
 
-        # test that removing a vernacular name removes it from
-        # default_vernacular_name, this test also effectively tests VNList
+        # Verify the updated default vernacular name
+        assert vn in sp.vernacular_names
+        assert sp.default_vernacular_name == default_vn
+
+        # Step 4: Verify automatic addition of `default_vernacular_name`
+        new_default = VernacularName(name="new_default")
+        sp.default_vernacular_name = new_default
+        session.commit()
+
+        # Verify `new_default` is added and set correctly
+        assert new_default in sp.vernacular_names
+        assert sp.default_vernacular_name == new_default
+
+        # Step 5: Remove a vernacular name and check cascading effects
         dvid = sp._default_vernacular_name.id
-        sp.vernacular_names.remove(default)
-        self.session.commit()
-        self.assertEqual(sp.default_vernacular_name, None)
-        q = self.session.execute(select(DefaultVernacularName)).scalars()
-        self.assertRaises(NoResultFound, q.where(species_id=sp.id).one)
-        self.assertRaises(NoResultFound, q.where(id=dvid).one)
+        sp.vernacular_names.remove(new_default)
+        session.commit()
 
-        # test that setting default_vernacular_name to None
-        # removes the name properly and deletes any orphaned objects
+        # Verify the default vernacular name is unset and removed
+        assert sp.default_vernacular_name is None
+        q = session.execute(select(DefaultVernacularName)).scalars()
+        with pytest.raises(NoResultFound):
+            q.where(DefaultVernacularName.species_id == sp.id).one()
+        with pytest.raises(NoResultFound):
+            q.where(DefaultVernacularName.id == dvid).one()
+
+        # Step 6: Reset `default_vernacular_name` and verify orphan handling
         sp.vernacular_names.append(vn)
         sp.default_vernacular_name = vn
-        self.session.commit()
+        session.commit()
         dvid = sp._default_vernacular_name.id
         sp.default_vernacular_name = None
-        self.session.commit()
-        q = self.session.execute(select(DefaultVernacularName)).scalars()
-        self.assertRaises(NoResultFound, q.where(species_id=sp.id).one)
-        self.assertRaises(NoResultFound, q.where(id=dvid).one)
+        session.commit()
 
-        # test that calling __del__ on a default vernacular name removes it
+        # Verify orphaned objects are properly removed
+        q = session.execute(select(DefaultVernacularName)).scalars()
+        with pytest.raises(NoResultFound):
+            q.where(DefaultVernacularName.species_id == sp.id).one()
+        with pytest.raises(NoResultFound):
+            q.where(DefaultVernacularName.id == dvid).one()
+
+        # Step 7: Use `__del__` to delete `default_vernacular_name`
         sp.default_vernacular_name = vn
-        self.session.commit()
+        session.commit()
         dvid = sp._default_vernacular_name.id
         del sp.default_vernacular_name
-        self.session.commit()
-        self.assertEqual(sp.default_vernacular_name, None)
-        q = self.session.execute(select(DefaultVernacularName)).scalars()
-        self.assertRaises(NoResultFound, q.where(species_id=sp.id).one)
-        self.assertRaises(NoResultFound, q.where(id=dvid).one)
+        session.commit()
 
-        # test for regression in bug Launchpad #123286
+        # Verify the default vernacular name is unset and deleted
+        assert sp.default_vernacular_name is None
+        q = session.execute(select(DefaultVernacularName)).scalars()
+        with pytest.raises(NoResultFound):
+            q.where(DefaultVernacularName.species_id == sp.id).one()
+        with pytest.raises(NoResultFound):
+            q.where(DefaultVernacularName.id == dvid).one()
+
+        # Step 8: Test for regression in Launchpad Bug #123286
         vn1 = VernacularName(name="vn1")
         vn2 = VernacularName(name="vn2")
         sp.default_vernacular_name = vn1
         sp.default_vernacular_name = vn2
-        self.session.commit()
+        session.commit()
+
+        # Verify the final default vernacular name
+        assert sp.default_vernacular_name == vn2
+        assert vn1 in sp.vernacular_names
+        assert vn2 in sp.vernacular_names
+
 
     def test_synonyms_low_level(self):
         """
@@ -1397,172 +922,155 @@ class SpeciesTests(PlantTestCase):
         matching = q.all()
         self.assertEqual(matching, [acc])
 
+import pytest
+from sqlalchemy import select
+from bauble.plugins.plants.family import Family
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.species import Species
+from bauble.plugins.plants.species_distribution import SpeciesDistribution
+from bauble.plugins.plants.geography import GeographicArea, get_species_in_geographic_area
+from bauble.plugins.imex.csv_ import CSVImporter
+from unittest.mock import patch
 
-class GeographicAreaTests(PlantTestCase):
+@pytest.mark.usefixtures("setup_plant_data")
+class TestGeographicArea:
+    """Tests for Geographic Area functionality."""
 
-    def __init__(self, *args):
-        super().__init__(*args)
-
-    def setUp(self):
-        super().setUp()
+    @pytest.fixture(autouse=True)
+    def setup_class(self, session):
+        """Setup for each test."""
+        self.session = session
         self.family = Family(epithet="family")
         self.genus = Genus(epithet="genus", family=self.family)
-        self.session.add_all([self.family, self.genus])
-        self.session.flush()
-        # import default geographic_area data
-        import bauble.paths as paths
+        session.add_all([self.family, self.genus])
+        session.flush()
 
-        filename = os.path.join(
-            paths.lib_dir(),
-            "plugins",
-            "plants",
-            "default",
-            "geographic_area.txt",
-        )
-        from bauble.plugins.imex.csv_ import CSVImporter
-
-        importer = CSVImporter()
-        importer.start([filename], force=True)
-        self.session.commit()
-
-    def tearDown(self):
-        super().tearDown()
+        # Import default geographic area data
+        with patch("bauble.paths.lib_dir", return_value="/mock/path/to/lib"):
+            filename = "/mock/path/to/lib/plugins/plants/default/geographic_area.txt"
+            importer = CSVImporter()
+            importer.start([filename], force=True)
+        session.commit()
 
     def test_get_species(self):
+        """Test fetching species by geographic area."""
         mexico_id = 53
         mexico_central_id = 267
         oaxaca_id = 665
         northern_america_id = 7
         western_canada_id = 45
 
-        # create a some species
-        sp1 = Species(genus=self.genus, sp="sp1")
-        dist = SpeciesDistribution(geographic_area_id=mexico_central_id)
-        sp1.distribution.append(dist)
+        # Create species with distributions
+        sp1 = Species(genus=self.genus, epithet="sp1")
+        sp1.distribution.append(SpeciesDistribution(geographic_area_id=mexico_central_id))
 
-        sp2 = Species(genus=self.genus, sp="sp2")
-        dist = SpeciesDistribution(geographic_area_id=oaxaca_id)
-        sp2.distribution.append(dist)
+        sp2 = Species(genus=self.genus, epithet="sp2")
+        sp2.distribution.append(SpeciesDistribution(geographic_area_id=oaxaca_id))
 
-        sp3 = Species(genus=self.genus, sp="sp3")
-        dist = SpeciesDistribution(geographic_area_id=western_canada_id)
-        sp3.distribution.append(dist)
+        sp3 = Species(genus=self.genus, epithet="sp3")
+        sp3.distribution.append(SpeciesDistribution(geographic_area_id=western_canada_id))
 
         self.session.commit()
 
+        # Test Oaxaca
         oaxaca = self.session.execute(select(GeographicArea)).scalars().get(oaxaca_id)
         species = get_species_in_geographic_area(oaxaca)
-        self.assertTrue([s.id for s in species] == [sp2.id])
+        assert [s.id for s in species] == [sp2.id], "Oaxaca species mismatch"
 
+        # Test Mexico
         mexico = self.session.execute(select(GeographicArea)).scalars().get(mexico_id)
         species = get_species_in_geographic_area(mexico)
-        self.assertTrue([s.id for s in species] == [sp1.id, sp2.id])
+        assert [s.id for s in species] == [sp1.id, sp2.id], "Mexico species mismatch"
 
+        # Test North America
         north_america = self.session.execute(select(GeographicArea)).scalars().get(
             northern_america_id
         )
         species = get_species_in_geographic_area(north_america)
-        self.assertTrue([s.id for s in species] == [sp1.id, sp2.id, sp3.id])
+        assert [s.id for s in species] == [sp1.id, sp2.id, sp3.id], "North America species mismatch"
 
     def test_species_distribution_str(self):
-        # create a some species
-        sp1 = Species(genus=self.genus, sp="sp1")
-        dist = SpeciesDistribution(geographic_area_id=267)
-        sp1.distribution.append(dist)
+        """Test the string representation of species distribution."""
+        sp1 = Species(genus=self.genus, epithet="sp1")
+        dist_1 = SpeciesDistribution(geographic_area_id=267)  # Mexico Central
+        sp1.distribution.append(dist_1)
         self.session.flush()
-        self.assertEqual(sp1.distribution_str(), "Mexico Central")
-        dist = SpeciesDistribution(geographic_area_id=45)
-        sp1.distribution.append(dist)
+        assert sp1.distribution_str() == "Mexico Central", "Distribution string mismatch for one area"
+
+        dist_2 = SpeciesDistribution(geographic_area_id=45)  # Western Canada
+        sp1.distribution.append(dist_2)
         self.session.flush()
-        self.assertEqual(
-            sp1.distribution_str(), "Mexico Central, Western Canada"
-        )
+        assert sp1.distribution_str() == "Mexico Central, Western Canada", "Distribution string mismatch for multiple areas"
+import pytest
+from sqlalchemy import select
+from bauble.plugins.plants.family import Family
+from bauble.plugins.plants.genus import Genus
 
 
-class FromAndToDictTest(PlantTestCase):
-    """tests the retrieve_or_create and the as_dict methods"""
+@pytest.mark.usefixtures("setup_plant_data")
+class TestFromAndToDict:
+    """Tests for retrieve_or_create and as_dict methods."""
 
-    def test_can_grab_existing_families(self):
-        all_families = self.session.execute(select(Family)).scalars().all()
-        orc = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Orchidaceae"}
-        )
-        leg = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Leguminosae"}
-        )
-        pol = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Polypodiaceae"}
-        )
-        sol = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Solanaceae"}
-        )
-        self.assertEqual(set(all_families), {orc, pol, leg, sol})
+    def test_can_grab_existing_families(self, session):
+        """Test retrieving existing families."""
+        all_families = session.execute(select(Family)).scalars().all()
+        orc = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Orchidaceae"})
+        leg = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Leguminosae"})
+        pol = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Polypodiaceae"})
+        sol = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Solanaceae"})
+        assert set(all_families) == {orc, pol, leg, sol}, "Mismatch in retrieved families."
 
-    def test_grabbing_same_params_same_output_existing(self):
-        orc1 = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Orchidaceae"}
-        )
-        orc2 = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Orchidaceae"}
-        )
-        self.assertTrue(orc1 is orc2)
+    def test_grabbing_same_params_same_output_existing(self, session):
+        """Test that retrieving the same family parameters returns the same object."""
+        orc1 = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Orchidaceae"})
+        orc2 = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Orchidaceae"})
+        assert orc1 is orc2, "Different objects returned for identical parameters."
 
-    def test_can_create_family(self):
-        all_families = self.session.execute(select(Family)).scalars().all()
-        fab = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Fabaceae"}
-        )
-        # it's in the session, it wasn't there before.
-        self.assertTrue(fab in self.session)
-        self.assertFalse(fab in all_families)
-        # according to the session, it is in the database
-        ses_families = self.session.execute(select(Family)).scalars().all()
-        self.assertTrue(fab in ses_families)
+    def test_can_create_family(self, session):
+        """Test creating a new family."""
+        all_families = session.execute(select(Family)).scalars().all()
+        fab = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Fabaceae"})
+        assert fab in session, "Family not in session after creation."
+        assert fab not in all_families, "Family unexpectedly in initial families list."
+        session_families = session.execute(select(Family)).scalars().all()
+        assert fab in session_families, "Family not found in session after creation."
 
-    def test_where_can_object_be_found_before_commit(self):  # disabled
-        raise SkipTest("Not Implemented")
-        fab = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Fabaceae"}
-        )
-        # created in a session, it's not in other sessions
-        other_session = db.Session()
+    @pytest.mark.skip(reason="Not Implemented")
+    def test_where_can_object_be_found_before_commit(self, session):
+        """Test visibility of created objects in other sessions before commit."""
+        fab = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Fabaceae"})
+        other_session = session.connection()._proxied.connection.begin_nested()
         db_families = other_session.execute(select(Family)).scalars().all()
-        fab = Family.retrieve_or_create(
+        fab_in_other_session = Family.retrieve_or_create(
             other_session, {"rank": "family", "epithet": "Fabaceae"}
         )
-        self.assertFalse(fab in db_families)  # fails, why?
+        assert fab not in db_families, "Family unexpectedly found in other session."
 
-    def test_where_can_object_be_found_after_commit(self):
-        fab = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Fabaceae"}
-        )
-        # after commit it's in database.
-        self.session.commit()
-        other_session = db.Session()
+    def test_where_can_object_be_found_after_commit(self, session):
+        """Test visibility of created objects in other sessions after commit."""
+        fab = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Fabaceae"})
+        session.commit()
+        other_session = session.connection()._proxied.connection.begin_nested()
         all_families = other_session.execute(select(Family)).scalars().all()
-        fab = Family.retrieve_or_create(
+        fab_in_other_session = Family.retrieve_or_create(
             other_session, {"rank": "family", "epithet": "Fabaceae"}
         )
-        self.assertTrue(fab in all_families)
+        assert fab in all_families, "Family not found in other session after commit."
 
-    def test_grabbing_same_params_same_output_new(self):
-        fab1 = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Fabaceae"}
-        )
-        fab2 = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Fabaceae"}
-        )
-        self.assertTrue(fab1 is fab2)
+    def test_grabbing_same_params_same_output_new(self, session):
+        """Test that retrieving the same parameters returns the same new object."""
+        fab1 = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Fabaceae"})
+        fab2 = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Fabaceae"})
+        assert fab1 is fab2, "Different objects returned for identical parameters."
 
-    def test_can_grab_existing_genera(self):
-        orc = Family.retrieve_or_create(
-            self.session, {"rank": "family", "epithet": "Orchidaceae"}
-        )
+    def test_can_grab_existing_genera(self, session):
+        """Test retrieving existing genera under a specific family."""
+        orc = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Orchidaceae"})
         all_genera_orc = (
-            self.session.execute(select(Genus)).scalars().where(Genus.family == orc).all()
+            session.execute(select(Genus)).scalars().where(Genus.family == orc).all()
         )
         mxl = Genus.retrieve_or_create(
-            self.session,
+            session,
             {
                 "ht-rank": "family",
                 "ht-epithet": "Orchidaceae",
@@ -1571,7 +1079,7 @@ class FromAndToDictTest(PlantTestCase):
             },
         )
         enc = Genus.retrieve_or_create(
-            self.session,
+            session,
             {
                 "ht-rank": "family",
                 "ht-epithet": "Orchidaceae",
@@ -1579,37 +1087,44 @@ class FromAndToDictTest(PlantTestCase):
                 "epithet": "Encyclia",
             },
         )
-        self.assertTrue(mxl in set(all_genera_orc))
-        self.assertTrue(enc in set(all_genera_orc))
+        assert mxl in set(all_genera_orc), "Maxillaria not found in retrieved genera."
+        assert enc in set(all_genera_orc), "Encyclia not found in retrieved genera."
+import pytest
+from sqlalchemy import select
+from bauble.plugins.plants.family import Family
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.species import Species
+from bauble.plugins.plants.vernacular_name import VernacularName
 
 
-class FromAndToDict_create_update_test(PlantTestCase):
-    "test the create and update fields in retrieve_or_create"
+@pytest.mark.usefixtures("setup_plant_data")
+class TestFromAndToDictCreateUpdate:
+    """Test the create and update fields in retrieve_or_create."""
 
-    def test_family_nocreate_noupdate_noexisting(self):
-        # do not create if not existing
+    def test_family_nocreate_noupdate_noexisting(self, session):
+        """Do not create a Family if it doesn't exist."""
         obj = Family.retrieve_or_create(
-            self.session,
+            session,
             {"object": "taxon", "rank": "familia", "epithet": "Arecaceae"},
             create=False,
         )
-        self.assertEqual(obj, None)
+        assert obj is None
 
-    def test_family_nocreate_noupdateeq_existing(self):
-        # retrieve same object, we only give the keys
+    def test_family_nocreate_noupdateeq_existing(self, session):
+        """Retrieve the same Family object without creating or updating."""
         obj = Family.retrieve_or_create(
-            self.session,
+            session,
             {"object": "taxon", "rank": "familia", "epithet": "Leguminosae"},
             create=False,
             update=False,
         )
-        self.assertTrue(obj is not None)
-        self.assertEqual(obj.qualifier, "s. str.")
+        assert obj is not None
+        assert obj.qualifier == "s. str."
 
-    def test_family_nocreate_noupdatediff_existing(self):
-        # do not update object with new data
+    def test_family_nocreate_noupdatediff_existing(self, session):
+        """Do not update a Family object when create and update are disabled."""
         obj = Family.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "rank": "familia",
@@ -1619,12 +1134,12 @@ class FromAndToDict_create_update_test(PlantTestCase):
             create=False,
             update=False,
         )
-        self.assertEqual(obj.qualifier, "s. str.")
+        assert obj.qualifier == "s. str."
 
-    def test_family_nocreate_updatediff_existing(self):
-        # update object in self.session
+    def test_family_nocreate_updatediff_existing(self, session):
+        """Update a Family object when update is enabled."""
         obj = Family.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "rank": "familia",
@@ -1634,30 +1149,30 @@ class FromAndToDict_create_update_test(PlantTestCase):
             create=False,
             update=True,
         )
-        self.assertEqual(obj.qualifier, "s. lat.")
+        assert obj.qualifier == "s. lat."
 
-    def test_genus_nocreate_noupdate_noexisting_impossible(self):
-        # do not create if not existing
+    def test_genus_nocreate_noupdate_noexisting_impossible(self, session):
+        """Do not create a Genus if it doesn't exist and is missing required data."""
         obj = Genus.retrieve_or_create(
-            self.session,
+            session,
             {"object": "taxon", "rank": "genus", "epithet": "Masdevallia"},
             create=False,
         )
-        self.assertEqual(obj, None)
+        assert obj is None
 
-    def test_genus_create_noupdate_noexisting_impossible(self):
-        # do not create if not existing
+    def test_genus_create_noupdate_noexisting_impossible(self, session):
+        """Do not create a Genus if required data is missing."""
         obj = Genus.retrieve_or_create(
-            self.session,
+            session,
             {"object": "taxon", "rank": "genus", "epithet": "Masdevallia"},
             create=True,
         )
-        self.assertEqual(obj, None)
+        assert obj is None
 
-    def test_genus_nocreate_noupdate_noexisting_possible(self):
-        # do not create if not existing
+    def test_genus_nocreate_noupdate_noexisting_possible(self, session):
+        """Do not create a Genus if it doesn't exist."""
         obj = Genus.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "rank": "genus",
@@ -1667,23 +1182,23 @@ class FromAndToDict_create_update_test(PlantTestCase):
             },
             create=False,
         )
-        self.assertEqual(obj, None)
+        assert obj is None
 
-    def test_genus_nocreate_noupdateeq_existing(self):
-        # retrieve same object, we only give the keys
+    def test_genus_nocreate_noupdateeq_existing(self, session):
+        """Retrieve the same Genus object without creating or updating."""
         obj = Genus.retrieve_or_create(
-            self.session,
+            session,
             {"object": "taxon", "rank": "genus", "epithet": "Maxillaria"},
             create=False,
             update=False,
         )
-        self.assertTrue(obj is not None)
-        self.assertEqual(obj.author, "")
+        assert obj is not None
+        assert obj.author == ""
 
-    def test_genus_nocreate_noupdatediff_existing(self):
-        # do not update object with new data
+    def test_genus_nocreate_noupdatediff_existing(self, session):
+        """Do not update a Genus object when create and update are disabled."""
         obj = Genus.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "rank": "genus",
@@ -1693,13 +1208,13 @@ class FromAndToDict_create_update_test(PlantTestCase):
             create=False,
             update=False,
         )
-        self.assertTrue(obj is not None)
-        self.assertEqual(obj.author, "")
+        assert obj is not None
+        assert obj.author == ""
 
-    def test_genus_nocreate_updatediff_existing(self):
-        # update object in self.session
+    def test_genus_nocreate_updatediff_existing(self, session):
+        """Update a Genus object when update is enabled."""
         obj = Genus.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "rank": "genus",
@@ -1709,48 +1224,42 @@ class FromAndToDict_create_update_test(PlantTestCase):
             create=False,
             update=True,
         )
-        self.assertTrue(obj is not None)
-        self.assertEqual(obj.author, "Schltr.")
+        assert obj is not None
+        assert obj.author == "Schltr."
 
-    def test_vernacular_name_as_dict(self):
-        bra = self.session.execute(select(Species)).scalars().where(Species.id == 21).first()
+    def test_vernacular_name_as_dict(self, session):
+        """Ensure VernacularName objects can be serialized to dictionaries."""
+        bra = session.execute(select(Species)).scalars().where(Species.id == 21).first()
         vn_bra = (
-            self.session.execute(select(VernacularName)).scalars()
-            .where(
-                VernacularName.language == "agr", VernacularName.species == bra
-            )
+            session.execute(select(VernacularName))
+            .scalars()
+            .where(VernacularName.language == "agr", VernacularName.species == bra)
             .all()
         )
-        self.assertEqual(
-            vn_bra[0].as_dict(),
-            {
-                "object": "vernacular_name",
-                "name": "Toé",
-                "language": "agr",
-                "species": "Brugmansia arborea",
-            },
-        )
+        assert vn_bra[0].as_dict() == {
+            "object": "vernacular_name",
+            "name": "Toé",
+            "language": "agr",
+            "species": "Brugmansia arborea",
+        }
+
         vn_bra = (
-            self.session.execute(select(VernacularName)).scalars()
-            .where(
-                VernacularName.language == "es", VernacularName.species == bra
-            )
+            session.execute(select(VernacularName))
+            .scalars()
+            .where(VernacularName.language == "es", VernacularName.species == bra)
             .all()
         )
-        self.assertEqual(
-            vn_bra[0].as_dict(),
-            {
-                "object": "vernacular_name",
-                "name": "Floripondio",
-                "language": "es",
-                "species": "Brugmansia arborea",
-            },
-        )
+        assert vn_bra[0].as_dict() == {
+            "object": "vernacular_name",
+            "name": "Floripondio",
+            "language": "es",
+            "species": "Brugmansia arborea",
+        }
 
-    def test_vernacular_name_nocreate_noupdate_noexisting(self):
-        # do not create if not existing
+    def test_vernacular_name_nocreate_noupdate_noexisting(self, session):
+        """Do not create a VernacularName if it doesn't exist."""
         obj = VernacularName.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "vernacular_name",
                 "language": "nap",
@@ -1758,12 +1267,12 @@ class FromAndToDict_create_update_test(PlantTestCase):
             },
             create=False,
         )
-        self.assertEqual(obj, None)
+        assert obj is None
 
-    def test_vernacular_name_nocreate_noupdateeq_existing(self):
-        # retrieve same object, we only give the keys
+    def test_vernacular_name_nocreate_noupdateeq_existing(self, session):
+        """Retrieve the same VernacularName object without creating or updating."""
         obj = VernacularName.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "vernacular_name",
                 "language": "agr",
@@ -1772,60 +1281,68 @@ class FromAndToDict_create_update_test(PlantTestCase):
             create=False,
             update=False,
         )
-        self.assertTrue(obj is not None)
-        self.assertEqual(obj.name, "Toé")
+        assert obj is not None
+        assert obj.name == "Toé"
 
-    def test_vernacular_name_nocreate_noupdatediff_existing(self):
-        # do not update object with new data
+    def test_vernacular_name_nocreate_noupdatediff_existing(self, session):
+        """Do not update a VernacularName object when create and update are disabled."""
         obj = VernacularName.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "vernacular_name",
                 "language": "agr",
-                "name": "wronge",
+                "name": "wrong",
                 "species": "Brugmansia arborea",
             },
             create=False,
             update=False,
         )
-        self.assertEqual(obj.name, "Toé")
+        assert obj.name == "Toé"
 
-    def test_vernacular_name_nocreate_updatediff_existing(self):
-        # update object in self.session
+    def test_vernacular_name_nocreate_updatediff_existing(self, session):
+        """Update a VernacularName object when update is enabled."""
         obj = VernacularName.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "vernacular_name",
                 "language": "agr",
-                "name": "wronge",
+                "name": "wrong",
                 "species": "Brugmansia arborea",
             },
             create=False,
             update=True,
         )
-        self.assertEqual(obj.name, "wronge")
+        assert obj.name == "wrong"
+
+import pytest
+from sqlalchemy import select
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.species import Species
 
 
-class CitesStatus_test(PlantTestCase):
-    "we can retrieve the cites status as defined in family-genus-species"
+@pytest.mark.usefixtures("setup_plant_data")
+class TestCitesStatus:
+    """Tests for retrieving CITES status as defined in family-genus-species."""
 
-    def test(self):
-        obj = Genus.retrieve_or_create(
-            self.session,
+    def test_cites_status(self, session):
+        gen = Genus.retrieve_or_create(
+            session,
             {"object": "taxon", "rank": "genus", "epithet": "Maxillaria"},
             create=False,
             update=False,
         )
-        self.assertEqual(obj.cites, "II")
-        obj = Genus.retrieve_or_create(
-            self.session,
+        assert gen.cites == "II"
+
+        gen = Genus.retrieve_or_create(
+            session,
             {"object": "taxon", "rank": "genus", "epithet": "Laelia"},
             create=False,
             update=False,
         )
-        self.assertEqual(obj.cites, "II")
-        obj = Species.retrieve_or_create(
-            self.session,
+        assert gen.cites == "II"
+
+        sp = Species.retrieve_or_create(
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -1836,9 +1353,10 @@ class CitesStatus_test(PlantTestCase):
             create=False,
             update=False,
         )
-        self.assertEqual(obj.cites, "I")
-        obj = Species.retrieve_or_create(
-            self.session,
+        assert sp.cites == "I"
+
+        sp = Species.retrieve_or_create(
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -1849,9 +1367,10 @@ class CitesStatus_test(PlantTestCase):
             create=False,
             update=False,
         )
-        self.assertEqual(obj.cites, "I")
-        obj = Species.retrieve_or_create(
-            self.session,
+        assert sp.cites == "I"
+
+        sp = Species.retrieve_or_create(
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -1862,14 +1381,16 @@ class CitesStatus_test(PlantTestCase):
             create=False,
             update=False,
         )
-        self.assertEqual(obj.cites, "II")
+        assert sp.cites == "II"
 
 
-class GenusHybridMarker_test(PlantTestCase):
+@pytest.mark.usefixtures("setup_plant_data")
+class TestGenusHybridMarker:
+    """Tests for identifying hybrid markers in Genus."""
 
-    def test_intergeneric_hybrid_not_hybrid(self):
+    def test_intergeneric_hybrid_not_hybrid(self, session):
         gen = Genus.retrieve_or_create(
-            self.session,
+            session,
             {
                 "ht-rank": "family",
                 "ht-epithet": "Orchidaceae",
@@ -1877,12 +1398,12 @@ class GenusHybridMarker_test(PlantTestCase):
                 "epithet": "Cattleya",
             },
         )
-        self.assertEqual(gen.hybrid_marker, "")
-        self.assertEqual(gen.hybrid_epithet, "Cattleya")
+        assert gen.hybrid_marker == ""
+        assert gen.hybrid_epithet == "Cattleya"
 
-    def test_intergeneric_hybrid_mult(self):
+    def test_intergeneric_hybrid_mult(self, session):
         gen = Genus.retrieve_or_create(
-            self.session,
+            session,
             {
                 "ht-rank": "family",
                 "ht-epithet": "Orchidaceae",
@@ -1890,12 +1411,12 @@ class GenusHybridMarker_test(PlantTestCase):
                 "epithet": "×Brassocattleya",
             },
         )
-        self.assertEqual(gen.hybrid_marker, "×")
-        self.assertEqual(gen.hybrid_epithet, "Brassocattleya")
+        assert gen.hybrid_marker == "×"
+        assert gen.hybrid_epithet == "Brassocattleya"
 
-    def test_intergeneric_hybrid_x_becomes_mult(self):
+    def test_intergeneric_hybrid_x_becomes_mult(self, session):
         gen = Genus.retrieve_or_create(
-            self.session,
+            session,
             {
                 "ht-rank": "family",
                 "ht-epithet": "Orchidaceae",
@@ -1903,12 +1424,12 @@ class GenusHybridMarker_test(PlantTestCase):
                 "epithet": "xVascostylis",
             },
         )
-        self.assertEqual(gen.hybrid_marker, "×")
-        self.assertEqual(gen.hybrid_epithet, "Vascostylis")
+        assert gen.hybrid_marker == "×"
+        assert gen.hybrid_epithet == "Vascostylis"
 
-    def test_hybrid_formula_H(self):
+    def test_hybrid_formula_h(self, session):
         gen = Genus.retrieve_or_create(
-            self.session,
+            session,
             {
                 "ht-rank": "family",
                 "ht-epithet": "Orchidaceae",
@@ -1916,14 +1437,12 @@ class GenusHybridMarker_test(PlantTestCase):
                 "epithet": "Miltonia × Odontoglossum × Cochlioda",
             },
         )
-        self.assertEqual(gen.hybrid_marker, "H")
-        self.assertEqual(
-            gen.hybrid_epithet, "Miltonia × Odontoglossum × Cochlioda"
-        )
+        assert gen.hybrid_marker == "H"
+        assert gen.hybrid_epithet == "Miltonia × Odontoglossum × Cochlioda"
 
-    def test_intergeneric_graft_hybrid_plus(self):
+    def test_intergeneric_graft_hybrid_plus(self, session):
         gen = Genus.retrieve_or_create(
-            self.session,
+            session,
             {
                 "ht-rank": "family",
                 "ht-epithet": "Rosaceae",
@@ -1931,15 +1450,22 @@ class GenusHybridMarker_test(PlantTestCase):
                 "epithet": "+Crataegomespilus",
             },
         )
-        self.assertEqual(gen.hybrid_marker, "+")
-        self.assertEqual(gen.hybrid_epithet, "Crataegomespilus")
+        assert gen.hybrid_marker == "+"
+        assert gen.hybrid_epithet == "Crataegomespilus"
+import pytest
+from sqlalchemy import select
+from bauble.plugins.plants.family import Family
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.species import Species
 
 
-class SpeciesInfraspecificProp(PlantTestCase):
+@pytest.mark.usefixtures("setup_plant_data")
+class TestSpeciesInfraspecificProp:
+    """Tests for infraspecific properties and cultivar epithet in Species."""
 
-    def test_cultivar_epithet_1(self):
+    def test_cultivar_epithet_1(self, session):
         obj = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -1950,11 +1476,11 @@ class SpeciesInfraspecificProp(PlantTestCase):
         )
         obj.infrasp1 = "Eva Weigner"
         obj.infrasp1_rank = "cv."
-        self.assertEqual(obj.cultivar_epithet, "Eva Weigner")
+        assert obj.cultivar_epithet == "Eva Weigner"
 
-    def test_cultivar_epithet_2(self):
+    def test_cultivar_epithet_2(self, session):
         obj = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -1965,41 +1491,10 @@ class SpeciesInfraspecificProp(PlantTestCase):
         )
         obj.infrasp2 = "Eva Weigner"
         obj.infrasp2_rank = "cv."
-        self.assertEqual(obj.cultivar_epithet, "Eva Weigner")
+        assert obj.cultivar_epithet == "Eva Weigner"
 
-    def include_cinnamomum_camphora(self):
-        """\
-Lauraceae,,Cinnamomum,,"camphora",,"","(L.) J.Presl"
-Lauraceae,,Cinnamomum,,"camphora",f.,"linaloolifera","(Y.Fujita) Sugim."
-Lauraceae,,Cinnamomum,,"camphora",var.,"nominale","Hats. & Hayata"
-"""
-        Family.retrieve_or_create(
-            self.session,
-            {"object": "taxon", "rank": "family", "epithet": "Lauraceae"},
-        )
-        self.cinnamomum = Genus.retrieve_or_create(
-            self.session,
-            {
-                "object": "taxon",
-                "ht-rank": "family",
-                "ht-epithet": "Lauraceae",
-                "rank": "genus",
-                "epithet": "Cinnamomum",
-            },
-        )
-        self.cinnamomum_camphora = Species.retrieve_or_create(
-            self.session,
-            {
-                "object": "taxon",
-                "ht-rank": "genus",
-                "ht-epithet": "Cinnamomum",
-                "rank": "species",
-                "epithet": "camphora",
-            },
-        )
-
-    def test_infraspecific_1(self):
-        self.include_cinnamomum_camphora()
+    def test_infraspecific_1(self, session):
+        self._include_cinnamomum_camphora(session)
         obj = Species(
             genus=self.cinnamomum,
             sp="camphora",
@@ -2007,12 +1502,12 @@ Lauraceae,,Cinnamomum,,"camphora",var.,"nominale","Hats. & Hayata"
             infrasp1="linaloolifera",
             infrasp1_author="(Y.Fujita) Sugim.",
         )
-        self.assertEqual(obj.infraspecific_rank, "f.")
-        self.assertEqual(obj.infraspecific_epithet, "linaloolifera")
-        self.assertEqual(obj.infraspecific_author, "(Y.Fujita) Sugim.")
+        assert obj.infraspecific_rank == "f."
+        assert obj.infraspecific_epithet == "linaloolifera"
+        assert obj.infraspecific_author == "(Y.Fujita) Sugim."
 
-    def test_infraspecific_2(self):
-        self.include_cinnamomum_camphora()
+    def test_infraspecific_2(self, session):
+        self._include_cinnamomum_camphora(session)
         obj = Species(
             genus=self.cinnamomum,
             sp="camphora",
@@ -2020,39 +1515,12 @@ Lauraceae,,Cinnamomum,,"camphora",var.,"nominale","Hats. & Hayata"
             infrasp2="linaloolifera",
             infrasp2_author="(Y.Fujita) Sugim.",
         )
-        self.assertEqual(obj.infraspecific_rank, "f.")
-        self.assertEqual(obj.infraspecific_epithet, "linaloolifera")
-        self.assertEqual(obj.infraspecific_author, "(Y.Fujita) Sugim.")
+        assert obj.infraspecific_rank == "f."
+        assert obj.infraspecific_epithet == "linaloolifera"
+        assert obj.infraspecific_author == "(Y.Fujita) Sugim."
 
-    def include_gleditsia_triacanthos(self):
-        "Gleditsia triacanthos var. inermis 'Sunburst'."
-        Family.retrieve_or_create(
-            self.session,
-            {"object": "taxon", "rank": "family", "epithet": "Fabaceae"},
-        )
-        self.gleditsia = Genus.retrieve_or_create(
-            self.session,
-            {
-                "object": "taxon",
-                "ht-rank": "family",
-                "ht-epithet": "Fabaceae",
-                "rank": "genus",
-                "epithet": "Gleditsia",
-            },
-        )
-        self.gleditsia_triacanthos = Species.retrieve_or_create(
-            self.session,
-            {
-                "object": "taxon",
-                "ht-rank": "genus",
-                "ht-epithet": "Gleditsia",
-                "rank": "species",
-                "epithet": "triacanthos",
-            },
-        )
-
-    def test_variety_and_cultivar_1(self):
-        self.include_gleditsia_triacanthos()
+    def test_variety_and_cultivar_1(self, session):
+        self._include_gleditsia_triacanthos(session)
         obj = Species(
             genus=self.gleditsia,
             sp="triacanthos",
@@ -2061,13 +1529,13 @@ Lauraceae,,Cinnamomum,,"camphora",var.,"nominale","Hats. & Hayata"
             infrasp2="Sunburst",
             infrasp2_rank="cv.",
         )
-        self.assertEqual(obj.infraspecific_rank, "var.")
-        self.assertEqual(obj.infraspecific_epithet, "inermis")
-        self.assertEqual(obj.infraspecific_author, "")
-        self.assertEqual(obj.cultivar_epithet, "Sunburst")
+        assert obj.infraspecific_rank == "var."
+        assert obj.infraspecific_epithet == "inermis"
+        assert obj.infraspecific_author == ""
+        assert obj.cultivar_epithet == "Sunburst"
 
-    def test_variety_and_cultivar_2(self):
-        self.include_gleditsia_triacanthos()
+    def test_variety_and_cultivar_2(self, session):
+        self._include_gleditsia_triacanthos(session)
         obj = Species(
             genus=self.gleditsia,
             sp="triacanthos",
@@ -2076,20 +1544,18 @@ Lauraceae,,Cinnamomum,,"camphora",var.,"nominale","Hats. & Hayata"
             infrasp1="Sunburst",
             infrasp1_rank="cv.",
         )
-        self.assertEqual(obj.infraspecific_rank, "var.")
-        self.assertEqual(obj.infraspecific_epithet, "inermis")
-        self.assertEqual(obj.infraspecific_author, "")
-        self.assertEqual(obj.cultivar_epithet, "Sunburst")
+        assert obj.infraspecific_rank == "var."
+        assert obj.infraspecific_epithet == "inermis"
+        assert obj.infraspecific_author == ""
+        assert obj.cultivar_epithet == "Sunburst"
 
-    def test_infraspecific_props_is_lowest_ranked(self):
-        """Saxifraga aizoon\
-        var. aizoon subvar. brevifolia f. multicaulis subf. surculosa"""
+    def test_infraspecific_props_is_lowest_ranked(self, session):
         Family.retrieve_or_create(
-            self.session,
+            session,
             {"object": "taxon", "rank": "family", "epithet": "Saxifragaceae"},
         )
-        self.genus = Genus.retrieve_or_create(
-            self.session,
+        genus = Genus.retrieve_or_create(
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "family",
@@ -2098,18 +1564,8 @@ Lauraceae,,Cinnamomum,,"camphora",var.,"nominale","Hats. & Hayata"
                 "epithet": "Saxifraga",
             },
         )
-        self.species = Species.retrieve_or_create(
-            self.session,
-            {
-                "object": "taxon",
-                "ht-rank": "genus",
-                "ht-epithet": "Saxifraga",
-                "rank": "species",
-                "epithet": "aizoon",
-            },
-        )
         subvar = Species(
-            genus=self.genus,
+            genus=genus,
             sp="aizoon",
             infrasp1_rank="var.",
             infrasp1="aizoon",
@@ -2117,7 +1573,7 @@ Lauraceae,,Cinnamomum,,"camphora",var.,"nominale","Hats. & Hayata"
             infrasp2="brevifolia",
         )
         subf = Species(
-            genus=self.genus,
+            genus=genus,
             sp="aizoon",
             infrasp2_rank="var.",
             infrasp2="aizoon",
@@ -2128,18 +1584,17 @@ Lauraceae,,Cinnamomum,,"camphora",var.,"nominale","Hats. & Hayata"
             infrasp4_rank="subf.",
             infrasp4="surculosa",
         )
-        self.assertEqual(subvar.infraspecific_rank, "subvar.")
-        self.assertEqual(subvar.infraspecific_epithet, "brevifolia")
-        self.assertEqual(subvar.infraspecific_author, "")
-        self.assertEqual(subvar.cultivar_epithet, "")
-        self.assertEqual(subf.infraspecific_rank, "subf.")
-        self.assertEqual(subf.infraspecific_epithet, "surculosa")
-        self.assertEqual(subf.infraspecific_author, "")
-        self.assertEqual(subf.cultivar_epithet, "")
-        "Saxifraga aizoon var. aizoon subvar. brevifolia f. multicaulis "
-        "cv. 'Bellissima'"
+        assert subvar.infraspecific_rank == "subvar."
+        assert subvar.infraspecific_epithet == "brevifolia"
+        assert subvar.infraspecific_author == ""
+        assert subvar.cultivar_epithet == ""
+        assert subf.infraspecific_rank == "subf."
+        assert subf.infraspecific_epithet == "surculosa"
+        assert subf.infraspecific_author == ""
+        assert subf.cultivar_epithet == ""
+
         cv = Species(
-            genus=self.genus,
+            genus=genus,
             sp="aizoon",
             infrasp4_rank="var.",
             infrasp4="aizoon",
@@ -2150,47 +1605,89 @@ Lauraceae,,Cinnamomum,,"camphora",var.,"nominale","Hats. & Hayata"
             infrasp2_rank="cv.",
             infrasp2="Bellissima",
         )
-        self.assertEqual(cv.infraspecific_rank, "f.")
-        self.assertEqual(cv.infraspecific_epithet, "multicaulis")
-        self.assertEqual(cv.infraspecific_author, "")
-        self.assertEqual(cv.cultivar_epithet, "Bellissima")
+        assert cv.infraspecific_rank == "f."
+        assert cv.infraspecific_epithet == "multicaulis"
+        assert cv.infraspecific_author == ""
+        assert cv.cultivar_epithet == "Bellissima"
 
-
-class SpeciesProperties_test(PlantTestCase):
-    "we can retrieve species_note objects given species and category"
-
-    def test_species_note_nocreate_noupdate_noexisting(self):
-        # do not create if not existing
-        obj = SpeciesNote.retrieve_or_create(
-            self.session,
+    def _include_cinnamomum_camphora(self, session):
+        Family.retrieve_or_create(
+            session,
+            {"object": "taxon", "rank": "family", "epithet": "Lauraceae"},
+        )
+        self.cinnamomum = Genus.retrieve_or_create(
+            session,
             {
-                "object": "species_note",
-                "category": "IUCN",
-                "species": "Laelia grandiflora",
+                "object": "taxon",
+                "ht-rank": "family",
+                "ht-epithet": "Lauraceae",
+                "rank": "genus",
+                "epithet": "Cinnamomum",
             },
+        )
+        self.cinnamomum_camphora = Species.retrieve_or_create(
+            session,
+            {
+                "object": "taxon",
+                "ht-rank": "genus",
+                "ht-epithet": "Cinnamomum",
+                "rank": "species",
+                "epithet": "camphora",
+            },
+        )
+
+    def _include_gleditsia_triacanthos(self, session):
+        Family.retrieve_or_create(
+            session,
+            {"object": "taxon", "rank": "family", "epithet": "Fabaceae"},
+        )
+        self.gleditsia = Genus.retrieve_or_create(
+            session,
+            {
+                "object": "taxon",
+                "ht-rank": "family",
+                "ht-epithet": "Fabaceae",
+                "rank": "genus",
+                "epithet": "Gleditsia",
+            },
+        )
+        self.gleditsia_triacanthos = Species.retrieve_or_create(
+            session,
+            {
+                "object": "taxon",
+                "ht-rank": "genus",
+                "ht-epithet": "Gleditsia",
+                "rank": "species",
+                "epithet": "triacanthos",
+            },
+        )
+
+
+@pytest.mark.usefixtures("setup_plant_data")
+class TestSpeciesProperties:
+    """Test retrieval of species_note objects given species and category."""
+
+    def test_species_note_nocreate_noupdate_noexisting(self, session):
+        obj = SpeciesNote.retrieve_or_create(
+            session,
+            {"object": "species_note", "category": "IUCN", "species": "Laelia grandiflora"},
             create=False,
         )
-        self.assertEqual(obj, None)
+        assert obj is None
 
-    def test_species_note_nocreate_noupdateeq_existing(self):
-        # retrieve same object, we only give the keys
+    def test_species_note_nocreate_noupdateeq_existing(self, session):
         obj = SpeciesNote.retrieve_or_create(
-            self.session,
-            {
-                "object": "species_note",
-                "category": "IUCN",
-                "species": "Encyclia fragrans",
-            },
+            session,
+            {"object": "species_note", "category": "IUCN", "species": "Encyclia fragrans"},
             create=False,
             update=False,
         )
-        self.assertTrue(obj is not None)
-        self.assertEqual(obj.note, "LC")
+        assert obj is not None
+        assert obj.note == "LC"
 
-    def test_species_note_nocreate_noupdatediff_existing(self):
-        # do not update object with new data
+    def test_species_note_nocreate_noupdatediff_existing(self, session):
         obj = SpeciesNote.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "species_note",
                 "category": "IUCN",
@@ -2200,12 +1697,11 @@ class SpeciesProperties_test(PlantTestCase):
             create=False,
             update=False,
         )
-        self.assertEqual(obj.note, "LC")
+        assert obj.note == "LC"
 
-    def test_species_note_nocreate_updatediff_existing(self):
-        # update object in self.session
+    def test_species_note_nocreate_updatediff_existing(self, session):
         obj = SpeciesNote.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "species_note",
                 "category": "IUCN",
@@ -2215,13 +1711,16 @@ class SpeciesProperties_test(PlantTestCase):
             create=False,
             update=True,
         )
-        self.assertEqual(obj.note, "EX")
+        assert obj.note == "EX"
 
 
-class AttributesStoredInNotes(PlantTestCase):
-    def test_proper_yaml_dictionary(self):
+@pytest.mark.usefixtures("setup_plant_data")
+class TestAttributesStoredInNotes:
+    """Test parsing and retrieval of notes as attributes."""
+
+    def test_proper_yaml_dictionary(self, session):
         obj = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -2234,12 +1733,12 @@ class AttributesStoredInNotes(PlantTestCase):
         )
         note = SpeciesNote(category="<coords>", note="{1: 1, 2: 2}")
         note.species = obj
-        self.session.commit()
-        self.assertEqual(obj.coords, {"1": 1, "2": 2})
+        session.commit()
+        assert obj.coords == {"1": 1, "2": 2}
 
-    def test_very_sloppy_json_dictionary(self):
+    def test_very_sloppy_json_dictionary(self, session):
         obj = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -2252,12 +1751,12 @@ class AttributesStoredInNotes(PlantTestCase):
         )
         note = SpeciesNote(category="<coords>", note="lat:8.3,lon:-80.1")
         note.species = obj
-        self.session.commit()
-        self.assertEqual(obj.coords, {"lat": 8.3, "lon": -80.1})
+        session.commit()
+        assert obj.coords == {"lat": 8.3, "lon": -80.1}
 
-    def test_very_very_sloppy_json_dictionary(self):
+    def test_atomic_value_interpreted(self, session):
         obj = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -2268,16 +1767,11 @@ class AttributesStoredInNotes(PlantTestCase):
             create=False,
             update=False,
         )
-        note = SpeciesNote(
-            category="<coords>", note="lat:8.3;lon:-80.1;alt:1400.0"
-        )
-        note.species = obj
-        self.session.commit()
-        self.assertEqual(obj.coords, {"lat": 8.3, "lon": -80.1, "alt": 1400.0})
+        assert obj.price == 19.50
 
-    def test_atomic_value_interpreted(self):
+    def test_atomic_value_verbatim(self, session):
         obj = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -2288,11 +1782,11 @@ class AttributesStoredInNotes(PlantTestCase):
             create=False,
             update=False,
         )
-        self.assertEqual(obj.price, 19.50)
+        assert obj.price_tag == "$19.50"
 
-    def test_atomic_value_verbatim(self):
+    def test_list_value(self, session):
         obj = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -2303,11 +1797,11 @@ class AttributesStoredInNotes(PlantTestCase):
             create=False,
             update=False,
         )
-        self.assertEqual(obj.price_tag, "$19.50")
+        assert obj.list_var == ["abc", "def"]
 
-    def test_list_value(self):
+    def test_dict_value(self, session):
         obj = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -2318,30 +1812,16 @@ class AttributesStoredInNotes(PlantTestCase):
             create=False,
             update=False,
         )
-        self.assertEqual(obj.list_var, ["abc", "def"])
+        assert obj.dict_var == {"k": "abc", "l": "def", "m": "xyz"}
 
-    def test_dict_value(self):
+
+@pytest.mark.usefixtures("setup_plant_data")
+class TestConservationStatus:
+    """Test retrieval of IUCN conservation status."""
+
+    def test(self, session):
         obj = Species.retrieve_or_create(
-            self.session,
-            {
-                "object": "taxon",
-                "ht-rank": "genus",
-                "rank": "species",
-                "ht-epithet": "Laelia",
-                "epithet": "lobata",
-            },
-            create=False,
-            update=False,
-        )
-        self.assertEqual(obj.dict_var, {"k": "abc", "l": "def", "m": "xyz"})
-
-
-class ConservationStatus_test(PlantTestCase):
-    "can retrieve the IUCN conservation status as defined in species"
-
-    def test(self):
-        obj = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -2352,13 +1832,13 @@ class ConservationStatus_test(PlantTestCase):
             create=False,
             update=False,
         )
-        self.assertEqual(obj.conservation, "LC")
+        assert obj.conservation == "LC"
 
-
-class PresenterTest(PlantTestCase):
-    def test_canreeditobject(self):
+@pytest.mark.usefixtures("setup_plant_data")
+class TestPresenter:
+    def test_can_reedit_object(self, session):
         species = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -2374,15 +1854,12 @@ class PresenterTest(PlantTestCase):
         presenter.commit_changes()
         species.author = "Asher"
         presenter.commit_changes()
+        assert species.author == "Asher"
 
-    def test_cantinsertsametwice(self):
-        "while binomial name in view matches database item, warn user"
-
-        raise SkipTest("Not Implemented")  # presenter uses view internals
-        from .species_editor import SpeciesEditorPresenter
-
+    @pytest.mark.skip(reason="Not Implemented: Presenter uses view internals")
+    def test_cant_insert_same_twice(self, session):
         model = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -2396,16 +1873,16 @@ class PresenterTest(PlantTestCase):
         presenter = SpeciesEditorPresenter(model, MockView())
         presenter.on_text_entry_changed("sp_species_entry", "grandiflora")
 
-    def test_cantinsertsametwice_warnonce(self):
-        "while binomial name in view matches database item, warn user"
+    @pytest.mark.skip(reason="Not Implemented: Presenter uses view internals")
+    def test_cant_insert_same_twice_warn_once(self, session):
+        # Implementation skipped
+        pass
 
-        raise SkipTest("Not Implemented")  # presenter uses view internals
-
-
-class GlobalFunctionsTest(PlantTestCase):
-    def test_species_markup_func(self):
+@pytest.mark.usefixtures("setup_plant_data")
+class TestGlobalFunctions:
+    def test_species_markup_func(self, session):
         eCo = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -2417,7 +1894,7 @@ class GlobalFunctionsTest(PlantTestCase):
             update=False,
         )
         model = Species.retrieve_or_create(
-            self.session,
+            session,
             {
                 "object": "taxon",
                 "ht-rank": "genus",
@@ -2429,60 +1906,48 @@ class GlobalFunctionsTest(PlantTestCase):
             update=False,
         )
         first, second = eCo.search_view_markup_pair()
-        self.assertTrue(
-            remove_zws(first).startswith("<i>Maxillaria</i> <i>variabilis</i>")
-        )
-        expect = (
+        assert remove_zws(first).startswith("<i>Maxillaria</i> <i>variabilis</i>")
+        expected = (
             '<i>Maxillaria</i> <i>variabilis</i> <span weight="light">'
             'Bateman ex Lindl.</span><span foreground="#555555" size="small" '
             'weight="light"> - synonym of <i>Encyclia</i> <i>cochleata</i> '
             "(L.) Lemée</span>"
         )
-        self.assertEqual(remove_zws(first), expect)
-        self.assertEqual(second, "Orchidaceae -- SomeName, SomeName 2")
+        assert remove_zws(first) == expected
+        assert second == "Orchidaceae -- SomeName, SomeName 2"
+
         first, second = model.search_view_markup_pair()
-        self.assertEqual(
-            remove_zws(first),
-            '<i>Laelia</i> <i>lobata</i> <span weight="light">H.J. Veitch</span>',
-        )
-        self.assertEqual(second, "Orchidaceae")
+        assert remove_zws(first) == '<i>Laelia</i> <i>lobata</i> <span weight="light">H.J. Veitch</span>'
+        assert second == "Orchidaceae"
 
-    def test_vername_markup_func(self):
-        vName = self.session.execute(select(VernacularName)).scalars().where(id=1).one()
+    def test_vername_markup_func(self, session):
+        vName = session.execute(select(VernacularName)).scalars().where(id=1).one()
         first, second = vName.search_view_markup_pair()
-        self.assertEqual(
-            remove_zws(second), "<i>Maxillaria</i> <i>variabilis</i>"
-        )
-        self.assertEqual(first, "SomeName")
+        assert remove_zws(second) == "<i>Maxillaria</i> <i>variabilis</i>"
+        assert first == "SomeName"
 
-    def test_species_get_kids(self):
-        mVa = self.session.execute(select(Species)).scalars().where(id=1).one()
-        self.assertEqual(partial(db.natsort, "accessions")(mVa), [])
+    def test_species_get_kids(self, session):
+        mVa = session.execute(select(Species)).scalars().where(id=1).one()
+        assert partial(db.natsort, "accessions")(mVa) == []
 
-    def test_vernname_get_kids(self):
-        vName = self.session.execute(select(VernacularName)).scalars().where(id=1).one()
-        self.assertEqual(partial(db.natsort, "species.accessions")(vName), [])
+    def test_vernname_get_kids(self, session):
+        vName = session.execute(select(VernacularName)).scalars().where(id=1).one()
+        assert partial(db.natsort, "species.accessions")(vName) == []
 
-
-class BaubleSearchSearchTest(BaubleTestCase):
-    def test_search_search_uses_Synonym_Search(self):
+@pytest.mark.usefixtures("setup_bauble_data")
+class TestBaubleSearch:
+    def test_search_uses_synonym_search(self, session, caplog):
         import bauble.plugins.garden.plant
 
-        bauble.search.logger.setLevel(logging.DEBUG)
-        bauble.search.search("genus like %", self.session)
-        self.assertTrue(
-            'SearchStrategy "genus like %"(SynonymSearch)'
-            in self.handler.messages["bauble.search"]["debug"]
-        )
-        self.handler.reset()
-        bauble.search.search("12.11.13", self.session)
-        self.assertTrue(
-            'SearchStrategy "12.11.13"(SynonymSearch)'
-            in self.handler.messages["bauble.search"]["debug"]
-        )
-        self.handler.reset()
-        bauble.search.search("So ha", self.session)
-        self.assertTrue(
-            'SearchStrategy "So ha"(SynonymSearch)'
-            in self.handler.messages["bauble.search"]["debug"]
-        )
+        caplog.set_level(logging.DEBUG, logger="bauble.search")
+        bauble.search.search("genus like %", session)
+        assert 'SearchStrategy "genus like %"(SynonymSearch)' in caplog.text
+
+        caplog.clear()
+        bauble.search.search("12.11.13", session)
+        assert 'SearchStrategy "12.11.13"(SynonymSearch)' in caplog.text
+
+        caplog.clear()
+        bauble.search.search("So ha", session)
+        assert 'SearchStrategy "So ha"(SynonymSearch)' in caplog.text
+

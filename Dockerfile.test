@@ -314,7 +314,7 @@ ENV DEBUG=false
 #CMD ["/bin/bash", "-c", "/opt/venv/migrate_to_1.3/bin/python -m coverage run --source=bauble -m pytest && coverage report && coverage html"]
 CMD bash -c ". $VIRTUAL_ENV/bin/activate && \
     if [ \"$DEBUG\" = \"true\" ]; then \
-        python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m pytest; \
+        python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m pytest \$PYTEST_ARGS ; \
     else \
         /app/scripts/ghini; \
     fi"

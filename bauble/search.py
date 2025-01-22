@@ -738,6 +738,9 @@ class DomainExpressionAction(object):
     def __repr__(self):
         return "%s %s %s" % (self.domain, self.cond, self.values)
 
+    from sqlalchemy import select, or_
+    from sqlalchemy import inspect
+
     def invoke(self, search_strategy):
         logger.debug("DomainExpressionAction:invoke")
         try:
@@ -845,40 +848,37 @@ class ValueListAction(object):
         """
         Called when the whole search string is a value list.
 
-        Search with a list of values is the broadest search and
-        searches all the mapper and the properties configured with
-        add_meta()
+        Searches all the mapper and the properties configured with `add_meta()`.
         """
         logger.debug("ValueListAction:invoke")
-        like = lambda table, col, val: utils.ilike(table.c[col], ("%%%s%%" % val))
+        like = lambda table, col, val: utils.ilike(table.c[col], f"%{val}%")
 
         result = set()
         for cls, columns in search_strategy._properties.items():
             column_cross_value = [(c, v) for c in columns for v in self.express()]
             table = inspect(cls)
-            stmt = select(cls)
+            stmt = select(cls)  # Create the initial SELECT statement
 
-            if isinstance(stmt, Select):
-                stmt = stmt.subquery()
-
+            # Apply the filter before converting to a subquery
             ors = or_(*[like(table, c, v) for c, v in column_cross_value])
-            stmt = stmt.filter(ors)
+            stmt = stmt.where(ors)  # Use .where() to apply filters
 
-            result.update(search_strategy._session.scalars(stmt).all())
+            # Execute the query and collect results
+            logger.debug(f"Executing query: {stmt}")
+            query_result = search_strategy._session.scalars(stmt).all()
+            result.update(query_result)
 
-        def replace(i):
+        def replace(item):
             try:
-                replacement = i.replacement()
-                logger.debug("replacing %s by %s in result set", i, replacement)
+                replacement = item.replacement()
+                logger.debug("Replacing %s with %s in result set", item, replacement)
                 return replacement
             except Exception:
-                return i
+                return item
 
         result = {replace(i) for i in result if i is not None}
-        logger.debug("Result is now %s", result)
+        logger.debug("Final result set: %s", result)
         return result
-
-
 
 wordStart, wordEnd = WordStart(), WordEnd()
 
@@ -1127,9 +1127,11 @@ class MapperSearch(SearchStrategy):
 
             if domain_class is not None:
                 # Map IDs to ORM objects dynamically
+                # Ensure raw_results are applied correctly with subquery handling
+                subquery = select(domain_class.id).where(domain_class.id.in_(raw_results)).subquery()
                 orm_results = (
                     self._session.query(domain_class)
-                    .filter(domain_class.id.in_(raw_results))
+                    .join(subquery, domain_class.id == subquery.c.id)
                     .all()
                 )
                 self._results.update(orm_results)

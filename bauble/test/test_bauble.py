@@ -19,285 +19,307 @@
 #
 # test_bauble.py
 #
+# Refactored to use Pytest and SQLAlchemy 2.0.36
+
 import datetime
 import logging
 import os
+import pytest
 import time
-import unittest
-
-import bauble
-import bauble.db as db
-import bauble.meta as meta
-from bauble.btypes import Enum
-from bauble.btypes import EnumError
-from bauble.test import BaubleTestCase
+from sqlalchemy import Column, Integer, select
+from bauble import db, meta, prefs
+import bauble.btypes as types
+from bauble.plugins.plants import Family
 from bauble.test import check_dupids
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import select
+import tempfile
+
+from io import BytesIO
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger._cache.clear()
+logger.setLevel(logging.INFO)
+prefs.testing = True
 
 
-"""Tests for the main bauble module.
+@pytest.fixture
+def clean_enum_table(db_session):
+    """
+    Fixture to clean and create the Enum test table for each test.
+    """
+#    metadata = db.Base.metadata
+#    if "test_enum_type" in metadata.tables:
+#        del metadata.tables["test_enum_type"]  # Remove existing table definition
 
-don't please give docstrings to tests, better make sure they have a
-meaningful name.  docstrings complicate the debugging task of finding back
-which function is being invoked.
+    class TestEnum(db.Base):
+        __tablename__ = "test_enum_type"
+        id = Column(Integer, primary_key=True)
+        value = Column(types.Enum(values=["1", "2", ""]), default="")
 
-"""
+    metadata = db.Base.metadata
+    if "test_enum_type" in metadata.tables:
+        metadata.remove(TestEnum.__table__)
+        
+    TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
+    TestEnum.__table__.create(bind=db_session.bind)
+
+    yield TestEnum
+
+    TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
 
 
-class EnumTests(BaubleTestCase):
+class TestEnumModel:
+    """
+    Tests for Enum-based SQLAlchemy model.
+    """
 
-    table = None
+    def test_insert_low_level(self, db_session, clean_enum_table):
+        db_session.execute(clean_enum_table.__table__.insert().values(id=1))
+        db_session.commit()
 
-    def setUp(self):
-        BaubleTestCase.setUp(self)
-        if self.__class__.table is None:
+    def test_insert_alchemic(self, db_session, clean_enum_table):
+        instance = clean_enum_table(id=1)
+        db_session.add(instance)
+        db_session.flush()
 
-            class Test(db.Base):
-                __tablename__ = "test_enum_type"
-                id = Column(Integer, primary_key=True)
-                value = Column(Enum(values=["1", "2", ""]), default="")
+    def test_insert_by_value_ok(self, db_session, clean_enum_table):
+        instance = clean_enum_table(value="1")
+        db_session.add(instance)
+        db_session.flush()
 
-            self.__class__.Test = Test
-            self.__class__.table = Test.__table__
-            self.table.create(bind=db.engine)
-
-    def tearDown(self):
-        BaubleTestCase.tearDown(self)
-
-    def test_insert_low_level(self):
-        with db.engine.connect() as conn:
-            conn.execute(self.table.insert().values(id=1))
-            conn.commit()
-
-    def test_insert_alchemic(self):
-        t = self.Test(id=1)
-        self.session.add(t)
-        self.session.flush()
-
-    def test_insert_by_value_ok(self):
-        t = self.Test(value="1")
-        self.session.add(t)
-        self.session.flush()
-
-    def test_insert_by_value_wrong_value_seen_late(self):
+    def test_insert_by_value_wrong_value_seen_late(self, db_session, clean_enum_table):
         from sqlalchemy.exc import StatementError
 
-        t = self.Test(value="33")
-        self.session.add(t)
-        self.assertRaises(StatementError, self.session.flush)
+        instance = clean_enum_table(value="33")
+        db_session.add(instance)
+        with pytest.raises(StatementError):
+            db_session.flush()
 
     def function_creating_enum(self, name, values, **kwargs):
-        self.Table = type(
-            "test_table_" + name,
+        """
+        Helper function to dynamically create an Enum-based table.
+        """
+        table_class = type(
+            f"test_table_{name}",
             (db.Base,),
             {
-                "__tablename__": "test_enum_type_" + name,
+                "__tablename__": f"test_enum_type_{name}",
                 "id": Column(Integer, primary_key=True),
-                "value": Column(Enum(values=values, **kwargs), default=""),
+                "value": Column(types.Enum(values=values, **kwargs), default=""),
             },
         )
-        self.table = self.Table.__table__
-        self.table.create(bind=db.engine)
+        table_class.__table__.create(bind=db.engine)
+        return table_class
 
     def test_bad_enum(self):
+        """
+        Test invalid Enum configurations.
+        """
         self.function_creating_enum(
             "zero",
-            [
-                "1",
-                "2",
-                "3",
-            ],
+            ["1", "2", "3"],
         )
-        self.assertRaises(EnumError, self.function_creating_enum, "one", [])
-        self.assertRaises(EnumError, self.function_creating_enum, "two", None)
-        self.assertRaises(
-            EnumError, self.function_creating_enum, "three", [1, ""]
-        )  # int can't be
-        self.assertRaises(
-            EnumError,
-            self.function_creating_enum,
-            "four",
-            [
-                "1",
-                "1",
-            ],
-        )  # same value twice
-        self.assertRaises(
-            EnumError, self.function_creating_enum, "five", ["1", [], None]
-        )  # strings please
-        self.assertRaises(
-            EnumError,
-            self.function_creating_enum,
-            "six",
-            ["1", "2"],
-            empty_to_none=True,
-        )  # no empty
 
-    def test_empty_to_none(self):
-        self.function_creating_enum("seven", ["1", None], empty_to_none=True)
-        t = self.Table(value="1")
-        self.session.add(t)
-        t = self.Table(value="")
-        self.session.add(t)
-        self.session.flush()
-        q = self.session.execute(select(self.Table).where(self.Table.value == "")).scalars()
-        self.assertEqual(q.all(), [])
-        q = self.session.execute(select(self.Table).where(self.Table.value == None)).scalars()
-        self.assertEqual(q.all(), [t])
+        with pytest.raises(types.EnumError):
+            self.function_creating_enum("one", [])
+
+        with pytest.raises(types.EnumError):
+            self.function_creating_enum("two", None)
+
+        with pytest.raises(types.EnumError):
+            self.function_creating_enum("three", [1, ""])  # Invalid type
+
+        with pytest.raises(types.EnumError):
+            self.function_creating_enum("four", ["1", "1"])  # Duplicate values
+
+        with pytest.raises(types.EnumError):
+            self.function_creating_enum("five", ["1", [], None])  # Invalid types
+
+        with pytest.raises(types.EnumError):
+            self.function_creating_enum("six", ["1", "2"], empty_to_none=True)  # empty_to_none with empty string
+
+    def test_empty_to_none(self, db_session):
+        """
+        Test the `empty_to_none` functionality for Enums.
+        """
+        TestEnum = self.function_creating_enum("seven", ["1", None], empty_to_none=True)
+
+        # Insert rows into the table
+        row1 = TestEnum(value="1")
+        row2 = TestEnum(value="")
+        db_session.add_all([row1, row2])
+        db_session.flush()
+
+        # Query for empty string (should return nothing)
+        query = db_session.execute(select(TestEnum).where(TestEnum.value == "")).scalars()
+        assert query.all() == []
+
+        # Query for None (should return row2)
+        query = db_session.execute(select(TestEnum).where(TestEnum.value == None)).scalars()
+        assert query.all() == [row2]
+
+    def test_function_creating_enum_with_fixture(self, db_session, clean_enum_table):
+        """
+        Ensure the `function_creating_enum` works with the clean_enum_table fixture.
+        """
+        # Test Enum setup
+        row = clean_enum_table(value="1")
+        db_session.add(row)
+        db_session.flush()
+
+        query = db_session.execute(select(clean_enum_table).where(clean_enum_table.value == "1")).scalars()
+        assert query.first() == row
 
 
-class BaubleTests(BaubleTestCase):
+@pytest.mark.usefixtures("clean_db")
+class TestDateTypes:
+    """
+    Tests for Date and DateTime types in bauble.btypes.
+    """
+
     def test_date_type(self):
-        dt = bauble.btypes.Date()
+        from bauble.btypes import Date
 
-        bauble.btypes.Date._dayfirst = False
-        bauble.btypes.Date._yearfirst = False
+        dt = Date()
+
+        # MM-DD-YYYY format
+        prefs.dayfirst = False
+        prefs.yearfirst = False
         s = "12-30-2008"
         v = dt.process_bind_param(s, None)
-        self.assertTrue(
-            v.month == 12 and v.day == 30 and v.year == 2008,
-            "{} == {}".format(v, s),
-        )
+        assert v.month == 12 and v.day == 30 and v.year == 2008
 
-        bauble.btypes.Date._dayfirst = True
-        bauble.btypes.Date._yearfirst = False
+        # DD-MM-YYYY format
+        prefs.dayfirst = True
+        prefs.yearfirst = False
         s = "30-12-2008"
         v = dt.process_bind_param(s, None)
-        self.assertTrue(
-            v.month == 12 and v.day == 30 and v.year == 2008,
-            "{} == {}".format(v, s),
-        )
+        assert v.month == 12 and v.day == 30 and v.year == 2008
 
-        bauble.btypes.Date._dayfirst = False
-        bauble.btypes.Date._yearfirst = True
+        # YYYY-MM-DD format
+        prefs.dayfirst = False
+        prefs.yearfirst = True
         s = "2008-12-30"
         v = dt.process_bind_param(s, None)
-        self.assertTrue(
-            v.month == 12 and v.day == 30 and v.year == 2008,
-            "{} == {}".format(v, s),
-        )
+        assert v.month == 12 and v.day == 30 and v.year == 2008
 
     def test_datetime_type(self):
-        dt = bauble.btypes.DateTime()
+        from bauble.btypes import DateTime
 
-        # with negative timezone
+        dt = DateTime()
+
+        # DateTime with negative timezone
         s = "2008-12-1 11:50:01.001-05:00"
-        expect = "2008-12-01 11:50:01.001000-05:00"
-        result = dt.process_bind_param(s, None)
-        self.assertEqual(str(result), expect)
+        result = "2008-12-01 11:50:01.001000-05:00"
+        v = dt.process_bind_param(s, None)
+        assert str(v) == result
 
-        # test with positive timezone
+        # DateTime with positive timezone
         s = "2008-12-1 11:50:01.001+05:00"
         result = "2008-12-01 11:50:01.001000+05:00"
         v = dt.process_bind_param(s, None)
-        self.assertTrue(str(v) == result, "{} == {}".format(v, result))
+        assert str(v) == result
 
-        # test with no timezone
+        # DateTime with no timezone
         s = "2008-12-1 11:50:01.001"
         result = "2008-12-01 11:50:01.001000"
         v = dt.process_bind_param(s, None)
-        self.assertTrue(str(v) == result, "{} == {}".format(v, result))
+        assert str(v) == result
 
         # test with no milliseconds
         s = "2008-12-1 11:50:01"
         result = "2008-12-01 11:50:01"
         v = dt.process_bind_param(s, None)
-        self.assertTrue(v.isoformat(" ") == result)
+        assert v.isoformat(" ") == result
 
-    def test_base_table(self):
-
+    def test_base_table(self, db_session):
+        """
+        Test `_created` and `_last_updated` fields in `BaubleMeta`.
+        """
+        # Insert a new record
         m = meta.BaubleMeta(name="name", value="value")
-        self.session.add(m)
-        self.session.commit()
-        m = self.session.execute(
+        db_session.add(m)
+        db_session.commit()
+
+        # Query the record back
+        m = db_session.execute(
             select(meta.BaubleMeta).where(meta.BaubleMeta.name == "name")
         ).scalars().first()
 
+        # Assert `_created` and `_last_updated` are properly created
+        assert hasattr(m, "_created") and isinstance(m._created, datetime.datetime)
+        assert hasattr(m, "_last_updated") and isinstance(m._last_updated, datetime.datetime)
 
-        # test that _created and _last_updated were created correctly
-        self.assertTrue(
-            hasattr(m, "_created")
-            and isinstance(m._created, datetime.datetime)
-        )
-        self.assertTrue(
-            hasattr(m, "_last_updated")
-            and isinstance(m._last_updated, datetime.datetime)
-        )
-
-        # test that created does not change when the value is updated
-        # but that last_updated does
+        # Save the timestamps for comparison
         created = m._created
         last_updated = m._last_updated
-        # sleep for one second before committing since the DateTime
-        # column only has one second granularity
+
+        # Sleep to ensure timestamp granularity and update the record
         time.sleep(1.1)
         m.value = "value2"
-        self.session.commit()
-        self.session.expire(m)
-        self.assertTrue(isinstance(m._created, datetime.datetime))
-        self.assertTrue(m._created == created)
-        self.assertTrue(isinstance(m._last_updated, datetime.datetime))
-        self.assertTrue(m._last_updated != last_updated)
+        db_session.commit()
+        db_session.expire(m)
+
+        # Assert `_created` does not change but `_last_updated` does
+        assert isinstance(m._created, datetime.datetime)
+        assert m._created == created
+        assert isinstance(m._last_updated, datetime.datetime)
+        assert m._last_updated != last_updated
+
 
     def test_duplicate_ids(self):
+        """
+        Test for duplicate IDs in all `.glade` files.
+        """
+        import bauble as mod
         import glob
 
-        import bauble as mod
+        # Get the directory of the module
+        head, _ = os.path.split(mod.__file__)
 
-        head, tail = os.path.split(mod.__file__)
-        files = glob.glob(os.path.join(head, "*.glade"))
-        for f in files:
+        # Find all `.glade` files
+        glade_files = glob.glob(os.path.join(head, "*.glade"))
+
+        # Assert no duplicate IDs in any `.glade` file
+        for f in glade_files:
             ids = check_dupids(f)
-            self.assertTrue(
-                ids == [], "{} has duplicate ids: {}".format(f, str(ids))
-            )
+            assert ids == [], f"{f} has duplicate IDs: {ids}"
 
+@pytest.mark.usefixtures("clean_db")
+class TestHistory:
+    """
+    Tests for tracking history changes in the database.
+    """
 
-class HistoryTests(BaubleTestCase):
-        
-    def test(self):
-        from bauble.plugins.plants import Family
-        # Verify the Base and session configuration
-        self.verify_base_and_session()
-
+    def test_history_tracking(self, db_session):
         f = Family(family="Family")
-        self.session.add(f)
-        self.session.commit()
-        history = (
-            self.session.execute(
-                select(db.History).order_by(db.History.timestamp.desc())
-            )
-            .scalars()
-            .first()
-        )
-        assert history.table_name == "family" and history.operation == "insert"
+        db_session.add(f)
+        db_session.commit()
 
+        # Insert operation
+        history = db_session.execute(
+            select(db.History).order_by(db.History.timestamp.desc())
+        ).scalars().first()
+        assert history.table_name == "family"
+        assert history.operation == "insert"
+
+        # Update operation
         f.family = "Family2"
-        self.session.commit()
-        history = (
-            self.session.execute(
-                select(db.History).order_by(db.History.timestamp.desc())
-            )
-            .scalars()
-            .first()
-        )
-        assert history.table_name == "family" and history.operation == "update"
+        db_session.commit()
+        history = db_session.execute(
+            select(db.History).order_by(db.History.timestamp.desc())
+        ).scalars().first()
+        assert history.table_name == "family"
+        assert history.operation == "update"
 
-        self.session.delete(f)
-        self.session.commit()
-        history = (
-            self.session.execute(
-                select(db.History).order_by(db.History.timestamp.desc())
-            )
-            .scalars()
-            .first()
-        )
-        assert history.table_name == "family" and history.operation == "delete"
+        # Delete operation
+        db_session.delete(f)
+        db_session.commit()
+        history = db_session.execute(
+            select(db.History).order_by(db.History.timestamp.desc())
+        ).scalars().first()
+        assert history.table_name == "family"
+        assert history.operation == "delete"
+
 
     def verify_base_and_session(self):
         """
@@ -320,18 +342,28 @@ class HistoryTests(BaubleTestCase):
         assert issubclass(Family, db.Base), "Family is not derived from the correct Base!"
         logger.info("All Base and session checks passed.")
 
-class MVPTests(BaubleTestCase):
+
+
+
+from bauble.editor import GenericEditorPresenter, GenericEditorView
+@pytest.mark.usefixtures("clean_db")
+class TestMVP:
+    """
+    Tests for MVP (Model-View-Presenter) components.
+    """
 
     def test_can_programmatically_connect_signals(self):
-        from bauble.editor import GenericEditorPresenter, GenericEditorView
+        """
+        Ensure that signals can be programmatically connected.
+        """
 
         class HandlerDefiningPresenter(GenericEditorPresenter):
             def on_tag_desc_textbuffer_changed(self, *args):
                 pass
 
         model = db.History()
-        import tempfile
 
+        # Step 1: Create a base dialog with no attached signals
         handle, fn = tempfile.mkstemp()
         os.close(handle)
         with open(fn, "w") as ntf:
@@ -346,9 +378,12 @@ class MVPTests(BaubleTestCase):
             )
         view = GenericEditorView(fn, None, "handler-defining-view")
         presenter = HandlerDefiningPresenter(model, view)
-        natural_number_for_dialog_box = len(
+
+        initial_signal_count = len(
             presenter.view._GenericEditorView__attached_signals
         )
+
+        # Step 2: Add a text buffer with a signal attached
         handle, fn = tempfile.mkstemp()
         os.close(handle)
         with open(fn, "w") as ntf:
@@ -366,26 +401,37 @@ class MVPTests(BaubleTestCase):
             )
         view = GenericEditorView(fn, None, "handler-defining-view")
         presenter = HandlerDefiningPresenter(model, view)
-        self.assertEqual(
-            len(presenter.view._GenericEditorView__attached_signals),
-            natural_number_for_dialog_box + 1,
+
+        # Assert the number of signals attached has increased
+        assert (
+            len(presenter.view._GenericEditorView__attached_signals)
+            == initial_signal_count + 1
         )
-        presenter.on_tag_desc_textbuffer_changed()  # avoid uncounted line!
+
+        # Ensure the handler is callable
+        presenter.on_tag_desc_textbuffer_changed()  # Avoid uncounted line!
 
 
-class GlobalFunctionsTests(unittest.TestCase):
-    def test_newer_version_on_github(self):
-        import io
+@pytest.mark.parametrize(
+    "version_stream, expected_result",
+    [
+        (BytesIO(b'version = "1.0.0"  # comment'), False),
+        (BytesIO(b'version = "1.0.99999"  # comment'), True),
+        (BytesIO(b'version = "1.0.99999"  # comment'), "1.0.99999"),
+        (BytesIO(b'version = "1.099999"  # comment'), False),
+        (BytesIO(b'version = "1.0.99999-dev"  # comment'), False),
+    ],
+)
+def test_newer_version_on_github(version_stream, expected_result):
+    """
+    Test parsing and evaluation of version strings for newer versions on GitHub.
+    """
+    from bauble.connmgr import newer_version_on_github
+    if logger.isEnabledFor(logging.INFO):
+        logger.info("running unreleased version")
+    result = newer_version_on_github(version_stream)
+    if isinstance(expected_result, bool):
+        assert bool(result) is expected_result
+    else:
+        assert result == expected_result
 
-        from bauble.connmgr import newer_version_on_github
-
-        stream = io.BytesIO(b'version = "1.0.0"  # comment')
-        self.assertFalse(newer_version_on_github(stream) and True or False)
-        stream = io.BytesIO(b'version = "1.0.99999"  # comment')
-        self.assertTrue(newer_version_on_github(stream) and True or False)
-        stream = io.BytesIO(b'version = "1.0.99999"  # comment')
-        self.assertEqual(newer_version_on_github(stream), "1.0.99999")
-        stream = io.BytesIO(b'version = "1.099999"  # comment')
-        self.assertFalse(newer_version_on_github(stream) and True or False)
-        stream = io.BytesIO(b'version = "1.0.99999-dev"  # comment')
-        self.assertFalse(newer_version_on_github(stream) and True or False)

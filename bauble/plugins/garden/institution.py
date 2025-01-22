@@ -35,6 +35,10 @@ import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 
 import gi
+# mapping stuff
+gi.require_version("GtkClutter", "1.0")
+gi.require_version("GtkChamplain", "0.12")
+gi.require_version("Champlain", "0.12")
 from gi.repository import Champlain
 from gi.repository import Clutter
 from gi.repository import Gdk
@@ -44,10 +48,6 @@ from gi.repository import GtkClutter
 from sqlalchemy import select, insert, update
 #from sqlalchemy.orm import Session
 
-# mapping stuff
-gi.require_version("GtkClutter", "1.0")
-gi.require_version("GtkChamplain", "0.12")
-gi.require_version("Champlain", "0.12")
 
 GtkClutter.init([])  # needed before importing Champlain
 

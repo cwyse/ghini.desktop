@@ -359,12 +359,14 @@ class Verification(db.Base):
         primaryjoin="Verification.species_id == Species.id",
         foreign_keys=[species_id],
         uselist=False,
+        overlaps="previous_verifications",
     )
     prev_species = relationship(
         "Species",
         primaryjoin="Verification.prev_species_id == Species.id",
         foreign_keys=[prev_species_id],
         uselist=False,
+        overlaps="verifications",
     )
     notes = Column(UnicodeText)
 

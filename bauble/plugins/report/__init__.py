@@ -44,6 +44,8 @@ from bauble.plugins.plants import VernacularName
 from bauble.plugins.tag import Tag
 from bauble.prefs import prefs
 #from gi.repository import Gdk
+
+gi.require_version("Gtk", "3.0")
 from gi.repository import GObject
 from gi.repository import Gtk
 from sqlalchemy import union, select
@@ -62,7 +64,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-gi.require_version("Gtk", "3.0")
 
 
 # name: formatter_kwargs

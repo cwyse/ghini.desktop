@@ -29,17 +29,17 @@ import sys
 
 logger = logging.getLogger(__name__)
 
-
 def main_is_frozen():
-    """Returns True/False if Ghini is being run from a py2exe executable."""
-    import importlib
-
+    """Returns True if the application is running from a frozen executable."""
+    import importlib.machinery
     return (
-        hasattr(sys, "frozen")  # new py2exe
-        or hasattr(sys, "importers")  # old py2exe
-        or issubclass("__main__".__class__, importlib.machinery.FrozenImporter)
-    )  # tools/freeze
-
+        hasattr(sys, "frozen")  # Commonly used by PyInstaller and py2exe
+        or getattr(sys, "importers", None) is not None  # Old py2exe
+        or (
+            hasattr(importlib.machinery, "FrozenImporter") and
+            isinstance(sys.modules["__main__"].__loader__, importlib.machinery.FrozenImporter)
+        )  # Check for freeze tools
+    )
 
 def main_dir():
     """
