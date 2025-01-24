@@ -60,7 +60,7 @@ from sqlalchemy.orm.session import object_session
 #from sqlalchemy.types import Enum
 from sqlalchemy import asc
 from sqlalchemy.orm import Session
-
+from sqlalchemy.ext.hybrid import hybrid_property
 
 logger = logging.getLogger(__name__)
 
@@ -263,8 +263,21 @@ class Family(db.Base, db.Serializable, db.WithNotes):
 
     # columns
     epithet = Column(String(45), nullable=False, index=True)
-    family = synonym("epithet")
+    #family = synonym("epithet")
 
+    # Use hybrid property for the 'family' synonym
+    @hybrid_property
+    def family(self):
+        return self.epithet
+
+    @family.setter
+    def family(self, value):
+        self.epithet = value
+    
+    @family.expression
+    def family(cls):
+        return cls.epithet
+    
     # use '' instead of None so that the constraints will work propertly
     author = Column(Unicode(255), default="")
 

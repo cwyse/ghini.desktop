@@ -19,7 +19,9 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
 from gettext import gettext as _
-
+from sqlalchemy.orm import class_mapper
+from sqlalchemy import Unicode
+from sqlalchemy import UnicodeText
 import bauble.utils as utils
 #from bauble.db import get_orm_entity_by_name
 from bauble.error import check
@@ -848,35 +850,48 @@ class ValueListAction(object):
         """
         Called when the whole search string is a value list.
 
-        Searches all the mapper and the properties configured with `add_meta()`.
+        Search with a list of values is the broadest search and
+        searches all the mapper and the properties configured with
+        add_meta().
         """
-        logger.debug("ValueListAction:invoke")
-        like = lambda table, col, val: utils.ilike(table.c[col], f"%{val}%")
+
+        logger.debug('ValueListAction:invoke')
+        # make searches case-insensitive, in postgres use ilike,
+        # in other use upper()
+        def ilike_filter(cls, column, value):
+            """Portable case-insensitive filtering."""
+            return func.lower(getattr(cls, column)).like(f"%{value.lower()}%")
 
         result = set()
+
         for cls, columns in search_strategy._properties.items():
-            column_cross_value = [(c, v) for c in columns for v in self.express()]
-            stmt = select(cls)  # Create the initial SELECT statement
+            # Build cross product of columns and values
+            column_value_pairs = [
+                (column, value) for column in columns for value in self.express()
+            ]
 
-            # Apply the filter before converting to a subquery
-            ors = or_(*[like(getattr(cls, c), v) for c, v in column_cross_value])
-            stmt = stmt.filter(ors)  # Use .where() to apply filters
+            # Build a filter condition for each column-value pair
+            filters = [
+                ilike_filter(cls, column, value) for column, value in column_value_pairs
+            ]
 
-            # Execute the query and collect results
-            logger.debug(f"Executing query: {stmt}")
-            query_result = search_strategy._session.scalars(stmt).all()
-            result.update(query_result)
+            # Execute the query for the current class
+            query = search_strategy._session.query(cls).filter(or_(*filters))
+            result.update(query.all())
 
+        # Post-process the results
         def replace(item):
             try:
                 replacement = item.replacement()
-                logger.debug("Replacing %s with %s in result set", item, replacement)
+                logger.debug('Replacing %s with %s in result set', item, replacement)
                 return replacement
-            except Exception:
+            except Exception as e:
+                logger.debug('No replacement for %s due to: %s', item, e)
                 return item
 
-        result = {replace(i) for i in result if i is not None}
-        logger.debug("Final result set: %s", result)
+        result = {replace(item) for item in result if item is not None}
+
+        logger.debug("Result is now %s", result)
         return result
 
 wordStart, wordEnd = WordStart(), WordEnd()
@@ -1087,11 +1102,13 @@ class MapperSearch(SearchStrategy):
             ),
         )
         if isinstance(domain, (list, tuple)):
-            self._domains[domain[0]] = cls, properties
+            self._domains[domain[0]] = (cls, properties)
             for d in domain[1:]:
                 self._shorthand[d] = domain[0]
         else:
-            self._domains[domain] = cls, properties
+            # Extract the first word for single-word domain strings
+            #domain_key = domain.split(" ")[0]
+            self._domains[domain] = (cls, properties)
         self._properties[cls] = properties
 
     @classmethod
@@ -1113,30 +1130,47 @@ class MapperSearch(SearchStrategy):
         self._session = session
 
         self._results.clear()
-        statement = self.parser.parse_string(text).statement
+        # 1) Parse string => statement
+        parse_result = self.parser.parse_string(text)
+        statement = parse_result.statement
         logger.debug("statement : {}({})".format(type(statement), statement))
 
         raw_results = statement.invoke(self)  # Likely a set of IDs
         logger.debug("raw_results : {}".format(raw_results))
 
-        if raw_results:
-            # Identify the domain class dynamically
-            domain_name = text.split(' ')[0]  # Assuming the domain is the first word
-            domain_class = self._domains.get(domain_name, [None])[0]
+        action_name = parse_result.getName()  # e.g. "domain_expression", "query", "value_list"
+        logger.debug("Pyparsing action: %s", action_name)
+        logger.debug("raw_results = %s", raw_results)
 
+        if not raw_results:
+            return self._results  # empty, just return now
+
+        # 2) If parse_result is a ValueListAction, we do the domain fallback.
+        #    If domain_expression or query, skip it.
+        if action_name == "value_list":
+            # your old "domain_name = text.split(' ')[0]" logic
+            # possibly checking if that single token is in _domains
+            domain_name = text.split(" ")[0]
+            domain_class = self._domains.get(domain_name, [None])[0]
             if domain_class is not None:
-                # Map IDs to ORM objects dynamically
-                # Ensure raw_results are applied correctly with subquery handling
-                subquery = select(domain_class.id).where(domain_class.id.in_(raw_results)).subquery()
+                # subquery approach
+                subq = (
+                    select(domain_class.id)
+                    .where(domain_class.id.in_(obj.id for obj in raw_results))
+                    .subquery()
+                )
                 orm_results = (
                     self._session.query(domain_class)
-                    .join(subquery, domain_class.id == subquery.c.id)
+                    .join(subq, domain_class.id == subq.c.id)
                     .all()
                 )
                 self._results.update(orm_results)
             else:
-                logger.warning(f"Domain '{domain_name}' not found in _domains.")
-        logger.debug("search returns %s(%s)" % (type(self._results), self._results))
+                # not recognized => keep raw_results
+                self._results.update(raw_results)
+        else:
+            # 3) For domain_expression or query, just accept raw_results
+            self._results.update(raw_results)
 
         # these _results get filled in when the parse actions are called
         return self._results
