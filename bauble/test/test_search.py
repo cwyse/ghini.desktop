@@ -25,7 +25,11 @@ from bauble import db, prefs
 from bauble.editor import GenericEditorView
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus, GenusNote
+from bauble.plugins.garden.accession import Accession
+from bauble.plugins.garden.location import Location
+from bauble.plugins.garden.plant import Plant
 from bauble.plugins.plants.species_model import Species
+from bauble.plugins.garden.source import Contact, Collection
 from bauble.search import SearchParser
 from bauble.search import EmptyToken, NoneToken
 from datetime import datetime, timedelta
@@ -325,16 +329,46 @@ class TestSearch:
 
         # Register Family and Genus domains
         mapper_search.add_meta(
-            "family",  # Domain name
+            ("family", "fam"),  # Domain name
             Family,    # ORM class
-            ["family", "qualifier"]  # List of searchable columns
+#           ["family", "qualifier"]  # List of searchable columns
+            ["epithet"]  # List of searchable columns
         )
         mapper_search.add_meta(
-            "genus",  # Domain name
+            ("genus", "gen"),  # Domain name
             Genus,    # ORM class
-            ["genus"]  # List of searchable columns
+            ["epithet"]  # List of searchable columns
         )
-
+        mapper_search.add_meta(
+            ("accession", "acc"),  # Domain name
+            Accession,    # ORM class
+            ["code"]  # List of searchable columns
+        )
+        mapper_search.add_meta(
+            ("location", "loc"),  # Domain name
+            Location,    # ORM class
+            ["name", "code"]  # List of searchable columns
+        )
+        mapper_search.add_meta(
+            ("plant", "planting"),  # Domain name
+            Plant,    # ORM class
+            ["code"]  # List of searchable columns
+        )
+        mapper_search.add_meta(
+            ("contact", "contacts", "person", "org", "source"),  # Domain name
+            Contact,    # ORM class
+            ["name"]  # List of searchable columns
+        )
+        mapper_search.add_meta(
+            ("collection", "col", "coll"),  # Domain name
+            Collection,    # ORM class
+            ["locale"]  # List of searchable columns
+        )
+        mapper_search.add_meta(
+            ("collection", "col", "coll"),  # Domain name
+            Collection,    # ORM class
+            ["locale"]  # List of searchable columns
+        )
     @pytest.mark.parametrize(
         "query, expected_len, expected_ids",
         [
@@ -346,27 +380,42 @@ class TestSearch:
         """
         Test searching by values for family or genus
         """
+        persisted_families = db_session.query(Family).all()
         mapper_search = get_strategy("MapperSearch")
         # Register domains
         self.setup_test_domains(mapper_search)
         results = mapper_search.search(query, db_session)
+        # Add a debug statement inside `setup_test_domains`
+        print(f"Registered domains: {mapper_search._properties}")
         assert len(results) == expected_len
-        result_ids = [obj.family if hasattr(obj, "family") else obj.genus for obj in results]
-        assert set(result_ids) == set(expected_ids)
+        
+        # Use objects from setup_test_data for validation
+        expected_objects = [setup_test_data[obj_id] for obj_id in expected_ids]
+        result_ids = [obj.id for obj in results]
+
+        # Validate that the results match the expected objects
+        assert set(result_ids) == {obj.id for obj in expected_objects}
         # Add manual checks for subquery filtering
-        filtered_results = [
-            obj for obj in results if query.lower() in (obj.family.lower() if hasattr(obj, "family") else obj.genus.lower())
-        ]
+        filtered_results = []
+        for obj in results:
+            # If it's a Family, match the epithet
+            if isinstance(obj, Family):
+                if query.lower() in obj.epithet.lower():
+                    filtered_results.append(obj)
+            # If it's a Genus, match the genus name
+            elif isinstance(obj, Genus):
+                if query.lower() in obj.genus.lower():
+                    filtered_results.append(obj)
         assert len(filtered_results) == expected_len
 
-    def test_search_family_eq(self, db_session):
+    def test_search_family_eq(self, db_session, setup_test_data):
         """
         Test searching for a family by its name using the MapperSearch strategy.
         """
         # Initialize data
-        family_instance = Family(family="family1", qualifier="s. lat.")
-        db_session.add(family_instance)
-        db_session.commit()
+        #family_instance = Family(family="family1", qualifier="s. lat.")
+        #db_session.add(family_instance)
+        #db_session.commit()
 
         # Search for the family by domain (family name)
         stmt = select(Family).filter(Family.family == "family1")  # Fixed filtering logic
@@ -376,21 +425,23 @@ class TestSearch:
         assert len(results) == 1
         result_family = results[0]
         assert isinstance(result_family, Family)
-        assert result_family.id == family_instance.id
+        assert result_family.id == setup_test_data["family1"].id
 
     @pytest.mark.parametrize(
         "query, expected",
         [
             ("gen=genus1", [("genus1", True)]),
             ("genus=g", []),
-            ("genus=*", [("genus1", True)]),
+            ("genus=*", [("genus1", True), ("genus2", True)]),
         ],
     )
-    def test_search_by_expression_genus_eq(self, db_session, query, expected):
+    def test_search_by_expression_genus_eq(self, db_session, setup_test_data, query, expected):
         """
         Test searching genus with specific expressions
         """
         mapper_search = get_strategy("MapperSearch")
+        # Register domains
+        self.setup_test_domains(mapper_search)
         results = mapper_search.search(query, db_session)
         assert len(results) == len(expected)
         for res, (expected_genus, is_instance) in zip(results, expected):

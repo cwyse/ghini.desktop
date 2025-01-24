@@ -64,6 +64,7 @@ from sqlalchemy.orm.session import object_session
 from sqlalchemy import asc
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.ext.hybrid import hybrid_property
 
 logger = logging.getLogger(__name__)
 
@@ -288,8 +289,21 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         return ""
 
     # columns
-    genus = synonym("epithet")
+    #genus = synonym("epithet")
 
+    # Use hybrid property for the 'genus' synonym
+    @hybrid_property
+    def genus(self):
+        return self.epithet
+
+    @genus.setter
+    def genus(self, value):
+        self.epithet = value
+    
+    @genus.expression
+    def genus(cls):
+        return cls.epithet
+    
     # use '' instead of None so that the constraints will work propertly
     author = Column(Unicode(255), default="")
     order_by = [asc(epithet), asc(author)]
