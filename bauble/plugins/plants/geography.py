@@ -22,6 +22,8 @@
 from operator import itemgetter
 
 import bauble.db as db
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey

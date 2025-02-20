@@ -37,6 +37,8 @@ import bauble.utils as utils
 from bauble import pb_set_fraction
 from bauble.error import BaubleError
 from bauble.plugins.imex.unicode_utils import UnicodeWriter
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 import sqlalchemy as sa
 #from sqlalchemy import Boolean
@@ -322,14 +324,14 @@ class CSVImporter(Importer):
         :param created_tables: List of created tables.
         """
         configure_mappers()
-        print(str(table.compile(bind=session.bind)))
-        print([fk.column for fk in table.foreign_keys])
+#        print(str(table.compile(bind=session.bind)))
+#        print([fk.column for fk in table.foreign_keys])
         table.create(bind=session.bind)
         if table.name not in created_tables:
             created_tables.append(table.name)
 
      # Ensure this is set up in your database initialization code
-    Session = sessionmaker(bind=db.engine)
+    Session = sessionmaker(bind=db.engine, future=True)
 
     # Instead of recreating all tables, check for and create only missing ones
     def create_missing_tables(self, metadata, session):

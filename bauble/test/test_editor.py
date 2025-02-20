@@ -92,6 +92,8 @@ def test_add_widget(setup_generic_view):
     """
     Test adding a widget to the view.
     """
+    import gi
+    gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk
 
     filename = os.path.join(paths.lib_dir(), "bauble.glade")

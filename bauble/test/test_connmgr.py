@@ -20,6 +20,8 @@
 
 import os
 import pytest
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from bauble.prefs import prefs
 from bauble.connmgr import ConnMgrPresenter

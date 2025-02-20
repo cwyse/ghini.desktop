@@ -26,6 +26,7 @@ import os
 import sys
 import threading
 import traceback
+import ast
 from gettext import gettext as _
 
 import bauble
@@ -42,6 +43,7 @@ from bauble import utils
 from bauble.error import BaubleError
 from bauble.error import check
 
+gi.require_version("Gtk", "3.0")
 gi.require_version("Champlain", "0.12")
 gi.require_version("GtkChamplain", "0.12")
 gi.require_version("GtkClutter", "1.0")
@@ -62,10 +64,36 @@ from sqlalchemy import select, func
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+from gi.repository import Gdk, Clutter, GtkClutter
 
+# Ensure GTK is initialized and get the display
+display = Gdk.Display.get_default()
+if not display:
+    raise RuntimeError("GDK Display could not be initialized.")
 
-GtkClutter.init([])
+# Explicitly set Clutter's GDK display before initializing Clutter
+Clutter.set_windowing_backend("x11")  # Use "x11" explicitly if running in X11
 
+# Now initialize Clutter and GtkClutter
+GtkClutter.init([])  # GtkClutter first
+Clutter.init([])  # Then Clutter
+
+css = b"""
+#history_tv row:nth-child(even) {
+    background: #F0F0F0; /* Light grey background for even rows */
+}
+"""
+
+def apply_css():
+    """Apply CSS styling to enable alternating row colors."""
+    style_provider = Gtk.CssProvider()
+    style_provider.load_from_data(css)
+
+    Gtk.StyleContext.add_provider_for_screen(
+        Gdk.Screen.get_default(),
+        style_provider,
+        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+    )
 
 def safe_set_text(gtk_widget, text):
     """
@@ -87,17 +115,15 @@ if sys.platform == "win32":
 else:
     _substr_tmpl = "<small>%s</small>"
 
+from gi.repository import Gio
 
-class Action(Gtk.Action):
+class Action:
     """
-    An Action allows a label, tooltip, callback and accelerator to be called
-    when specific items are selected in the SearchView
+    An Action allows a label, tooltip, callback, and accelerator to be called
+    when specific items are selected in the SearchView.
+    
+    Updated to use `Gio.SimpleAction` instead of deprecated `Gtk.Action`.
     """
-
-    # issue #30: multiselect and singleselect are really specific to the
-    # SearchView and we could probably generalize this class a little bit
-    # more...or we just assume this class is specific to the SearchView and
-    # document it that way
 
     def __init__(
         self,
@@ -109,35 +135,54 @@ class Action(Gtk.Action):
         accelerator=None,
         multiselect=False,
         singleselect=True,
+        app=None,
     ):
         """
-        callback: the function to call when the the action is activated
-        accelerator: accelerator to call this action
-        multiselect: show menu when multiple items are selected
-        singleselect: show menu when single items are selected
-
-        The activate signal is not automatically connected to the
-        callback method.
+        :param name: Unique action name (e.g., "open").
+        :param label: The action label.
+        :param tooltip: Tooltip text.
+        :param stock_id: Icon name for the action.
+        :param callback: Function to execute when activated.
+        :param accelerator: Keyboard shortcut (e.g., "<Ctrl>O").
+        :param multiselect: Show menu when multiple items are selected.
+        :param singleselect: Show menu when a single item is selected.
+        :param app: The `Gtk.Application` where the action will be registered.
         """
-        super().__init__(
-            name=name, label=label, tooltip=tooltip, stock_id=stock_id
-        )
+        self.name = name
+        self.label = label
+        self.tooltip = tooltip
+        self.stock_id = stock_id  # Save stock_id for potential icon use
         self.callback = callback
         self.multiselect = multiselect
         self.singleselect = singleselect
         self.accelerator = accelerator
+        self.app = app
 
-    def _set_enabled(self, enable):
-        self.set_visible(enable)
-        # if enable:
-        #     self.connect_accelerator()
-        # else:
-        #     self.disconnect_accelerator()
+        # Create the action
+        self.action = Gio.SimpleAction.new(name, None)
+        if callback:
+            self.action.connect("activate", self._on_activate)
 
-    def _get_enabled(self):
-        return self.get_visible()
+        # Register the action with the application if provided
+        if app:
+            app.add_action(self.action)
+            if accelerator:
+                app.set_accels_for_action(f"app.{name}", [accelerator])
 
-    enabled = property(_get_enabled, _set_enabled)
+    def _on_activate(self, action, param):
+        """Call the provided callback function when activated."""
+        if self.callback:
+            self.callback()
+
+    def set_enabled(self, enable):
+        """Enable or disable the action (similar to set_visible)."""
+        self.action.set_enabled(enable)
+
+    def get_enabled(self):
+        """Check if the action is enabled."""
+        return self.action.get_enabled()
+
+    enabled = property(get_enabled, set_enabled)
 
 
 class PropertiesExpander(InfoExpander):
@@ -187,7 +232,6 @@ class PropertiesExpander(InfoExpander):
         table.attach(updated_label, 0, 3, 1, 1)
         table.attach(self.updated_data, 1, 3, 1, 1)
 
-        # Use Gtk.Box instead of deprecated HBox/VBox
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         box.pack_start(table, False, False, 0)
         self.vbox.pack_start(box, False, False, 0)
@@ -208,32 +252,41 @@ class PropertiesExpander(InfoExpander):
         )
 
 
+
 class MapInfoExpander(InfoExpander):
+    """
+    Displays a location on a map using Champlain.
+    """
 
     def __init__(self, get_points=None):
         super().__init__(_("Location on map"))
 
-        self.map_widget = GtkChamplain.Embed()
+        self.map_widget = Champlain.View()
         self.map_widget.set_size_request(230, 230)
         self.vbox.pack_start(self.map_widget, False, False, 0)
-        self.clutter_view = self.map_widget.get_view()
-        self.clutter_view.set_horizontal_wrap(True)
+        self.map_widget.set_horizontal_wrap(True)
         self.map_widget.set_sensitive(False)
+
         self.get_points = get_points
         self.layer = Champlain.MarkerLayer()
-        self.clutter_view.add_layer(self.layer)
+        self.map_widget.add_layer(self.layer)
         self.layer.show()
 
     def on_expanded(self, *args):
+        """Toggle visibility based on expander state."""
         super().on_expanded(*args)
         self.map_widget.set_visible(self.get_expanded())
 
     def update(self, row):
+        """Update the map with points from the row."""
         self.map_widget.set_visible(self.get_expanded())
-        black = Clutter.Color.new(0x00, 0x00, 0x00, 0x7F)
+
+        black = Gdk.RGBA(0, 0, 0, 0.5)  # Equivalent to Clutter.Color.new(0x00, 0x00, 0x00, 0x7F)
+
         self.layer.remove_all()
         if self.get_points is None:
             return
+
         i = None
         points = self.get_points(row)
         for i in points:
@@ -242,9 +295,11 @@ class MapInfoExpander(InfoExpander):
             marker.set_size(5)
             marker.set_location(i["lat"], i["lon"])
             self.layer.add_marker(marker)
+
         if i is not None:
-            self.clutter_view.center_on(i["lat"], i["lon"])
-            self.clutter_view.set_zoom_level(18)
+            self.map_widget.center_on(i["lat"], i["lon"])
+            self.map_widget.set_zoom_level(18)
+
 
 
 class InfoBoxPage(Gtk.ScrolledWindow):
@@ -257,108 +312,98 @@ class InfoBoxPage(Gtk.ScrolledWindow):
         super().__init__()
         self.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        self.vbox.set_spacing(10)
-        viewport = Gtk.Viewport()
-        viewport.add(self.vbox)
-        self.add(viewport)
+
+        self.add(self.vbox)
         self.expanders = {}
-        self.label = None
 
     def add_expander(self, expander):
         """
-        Add an expander to the list of exanders in this infobox
+        Add an expander to the list of expanders in this infobox.
 
         :param expander: the bauble.view.InfoExpander to add to this infobox
         """
         self.vbox.pack_start(expander, False, True, 5)
-        self.expanders[expander.get_property("label")] = expander
+        self.expanders[expander.get_label()] = expander  # Use get_label() instead of get_property("label")
 
-        expander._sep = Gtk.HSeparator()
+        expander._sep = Gtk.Separator.new(orientation=Gtk.Orientation.HORIZONTAL)
         self.vbox.pack_start(expander._sep, False, False, 0)
 
     def get_expander(self, label):
         """
-        Returns an expander by the expander's label name
+        Returns an expander by its label.
 
         :param label: the name of the expander to return
         """
-        if label in self.expanders:
-            return self.expanders[label]
-        else:
-            return None
+        return self.expanders.get(label, None)
 
     def remove_expander(self, label):
         """
-        Remove expander from the infobox by the expander's label bel
+        Remove an expander from the infobox by its label.
 
-        :param label: the name of th expander to remove
+        :param label: the name of the expander to remove.
 
-        Return the expander that was removed from the infobox.
+        Return the removed expander.
         """
-        if label in self.expanders:
-            return self.vbox.remove(self.expanders[label])
+        expander = self.expanders.pop(label, None)
+        if expander:
+            self.vbox.remove(expander)
+        return expander
 
     def update(self, row):
         """
-        Updates the infobox with values from row
+        Updates the infobox with values from row.
 
-        :param row: the mapper instance to use to update this infobox,
-          this is passed to each of the infoexpanders in turn
+        :param row: The mapped instance to use to update this infobox,
+                    passed to each of the InfoExpander instances.
         """
-        for expander in list(self.expanders.values()):
+        for expander in self.expanders.values():
             expander.update(row)
+            from gi.repository import Gtk, Gdk, Pango
 
 
 class InfoBox(Gtk.Notebook):
     """
-    Holds list of expanders with an optional tabbed layout.
+    Holds a list of expanders with an optional tabbed layout.
 
-    The default is to not use tabs. To create the InfoBox with tabs
-    use InfoBox(tabbed=True).  When using tabs then you can either add
-    expanders directly to the InfoBoxPage or using
-    InfoBox.add_expander with the page_num argument.
-
-    Also, it's not recommended to create a subclass of a subclass of
-    InfoBox since if they both use bauble.utils.BuilderWidgets then
-    the widgets will be parented to the infobox that is created first
-    and the expanders of the second infobox will appear empty.
+    The default is to not use tabs. To create the InfoBox with tabs,
+    use `InfoBox(tabbed=True)`. When using tabs, expanders can be added
+    directly to the `InfoBoxPage` or via `InfoBox.add_expander(page_num)`.
     """
 
     def __init__(self, tabbed=False):
         super().__init__()
         self.row = None
-        self.set_property("show-border", False)
+        self.set_show_border(False)
+
         if not tabbed:
             page = InfoBoxPage()
-            self.insert_page(page, None, 0)
-            self.set_property("show-tabs", False)
+            self.append_page(page, None)  # insert_page → append_page for clarity
+            self.set_show_tabs(False)
+
         self.set_current_page(0)
         self.connect("switch-page", self.on_switch_page)
 
-    # not sure why we pass have self and notebook in the arg list here
-    # since they are the same
     def on_switch_page(self, notebook, dummy_page, page_num, *args):
         """
-        Called when a page is switched
+        Called when a page is switched.
         """
-        if not self.row:
-            return
-        page = self.get_nth_page(page_num)
-        page.update(self.row)
+        if self.row:
+            page = self.get_nth_page(page_num)
+            page.update(self.row)
 
     def add_expander(self, expander, page_num=0):
         """
-        Add an expander to a page.
+        Add an expander to a specific page.
 
         :param expander: The expander to add.
-        :param page_num: The page number in the InfoBox to add the expander.
+        :param page_num: The page index in the InfoBox to add the expander.
         """
         page = self.get_nth_page(page_num)
         page.add_expander(expander)
 
     def update(self, row):
         """
-        Update the current page with row.
+        Update the current page with the given row.
         """
         self.row = row
         page_num = self.get_current_page()
@@ -366,14 +411,19 @@ class InfoBox(Gtk.Notebook):
 
 
 class LinksExpander(InfoExpander):
+    """
+    Displays external links and notes associated with a row.
+    """
 
     def __init__(self, notes=None, links=[]):
         """
-        :param notes: the name of the notes property on the row
+        :param notes: The name of the notes property on the row.
         """
         super().__init__(_("Links"))
-        self.dynamic_box = Gtk.VBox()
+
+        self.dynamic_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         self.vbox.pack_start(self.dynamic_box, True, True, 0)
+
         self.notes = notes
         self.buttons = []
         from bauble.utils.web import BaubleLinkButton
@@ -383,47 +433,61 @@ class LinksExpander(InfoExpander):
                 klass = type(link["name"], (BaubleLinkButton,), link)
                 self.buttons.append(klass())
             except Exception as e:
-                logger.debug(
-                    "wrong link definition %s, %s(%s)" % (link, type(e), e)
-                )
-        for b in self.buttons:
-            b.set_alignment(0, 1)
-            self.vbox.pack_start(b, True, True, 0)
+                logger.warning(f"Invalid link definition {link}: {type(e)}({e})")
+
+        for button in self.buttons:
+            button.set_halign(Gtk.Align.START)
+            self.vbox.pack_start(button, False, False, 0)
 
     def update(self, row):
-        from gi.repository import Pango
-
+        """
+        Update links and notes for the given row.
+        """
         list(map(self.dynamic_box.remove, self.dynamic_box.get_children()))
-        for b in self.buttons:
-            b.set_string(row)
+
+        for button in self.buttons:
+            button.set_string(row)
+
         if self.notes:
-            notes = getattr(row, self.notes)
+            notes = getattr(row, self.notes, [])
             for note in notes:
                 for label, url in utils.get_urls(note.note):
-                    if not label:
-                        label = url
-                    label = Gtk.Label(label=label)
+                    label_text = label or url
+                    label = Gtk.Label(label=label_text)
                     label.set_ellipsize(Pango.EllipsizeMode.END)
-                    button = Gtk.LinkButton(uri=url)
-                    button.add(label)
-                    button.set_alignment(0, 0.0)
-                    self.dynamic_box.pack_start(button, False, False, 0)
-            self.dynamic_box.show_all()
 
+                    button = Gtk.LinkButton(uri=url)
+                    
+                    # GTK 4 requires set_child(), GTK 3 uses add()
+                    if hasattr(button, "set_child"):
+                        button.set_child(label)  # GTK 4
+                    else:
+                        button.add(label)  # GTK 3
+                    
+                    button.set_halign(Gtk.Align.START)
+                    self.dynamic_box.pack_start(button, False, False, 0)
+
+            self.dynamic_box.show_all()
+import threading
+import itertools
+import logging
+from gi.repository import GLib, GObject
+from bauble import db, gui
+from sqlalchemy import select
+
+logger = logging.getLogger(__name__)
 
 class AddOneDot(threading.Thread):
+    """
+    Adds dots to the status bar to indicate loading progress.
+    """
 
-    @staticmethod
-    def callback(dotno):
-        statusbar = bauble.gui.widgets.statusbar
-        sbcontext_id = statusbar.get_context_id("searchview.nresults")
-        statusbar.pop(sbcontext_id)
-        statusbar.push(sbcontext_id, _("counting results") + "." * dotno)
-
-    def __init__(self, group=None, verbose=None, **kwargs):
-        super().__init__(group=group, target=None, name=None)
+    def __init__(self):
+        super().__init__()
         self.__stopped = threading.Event()
         self.dotno = 0
+        self.statusbar = gui.widgets.statusbar
+        self.sbcontext_id = self.statusbar.get_context_id("searchview.nresults")
 
     def cancel(self):
         self.__stopped.set()
@@ -431,155 +495,145 @@ class AddOneDot(threading.Thread):
     def run(self):
         while not self.__stopped.wait(1.0):
             self.dotno += 1
-            GObject.idle_add(self.callback, self.dotno)
+            GLib.idle_add(self.update_status)
+
+    def update_status(self):
+        """Update the status bar message on the main thread."""
+        self.statusbar.pop(self.sbcontext_id)
+        self.statusbar.push(self.sbcontext_id, _("counting results") + "." * self.dotno)
 
 
 class CountResultsTask(threading.Thread):
-    def __init__(
-        self, klass, ids, dots_thread, group=None, verbose=None, **kwargs
-    ):
-        super().__init__(group=group, target=None, name=None)
+    """
+    Counts top-level results and updates the status bar.
+    """
+
+    def __init__(self, klass, ids, dots_thread):
+        super().__init__()
         self.klass = klass
         self.ids = ids
         self.dots_thread = dots_thread
-        self.__cancel = False
+        self.__cancel = threading.Event()
+        self.statusbar = gui.widgets.statusbar
+        self.sbcontext_id = self.statusbar.get_context_id("searchview.nresults")
 
     def cancel(self):
-        self.__cancel = True
+        self.__cancel.set()
 
     def run(self):
         session = db.Session()
         klass = self.klass
         d = {}
+
         for ndx in self.ids:
-            item = session.execute(select(klass)).scalars().where(klass.id == ndx).first()
-            if item is None:
-                self.__cancel = True
-                logger.warning(
-                    "object {}({}) disappeared".format(klass.__name__, ndx)
-                )
+            if self.__cancel.is_set():
                 break
-            if self.__cancel:  # check whether caller asks to cancel
-                break
-            for k, v in list(item.top_level_count().items()):
-                if isinstance(v, set):
-                    d[k] = v.union(d.get(k, set()))
-                else:
-                    d[k] = v + d.get(k, 0)
-        result = []
-        for k, v in sorted(d.items()):
-            if isinstance(k, tuple):
-                k = k[1]
-            if isinstance(v, set):
-                v = len(v)
-            result.append("%s: %d" % (k, v))
-            if self.__cancel:  # check whether caller asks to cancel
-                break
-        value = _("top level count: %s") % (", ".join(result))
-        if bauble.gui:
 
-            def callback(text):
-                statusbar = bauble.gui.widgets.statusbar
-                sbcontext_id = statusbar.get_context_id("searchview.nresults")
-                statusbar.pop(sbcontext_id)
-                statusbar.push(sbcontext_id, text)
+            item = session.execute(select(klass).where(klass.id == ndx)).scalars().first()
+            if not item:
+                logger.warning(f"object {klass.__name__}({ndx}) disappeared")
+                break
 
-            if not self.__cancel:  # check whether caller asks to cancel
-                self.dots_thread.cancel()
-                GObject.idle_add(callback, value)
-        else:
-            logger.debug("showing text %s", value)
-        # we should not leave the session around
+            for k, v in item.top_level_count().items():
+                d[k] = d.get(k, set()) | v if isinstance(v, set) else d.get(k, 0) + v
+
+        if not self.__cancel.is_set():
+            result = ", ".join(f"{k if isinstance(k, str) else k[1]}: {len(v) if isinstance(v, set) else v}" for k, v in sorted(d.items()))
+            status_text = _("top level count: %s") % result
+
+            GLib.idle_add(self.update_status, status_text)
+
+        self.dots_thread.cancel()
         session.close()
+
+    def update_status(self, text):
+        """Update the status bar message on the main thread."""
+        self.statusbar.pop(self.sbcontext_id)
+        self.statusbar.push(self.sbcontext_id, text)
 
 
 class PopulateResults(threading.Thread):
-    def __init__(self, view, results, group=None):
-        super().__init__(group=group, target=None, name=None)
-        self.__stopped = False
-        self.results = [(type(i).__name__, str(i), i) for i in results]
+    """
+    Populates search results asynchronously.
+    """
+
+    def __init__(self, view, results):
+        super().__init__()
         self.view = view
+        self.results = [(type(i).__name__, str(i), i) for i in results]
+        self.__stopped = threading.Event()
+        self.statusbar = gui.widgets.statusbar
+        self.sbcontext_id = self.statusbar.get_context_id("searchview.nresults")
 
     def cancel(self):
-        self.__stopped = True
+        self.__stopped.set()
 
     def run(self):
         results = self.results
         nresults = len(results)
         steps_so_far = 0
+        added = set()
 
-        groups = []
-
-        for key, group in itertools.groupby(
-            sorted(results, key=lambda x: x[:2]), key=lambda x: x[0]
-        ):
-            # 'group' is a temporary object, which we convert into a list.
-            groups.append(list(group))
-
-        # sort again by type name, so we have a deterministic output
-        groups = sorted(groups, key=lambda x: x[0][0], reverse=True)
+        groups = sorted(
+            (list(group) for _, group in itertools.groupby(sorted(results, key=lambda x: x[:2]), key=lambda x: x[0])),
+            key=lambda x: x[0][0],
+            reverse=True
+        )
 
         model = self.view.results_view.get_model()
 
         def append_expandable_row(model, content):
+            """Appends a row to the tree model in the main UI thread."""
             parent = model.append(None, [content])
             content_type = type(content)
-            if self.view.row_meta[content_type].children is not None:
-                model.prepend(parent, ["-"])
+            if self.view.row_meta.get(content_type, {}).get("children") is not None:
+                model.append(parent, ["-"])
 
-        added = set()
         for kname, klass, obj in itertools.chain(*groups):
-            if self.__stopped:
+            if self.__stopped.is_set():
                 return
-            if obj in added:  # only add unique object
+            if obj in added:
                 continue
-            GObject.idle_add(append_expandable_row, model, obj)
-            if not added:  # this is the first iteration
-                GObject.idle_add(
-                    utils.none, self.view.results_view.set_cursor, 0
-                )
-                GObject.idle_add(
-                    utils.none, self.view.results_view.scroll_to_cell, 0
-                )
+
+            GLib.idle_add(append_expandable_row, model, obj)
+
+            if not added:  # First iteration
+                GLib.idle_add(self.view.results_view.set_cursor, 0)
+                GLib.idle_add(self.view.results_view.scroll_to_cell, 0)
+
             steps_so_far += 1
-            percent = float(steps_so_far) / nresults
+            percent = steps_so_far / nresults
             if 0 < percent < 1.0:
-                GObject.idle_add(bauble.gui.progressbar.set_fraction, percent)
+                GLib.idle_add(gui.progressbar.set_fraction, percent)
 
             added.add(obj)
 
-        statusbar = bauble.gui.widgets.statusbar
-        sbcontext_id = statusbar.get_context_id("searchview.nresults")
-        statusbar.pop(sbcontext_id)
-        statusbar.push(sbcontext_id, _("counting results"))
-        if len({item[2].__class__ for item in results}) == 1:
+        # Final status update
+        GLib.idle_add(self.update_status, _("counting results"))
+        
+        # If all results are of the same type, count top-level results
+        unique_classes = {item[2].__class__ for item in results}
+        if len(unique_classes) == 1:
             dots_thread = self.view.start_thread(AddOneDot())
-            self.view.start_thread(
-                CountResultsTask(
-                    results[0][2].__class__,
-                    [i[2].id for i in results],
-                    dots_thread,
-                )
-            )
+            self.view.start_thread(CountResultsTask(results[0][2].__class__, [i[2].id for i in results], dots_thread))
         else:
-            statusbar.push(
-                sbcontext_id,
-                _("size of non homogeneous result: %s") % len(results),
-            )
+            GLib.idle_add(self.update_status, _("size of non homogeneous result: %s") % len(results))
 
+    def update_status(self, text):
+        """Update the status bar message on the main thread."""
+        self.statusbar.pop(self.sbcontext_id)
+        self.statusbar.push(self.sbcontext_id, text)
 
 class SearchView(pluginmgr.View):
     """
-    The SearchView is the main view for Ghini.  It manages the search
-    results returned when search strings are entered into the main
-    text entry.
+    The SearchView is the main view for Ghini. It manages search results
+    when text is entered into the main text entry.
     """
 
     class ViewMeta(dict):
         """
-        This class shouldn't need to be instantiated directly.  Access
-        the meta for the SearchView with the
-        :class:`bauble.view.SearchView`'s row_meta property.
+        This class shouldn't need to be instantiated directly.
+        Access meta via `SearchView.row_meta`
         """
 
         class Meta:
@@ -589,53 +643,36 @@ class SearchView(pluginmgr.View):
                 self.markup_func = None
                 self.actions = []
 
-            def set(
-                self,
-                children=None,
-                infobox=None,
-                context_menu=None,
-                markup_func=None,
-            ):
+            def set(self, children=None, infobox=None, context_menu=None, markup_func=None):
+                self.children = children
+                self.infobox = infobox
+                self.markup_func = markup_func
+                self.context_menu = context_menu
+                self.actions = [x for x in context_menu if isinstance(x, Action)] if context_menu else []
+
+            def set(self, children=None, infobox=None, context_menu=None, markup_func=None):
                 """
-                :param children: where to find the children for this type,
-                    can be a callable of the form C{children(row)}
+                Set metadata properties for the ViewMeta class.
 
-                :param infobox: the infobox for this type
-
-                :param context_menu: a dict describing the context menu used
-                when the user right clicks on this type
-
-                :param markup_func: the function to call to markup
-                search results of this type, if markup_func is None
-                the instances __str__() function is called...the
-                strings returned by this function should escape any
-                non markup characters
+                :param children: Function or attribute name for fetching children.
+                :param infobox: Infobox class to display information.
+                :param context_menu: List of actions for right-click context menus.
+                :param markup_func: Function for generating markup.
                 """
                 self.children = children
                 self.infobox = infobox
                 self.markup_func = markup_func
                 self.context_menu = context_menu
-                self.actions = []
-                if self.context_menu:
-                    self.actions = [
-                        x for x in self.context_menu if isinstance(x, Action)
-                    ]
+
+                self.actions = [x for x in context_menu if isinstance(x, Action)] if context_menu else []
 
             def get_children(self, obj):
-                """
-                :param obj: get the children from obj according to
-                self.children,
-
-                Returns a list or list-like object.
-                """
                 if self.children is None:
                     return []
-                if callable(self.children):
-                    return self.children(obj)
-                return getattr(obj, self.children)
+                return self.children(obj) if callable(self.children) else getattr(obj, self.children)
 
         def __getitem__(self, item):
-            if item not in self:  # create on demand
+            if item not in self:
                 self[item] = self.Meta()
             return self.get(item)
 
@@ -643,34 +680,29 @@ class SearchView(pluginmgr.View):
     bottom_info = ViewMeta()
 
     def __init__(self):
-        """
-        the constructor
-        """
         logger.debug("SearchView::__init__")
         super().__init__()
+
+        # Load UI
         filename = os.path.join(paths.lib_dir(), "bauble.glade")
         self.widgets = utils.BuilderWidgets(filename)
-        self.view = editor.GenericEditorView(
-            filename, root_widget_name="main_window"
-        )
+        self.view = editor.GenericEditorView(filename, root_widget_name="main_window")
 
         self.create_gui()
 
-        from . import pictures_view
+        # Picture view
+        from bauble import pictures_view
+        pictures_view.floating_window = pictures_view.PicturesView(parent=self.widgets.search_h2pane)
 
-        pictures_view.floating_window = pictures_view.PicturesView(
-            parent=self.widgets.search_h2pane
-        )
-
-        # the context menu cache holds the context menus by type in the results
-        # view so that we don't have to rebuild them every time
+        # Internal caches
         self.context_menu_cache = {}
         self.infobox_cache = {}
         self.infobox = None
 
-        # keep all the search results in the same session, this should
-        # be cleared when we do a new search
+        # Database session
         self.session = db.Session()
+
+        # UI setup
         self.add_notes_page_to_bottom_notebook()
         self.running_threads = []
 
@@ -894,85 +926,72 @@ class SearchView(pluginmgr.View):
         return [model[row][0] for row in rows]
 
     def on_cursor_changed(self, view):
-        """
-        Update the infobox and switch the accelerators depending on the
-        type of the row that the cursor points to.
-        """
-        # update all forward-looking info boxes
-        self.update_infobox()
-        # update all backward-looking info boxes
-        self.update_bottom_notebook()
-        pictures_view.floating_window.set_selection(self.get_selected_values())
+            """
+            Called when selection changes
+            """
+            self.update_infobox()
+            self.update_bottom_notebook()
+            from bauble import pictures_view
+            pictures_view.floating_window.set_selection(self.get_selected_values())
 
-        for accel, cb in self.installed_accels:
-            # disconnect previously installed accelerators by the key
-            # and modifier, accel_group.disconnect_by_func won't work
-            # here since we install a closure as the actual callback
-            # in instead of the original action.callback
-            r = self.accel_group.disconnect_key(accel[0], accel[1])
-            if not r:
-                logger.warning("callback not removed: %s" % cb)
-        self.installed_accels = []
+            for accel, cb in self.installed_accels:
+                r = self.accel_group.disconnect_key(accel[0], accel[1])
+                if not r:
+                    logger.warning("Callback not removed: %s" % cb)
 
-        selected = self.get_selected_values()
-        if not selected:
-            return
-        selected_type = type(selected[0])
+            self.installed_accels = []
+            selected = self.get_selected_values()
+            if not selected:
+                return
+            selected_type = type(selected[0])
 
-        for action in self.row_meta[selected_type].actions:
-            enabled = (len(selected) > 1 and action.multiselect) or (
-                len(selected) <= 1 and action.singleselect
-            )
-            if not enabled:
-                continue
-            # if enabled then connect the accelerator
-            keyval, mod = Gtk.accelerator_parse(action.accelerator)
-            if (keyval, mod) != (0, 0):
+            for action in self.row_meta[selected_type].actions:
+                enabled = (len(selected) > 1 and action.multiselect) or (len(selected) <= 1 and action.singleselect)
+                if not enabled:
+                    continue
+                keyval, mod = Gtk.accelerator_parse(action.accelerator)
+                if (keyval, mod) != (0, 0):
 
-                def cb(func):
-                    def _impl(*args):
-                        # getting the selected here allows the
-                        # callback to be called on all the selected
-                        # values and not just the value where the
-                        # cursor is
-                        sel = self.get_selected_values()
-                        if func(sel):
-                            self.update()
+                    def cb(func):
+                        def _impl(*args):
+                            sel = self.get_selected_values()
+                            if func(sel):
+                                self.update()
 
-                    return _impl
+                        return _impl
 
-                self.accel_group.connect(
-                    keyval, mod, Gtk.AccelFlags.VISIBLE, cb(action.callback)
-                )
-                self.installed_accels.append(((keyval, mod), action.callback))
-            else:
-                logger.warning(
-                    "Could not parse accelerator: %s" % (action.accelerator)
-                )
+                    self.accel_group.connect(keyval, mod, Gtk.AccelFlags.VISIBLE, cb(action.callback))
+                    self.installed_accels.append(((keyval, mod), action.callback))
 
     nresults_statusbar_context = "searchview.nresults"
 
     def search(self, text):
         """
-        search the database using text
+        Search the database using the provided text.
+
+        This function updates the search results view with matches found in the database.
+        It also ensures that error handling and status messages are properly managed.
         """
-        # set the text in the entry even though in most cases the entry already
-        # has the same text in it, this is in case this method was called from
-        # outside the class so the entry and search results match
-        logger.debug("SearchView.search(%s)" % text)
+        logger.debug("SearchView.search(%s)", text)
+
+        # Stop any currently running search operations
+        self.cancel_threads()
+
+        # Ensure the session is properly handled
+        try:
+            self.session.rollback()  # Rollback any pending transactions
+        except Exception as e:
+            logger.warning("Failed to rollback session: %s", e)
+            self.session = db.Session()  # Reinitialize session if rollback fails
+
+        # Prepare variables
         error_msg = None
         error_details_msg = None
-        # stop whatever it might still be doing
-        self.cancel_threads()
-        try:
-            # if the connection is still open, rollback and reuse
-            self.session.rollback()
-        except:
-            # otherwise create a new session
-            self.session = db.Session()
-        bold = "<b>%s</b>"
         results = []
+        bold = "<b>%s</b>"
+
         try:
+            # Perform the search query
             results = search.search(text, self.session)
         except ParseException as err:
             error_msg = _("Error in search string at column %s") % err.column
@@ -981,44 +1000,58 @@ class SearchView(pluginmgr.View):
             error_msg = _("** Error: %s") % utils.xml_safe(e)
             error_details_msg = utils.xml_safe(traceback.format_exc())
 
+        # Handle errors and display them if needed
         if error_msg:
             bauble.gui.show_error_box(error_msg, error_details_msg)
             return
 
-        # not error
+        # Clear previous results and update the info box
         utils.clear_model(self.results_view)
         self.update_infobox()
+
+        # Get status bar context
         statusbar = bauble.gui.widgets.statusbar
         sbcontext_id = statusbar.get_context_id("searchview.nresults")
         statusbar.pop(sbcontext_id)
-        if len(results) == 0:
+
+        # Handle the case when no results are found
+        if not results:
             model = Gtk.ListStore(str)
-            msg = bold % html.escape(
-                _('Couldn\'t find anything for search: "%s"') % text
-            )
+            msg = bold % html.escape(_('Couldn\'t find anything for search: "%s"') % text)
             model.append([msg])
             self.results_view.set_model(model)
-        else:
-            if len(results) > 5000:
-                msg = _(
-                    "This query returned %s results.  It may take a "
-                    "long time to get all the data. Are you sure you "
-                    "want to continue?"
-                ) % len(results)
-                if not utils.yes_no_dialog(msg):
-                    return
-            statusbar.push(
-                sbcontext_id,
-                _("Retrieving %s search " "results…") % len(results),
-            )
-            model = Gtk.TreeStore(object)
-            model.set_default_sort_func(lambda *args: -1)
-            model.set_sort_column_id(-1, Gtk.SortType.ASCENDING)
-            utils.clear_model(self.results_view)
-            self.results_view.set_model(model)
-            self.idle_start_thread(PopulateResults, self, results)
+            return
 
+        # Check if the result set is too large
+        if len(results) > 5000:
+            msg = _(
+                "This query returned %s results. It may take a long time to process. "
+                "Are you sure you want to continue?"
+            ) % len(results)
+            if not utils.yes_no_dialog(msg):
+                return
+
+        # Update the status bar
+        statusbar.push(
+            sbcontext_id,
+            _("Retrieving %s search results…") % len(results),
+        )
+
+        # Initialize a tree model for results
+        model = Gtk.TreeStore(object)
+        model.set_default_sort_func(lambda *args: -1)
+        model.set_sort_column_id(-1, Gtk.SortType.ASCENDING)
+
+        # Clear the model and update the results view
+        utils.clear_model(self.results_view)
+        self.results_view.set_model(model)
+
+        # Start a thread to populate results asynchronously
+        self.idle_start_thread(PopulateResults, self, results)
+
+        # Update the bottom notebook with additional details
         self.update_bottom_notebook()
+
 
     def remove_children(self, model, parent):
         """
@@ -1291,68 +1324,70 @@ class SearchView(pluginmgr.View):
 
     def create_gui(self):
         """
-        create the interface
+        Creates the user interface for the SearchView.
         """
         logger.debug("SearchView::create_gui")
-        # create the results view and info box
+
+        # Get the results view widget
         self.results_view = self.widgets.results_treeview
-
         self.results_view.set_headers_visible(False)
-        self.results_view.set_rules_hint(True)
-        self.results_view.set_fixed_height_mode(True)
 
+        # Set selection mode and enable rubber banding
         selection = self.results_view.get_selection()
         selection.set_mode(Gtk.SelectionMode.MULTIPLE)
         self.results_view.set_rubber_banding(True)
 
+        # Configure column renderer for displaying search results
         renderer = Gtk.CellRendererText()
         renderer.set_fixed_height_from_font(2)
         renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
+
         column = Gtk.TreeViewColumn("Name", renderer)
-        column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
+        column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
         column.set_cell_data_func(renderer, self.cell_data_func)
         self.results_view.append_column(column)
 
-        # view signals
+        # View event connections
         self.results_view.connect("cursor-changed", self.on_cursor_changed)
         self.results_view.connect("test-expand-row", self.on_test_expand_row)
-        self.results_view.connect(
-            "button-release-event", self.on_view_button_release
-        )
+        self.results_view.connect("button-release-event", self.on_view_button_release)
+        self.results_view.connect("row-activated", self.on_view_row_activated)
 
+        # Handle right-click to prevent deselecting multiple items
         def on_press(view, event):
-            """Ignore the mouse right-click event.
-
-            This makes sure that we don't remove the multiple selection
-            when clicking a mouse button.
             """
-            if event.button == 3:
+            Ignores right-click selection to prevent unintended deselection.
+
+            This ensures that users can open the context menu without losing their
+            current selection when using a right-click.
+            """
+            if event.button == Gdk.BUTTON_SECONDARY:  # Right-click
                 if (event.get_state() & Gdk.ModifierType.CONTROL_MASK) == 0:
-                    path, _, _, _ = view.get_path_at_pos(
-                        int(event.x), int(event.y)
-                    )
-                    if not view.get_selection().path_is_selected(path):
-                        return False
+                    path_info = view.get_path_at_pos(int(event.x), int(event.y))
+                    if path_info:
+                        path, _, _, _ = path_info
+                        if not view.get_selection().path_is_selected(path):
+                            return False
                 return True
-            else:
-                return False
+            return False
 
         self.results_view.connect("button-press-event", on_press)
 
-        self.results_view.connect("row-activated", self.on_view_row_activated)
-
-        # this group doesn't need to be added to the main window with
-        # Gtk.Window.add_accel_group since the group will be added
-        # automatically when the view is set
+        # Initialize accelerator group for key bindings
         self.accel_group = Gtk.AccelGroup()
         self.installed_accels = []
 
+        # Assign panes and UI elements
         self.pane = self.widgets.search_hpane
         self.picpane = self.widgets.search_h2pane
 
+        # Retrieve and reparent the main search UI container
         vbox = self.widgets.search_vbox
         self.widgets.remove_parent(vbox)
-        self.pack_start(vbox, True, True, 0)
+
+        # Pack the search UI into the main interface
+        self.pack_start(vbox, expand=True, fill=True, padding=0)
+
 
     def on_notes_size_allocation(self, treeview, allocation, column, cell):
         """
@@ -1443,6 +1478,7 @@ class HistoryView(pluginmgr.View):
         )
         self.view.connect_signals(self)
         self.liststore = self.view.widgets.history_ls
+        apply_css()
         self.update()
 
     @staticmethod

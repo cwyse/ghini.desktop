@@ -24,6 +24,8 @@ import threading
 from bauble import db
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import GObject
 from sqlalchemy import bindparam, select
 

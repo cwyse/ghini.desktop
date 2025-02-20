@@ -38,6 +38,8 @@ from bauble.view import InfoBox
 from bauble.shared import InfoExpander
 from bauble.view import MapInfoExpander
 from bauble.view import PropertiesExpander
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import Column
 from sqlalchemy import Integer

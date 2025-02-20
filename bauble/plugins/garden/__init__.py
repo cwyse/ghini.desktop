@@ -197,6 +197,8 @@ class GardenPlugin(pluginmgr.Plugin):
             logger.error("Insert menu not found!")
             return
 
+        import gi
+        gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
         insert_menu.append(Gtk.SeparatorMenuItem())
  
@@ -247,6 +249,8 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
     def cell_data_func(col, cell, model, treeiter, data=None):
         safe_set_text(cell, utils.utf8(model[treeiter][0]))
 
+    import gi
+    gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk
 
     completion = Gtk.EntryCompletion()

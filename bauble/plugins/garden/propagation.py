@@ -52,6 +52,8 @@ from bauble.plugins.garden.constants import (
     bottom_heat_unit_values,
     length_unit_values,
 )
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
@@ -529,118 +531,113 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
             self._dirty = True
         else:
             propagation.plant = None
+import gi
+gi.require_version("Gtk", "3.0")
 
+from gi.repository import Gtk
+
+import gi
+gi.require_version("Gtk", "3.0")
+
+from gi.repository import Gtk
+
+class PropagationHandler:
     def create_propagation_box(self, propagation):
-        """ """
-        hbox = Gtk.HBox()
+        """
+        Creates a propagation UI box with edit and remove buttons.
+        GTK 3 Compatible.
+        """
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)  # Replaces Gtk.HBox
         expander = Gtk.Expander()
-        hbox.pack_start(expander, True, True, 0)
 
-        from bauble.plugins.garden.plant import label_size_allocate
-
-        label = Gtk.Label(label=propagation.get_summary())
-        label.set_wrap(True)
-        label.set_alignment(0, 0)
-        label.set_padding(0, 2)
-        label.connect("size-allocate", label_size_allocate)
-        expander.add(label)
-
-        def on_edit_clicked(button, prop, label):
-            editor = PropagationEditor(
-                model=prop, parent=self.view.get_window()
-            )
-            if editor.start(commit=False) is not None:
-                label.set_label(prop.get_summary())
-                self._dirty = True
-            self.parent_ref().refresh_sensitivity()
-
-        alignment = Gtk.Alignment.new(0, 0.5, 1, 1)
-        hbox.pack_start(alignment, False, False, 0)
-        button_box = Gtk.HBox(spacing=5)
-        alignment.add(button_box)
-        button = Gtk.Button.new_with_label("Edit")  # Replace `Gtk.STOCK_EDIT` with a text label
-        icon = Gtk.Image.new_from_icon_name("document-edit", Gtk.IconSize.BUTTON)  # Use a standard GTK icon
-        button.set_image(icon)  # Add the icon to the button
-        button.set_always_show_image(True)  # Ensure the icon is displayed
-        #button = Gtk.Button(stock=Gtk.STOCK_EDIT)
-        self.view.connect(
-            button, "clicked", on_edit_clicked, propagation, label
-        )
-        button_box.pack_start(button, False, False, 0)
-
-        def on_remove_clicked(button, propagation, box):
-            count = count_relationship_items(propagation.accessions)
-            potential = propagation.accessible_quantity
-            if count == 0:
-                if potential:
-                    msg = (
-                        _(
-                            "This propagation has produced %s plants.\n"
-                            "It can already be accessioned.\n\n"
-                            "Are you sure you want to remove it?"
-                        )
-                        % potential
-                    )
-                else:
-                    msg = _(
-                        "Are you sure you want to remove\n"
-                        "this propagation trial?"
-                    )
-                if not utils.yes_no_dialog(msg):
-                    return False
-            else:
-                if count == 1:
-                    msg = (
-                        _(
-                            "This propagation is referred to\n"
-                            "by accession %s.\n\n"
-                            "You cannot remove it."
-                        )
-                        % propagation.accessions[0]
-                    )
-                elif count > 1:
-                    msg = (
-                        _(
-                            "This propagation is referred to\n"
-                            "by %s accessions.\n\n"
-                            "You cannot remove it."
-                        )
-                        % count
-                    )
-                utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
-                return False
-            remove_from_relationship(self.model.propagations, propagation)
-            self.view.widgets.prop_tab_box.remove(box)
-            self._dirty = True
-            self.parent_ref().refresh_sensitivity()
-
-        remove_button = Gtk.Button()
-        img = Gtk.Image.new_from_icon_name("edit-delete", Gtk.IconSize.BUTTON)  # Replace Gtk.STOCK_REMOVE
-        remove_button.set_image(img)
-        self.view.connect(
-            remove_button, "clicked", on_remove_clicked, propagation, hbox
-        )
-        button_box.pack_start(remove_button, False, False, 0)
-
-        # TODO: add a * to the propagation label for uncommitted propagations
+        # Set Expander Label First
         prop_type = prop_type_values[propagation.prop_type]
-
-        # hack to format date properly
         from bauble.btypes import DateTime
 
         date = DateTime().process_bind_param(propagation.date, None)
         date_format = prefs.prefs[prefs.date_format_pref]
         date_str = date.strftime(date_format)
-        title = ("%(prop_type)s on %(prop_date)s") % dict(
-            prop_type=prop_type, prop_date=date_str
-        )
-        expander.set_label(title)
+        expander.set_label(f"{prop_type} on {date_str}")
+
+        hbox.pack_start(expander, True, True, 0)
+
+        from bauble.plugins.garden.plant import label_size_allocate
+
+        # Label inside Expander
+        label = Gtk.Label(label=propagation.get_summary())
+        label.set_wrap(True)
+        label.set_xalign(0)  # Replaces set_alignment(0, 0)
+        label.set_margin_start(5)  # Instead of set_padding
+        label.set_margin_end(5)
+        label.connect("size-allocate", label_size_allocate)
+        expander.add(label)
+
+        def on_edit_clicked(button, prop, label):
+            editor = PropagationEditor(model=prop, parent=self.view.get_window())
+            if editor.start(commit=False) is not None:
+                label.set_label(prop.get_summary())
+                self._dirty = True
+            self.parent_ref().refresh_sensitivity()
+
+        # Right-aligned button box
+        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        hbox.pack_end(button_box, False, False, 0)  # Align to right
+
+        # Edit Button
+        edit_button = Gtk.Button(label="Edit")  # Cleaner alternative to Gtk.Button.new_with_label()
+        edit_icon = Gtk.Image.new_from_icon_name("document-edit", Gtk.IconSize.BUTTON)
+        edit_button.set_image(edit_icon)
+        edit_button.set_always_show_image(True)
+
+        self.view.connect(edit_button, "clicked", on_edit_clicked, propagation, label)
+        button_box.pack_start(edit_button, False, False, 0)
+
+        def on_remove_clicked(button, propagation, box):
+            count = count_relationship_items(propagation.accessions)
+            potential = propagation.accessible_quantity
+            if count == 0:
+                msg = _(
+                    "This propagation has produced %s plants.\n"
+                    "It can already be accessioned.\n\n"
+                    "Are you sure you want to remove it?"
+                ) % potential if potential else _(
+                    "Are you sure you want to remove\n"
+                    "this propagation trial?"
+                )
+
+                if not utils.yes_no_dialog(msg):
+                    return False
+            else:
+                msg = _(
+                    "This propagation is referred to\n"
+                    "by %s accessions.\n\n"
+                    "You cannot remove it."
+                ) % count if count > 1 else _(
+                    "This propagation is referred to\n"
+                    "by accession %s.\n\n"
+                    "You cannot remove it."
+                ) % propagation.accessions[0]
+
+                utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
+                return False
+
+            remove_from_relationship(self.model.propagations, propagation)
+            self.view.widgets.prop_tab_box.remove(box)
+            self._dirty = True
+            self.parent_ref().refresh_sensitivity()
+
+        # Remove Button
+        remove_button = Gtk.Button()
+        remove_icon = Gtk.Image.new_from_icon_name("edit-delete", Gtk.IconSize.BUTTON)  
+        remove_button.set_image(remove_icon)
+        self.view.connect(remove_button, "clicked", on_remove_clicked, propagation, hbox)
+        button_box.pack_start(remove_button, False, False, 0)
 
         hbox.show_all()
         return hbox
 
     def on_add_button_clicked(self, *args):
-        """ """
+        """ Handle add button click. """
         self.add_propagation()
         self.parent_ref().refresh_sensitivity()
 

@@ -26,6 +26,8 @@ from bauble import utils
 from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorView
 from bauble.plugins.plants import Species
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Pango
 
 logger = logging.getLogger(__name__)

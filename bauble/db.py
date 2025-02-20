@@ -37,7 +37,7 @@ from sqlalchemy import event
 from sqlalchemy import inspect
 from sqlalchemy import select
 #from sqlalchemy import text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import class_mapper
 from sqlalchemy import insert
@@ -542,7 +542,7 @@ def verify_connection(engine, show_error_dialogs=False):
         # will probably get deadlocks....i'm not really sure why
         # Create a temporary session for schema validation
         from sqlalchemy.orm import sessionmaker
-        with sessionmaker(bind=engine, autoflush=False)() as session:
+        with sessionmaker(bind=engine, autoflush=False, future=True)() as session:
             # Check for the presence of the "created" timestamp
             created_stmt = select(meta.BaubleMeta).where(meta.BaubleMeta.name == meta.CREATED_KEY)
             if not session.execute(created_stmt).scalar_one_or_none():

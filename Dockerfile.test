@@ -59,6 +59,8 @@ ENV PYTHONNOUSERSITE=0
 
 # Install system packages for building
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    valgrind \
+    strace \
     build-essential \
     gettext \
     git \
@@ -140,6 +142,8 @@ ENV NO_AT_BRIDGE=1
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    valgrind \
+    strace \
     at-spi2-core \
     build-essential \
     gdk-pixbuf2.0-0 \
@@ -180,7 +184,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-gi \
     python3-dev \
     python3-lxml \
-    python3-nose \
     python3-pip \
     python3-venv \
     shared-mime-info \
@@ -197,7 +200,8 @@ RUN /usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders --update-c
 RUN /usr/bin/python3.9 -m venv $VIRTUAL_ENV \
     && . $VIRTUAL_ENV/bin/activate \
     && pip install --upgrade pip wheel --no-cache-dir \
-    && pip install pytest pytest-cov gevent coveralls babel debugpy nose --no-cache-dir
+    && pip install pytest pytest-cov gevent coveralls babel debugpy nose --no-cache-dir \
+    && pip install pytest-dependency pytest-ordering pytest-mock pytest-sugar pytest-expect pytest-logging pytest-mypy --no-cache-dir
 
 # Create user and group
 RUN groupadd --gid $GROUP_ID ghini && \
@@ -314,7 +318,9 @@ ENV DEBUG=false
 #CMD ["/bin/bash", "-c", "/opt/venv/migrate_to_1.3/bin/python -m coverage run --source=bauble -m pytest && coverage report && coverage html"]
 CMD bash -c ". $VIRTUAL_ENV/bin/activate && \
     if [ \"$DEBUG\" = \"true\" ]; then \
-        python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m pytest \$PYTEST_ARGS ; \
+        #valgrind --tool=memcheck python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m pytest \$PYTEST_ARGS ; \
+        G_DEBUG=fatal_warnings GTK_DEBUG=all G_MESSAGES_DEBUG=all GDK_SYNCHRONIZE=1 G_ENABLE_DIAGNOSTIC=1 python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m pytest \$PYTEST_ARGS ; \
+        read \
     else \
         /app/scripts/ghini; \
     fi"

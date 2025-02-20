@@ -38,6 +38,8 @@ from bauble.plugins.plants import Genus
 from bauble.plugins.plants import Species
 from bauble.plugins.plants import SpeciesNote
 from bauble.plugins.plants import VernacularName
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import select
 

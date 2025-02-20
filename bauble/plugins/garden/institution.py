@@ -36,6 +36,7 @@ import bauble.utils as utils
 
 import gi
 # mapping stuff
+gi.require_version("Gtk", "3.0")
 gi.require_version("GtkClutter", "1.0")
 gi.require_version("GtkChamplain", "0.12")
 gi.require_version("Champlain", "0.12")
@@ -48,8 +49,17 @@ from gi.repository import GtkClutter
 from sqlalchemy import select, insert, update
 #from sqlalchemy.orm import Session
 
+# Ensure GTK is initialized and get the display
+display = Gdk.Display.get_default()
+if not display:
+    raise RuntimeError("GDK Display could not be initialized.")
 
-GtkClutter.init([])  # needed before importing Champlain
+# Explicitly set Clutter's GDK display before initializing Clutter
+Clutter.set_windowing_backend("x11")  # Use "x11" explicitly if running in X11
+
+# Now initialize Clutter and GtkClutter
+GtkClutter.init([])  # GtkClutter first
+Clutter.init([])  # Then Clutter
 
 
 logger = logging.getLogger(__name__)

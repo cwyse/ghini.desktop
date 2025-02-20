@@ -32,6 +32,7 @@ import bauble.btypes as types
 from bauble.plugins.plants import Family
 from bauble.test import check_dupids
 import tempfile
+from sqlalchemy import text
 
 from io import BytesIO
 
@@ -41,30 +42,65 @@ logger.setLevel(logging.INFO)
 prefs.testing = True
 
 
+# @pytest.fixture
+# def clean_enum_table(db_session):
+#     """
+#     Fixture to clean and create the Enum test table for each test.
+#     """
+# #    metadata = db.Base.metadata
+# #    if "test_enum_type" in metadata.tables:
+# #        del metadata.tables["test_enum_type"]  # Remove existing table definition
+
+#     class TestEnum(db.Base):
+#         __tablename__ = "test_enum_type"
+#         id = Column(Integer, primary_key=True)
+#         value = Column(types.Enum(values=["1", "2", ""]), default="")
+
+#     metadata = db.Base.metadata
+#     if "test_enum_type" in metadata.tables:
+#         metadata.remove(TestEnum.__table__)
+        
+#     TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
+#     TestEnum.__table__.create(bind=db_session.bind)
+
+#     yield TestEnum
+
+#     TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
+class TestEnum(db.Base):
+    __tablename__ = "test_enum_type"
+    id = Column(Integer, primary_key=True)
+    value = Column(types.Enum(values=["1", "2", ""]), default="")
+
 @pytest.fixture
 def clean_enum_table(db_session):
     """
     Fixture to clean and create the Enum test table for each test.
     """
-#    metadata = db.Base.metadata
-#    if "test_enum_type" in metadata.tables:
-#        del metadata.tables["test_enum_type"]  # Remove existing table definition
 
-    class TestEnum(db.Base):
-        __tablename__ = "test_enum_type"
-        id = Column(Integer, primary_key=True)
-        value = Column(types.Enum(values=["1", "2", ""]), default="")
+    # Ensure SQLAlchemy ORM is fully aware of metadata changes
+    db_session.rollback()  # Clear pending transactions
 
+    # Drop the table if it exists
+    TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
+
+    # Remove the table from SQLAlchemy metadata to prevent caching issues
     metadata = db.Base.metadata
     if "test_enum_type" in metadata.tables:
-        metadata.remove(TestEnum.__table__)
-        
-    TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
+        metadata.remove(metadata.tables["test_enum_type"])
+
+    # Ensure the ORM is aware of the dropped table
+    db_session.commit()
+
+    # Recreate the table
     TestEnum.__table__.create(bind=db_session.bind)
+    db_session.commit()
 
-    yield TestEnum
+    yield TestEnum  # Provide the table for the test
 
+    # Drop the table after the test
     TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
+    db_session.commit()
+
 
 
 class TestEnumModel:
@@ -73,8 +109,40 @@ class TestEnumModel:
     """
 
     def test_insert_low_level(self, db_session, clean_enum_table):
+        # ✅ Get database dialect (SQLite, PostgreSQL, etc.)
+        dialect_name = db_session.bind.dialect.name
+        
+        # Check if the table exists before inserting
+        if dialect_name == "sqlite":
+            query = text("SELECT name FROM sqlite_master WHERE type='table';")
+        else:
+            query = text("SELECT table_name FROM information_schema.tables WHERE table_schema='public';")
+
+        table_names = db_session.execute(query).fetchall()
+        print(f"Existing tables: {table_names}")
+        # Debug: Ensure the row does not already exist
+        existing_row = db_session.execute(
+            select(clean_enum_table).where(clean_enum_table.id == 1)
+        ).scalars().first()
+        if existing_row:
+            print(f"Row already exists before test: {existing_row}")
+        else:
+            print("No existing row, inserting...")
+
+        # Perform the raw insert
         db_session.execute(clean_enum_table.__table__.insert().values(id=1))
+
+        # Force the session to refresh its state
+        db_session.expire_all()
+
+        # Commit the transaction
         db_session.commit()
+
+        # Verify the row was inserted
+        inserted_row = db_session.execute(
+            select(clean_enum_table).where(clean_enum_table.id == 1)
+        ).scalars().first()
+        assert inserted_row is not None, "Row was not inserted properly!"
 
     def test_insert_alchemic(self, db_session, clean_enum_table):
         instance = clean_enum_table(id=1)
@@ -93,6 +161,8 @@ class TestEnumModel:
         db_session.add(instance)
         with pytest.raises(StatementError):
             db_session.flush()
+        # ✅ Ensure rollback after the test runs
+        db_session.rollback()   
 
     def function_creating_enum(self, name, values, **kwargs):
         """
@@ -110,7 +180,7 @@ class TestEnumModel:
         table_class.__table__.create(bind=db.engine)
         return table_class
 
-    def test_bad_enum(self):
+    def test_bad_enum(self, db_session):
         """
         Test invalid Enum configurations.
         """
@@ -136,6 +206,8 @@ class TestEnumModel:
 
         with pytest.raises(types.EnumError):
             self.function_creating_enum("six", ["1", "2"], empty_to_none=True)  # empty_to_none with empty string
+        # ✅ Ensure rollback after the test runs
+        db_session.rollback() 
 
     def test_empty_to_none(self, db_session):
         """

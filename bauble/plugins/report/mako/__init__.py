@@ -28,6 +28,8 @@ from gettext import gettext as _
 from bauble import paths as bpaths
 from bauble import utils as butils
 from bauble.plugins.report import TemplateFormatterPlugin
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 logger = logging.getLogger(__name__)

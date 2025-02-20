@@ -22,6 +22,8 @@ import re
 from gettext import gettext as _
 
 import bauble.utils.desktop as desktop
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 logger = logging.getLogger(__name__)

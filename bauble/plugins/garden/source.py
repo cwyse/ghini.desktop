@@ -37,6 +37,8 @@ import bauble.view as view
 from bauble.plugins.plants.geography import GeographicArea
 from bauble.plugins.plants.geography import GeographicAreaMenu
 from bauble.utils import safe_set_text
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -654,7 +656,9 @@ class CollectionPresenter(editor.ChildPresenter):
                 dms_string = "%s %s\u00B0%s'%s\"" % latitude_to_dms(latitude)
         except Exception:
             logger.debug(traceback.format_exc())
-            Gdk.Color.parse("red")
+            rgba = Gdk.RGBA()
+            rgba.parse("red") 
+            color = rgba
             self.add_problem(
                 self.PROBLEM_BAD_LATITUDE, self.view.widgets.lat_entry
             )
@@ -689,7 +693,9 @@ class CollectionPresenter(editor.ChildPresenter):
                 dms_string = "%s %s\u00B0%s'%s\"" % longitude_to_dms(longitude)
         except Exception:
             logger.debug(traceback.format_exc())
-            Gdk.Color.parse("red")
+            rgba = Gdk.RGBA()
+            rgba.parse("red") 
+            color = rgba
             self.add_problem(
                 self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry
             )

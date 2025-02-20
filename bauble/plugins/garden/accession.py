@@ -59,6 +59,8 @@ from bauble.shared import InfoExpander
 from bauble.view import MapInfoExpander
 from bauble.view import PropertiesExpander
 from bauble.view import select_in_search_results
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Pango
 from sqlalchemy import Boolean
@@ -1362,10 +1364,10 @@ class VerificationPresenter(editor.GenericEditorPresenter):
         box.show_all()
         return box
 
-    class VerificationBox(Gtk.HBox):
+    class VerificationBox(Gtk.Box):
 
         def __init__(self, parent, model):
-            super().__init__(self)
+            super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
             check(not model or isinstance(model, Verification))
 
             self.presenter = weakref.ref(parent)
@@ -1381,16 +1383,11 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             xml = etree.parse(filename)
             el = xml.find(".//object[@id='ver_box']")
             builder = Gtk.Builder()
-            s = "<interface>%s</interface>" % etree.tostring(el)
-            if sys.platform == "win32":
-                # NOTE: PyGTK for Win32 is broken so we have to include
-                # this little hack
-                #
-                # TODO: is this only a specific set of version of
-                # PyGTK/GTK...it was only tested with PyGTK 2.12
-                builder.add_from_string(s, -1)
-            else:
-                builder.add_from_string(s)
+
+            s = f"<interface>{etree.tostring(el, encoding='utf-8').decode()}</interface>"
+
+            builder.add_from_string(s.encode())  # Ensure string is properly encoded
+
             self.widgets = utils.BuilderWidgets(builder)
 
             ver_box = self.widgets.ver_box
@@ -1400,7 +1397,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
             # verifier entry
             entry = self.widgets.ver_verifier_entry
             if self.model.verifier:
-                entry.set_text = self.model.verifier
+                entry.set_text(self.model.verifier)
             self.presenter().view.connect(
                 entry, "changed", self.on_entry_changed, "verifier"
             )

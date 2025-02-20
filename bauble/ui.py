@@ -35,6 +35,8 @@ from bauble import querybuilder
 from bauble.editor import GenericEditorView
 from bauble.prefs import prefs
 from bauble.view import SearchView
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import Gtk
@@ -262,8 +264,6 @@ class GUI:
 
         # remove label from frame
         frame = statusbar.get_children()[0]
-        #        color = Gdk.Color.parse('#00FF00')
-        #        frame.modify_bg(Gtk.StateType.NORMAL, color.color)
         label = frame.get_children()[0]
         frame.remove(label)
 
@@ -320,9 +320,15 @@ class GUI:
         )
         box.message = msg
         box.details = details
+        rgba1 = Gdk.RGBA()
+        rgba1.parse("#FF9999")
+
+        rgba2 = Gdk.RGBA()
+        rgba2.parse("#FFAAAA")
+
         colors = [
-            ("bg", Gtk.StateType.NORMAL, Gdk.Color.parse("#FF9999").color),
-            ("bg", Gtk.StateType.PRELIGHT, Gdk.Color.parse("#FFAAAA").color),
+            ("bg", Gtk.StateType.NORMAL, rgba1),
+            ("bg", Gtk.StateType.PRELIGHT, rgba2),
         ]
         for color in colors:
             box.set_color(*color)
