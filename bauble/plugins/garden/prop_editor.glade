@@ -25,7 +25,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -39,7 +38,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="use-stock">True</property>
                 <accelerator key="Return" signal="activate" modifiers="GDK_CONTROL_MASK"/>
               </object>
               <packing>
@@ -888,7 +886,7 @@
                                                       <object class="GtkImage" id="image3">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
-                                                        <property name="stock">gtk-add</property>
+                                                        <property name="icon-name">list-add</property>
                                                       </object>
                                                     </child>
                                                   </object>
@@ -907,7 +905,7 @@
                                                       <object class="GtkImage" id="image4">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
-                                                        <property name="stock">gtk-remove</property>
+                                                        <property name="icon-name">list-remove</property>
                                                       </object>
                                                     </child>
                                                   </object>

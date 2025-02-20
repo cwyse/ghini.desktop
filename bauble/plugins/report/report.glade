@@ -75,7 +75,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="left-attach">5</property>
@@ -88,7 +87,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="left-attach">4</property>
@@ -139,7 +137,7 @@
     <property name="can-focus">False</property>
     <property name="margin-left">2</property>
     <property name="margin-right">2</property>
-    <property name="stock">gtk-open</property>
+    <property name="icon-name">document-open</property>
   </object>
   <object class="GtkDialog" id="report_dialog">
     <property name="can-focus">False</property>
@@ -223,7 +221,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">False</property>
-                <property name="use-stock">True</property>
                 <signal name="clicked" handler="on_new_button_clicked" swapped="no"/>
               </object>
               <packing>
@@ -237,7 +234,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">False</property>
-                <property name="use-stock">True</property>
                 <signal name="clicked" handler="on_remove_button_clicked" swapped="no"/>
               </object>
               <packing>
@@ -549,7 +545,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="use-stock">True</property>
                 <signal name="clicked" handler="on_clear_button_clicked" swapped="no"/>
               </object>
               <packing>
@@ -640,7 +635,6 @@
                 <property name="can-focus">True</property>
                 <property name="can-default">True</property>
                 <property name="receives-default">False</property>
-                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="left-attach">3</property>
@@ -654,7 +648,6 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">False</property>
-                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="left-attach">4</property>

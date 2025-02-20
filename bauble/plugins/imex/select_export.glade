@@ -25,7 +25,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="use-stock">True</property>
                 <signal name="clicked" handler="on_btncancel_clicked" swapped="no"/>
               </object>
               <packing>
@@ -41,7 +40,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="use-stock">True</property>
                 <signal name="clicked" handler="on_btnok_clicked" swapped="no"/>
               </object>
               <packing>
@@ -387,7 +385,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="use-stock">True</property>
                 <signal name="clicked" handler="on_btncancel_clicked" swapped="no"/>
               </object>
               <packing>
@@ -403,7 +400,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="use-stock">True</property>
                 <signal name="clicked" handler="on_btnok_clicked" swapped="no"/>
               </object>
               <packing>

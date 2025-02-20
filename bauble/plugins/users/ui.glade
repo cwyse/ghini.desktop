@@ -27,7 +27,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -103,7 +102,6 @@
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">True</property>
-                                    <property name="use-stock">True</property>
                                     <signal name="clicked" handler="on_add_button_clicked" swapped="no"/>
                                   </object>
                                   <packing>
@@ -118,7 +116,6 @@
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">True</property>
-                                    <property name="use-stock">True</property>
                                     <signal name="clicked" handler="on_remove_button_clicked" swapped="no"/>
                                   </object>
                                   <packing>
@@ -350,7 +347,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -364,7 +360,6 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
