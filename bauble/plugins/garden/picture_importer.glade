@@ -470,7 +470,7 @@
                                 <child>
                                   <object class="GtkCellRendererPixbuf" id="severe_crpixbuf"/>
                                   <attributes>
-                                    <attribute name="stock-id">0</attribute>
+                                    <property name="icon-name">document-new</property>
                                   </attributes>
                                 </child>
                               </object>
@@ -537,7 +537,6 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
-                    <property name="use-stock">True</property>
                   </object>
                   <packing>
                     <property name="left-attach">3</property>
@@ -552,7 +551,6 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
-                    <property name="use-stock">True</property>
                   </object>
                   <packing>
                     <property name="left-attach">2</property>
@@ -567,7 +565,6 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
-                    <property name="use-stock">True</property>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -582,7 +579,6 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
-                    <property name="use-stock">True</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
