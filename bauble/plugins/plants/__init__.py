@@ -66,6 +66,8 @@ from bauble.plugins.plants.species import vernname_context_menu
 from bauble.ui import DefaultView
 from bauble.utils import safe_set_text
 from bauble.view import SearchView
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import GObject
 #from gi.repository import Gtk
 from sqlalchemy import select

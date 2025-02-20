@@ -936,6 +936,7 @@ class SpeciesSynonym(db.Base):
     synonym = relationship(
         "Species", primaryjoin="SpeciesSynonym.synonym_id==Species.id",
         uselist=False, # One-to-one relationship
+        overlaps="_syn"
     )
 
     def __init__(self, synonym=None, **kwargs):

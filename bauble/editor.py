@@ -38,6 +38,8 @@ import lxml.etree as etree
 from bauble.error import check
 from bauble.error import CheckConditionError
 from bauble.utils import parse_date, safe_set_props, handle_db_error
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import GLib
@@ -834,7 +836,7 @@ class GenericEditorView:
 class MockDialog:
     def __init__(self):
         self.hidden = False
-        self.content_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.content_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)  
 
     def hide(self):
         self.hidden = True
@@ -1167,7 +1169,10 @@ class GenericEditorPresenter:
     3. connect the signal handlers
     """
 
-    problem_color = Gdk.Color.parse("#FFDCDF")
+    rgba = Gdk.RGBA()
+    rgba.parse("#FFDCDF")
+    problem_color = rgba
+
     widget_to_field_map = {}
     view_accept_buttons = []
 

@@ -46,6 +46,8 @@ from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
 from bauble.plugins.plants.species import Species
 from bauble.plugins.report import FormatterPlugin
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy.orm import object_session
 

@@ -50,7 +50,7 @@ def init_bauble():
     db.metadata.create_all(bind=db.engine)  # Ensure all tables exist
     pluginmgr.init(force=True)
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def db_session(init_bauble):
     """
     Provide a database session tied to the global Session from db.open.
@@ -58,9 +58,11 @@ def db_session(init_bauble):
     """
     session = db.Session()
     db.metadata.create_all(bind=db.engine)  # Ensure tables exist
-    yield session
-    session.rollback()
-    session.close()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
 
 @pytest.fixture(autouse=True)
 def clean_db(db_session):

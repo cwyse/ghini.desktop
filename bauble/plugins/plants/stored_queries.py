@@ -26,6 +26,8 @@ from bauble import editor
 from bauble import meta
 from bauble import paths
 from bauble import pluginmgr
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Pango
 from sqlalchemy import select
 
@@ -41,6 +43,7 @@ class StoredQueriesModel:
 
         # Use a context manager to ensure session cleanup
         with db.Session() as session:
+            session.commit()  # Ensure session if fully initialized before querying
             query = select(meta.BaubleMeta).filter(meta.BaubleMeta.name.startswith("stqr_"))
             for item in session.scalars(query):
                 if str(item.name)[4] != "_":

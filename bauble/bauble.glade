@@ -30,7 +30,6 @@
             <property name="can-focus">True</property>
             <property name="model">history_ls</property>
             <property name="reorderable">True</property>
-            <property name="rules-hint">True</property>
             <signal name="row-activated" handler="on_row_activated" swapped="no"/>
             <child internal-child="selection">
               <object class="GtkTreeSelection"/>
@@ -154,7 +153,7 @@
                       <object class="GtkImage" id="image3">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="stock">gtk-home</property>
+                        <property name="icon-name">go-home</property>
                       </object>
                     </child>
                   </object>
@@ -174,7 +173,7 @@
                       <object class="GtkImage" id="image4">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="stock">gtk-go-back</property>
+                        <property name="icon-name">go-previous</property>
                       </object>
                     </child>
                   </object>
@@ -194,7 +193,7 @@
                       <object class="GtkImage" id="image2">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="stock">gtk-properties</property>
+                        <property name="icon-name">preferences-system</property>
                       </object>
                     </child>
                   </object>
@@ -237,7 +236,7 @@
                       <object class="GtkImage" id="image1">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="stock">gtk-find</property>
+                        <property name="icon-name">edit-find</property>
                       </object>
                     </child>
                   </object>

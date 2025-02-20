@@ -32,6 +32,8 @@ from bauble import utils
 from bauble.plugins.report import PS
 from bauble.plugins.report import SVG
 from bauble.plugins.report import TemplateFormatterPlugin
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 logger = logging.getLogger(__name__)

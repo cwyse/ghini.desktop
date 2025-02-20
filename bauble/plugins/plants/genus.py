@@ -45,6 +45,8 @@ from bauble.view import InfoBox
 from bauble.shared import InfoExpander
 from bauble.view import PropertiesExpander
 from bauble.view import select_in_search_results
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import and_
 from sqlalchemy import Column

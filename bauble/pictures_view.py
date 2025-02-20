@@ -19,13 +19,15 @@
 import logging
 
 import bauble.utils as utils
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class PicturesView(Gtk.HBox):
+class PicturesView(Gtk.Box):
     """shows pictures corresponding to selection.
 
     at any time, no more than one PicturesView object will exist.
@@ -46,55 +48,75 @@ class PicturesView(Gtk.HBox):
             "entering PicturesView.__init__(parent=%s, fake=%s)"
             % (parent, fake)
         )
-        super().__init__()
-        if fake:
-            self.fake = True
+        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        self.fake = fake
+        if self.fake:
             return
-        self.fake = False
+        
         import os
 
         from bauble import paths
 
         glade_file = os.path.join(paths.lib_dir(), "pictures_view.glade")
         self.widgets = utils.BuilderWidgets(glade_file)
+
+        # Remove parent reference from builder and add to the new parent
         self.widgets.remove_parent(self.widgets.scrolledwindow2)
         parent.add(self.widgets.scrolledwindow2)
         parent.show_all()
         self.widgets.scrolledwindow2.show()
 
+
     def set_selection(self, selection):
-        logger.debug("PicturesView.set_selection(%s)" % selection)
+        """
+        Updates the view based on the current selection.
+
+        If an object in the selection contains a `pictures` property, its
+        pictures will be displayed.
+        """
+        logger.debug(f"Setting selection: {selection}")
         if self.fake:
             return
-        self.ghini_box = self.widgets.pictures_box
-        for k in self.ghini_box.get_children():
-            k.destroy()
 
-        for o in selection or []:
+        self.ghini_box = self.widgets.pictures_box
+
+        # Clear existing children
+        for child in self.ghini_box.get_children():
+            child.destroy()
+
+        for obj in selection or []:
             try:
-                pics = o.pictures
+                pics = obj.pictures
             except AttributeError:
-                logger.debug("object %s does not know of pictures" % o)
+                logger.debug(f"Object {obj} does not define 'pictures' attribute")
                 pics = []
-            for p in pics:
-                logger.debug("object {} has picture {}".format(o, p))
-                expander = Gtk.HBox()
-                expander.add(p)
-                self.ghini_box.pack_end(expander, False, False, 0)
-                self.ghini_box.reorder_child(expander, 0)
-                expander.show_all()
-                p.show()
+
+            for pic in pics:
+                logger.debug(f"Object {obj} has picture {pic}")
+                picture_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+                picture_box.add(pic)
+                self.ghini_box.pack_start(picture_box, False, False, 0)
+                self.ghini_box.reorder_child(picture_box, 0)
+                picture_box.show_all()
+                pic.show()
 
         self.ghini_box.show_all()
 
     def add_picture(self, picture=None):
         """
-        Add a new picture to the model.
+        Adds a new picture to the model.
         """
-        expander = self.ContentBox(self, picture)
-        self.ghini_box.pack_start(expander, False, False, 0)
-        expander.show_all()
-        return expander
+        if picture is None:
+            logger.warning("add_picture() called with no picture provided.")
+            return None
+
+        picture_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        picture_box.add(picture)
+
+        self.ghini_box.pack_start(picture_box, False, False, 0)
+        picture_box.show_all()
+
+        return picture_box
 
 
 floating_window = None
@@ -113,5 +135,5 @@ def show_pictures_callback(selection):
 
     species: show the voucher.
     """
-
-    floating_window.set_selection(selection)
+    if floating_window is not None:
+        floating_window.set_selection(selection)

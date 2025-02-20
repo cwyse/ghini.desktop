@@ -701,7 +701,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
                 name  # set the default to the new name
             )
         GObject.idle_add(self._names_combo_changed_idle, combo)
-
+        
     def _names_combo_changed_idle(self, combo):
         index = self.view.widgets.names_combo.get_active()
         self.view.widget_set_sensitive("details_box", (index != -1))
@@ -711,8 +711,10 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         else:
             row = None
             name = ""
+
         settings = prefs[config_list_pref].get(name, {})
 
+        # Reset fields and disable OK button
         self.view.widget_set_sensitive("ok_button", False)
         self.view.widget_set_value("basename_entry", "")
         self.view.widget_set_value("formatter_entry", "")
@@ -729,42 +731,45 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
                 search_result = bauble.gui.get_results_model()
                 top_left_content = search_result[0][0]
                 domain = "(%s)" % top_left_content.__class__.__name__.lower()
+
             self.view.widget_set_value("basename_entry", row[0])
             self.view.widget_set_value("formatter_entry", title)
             self.view.widget_set_value("domain_entry", domain)
             self.view.widget_set_sensitive("ok_button", True)
-            self.view.widget_set_value(
-                "is_package_template", is_package_template
-            )
+            self.view.widget_set_value("is_package_template", is_package_template)
         except Exception as e:
-            logger.debug(
-                "Template {} raised {}({}).".format(name, type(e).__name__, e)
-            )
+            logger.debug("Template {} raised {}({}).".format(name, type(e).__name__, e))
             return
 
         self.set_prefs_for(name, settings)
 
         self.defaults = []
         options_box = self.view.widgets.options_box
-        # empty the options box
+
+        # Empty the options box (except hardcoded options)
         for child in options_box.get_children():
             if child in self.hard_coded_options:
                 continue
             options_box.remove(child)
-        # which options does the template accept? (can be None)
+
+        # Retrieve template options
         option_fields = plugin.get_options(name)
-        current_row = 1  # should not be hard coded
-        # populate the options box
+        current_row = 1  # should not be hard-coded
+
+        # Populate the options box
         for fname, ftype, fdefault, ftooltip in option_fields:
-            row = Gtk.HBox()
-            label = Gtk.Label(fname.replace("_", " ") + _(":"))
-            label.set_alignment(0, 0.5)
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)  # Replaces Gtk.HBox
+
+            label = Gtk.Label(label=f"{fname.replace('_', ' ')}:")
+            label.set_xalign(0)  # Instead of set_alignment(0, 0.5)
+            label.set_yalign(0.5)
+
             ftype = ftype.lower()
             if ftype == "bool":
                 fdefault = fdefault.lower() not in ["false", "0"]
                 self.options.setdefault(fname, fdefault)
                 entry = Gtk.CheckButton()
-                entry.set_margin_left(4)
+                entry.set_margin_start(4)  # Instead of set_margin_left(4)
                 entry.set_active(self.options[fname])
                 entry.connect("toggled", self.set_bool_option, fname)
             else:
@@ -772,16 +777,25 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
                 entry = Gtk.Entry()
                 safe_set_text(entry, self.options[fname])
                 entry.connect("changed", self.set_option, fname)
+
             entry.set_tooltip_text(ftooltip)
-            # entry updates the corresponding item in report.options
+
+            # Add entry to the row
+            row.pack_start(label, False, False, 0)
+            row.pack_start(entry, True, True, 0)
+
+            # Store default values
             self.defaults.append((entry, fdefault))
-            options_box.attach(label, 0, current_row, 1, 1)
-            options_box.attach(entry, 1, current_row, 2, 1)
-            current_row += 1
+
+            # Add to options box
+            options_box.pack_start(row, False, False, 0)
+
+        # Reset Button
         if self.defaults:
-            button = Gtk.Button(_("Reset to defaults"))
-            button.connect("clicked", self.reset_options)
-            options_box.attach(button, 3, current_row - 1, 2, 1)
+            reset_button = Gtk.Button(label=_("Reset to defaults"))
+            reset_button.connect("clicked", self.reset_options)
+            options_box.pack_start(reset_button, False, False, 0)
+
         options_box.show_all()
 
     def reset_options(self, widget):

@@ -30,6 +30,8 @@ from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorView
 from bauble.querybuilder import SchemaMenu
 from bauble.search import MapperSearch
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk
 from gi.repository import Gtk
 from sqlalchemy.orm import class_mapper

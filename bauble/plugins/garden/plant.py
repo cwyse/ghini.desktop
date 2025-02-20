@@ -50,6 +50,8 @@ from bauble.shared import InfoExpander
 from bauble.view import MapInfoExpander
 from bauble.view import PropertiesExpander
 from bauble.view import select_in_search_results
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import and_
 from sqlalchemy import Boolean
@@ -1546,62 +1548,77 @@ def label_size_allocate(widget, rect):
     widget.set_size_request(rect.width, -1)
 
 
+import gi
+gi.require_version("Gtk", "3.0")
+gi.require_version("Pango", "1.0")
+
+from gi.repository import Gtk, Pango
+from bauble.shared import InfoExpander
+from bauble import utils, prefs
+
 class PropagationExpander(InfoExpander):
     """
-    Propagation Expander
+    Propagation Expander (GTK 3 Compatible)
     """
 
     def __init__(self, widgets):
-        """ """
         super().__init__(_("Propagations"), widgets)
         self.vbox.set_spacing(4)
 
     def update(self, row):
-        sensitive = True
-        if not row.propagations:
-            sensitive = False
-        self.set_expanded = sensitive
-        self.set_sensitive = sensitive
-        self.vbox.foreach(self.vbox.remove)
-        format = prefs.prefs[prefs.date_format_pref]
+        """
+        Update the UI with propagation data.
+        """
+        sensitive = bool(row.propagations)  # Enable/disable UI based on data
+        self.set_expanded(sensitive)
+        self.set_sensitive(sensitive)
+
+        # Remove all existing children safely
+        for child in self.vbox.get_children():
+            self.vbox.remove(child)
+
+        date_format = prefs.prefs[prefs.date_format_pref]
+
         for prop in row.propagations:
-            # (h1 (v1 (date_lbl)) (v2 (eventbox (accession_lbl)) (label)))
-            h1 = Gtk.HBox()
-            h1.set_spacing(3)
+            # Create horizontal box (h1) containing v1 (date) and v2 (accessions)
+            h1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
             self.vbox.pack_start(h1, True, True, 0)
 
-            v1 = Gtk.VBox()
-            v2 = Gtk.VBox()
+            v1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+            v2 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
             h1.pack_start(v1, True, True, 0)
             h1.pack_start(v2, True, True, 0)
 
+            # Date Label
             date_lbl = Gtk.Label()
-            v1.pack_start(date_lbl, True, True, 0)
-            date_lbl.set_markup("<b>%s</b>" % prop.date.strftime(format))
-            date_lbl.set_alignment(0.0, 0.0)
+            date_lbl.set_markup("<b>%s</b>" % prop.date.strftime(date_format))
+            date_lbl.set_xalign(0.0)  # Align left
+            v1.pack_start(date_lbl, False, False, 0)
 
+            # Accession Labels
             for acc in prop.accessions:
                 accession_lbl = Gtk.Label()
                 eventbox = Gtk.EventBox()
                 eventbox.add(accession_lbl)
-                v2.pack_start(eventbox, True, True, 0)
-                accession_lbl.set_alignment(0.0, 0.0)
+                v2.pack_start(eventbox, False, False, 0)
+                accession_lbl.set_xalign(0.0)  # Align left
                 safe_set_text(accession_lbl, acc.code)
 
-                def on_clicked(widget, event, obj):
+                def on_clicked(widget, event, obj=acc):
                     select_in_search_results(obj)
 
                 utils.make_label_clickable(accession_lbl, on_clicked, acc)
 
+            # Summary Label
             label = Gtk.Label()
-            v2.pack_start(label, True, True, 0)
-
             safe_set_text(label, prop.get_summary(partial=2))
-            label.set_wrap(True)  # Replace label.props.wrap = True
-            label.set_alignment(0.0, 0.0)
+            label.set_wrap(True)  # Enable text wrapping
+            label.set_xalign(0.0)  # Align left
             label.connect("size-allocate", label_size_allocate)
-            self.vbox.pack_start(label, True, True, 0)
+            v2.pack_start(label, False, False, 0)
+
         self.vbox.show_all()
+
 
 class PlantInfoBox(InfoBox):
     """

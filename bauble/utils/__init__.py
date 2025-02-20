@@ -1322,11 +1322,20 @@ def make_label_clickable(label, on_clicked, *args):
     label.__on_clicked = on_clicked
 
     def on_enter_notify(widget, event, label, *args):
-        bg_color = Gdk.Color.parse("#FAF8F7")
-        fg_color = Gdk.Color.parse("blue")
-        widget.modify_bg(Gtk.StateType.NORMAL, bg_color.color)
-        label.modify_fg(Gtk.StateType.NORMAL, fg_color.color)
+        """Handles mouse entering the widget, changing background and foreground colors."""
 
+        # Use Gdk.RGBA instead of deprecated Gdk.Color
+        bg_color = Gdk.RGBA()
+        fg_color = Gdk.RGBA()
+
+        # Parse colors correctly
+        bg_color.parse("#FAF8F7")
+        fg_color.parse("blue")
+
+        # Apply background and foreground colors
+        widget.override_background_color(Gtk.StateFlags.NORMAL, bg_color)
+        label.override_color(Gtk.StateFlags.NORMAL, fg_color)
+        
     def on_leave_notify(widget, event, label, *args):
         widget.modify_bg(Gtk.StateType.NORMAL, None)
         label.modify_fg(Gtk.StateType.NORMAL, None)
@@ -1555,6 +1564,9 @@ def topological_sort(items, partial_order):
 
     return sorted
 
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk, Gdk, Pango
 
 class GenericMessageBox(Gtk.EventBox):
     """
@@ -1563,19 +1575,27 @@ class GenericMessageBox(Gtk.EventBox):
 
     def __init__(self):
         super().__init__()
-        self.box = Gtk.HBox()
-        self.box.set_spacing(10)
+        self.box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.add(self.box)
 
     def set_color(self, attr, state, color):
-        # colormap → visual
-        # style → styleContext
-        style = self.get_style()
-        return style
+        """
+        Sets background or foreground color dynamically using CSS.
+        """
+        context = self.get_style_context()
+
+        color_str = f"rgba({int(color.red * 255)}, {int(color.green * 255)}, {int(color.blue * 255)}, {color.alpha})"
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data(f"* {{ background-color: {color_str}; }}".encode("utf-8"))
+
+        context.add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
     def show_all(self):
+        """
+        Displays the widget and adjusts size dynamically.
+        """
         self.get_parent().show_all()
-        requisition = self.size_request()
+        requisition = self.get_preferred_size()[1]
         height = requisition.height
         width = requisition.width
         self.set_size_request(width, height + 10)
@@ -1591,7 +1611,7 @@ class MessageBox(GenericMessageBox):
 
     def __init__(self, msg=None, details=None):
         super().__init__()
-        self.vbox = Gtk.VBox()
+        self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.box.pack_start(self.vbox, True, True, 0)
 
         self.label = Gtk.TextView()
@@ -1599,14 +1619,13 @@ class MessageBox(GenericMessageBox):
         self.buffer = Gtk.TextBuffer()
         self.label.set_buffer(self.buffer)
         if msg:
-            safe_set_text(self.buffer, msg)
+            self.buffer.set_text(msg)
         self.vbox.pack_start(self.label, True, True, 0)
 
-        button_box = Gtk.VBox()
+        button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.box.pack_start(button_box, False, False, 0)
         button = Gtk.Button()
-        image = Gtk.Image()
-        image.set_from_icon_name("window-close", Gtk.IconSize.BUTTON)
+        image = Gtk.Image.new_from_icon_name(Gtk.STOCK_CLOSE, Gtk.IconSize.BUTTON)
         button.set_image(image)
         button.set_relief(Gtk.ReliefStyle.NONE)
         button_box.pack_start(button, False, False, 0)
@@ -1620,58 +1639,67 @@ class MessageBox(GenericMessageBox):
         viewport = Gtk.Viewport()
         sw.add(viewport)
         self.details_label = Gtk.Label()
+        self.details_label.set_line_wrap(True)
+        self.details_label.set_xalign(0)  # Align text to the left
+        self.details_label.set_ellipsize(Pango.EllipsizeMode.END)
         viewport.add(self.details_label)
 
-        self.details = (details or "")[:4096]
+        self.details = (details or '')[:4096]
         self.details_expander.add(sw)
 
         def on_expanded(*args):
-            requisition = self.size_request()  # Get the Gtk.Requisition object
-            width = requisition.width  # Access the width attribute
-            #height = requisition.height  # Access the height attribute
+            width, height = self.get_preferred_size()[1]
             self.set_size_request(width, -1)
             self.queue_resize()
 
-        self.details_expander.connect("notify::expanded", on_expanded)
+        self.details_expander.connect('notify::expanded', on_expanded)
 
         def on_close(*args):
             parent = self.get_parent()
             if parent is not None:
                 parent.remove(self)
 
-        button.connect("clicked", on_close, True)
+        button.connect('clicked', on_close, True)
 
+        # Use Gdk.RGBA for colors instead of hex strings
         colors = [
-            ("bg", Gtk.StateType.NORMAL, Gdk.Color.parse("#FFFFFF").color),
-            ("bg", Gtk.StateType.PRELIGHT, Gdk.Color.parse("#FFFFFF").color),
+            ("bg", Gtk.StateFlags.NORMAL, Gdk.RGBA()),
+            ("bg", Gtk.StateFlags.PRELIGHT, Gdk.RGBA())
         ]
+
+        colors[0][2].parse("#FFFFFF")
+        colors[1][2].parse("#FFFFFF")
+
         for color in colors:
             self.set_color(*color)
 
     def show_all(self):
+        """
+        Show the widget but hide the details expander if there is no text.
+        """
         super().show_all()
         if not self.details_label.get_text():
             self.details_expander.hide()
 
-    def _get_message(self, msg):
-        return self.buffer.text
+    @property
+    def message(self):
+        return self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
 
-    def _set_message(self, msg):
-        safe_set_text(self.buffer, msg or "")
+    @message.setter
+    def message(self, msg):
+        self.buffer.set_text(msg or '')
 
-    message = property(_get_message, _set_message)
+    @property
+    def details(self):
+        return self.details_label.get_text()
 
-    def _get_details(self, msg):
-        return self.details_label.text
-
-    def _set_details(self, msg):
+    @details.setter
+    def details(self, msg):
         if msg:
-            msg = "\n".join(textwrap.wrap(msg, 100))
-            self.details_label.set_markup(msg)
+            self.details_label.set_text(msg)
         else:
-            self.details_label.set_markup("")
+            self.details_label.set_text("")
 
-    details = property(_get_details, _set_details)
 
 
 class YesNoMessageBox(GenericMessageBox):

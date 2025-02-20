@@ -165,6 +165,8 @@ class AskTPL(threading.Thread):
         self.__class__.running = None
         logger.debug("%s before invoking callback" % self.name)
         if self.gui:
+            import gi
+            gi.require_version("Gtk", "3.0")
             from gi.repository import GObject
 
             GObject.idle_add(self.callback, found, accepted)

@@ -26,6 +26,8 @@ from bauble import pluginmgr
 from bauble import utils
 from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorView
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import GdkPixbuf
 from gi.repository import GLib
 from gi.repository import GObject
