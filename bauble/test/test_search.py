@@ -480,7 +480,7 @@ class TestSearch:
         f4 = Family(family='fam4')
         
         db_session.add_all([f3, f2, f4])
-        db_session.commit()
+        db_session.flush()
         
         stmt = select(Family).filter(Family.epithet == "fam4")
         compiled_stmt = stmt.compile(
@@ -540,16 +540,19 @@ class TestSearch:
         # For additional data, create a second family and genus.
         from bauble.plugins.plants.family import Family
         from bauble.plugins.plants.genus import Genus
+        from bauble.search import get_strategy
 
         # Create additional family2 and genus2 (which are not expected to match)
         family2 = Family(family='family2')
         genus2 = Genus(family=family2, genus='genus2')
         db_session.add_all([family2, genus2])
-        db_session.commit()
+        db_session.rollback()
 
         mapper_search = get_strategy("MapperSearch")
         assert isinstance(mapper_search, search.MapperSearch)
 
+        # ✅ Pass `mapper_search` instead of `db_session`
+        results = mapper_search.search("genus where genus=genus1", mapper_search)
         # Execute the query "genus where genus=genus1" which should return the genus1
         results = mapper_search.search("genus where genus=genus1", db_session)
         assert len(results) == 1
@@ -579,7 +582,7 @@ class TestSearch:
         genus3 = Genus(family=f3, genus="genus2")  # homonym genus
         genus4 = Genus(family=f3, genus="genus4")
         db_session.add_all([family2, f3, genus2, genus3, genus4])
-        db_session.commit()
+        db_session.rollback()
 
         # Perform the query
         mapper_search = search.get_strategy("MapperSearch")
@@ -681,7 +684,7 @@ class TestSearch:
         genus3 = Genus(family=f3, genus="genus2")
         genus4 = Genus(family=f3, genus="genus4")
         db_session.add_all([family2, f3, genus2, genus3, genus4])
-        db_session.commit()
+        db_session.rollback()
 
         # Perform the query
         mapper_search = search.get_strategy("MapperSearch")
@@ -708,7 +711,7 @@ class TestSearch:
         family2 = Family(family='family2')
         genus2 = Genus(family=family2, genus='genus2')
         db_session.add_all([family2, genus2])
-        db_session.commit()
+        db_session.rollback()
 
         mapper_search = get_strategy("MapperSearch")
         assert isinstance(mapper_search, search.MapperSearch)
@@ -789,7 +792,7 @@ class TestSearch:
         
         # Add all test records to the session
         db_session.add_all([family2, f3, g2, g3])
-        db_session.commit()
+        db_session.rollback()
 
         # Step 2: Perform the search
         # ----------------------------
@@ -832,7 +835,7 @@ class TestSearch:
         g2 = Genus(family=family2, genus="genus2")
         g3 = Genus(family=f3, genus="genus3")
         db_session.add_all([family2, f3, g2, g3])
-        db_session.commit()
+        db_session.rollback()
 
         # Perform the query
         mapper_search = search.get_strategy("MapperSearch")
@@ -866,7 +869,7 @@ class TestSearch:
         g2 = Genus(family=family2, genus="genus2")
         g3 = Genus(family=f3, genus="genus3")
         db_session.add_all([family2, f3, g2, g3])
-        db_session.commit()
+        db_session.rollback()
 
         # Perform the query
         mapper_search = search.get_strategy("MapperSearch")
@@ -890,7 +893,7 @@ class TestSearch:
         g2 = Genus(family=family2, genus="genus2")
         g3 = Genus(family=f3, genus="genus3")
         db_session.add_all([family2, f3, g2, g3])
-        db_session.commit()
+        db_session.rollback()
 
         # Perform the query
         mapper_search = search.get_strategy("MapperSearch")
@@ -922,7 +925,7 @@ class TestSearch:
         db_session.add_all(
             [family2, family3, genus21, genus31, genus32, genus33, f3, g3]
         )
-        db_session.commit()
+        db_session.rollback()
 
         # Perform the query
         mapper_search = search.get_strategy("MapperSearch")
@@ -958,7 +961,7 @@ class TestSearch:
         pp = Plant(accession=ac, code="01", location=lc, quantity=1)
         pp._last_updated = datetime.datetime(2009, 2, 13)
         db_session.add_all([family2, g2, f3, g3, sp, ac, lc, pp])
-        db_session.commit()
+        db_session.rollback()
 
         # Perform the queries
         mapper_search = search.get_strategy("MapperSearch")
@@ -1024,7 +1027,7 @@ class TestSearch:
         sp = Species(sp="coccinea", genus=g3)
         ac = Accession(species=sp, code="1979.0001")
         db_session.add_all([family2, g2, f3, g3, sp, ac])
-        db_session.commit()
+        db_session.rollback()
 
         # Perform the queries
         mapper_search = search.get_strategy("MapperSearch")
@@ -1059,7 +1062,7 @@ class TestSearch:
         g4 = Genus(family=f3, genus="Schetti")
         db_session.add_all([family2, f3, g2, g3, g4])
         g4.accepted = g3
-        db_session.commit()
+        db_session.rollback()
 
         # Enable synonym search
         prefs.prefs["bauble.search.return_synonyms"] = True
@@ -1089,7 +1092,7 @@ class TestSearch:
         g4 = Genus(family=f3, genus="Schetti")
         db_session.add_all([family2, f3, g2, g3, g4])
         g4.accepted = g3  # Mark g4 as a synonym of g3
-        db_session.commit()
+        db_session.rollback()
 
         # Disable synonym search
         prefs.prefs["bauble.search.return_synonyms"] = False
@@ -1120,7 +1123,7 @@ class TestSearch:
         sp = Species(sp="coccinea", genus=g3)
         vn = VernacularName(name="coral rojo", language="es", species=sp)
         db_session.add_all([family2, g2, f3, g3, sp, vn])
-        db_session.commit()
+        db_session.rollback()
 
         # Perform the query
         mapper_search = search.get_strategy("MapperSearch")
@@ -1302,7 +1305,7 @@ class BinomialSearchTests:
             sp="coccinea", genus=setup_binomial_search["ixora"], infrasp1_rank="cv.", infrasp1="Nora Grant"
         )
         db_session.add(sp5)
-        db_session.commit()
+        db_session.rollback()
 
         query = "Ixora coccinea"  # matches I.coccinea and Nora Grant
         results = mapper_search.search(query, db_session)

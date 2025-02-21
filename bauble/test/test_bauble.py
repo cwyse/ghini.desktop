@@ -51,22 +51,22 @@ prefs.testing = True
 # #    if "test_enum_type" in metadata.tables:
 # #        del metadata.tables["test_enum_type"]  # Remove existing table definition
 
-#     class TestEnum(db.Base):
+#     class _TestEnum(db.Base):
 #         __tablename__ = "test_enum_type"
 #         id = Column(Integer, primary_key=True)
 #         value = Column(types.Enum(values=["1", "2", ""]), default="")
 
 #     metadata = db.Base.metadata
 #     if "test_enum_type" in metadata.tables:
-#         metadata.remove(TestEnum.__table__)
+#         metadata.remove(_TestEnum.__table__)
         
-#     TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
-#     TestEnum.__table__.create(bind=db_session.bind)
+#     _TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
+#     _TestEnum.__table__.create(bind=db_session.bind)
 
-#     yield TestEnum
+#     yield _TestEnum
 
-#     TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
-class TestEnum(db.Base):
+#     _TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
+class _TestEnum(db.Base):
     __tablename__ = "test_enum_type"
     id = Column(Integer, primary_key=True)
     value = Column(types.Enum(values=["1", "2", ""]), default="")
@@ -81,7 +81,7 @@ def clean_enum_table(db_session):
     db_session.rollback()  # Clear pending transactions
 
     # Drop the table if it exists
-    TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
+    _TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
 
     # Remove the table from SQLAlchemy metadata to prevent caching issues
     metadata = db.Base.metadata
@@ -92,13 +92,13 @@ def clean_enum_table(db_session):
     db_session.commit()
 
     # Recreate the table
-    TestEnum.__table__.create(bind=db_session.bind)
+    _TestEnum.__table__.create(bind=db_session.bind)
     db_session.commit()
 
-    yield TestEnum  # Provide the table for the test
+    yield _TestEnum  # Provide the table for the test
 
     # Drop the table after the test
-    TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
+    _TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
     db_session.commit()
 
 
@@ -213,20 +213,20 @@ class TestEnumModel:
         """
         Test the `empty_to_none` functionality for Enums.
         """
-        TestEnum = self.function_creating_enum("seven", ["1", None], empty_to_none=True)
+        _TestEnum = self.function_creating_enum("seven", ["1", None], empty_to_none=True)
 
         # Insert rows into the table
-        row1 = TestEnum(value="1")
-        row2 = TestEnum(value="")
+        row1 = _TestEnum(value="1")
+        row2 = _TestEnum(value="")
         db_session.add_all([row1, row2])
         db_session.flush()
 
         # Query for empty string (should return nothing)
-        query = db_session.execute(select(TestEnum).where(TestEnum.value == "")).scalars()
+        query = db_session.execute(select(_TestEnum).where(_TestEnum.value == "")).scalars()
         assert query.all() == []
 
         # Query for None (should return row2)
-        query = db_session.execute(select(TestEnum).where(TestEnum.value == None)).scalars()
+        query = db_session.execute(select(_TestEnum).where(_TestEnum.value == None)).scalars()
         assert query.all() == [row2]
 
     def test_function_creating_enum_with_fixture(self, db_session, clean_enum_table):
