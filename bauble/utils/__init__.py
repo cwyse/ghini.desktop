@@ -767,13 +767,20 @@ def create_message_dialog(
         except Exception:
             parent = None
     d = Gtk.MessageDialog(
-        flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-        parent=parent,
+        transient_for=parent,
+        modal=True,
         message_type=type,
         buttons=buttons,
     )
     d.set_title("Ghini")
     d.set_markup(msg)
+    d.set_destroy_with_parent(True)  # Ensures destruction with parent
+
+    # Ensure the dialog is destroyed when the parent closes
+    if parent is None:
+        # If there is no parent, manually force modal behavior
+        d.set_modal(False)  # Ensure dialog blocks input properly
+        d.connect("response", lambda dialog, response: dialog.destroy())
 
     if d.get_icon() is None:
         try:
@@ -783,6 +790,7 @@ def create_message_dialog(
             pass
         d.set_property("skip-taskbar-hint", False)
     d.show_all()
+
     return d
 
 
@@ -824,14 +832,21 @@ def create_yes_no_dialog(msg, parent=None, buttons=Gtk.ButtonsType.YES_NO):
             parent = bauble.gui.window
         except Exception:
             parent = None
+
     d = Gtk.MessageDialog(
-        flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-        parent=parent,
+        transient_for=parent,
+        modal=True,
         message_type=Gtk.MessageType.QUESTION,
         buttons=buttons,
     )
     d.set_title("Ghini")
     d.set_markup(msg)
+    d.set_destroy_with_parent(True)  # Ensures dialog is destroyed with parent
+
+    # Ensure the dialog is destroyed when the parent closes
+    if parent is not None:
+        parent.connect("destroy", lambda *_: d.destroy())
+
     if d.get_icon() is None:
         try:
             pixbuf = GdkPixbuf.Pixbuf.new_from_file(bauble.default_icon)
@@ -847,11 +862,26 @@ def yes_no_cancel_dialog(msg, yes_label, no_label, cancel_label):
     Displays a dialog with Yes, No, and Cancel options.
     Returns a DialogResponse enum value.
     """
+    if parent is None:
+        try:  # This might get called before bauble has started
+            parent = bauble.gui.window
+        except Exception:
+            parent = None
+
     dialog = Gtk.MessageDialog(
+        transient_for=parent,
+        modal=True,
         message_type=Gtk.MessageType.QUESTION,
         buttons=Gtk.ButtonsType.NONE,
-        text=msg,
     )
+    dialog.set_title("Ghini")
+    dialog.set_markup(msg)
+    dialog.set_destroy_with_parent(True)  # Ensure it is destroyed with parent
+
+    # Ensure dialog closes when parent is destroyed
+    if parent is not None:
+        parent.connect("destroy", lambda *_: dialog.destroy())
+
     dialog.add_button(yes_label, Gtk.ResponseType.YES)
     dialog.add_button(no_label, Gtk.ResponseType.NO)
     dialog.add_button(cancel_label, Gtk.ResponseType.CANCEL)
@@ -894,7 +924,6 @@ def yes_no_dialog(msg, parent=None, yes_delay=-1):
     d.destroy()
     return r == Gtk.ResponseType.YES
 
-
 def create_message_details_dialog(
     msg,
     details,
@@ -904,51 +933,73 @@ def create_message_details_dialog(
 ):
     """
     Create a message dialog with a details expander.
+
+    :param msg: The main message to display.
+    :param details: Additional details for the expander.
+    :param type: A GTK message type constant (default: Gtk.MessageType.INFO).
+    :param buttons: A GTK buttons type constant (default: Gtk.ButtonsType.OK).
+    :param parent: The parent window (optional).
+    :return: A Gtk.MessageDialog instance.
     """
+
     if parent is None:
-        try:  # this might get called before bauble has started
+        try:  # This might get called before bauble has started
             parent = bauble.gui.window
         except Exception:
             parent = None
 
     d = Gtk.MessageDialog(
-        flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-        parent=parent,
+        transient_for=parent,
+        modal=True,
         message_type=type,
         buttons=buttons,
     )
+
     d.set_title("Ghini")
     d.set_markup(msg)
+    d.set_destroy_with_parent(True)  # Ensure it is destroyed with parent
 
-    # get the width of a character
+    # Ensure dialog closes when parent is destroyed
+    if parent is not None:
+        parent.connect("destroy", lambda *_: d.destroy())
+
+    # Ensure the dialog has a reasonable width
+    from gi.repository import Pango
+
     context = d.get_pango_context()
     font_metrics = context.get_metrics(
         context.get_font_description(), context.get_language()
     )
     width = font_metrics.get_approximate_char_width()
-    from gi.repository import Pango
 
-    # if the character width is less than 300 pixels then set the
-    # message dialog's label to be 300 to avoid tiny dialogs
     if width / Pango.SCALE * len(msg) < 300:
         d.set_size_request(300, -1)
 
-    expand = Gtk.Expander()
-    expand.set_expanded(True)
+    # Create a details expander
+    expand = Gtk.Expander(label=_("Details"))
+    expand.set_expanded(False)
+
+    # Create a scrollable text view for details
     text_view = Gtk.TextView()
     text_view.set_editable(False)
     text_view.set_wrap_mode(Gtk.WrapMode.WORD)
+
     tb = Gtk.TextBuffer()
     safe_set_text(tb, (details or "")[:4096])
     text_view.set_buffer(tb)
+
     sw = Gtk.ScrolledWindow()
     sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
     sw.set_size_request(-1, 200)
     sw.add(text_view)
+
     expand.add(sw)
-    d.vbox.pack_start(expand, True, True, 0)
-    # make "OK" the default response
+    d.get_content_area().pack_start(expand, True, True, 0)
+
+    # Set the default response to OK
     d.set_default_response(Gtk.ResponseType.OK)
+
+    # Set the icon if not already set
     if d.get_icon() is None:
         try:
             pixbuf = GdkPixbuf.Pixbuf.new_from_file(bauble.default_icon)

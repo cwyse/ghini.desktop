@@ -630,7 +630,6 @@ setuptools.setup(
     data_files=data_files,
     install_requires=project_info["dependencies"],
     extras_require=project_info.get("optional-dependencies", {}),
-    test_suite="nose.collector",
     author=authors,
     description=project_info["description"],
     long_description=long_description_content,

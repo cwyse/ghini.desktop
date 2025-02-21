@@ -16,7 +16,6 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import pytest
 from bauble.querybuilderparser import BuiltQuery
-from nose import SkipTest
 
 
 def test_and_clauses():

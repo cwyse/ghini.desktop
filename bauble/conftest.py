@@ -50,29 +50,35 @@ def init_bauble():
     db.metadata.create_all(bind=db.engine)  # Ensure all tables exist
     pluginmgr.init(force=True)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def db_session(init_bauble):
     """
-    Provide a database session tied to the global Session from db.open.
-    Rolls back after each test to maintain test isolation.
+    Provides a database session for each test.
+    Uses SAVEPOINT transactions for test isolation.
     """
-    session = db.Session()
-    db.metadata.create_all(bind=db.engine)  # Ensure tables exist
-    try:
-        yield session
-    finally:
-        session.rollback()
-        session.close()
+    db.Session.remove()
+    connection = db.engine.connect()
+    transaction = connection.begin()  # Start a transaction
 
+    session = db.Session(bind=connection)  # Use this connection
+    db.metadata.create_all(bind=db.engine)  # Ensure schema exists
+
+    yield session  # Run test
+
+    session.rollback()  # Rollback to clean state
+    session.close()
+    transaction.rollback()  # Revert transaction
+    connection.close()  # Close connection
+    
 @pytest.fixture(autouse=True)
 def clean_db(db_session):
     """
-    Clean the database before running a test by removing all records.
+    Deletes all records from tables but keeps schema.
+    Ensures a clean database for each test.
     """
-    db.metadata.drop_all(bind=db.engine)
-    db.metadata.create_all(bind=db.engine)
-    yield
-    db.metadata.drop_all(bind=db.engine)
+    for table in reversed(db.metadata.sorted_tables):
+        db_session.execute(table.delete())  # Deletes all rows
+    db_session.commit()  # Ensure deletion is applied
 
 @pytest.fixture
 def mock_logger(request):

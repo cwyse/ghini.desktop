@@ -350,22 +350,27 @@ class LocationEditorPresenter(GenericEditorPresenter):
         )
 
         md = Gtk.MessageDialog(
-            self.view.get_window(),
-            Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            Gtk.MessageType.QUESTION,
-            Gtk.ButtonsType.YES_NO,
-            (
-                _("please confirm merging %(1)s into %(2)s")
-                % {
-                    "1": self.model,
-                    "2": self.merger_candidate,
-                }
-            ),
+            transient_for=self.view.get_window(),
+            modal=True,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text=_("Please confirm merging %(1)s into %(2)s") % {
+                "1": self.model,
+                "2": self.merger_candidate,
+            },
         )
+
+        md.set_destroy_with_parent(True)  # Ensure dialog is destroyed with parent
+
+        # Ensure the dialog closes when parent is destroyed
+        parent_window = self.view.get_window()
+        if parent_window is not None:
+            parent_window.connect("destroy", lambda *_: md.destroy())
+
         confirm = md.run()
         md.destroy()
 
-        if not confirm:
+        if confirm != Gtk.ResponseType.YES:
             return
 
         # step 0: swap `model` and `merger_candidate` objects: we are going

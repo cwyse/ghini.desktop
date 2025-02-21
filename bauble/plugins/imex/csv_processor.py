@@ -215,6 +215,24 @@ class CSVProcessor:
     def _insert_batch(self):
         """
         Insert the current batch of rows into the database.
+        Convert any Enum values to their corresponding string/int representations.
         """
-        self.session.execute(self.insert_stmt.values(self.values))
+        from btypes import Enum
+
+        # Check for Enum types in self.values
+        def convert_enum(value):
+            if isinstance(value, Enum):
+                print(f"DEBUG: Found Enum {value} of type {type(value)} in insert batch")
+                return value.value  # Convert Enum to its stored value (string/int)
+            return value
+
+        # Apply conversion to each row in the batch
+        fixed_values = [
+            {key: convert_enum(value) for key, value in row.items()}
+            for row in self.values
+        ]
+
+        print("DEBUG: Fixed self.values =", fixed_values)  # Debugging output
+
+        self.session.execute(self.insert_stmt.values(fixed_values))
         self.values.clear()  # Clear the batch after insertion

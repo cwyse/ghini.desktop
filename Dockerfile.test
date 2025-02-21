@@ -200,7 +200,7 @@ RUN /usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders --update-c
 RUN /usr/bin/python3.9 -m venv $VIRTUAL_ENV \
     && . $VIRTUAL_ENV/bin/activate \
     && pip install --upgrade pip wheel --no-cache-dir \
-    && pip install pytest pytest-cov gevent coveralls babel debugpy nose --no-cache-dir \
+    && pip install pytest pytest-cov gevent coveralls babel debugpy --no-cache-dir \
     && pip install pytest-dependency pytest-ordering pytest-mock pytest-sugar pytest-expect pytest-logging pytest-mypy --no-cache-dir
 
 # Create user and group

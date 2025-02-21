@@ -41,7 +41,19 @@ class Enum(types.TypeDecorator):
     """A database independent Enum type. The value is stored in the database as a Unicode string."""
     
     impl = types.Unicode  # Stored as Unicode in the database
+    cache_ok = True
 
+    def __repr__(self):
+        return f"Enum(values={self.values}, empty_to_none={self.empty_to_none}, strict={self.strict})"
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Enum) and
+            self.values == other.values and
+            self.empty_to_none == other.empty_to_none and
+            self.strict == other.strict
+        )
+    
     def __init__(self, values, empty_to_none=False, strict=True, translations=None, **kwargs):
         """
         :param values: A list of valid values for the column.
@@ -134,6 +146,7 @@ class DateTime(types.TypeDecorator):
     A DateTime type that ensures timezone-aware storage and retrieval.
     """
     impl = types.DateTime
+    cache_ok = True
 
     import re
     _rx_tz = re.compile('[+-]')
@@ -183,6 +196,18 @@ class DateTime(types.TypeDecorator):
         """
         return DateTime()
 
+    def __repr__(self):
+        return f"DateTime(cache_ok={self.cache_ok})"
+
+    def __eq__(self, other):
+        if not isinstance(other, DateTime):
+            return NotImplemented
+        return self.cache_ok == other.cache_ok
+    
+    def __hash__(self):
+        """Ensure SQLAlchemy can cache this type safely."""
+        return hash("DateTimeType")  # ✅ Use a static hash to prevent issues
+    
 class Date(types.TypeDecorator):
     """
     A Date type that allows Date strings
@@ -228,3 +253,11 @@ class Date(types.TypeDecorator):
         Create a copy of the Date type with the same configuration.
         """
         return Date()
+    
+    def __repr__(self):
+        return f"Date(cache_ok={self.cache_ok})"
+
+    def __eq__(self, other):
+        if not isinstance(other, Date):
+            return NotImplemented
+        return self.cache_ok == other.cache_ok    
