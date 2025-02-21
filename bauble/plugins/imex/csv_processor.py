@@ -46,7 +46,7 @@ from sqlalchemy import Boolean
 #from sqlalchemy.orm import configure_mappers
 #from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.elements import ClauseElement
-
+from bauble.btypes import Enum
 
 logger = logging.getLogger(__name__)
 QUOTE_STYLE = csv.QUOTE_MINIMAL
@@ -154,7 +154,9 @@ class CSVProcessor:
 
                 if steps_so_far % self.update_every == 0:
                     self._insert_batch()
+                    logger.debug(f"Before yielding, self.values: {self.values}")
                     yield steps_so_far
+                    logger.debug("Resumed after yield.")
 
         # Insert remaining rows
         if self.values:
@@ -184,7 +186,7 @@ class CSVProcessor:
             value = row.get(column, self.defaults.get(column))
             cleaned_row[column] = self._normalize_value(value, column)
         return cleaned_row
-
+    
     def _normalize_value(self, value, column):
         """
         Normalize the value for a given column, handling types and defaults.
@@ -195,28 +197,64 @@ class CSVProcessor:
 
         if value in (None, '', 'None'):  # Treat these as None
             return None
+
         try:
             column_type = self.table.c[column].type
+
             if isinstance(column_type, Boolean):
                 return value.lower() == 'true' if isinstance(value, str) else bool(value)
+
             elif isinstance(column_type, sa.Integer):
                 return int(value)
+
             elif isinstance(column_type, sa.Float):
                 return float(value)
-            elif isinstance(column_type, sa.Enum):
+
+            elif isinstance(column_type, sa.Enum):  # SQLAlchemy Enum
                 if value not in column_type.enums:
                     raise InvalidDataError(f"Invalid value for column '{column}': {value}. "
-                                            f"Allowed values are: {column_type.enums}")
-                return value
+                                        f"Allowed values are: {column_type.enums}")
+                return value  # Keep as string for DB insertion
+
+            elif isinstance(column_type, Enum):  # Custom Enum
+                if isinstance(value, Enum):
+                    return value  # Already an Enum instance
+                try:
+                    return Enum(value)  # Convert string to Enum
+                except ValueError:
+                    raise InvalidDataError(f"Invalid value for column '{column}': {value}. "
+                                        f"Expected one of: {[e.value for e in Enum]}")
         except ValueError:
             raise InvalidDataError(f"Invalid value for column '{column}': {value}")
-        return value
+
+        return value  # Return as-is for any other data types
 
     def _insert_batch(self):
         """
         Insert the current batch of rows into the database.
         Convert any Enum values to their corresponding string/int representations.
         """
+        from sqlalchemy.sql import sqltypes
+        from sqlalchemy.dialects.sqlite import base
+        from sqlalchemy import inspect
+        inspector = inspect(self.session.bind)  # Get DB metadata
+        table_info = inspector.get_columns(self.table.name)
+
+        print(f"\n🔍 Table: {self.table.name} - Column Type Information:")
+        for column in table_info:
+            print(f"   ➡ Column: {column['name']}, Type: {column['type']}")
+
+        print(f"\n📥 Inserting Data into {self.table.name}:")
+        for row in self.values:
+            for col, val in row.items():
+                print(f"   🟢 Column: {col}, Value: {val}, Python Type: {type(val)}")
+
+        # Get the SQLite dialect's `colspecs`
+        colspecs = base.dialect().colspecs
+
+        # Print out what’s missing
+        print("colspecs contains Integer?", sqltypes.Integer in colspecs)
+        print("Full colspecs:", colspecs)
         from btypes import Enum
 
         # Check for Enum types in self.values
@@ -236,3 +274,4 @@ class CSVProcessor:
 
         self.session.execute(self.insert_stmt.values(fixed_values))
         self.values.clear()  # Clear the batch after insertion
+
