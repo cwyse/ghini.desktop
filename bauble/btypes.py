@@ -26,6 +26,9 @@ import bauble.error as error
 import sqlalchemy.types as types
 from bauble.utils import parse_date
 from datetime import datetime, timezone
+from threading import Lock
+
+_prefs_lock = Lock()  # ✅ Add this at the module level
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +45,10 @@ class Enum(types.TypeDecorator):
     
     impl = types.Unicode  # Stored as Unicode in the database
     cache_ok = True
+
+    def __hash__(self):
+        """Ensure SQLAlchemy can cache this type safely."""
+        return hash((tuple(self.values), self.empty_to_none, self.strict))
 
     def __repr__(self):
         return f"Enum(values={self.values}, empty_to_none={self.empty_to_none}, strict={self.strict})"
@@ -71,25 +78,29 @@ class Enum(types.TypeDecorator):
         if len(values) != len(set(values)):
             raise EnumError(_("Enum requires the values to be unique"))
         
-        # Configure translations
-        translations = translations or {}
-        self.translations = {v: v for v in values}
-        self.translations.update(translations)
-        
         # Ensure None is present if `empty_to_none` is True
         if empty_to_none and None not in values:
             raise EnumError(_("You have configured empty_to_none=True, but None is not in the values list"))
-        
-        self.values = values[:]  # Copy values to avoid reference issues
+
+        # Convert values to a tuple (✅ Fix for hashability)
+        self.values = tuple(values)  # ✅ This makes Enum hashable and immutable
         self.strict = strict
         self.empty_to_none = empty_to_none
+        
+        # Ensure translations is always a dictionary before calling `.items()`
+        if not isinstance(translations, dict):
+            translations = dict(translations) if translations is not None else {}  # ✅ Prevents NoneType error
+
+        self.translations = tuple(sorted(translations.items(), key=lambda item: (item[0] is None, item[0])))
+
 
         # Determine the maximum length of the values for the column size
         max_length = max(len(v) for v in values if v is not None)
         self.impl = types.Unicode(max_length)  # Set the underlying SQL column type
 
         # Call the parent class's constructor
-        super().__init__(**kwargs)
+        #super().__init__(**kwargs)
+        super().__init__()
 
 
     def process_bind_param(self, value, dialect):
@@ -220,15 +231,21 @@ class Date(types.TypeDecorator):
         self._dayfirst = None
         self._yearfirst = None
 
+    def __hash__(self):
+        """Ensure SQLAlchemy can cache this type safely."""
+        return hash("DateType")  # ✅ Static hash ensures uniqueness without breaking SQLAlchemy caching
+    
     def _initialize_date_prefs(self):
         """
         Initialize dayfirst and yearfirst preferences if not already set.
         """
-        if self._dayfirst is None or self._yearfirst is None:
-            from bauble import prefs
-            self._dayfirst = prefs.prefs[prefs.parse_dayfirst_pref]
-            self._yearfirst = prefs.prefs[prefs.parse_yearfirst_pref]
-            logger.debug(f"Date preferences initialized: dayfirst={self._dayfirst}, yearfirst={self._yearfirst}")
+        global _prefs_lock
+        with _prefs_lock:
+            if self._dayfirst is None or self._yearfirst is None:
+                from bauble import prefs
+                self._dayfirst = prefs.prefs[prefs.parse_dayfirst_pref]
+                self._yearfirst = prefs.prefs[prefs.parse_yearfirst_pref]
+                logger.debug(f"Date preferences initialized: dayfirst={self._dayfirst}, yearfirst={self._yearfirst}")
 
     def process_bind_param(self, value, dialect):
         """
