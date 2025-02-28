@@ -54,6 +54,7 @@ from sqlalchemy import except_
 #from sqlalchemy import not_
 from sqlalchemy import and_
 from sqlalchemy import or_
+from sqlalchemy.sql.expression import exists
 #from sqlalchemy import Unicode
 #from sqlalchemy import UnicodeText
 from sqlalchemy.inspection import inspect
@@ -68,6 +69,10 @@ from sqlalchemy.sql import func
 from sqlalchemy.sql import text
 from sqlalchemy.exc import NoInspectionAvailable
 from sqlalchemy.orm import Session  # ✅ Add this import
+from abc import ABC, abstractmethod
+from sqlalchemy import union_all
+from sqlalchemy.exc import NoResultFound
+from datetime import datetime, date, timedelta
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -222,7 +227,7 @@ def smartboolean(*args):
     if len(args) == 1:
         try:
             return float(args[0]) != 0.0
-        except:
+        except (ValueError, TypeError):
             return args[0].lower() != "false"
     return True
 
@@ -246,6 +251,10 @@ class TypedValueToken(ValueABC):
     def __repr__(self):
         return "%s" % (self.value)
 
+from sqlalchemy.orm import aliased
+from sqlalchemy import select
+from sqlalchemy.inspection import inspect
+
 class IdentifierAction(object):
     def __init__(self, t):
         logger.debug("IdentifierAction::__init__(%s)" % t)
@@ -254,79 +263,138 @@ class IdentifierAction(object):
 
     def __repr__(self):
         return ".".join(self.steps + [self.leaf])
-    from sqlalchemy.orm import Session  # ✅ Ensure Session is imported
-    import inspect  # ✅ To check if an object is a class
 
     def evaluate(self, env):
         """
-        Return pair (stmt, attribute) where stmt is a SQLAlchemy 2.0 select()
+        Return a pair (stmt, attribute) where stmt is a SQLAlchemy 2.0 select()
         that will return full ORM objects.
         """
-        # ✅ Extract domain_class from env
-        domain_class = env.get("domain", None)
-        search_strategy = env.get("search_strategy", None)  # ✅ Ensure this is not a Session
-
-        print(f"DEBUG: IdentifierAction.evaluate() called with domain_class='{domain_class}' ({type(domain_class)})")
-        print(f"DEBUG: search_strategy type -> {type(search_strategy)}")
+        # Handle both dictionary and object-style `env`
+        domain_class = getattr(env, "domain", None) or env.get("domain", None)
+        session = getattr(env, "session", None) or env.get("session", None)
+        search_strategy = getattr(env, "search_strategy", None) or env.get("search_strategy", None)
 
         if not domain_class:
-            raise ValueError("Invalid or missing domain class")
-        from sqlalchemy.orm import Session
-        # ✅ Ensure search_strategy is NOT a Session but an actual search strategy
-        if isinstance(search_strategy, Session):
-            raise TypeError(
-                "search_strategy should not be a SQLAlchemy Session, but an instance of MapperSearch or similar."
-            )
+            raise ValueError("Invalid or missing domain class in env")
 
-        from sqlalchemy.orm import DeclarativeMeta  # Import SQLAlchemy ORM class type
-        from sqlalchemy.orm import registry
+        # If domain_class is a string, resolve it
+        if isinstance(domain_class, str) and search_strategy:
+            domain_class = search_strategy._domains.get(domain_class, [None])[0]
+            if not domain_class:
+                raise ValueError(f"Unknown domain: '{domain_class}' not found in registered domains.")
 
-        # Get the base registry used for mapping
-        mapper_registry = registry()
-
-        # ✅ Convert domain name string into ORM class if necessary
-        if isinstance(domain_class, str):
-            if hasattr(search_strategy, "_domains"):
-                resolved_class = search_strategy._domains.get(domain_class)
-                if not resolved_class:
-                    raise ValueError(f"Unknown domain: '{domain_class}' not found in registered domains.")
-                domain_class = resolved_class[0]  # Extract first match
-            else:
-                raise AttributeError(
-                    "search_strategy does not have '_domains'. Ensure correct initialization of MapperSearch."
-                )
-
-        # ✅ Ensure domain_class is a SQLAlchemy ORM-mapped class
-        if not isinstance(domain_class, type) or not issubclass(domain_class, DeclarativeMeta):
+        # Ensure domain_class is an ORM-mapped class
+        if not inspect(domain_class, raiseerr=False):
             raise TypeError(f"Expected ORM class, got {type(domain_class)} instead: {domain_class}")
 
-        # ✅ Check if class is actually mapped by SQLAlchemy
-        if domain_class not in mapper_registry.mappers:
-            raise TypeError(f"Class {domain_class} is not mapped with SQLAlchemy.")
-        
-        # ✅ Construct SQL query using ORM class
-        if not self.steps:
-            stmt = select(domain_class)
-            current_cls = domain_class
-        else:
-            current_cls = aliased(domain_class)
-            relationships = [
-                getattr(current_cls, step) if isinstance(step, str) else step
-                for step in self.steps
-            ]
-            stmt = select(current_cls).join(*relationships)
+        # Construct SQL query using ORM class
+        stmt = select(domain_class)
+        current_cls = domain_class
 
+        # Handle joins if steps exist
+        if self.steps:
+            for step in self.steps:
+                if not hasattr(current_cls, step):
+                    raise ValueError(f"Relationship '{step}' not found in '{current_cls.__name__}'")
+                rel_attr = getattr(current_cls, step)
+                related_cls = rel_attr.property.mapper.class_
+
+                aliased_entity = aliased(related_cls)
+                stmt = stmt.join(aliased_entity, rel_attr)
+                current_cls = aliased_entity  # Move to the next step
+
+        # Retrieve the final attribute
         try:
             attr = getattr(current_cls, self.leaf)
         except AttributeError:
-            raise ValueError(f"Attribute '{self.leaf}' not found on class '{current_cls}'.")
-
-        print(f"DEBUG: Resolved attribute -> {attr}")
+            raise ValueError(f"Attribute '{self.leaf}' not found on class '{current_cls.__name__}'")
 
         return stmt, attr
 
     def needs_join(self, env):
         return self.steps or []
+
+# class IdentifierAction(object):
+#     def __init__(self, t):
+#         logger.debug("IdentifierAction::__init__(%s)" % t)
+#         self.steps = t[0][:-2:2]
+#         self.leaf = t[0][-1]
+
+#     def __repr__(self):
+#         return ".".join(self.steps + [self.leaf])
+#     from sqlalchemy.orm import Session  # ✅ Ensure Session is imported
+#     import inspect  # ✅ To check if an object is a class
+
+#     def evaluate(self, env):
+#         """
+#         Return pair (stmt, attribute) where stmt is a SQLAlchemy 2.0 select()
+#         that will return full ORM objects.
+#         """
+#         # ✅ Extract domain_class from env
+#         domain_class = env.get("domain", None)
+#         search_strategy = env.get("search_strategy", None)  # ✅ Ensure this is not a Session
+
+#         print(f"DEBUG: IdentifierAction.evaluate() called with domain_class='{domain_class}' ({type(domain_class)})")
+#         print(f"DEBUG: search_strategy type -> {type(search_strategy)}")
+
+#         if not domain_class:
+#             raise ValueError("Invalid or missing domain class")
+#         from sqlalchemy.orm import Session
+#         # ✅ Ensure search_strategy is NOT a Session but an actual search strategy
+#         if isinstance(search_strategy, Session):
+#             raise TypeError(
+#                 "search_strategy should not be a SQLAlchemy Session, but an instance of MapperSearch or similar."
+#             )
+
+#         from sqlalchemy.orm import DeclarativeMeta  # Import SQLAlchemy ORM class type
+#         from sqlalchemy.orm import registry
+
+#         # Get the base registry used for mapping
+#         mapper_registry = registry()
+
+#         # ✅ Convert domain name string into ORM class if necessary
+#         if isinstance(domain_class, str):
+#             if hasattr(search_strategy, "_domains"):
+#                 resolved_class = search_strategy._domains.get(domain_class)
+#                 if not resolved_class:
+#                     raise ValueError(f"Unknown domain: '{domain_class}' not found in registered domains.")
+#                 domain_class = resolved_class[0]  # Extract first match
+#             else:
+#                 raise AttributeError(
+#                     "search_strategy does not have '_domains'. Ensure correct initialization of MapperSearch."
+#                 )
+
+#         # ✅ Ensure domain_class is a SQLAlchemy ORM-mapped class
+#         if not isinstance(domain_class, type) or not issubclass(domain_class, DeclarativeMeta):
+#             raise TypeError(f"Expected ORM class, got {type(domain_class)} instead: {domain_class}")
+
+#         # ✅ Check if class is actually mapped by SQLAlchemy
+#         if domain_class not in mapper_registry.mappers:
+#             raise TypeError(f"Class {domain_class} is not mapped with SQLAlchemy.")
+        
+#         # ✅ Construct SQL query using ORM class
+#         if not self.steps:
+#             stmt = select(domain_class)
+#             current_cls = domain_class
+#         else:
+#             current_cls = aliased(domain_class)
+#             relationships = [
+#                 getattr(current_cls, step) if isinstance(step, str) else step
+#                 for step in self.steps
+#             ]
+#             stmt = select(current_cls).join(*relationships)
+
+#         try:
+#             attr = getattr(current_cls, self.leaf)
+#         except AttributeError:
+#             raise ValueError(f"Attribute '{self.leaf}' not found on class '{current_cls}'.")
+
+#         print(f"DEBUG: Resolved attribute -> {attr}")
+
+#         return stmt, attr
+
+#     def needs_join(self, env):
+#         return self.steps or []
 
 
 class FilteredIdentifierAction(object):
@@ -436,69 +504,88 @@ class IdentExpression(object):
         # Unpack the query and attribute from the first operand
         stmt, attr = self.operands[0].evaluate(env)
 
-        print("IdentExpression stmt:", stmt.compile(dialect=env.session.bind.dialect, compile_kwargs={"literal_binds": True}))
+        session = getattr(env, "session", None) or env.get("session", None)
+
+        print("IdentExpression stmt:", stmt.compile(dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}))
 
         # Ensure self.operands[1] contains a valid value
         comparison_value = self.operands[1].express()
-        if not isinstance(comparison_value, (str, int, float, bool)):
+
+        if not isinstance(comparison_value, (str, int, float, bool, type(None), datetime, date)):
             raise ValueError(f"Invalid comparison value: {comparison_value}")
 
-        # Case 1: Direct Column Property (e.g., family.family)
-        if isinstance(attr.property, ColumnProperty):
-            stmt = stmt.filter(attr == comparison_value)
 
-        # Case 2: Relationship Property (e.g., genus.family)
-        elif isinstance(attr.property, RelationshipProperty):
-            related_cls = attr.property.mapper.class_
+        # Check if the attribute is a relationship (i.e., a foreign key relationship)
+        if isinstance(attr.property, RelationshipProperty):
+            if self.operands[1].express() == set():
+                if self.op in ('is', '=', '=='):
+                    return stmt.filter(~attr.any()), attr  # No matching values
+                elif self.op in ('not', '<>', '!='):
+                    return stmt.filter(attr.any()), attr  # At least one matching value
 
-            # Extract the correct attribute dynamically
-            if isinstance(self.operands[0], ColumnElement) and hasattr(self.operands[0], "name"):
-                attribute_name = self.operands[0].name
-            else:
-                raise ValueError("Cannot determine attribute name for filtering.")
-
-            if hasattr(related_cls, attribute_name):
-                related_column = getattr(related_cls, attribute_name)
-                stmt = stmt.filter(attr.has(related_column == comparison_value))
-            else:
-                raise ValueError(f"Attribute '{attribute_name}' not found in related class '{related_cls.__name__}'")
-
+        # Special handling for None
+        if comparison_value is None:
+            if self.op in ('is', '=', '=='):
+                stmt = stmt.filter(attr.is_(None))  # ✅ Include empty strings
+            elif self.op in ('not', '<>', '!='):
+                stmt = stmt.filter(attr.is_not(None))        
         else:
             # Fallback: Apply operation generically
             clause = lambda x: self.operation(attr, x)
             stmt = stmt.filter(clause(comparison_value))
 
-        print("Updated IdentExpression stmt:", stmt.compile(dialect=env.session.bind.dialect, compile_kwargs={"literal_binds": True}))
-        return stmt
+        print("Updated IdentExpression stmt:", stmt.compile(dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}))
+        return stmt, attr
 
-    
     def needs_join(self, env):
         """
         Collect join steps from operands, ensuring a flat list.
         """
         return [self.operands[0].needs_join(env)]        
-        #joins = []
-        #for operand in self.operands:
-        #    steps = operand.needs_join(env)
-        #    if steps:  # Only extend if steps are non-empty
-        #        joins.extend(steps)
-        #return joins
-
 
 class ElementSetExpression(IdentExpression):
     # currently only implements `in`
 
-    def evaluate(self, env):
-        q, a = self.operands[0].evaluate(env)
+    # def evaluate(self, env):
+    #     q, a = self.operands[0].evaluate(env)
 
-        # Ensure 'q' is turned into a subquery
-        if not isinstance(q, AliasedClass):
-            q = q.subquery()
+    #     # Ensure 'q' is turned into a subquery
+    #     #if not isinstance(q, AliasedClass):
+    #     #    q = q.subquery()
+    #     q = q.subquery()
 
-        stmt = select(q).filter(a.in_(self.operands[1].express()))
-        return env.session.scalars(stmt)
+    #     stmt = select(q).where(a.in_(self.operands[1].express()))
+    #     return env.session.scalars(stmt)
         
 
+    def evaluate(self, env):
+        """
+        Evaluates the IdentExpression and returns a statement and attribute.
+
+        Ensures that the returned statement is correctly structured for SQLAlchemy 2.0,
+        avoiding unnecessary subqueries while maintaining proper filtering behavior.
+        """
+        # Evaluate the first operand to get the base statement and attribute
+        stmt, attr = self.operands[0].evaluate(env)
+
+        # Ensure the session is available
+        session = getattr(env, "session", None) or env.get("session", None)
+        if not session:
+            raise ValueError("Session is required for query execution.")
+
+        # Ensure the second operand evaluates to a valid comparison value
+        comparison_value = self.operands[1].express()
+        if not isinstance(comparison_value, (str, int, float, bool, list, tuple, set)):
+            raise ValueError(f"Invalid comparison value: {comparison_value}")
+
+        # Apply filtering directly if stmt is already a select() statement
+        if isinstance(stmt, select):
+            stmt = stmt.where(attr.in_(comparison_value))
+        else:
+            stmt = select(stmt).where(attr.in_(comparison_value))
+
+        return stmt, attr
+    
 class AggregatedExpression(IdentExpression):
     """select on value of aggregated function
 
@@ -518,20 +605,11 @@ class AggregatedExpression(IdentExpression):
         # Get the query and attribute
         stmt, attr = self.operands[0].identifier.evaluate(env)
         
-        if not isinstance(stmt, AliasedClass):
-            stmt = stmt.subquery()
-
-        stmt = (
-            stmt.group_by(group_by_column)
-            .having(clause(val))
-        )
+        #if not isinstance(stmt, AliasedClass):
+        #    stmt = stmt.subquery()
 
         # Resolve the aggregate function
         f = getattr(func, self.operands[0].function)
-
-        # Build HAVING clause
-        clause = lambda x: self.operation(f(attr), x)
-        val = self.operands[1].express()
 
         # Group by the main table's ID
         main_table = stmt.column_descriptions[0]["type"]
@@ -540,11 +618,14 @@ class AggregatedExpression(IdentExpression):
             raise ValueError("Main table must have an 'id' column to group by.")
 
         logger.debug(f"Applying aggregate function {f} to attribute {attr}")
-        stmt = (
-            stmt.group_by(group_by_column)
-            .having(clause(val))
-        )
-        return stmt
+
+        # Create HAVING clause
+        clause = lambda x: self.operation(f(attr), x)
+
+        # Apply GROUP BY and HAVING conditions
+        stmt = stmt.group_by(group_by_column).having(clause(self.operands[1].express()))
+
+        return stmt, attr  # Ensure both statement and attribute are returned
 
 
 class BetweenExpressionAction(object):
@@ -555,44 +636,35 @@ class BetweenExpressionAction(object):
         return "(BETWEEN %s %s %s)" % tuple(self.operands)
 
     def evaluate(self, env):
-        q, a = self.operands[0].evaluate(env)
+        """
+        Evaluates the 'BETWEEN' expression, returning the filtered query and attribute.
+        """
+        # Retrieve the base query and attribute
+        stmt, attr = self.operands[0].evaluate(env)
 
-        # Build the filter clauses
-        clause_low = lambda low: low <= a
-        clause_high = lambda high: a <= high
-
-        # Check operand values
+        # Retrieve the low and high range values
         low_value = self.operands[1].express()
         high_value = self.operands[2].express()
+
         if low_value is None or high_value is None:
             raise ValueError("Operands[1] or Operands[2] returned None for express().")
 
-        logger.debug(f"Building query with low={low_value}, high={high_value}")
+        logger.debug(f"Applying BETWEEN filter on {attr} with range {low_value} to {high_value}")
 
-        # Construct the statement
-        stmt = q.filter(
-            and_(
-                clause_low(low_value),
-                clause_high(high_value)
-            )
-        )
+        # Apply the BETWEEN filter
+        stmt = stmt.filter(attr.between(low_value, high_value))
 
-        return stmt
+        return stmt, attr
     
-        # Execute and return the results
-        #try:
-        #    return env.session.scalars(stmt)
-        #except Exception as e:
-        #    logger.error(f"Failed to execute statement: {stmt}. Error: {e}")
-        #    raise
-
-
     def needs_join(self, env):
         return [self.operands[0].needs_join(env)]
 
 
 class UnaryLogical(object):
     ## abstract base class. `name` is defined in derived classes
+
+    name = "UNARY"
+
     def __init__(self, t):
         self.op, self.operand = t[0]
 
@@ -603,8 +675,9 @@ class UnaryLogical(object):
         """
         Return join steps from operand, ensuring a flat list.
         """
-        steps = self.operand.needs_join(env)
-        return steps if steps else []
+        if hasattr(self.operand, "needs_join"):
+            return self.operand.needs_join(env)
+        return []
 
 
 class BinaryLogical(object):
@@ -621,33 +694,74 @@ class BinaryLogical(object):
 #        right = self.operands[1].needs_join(env) or []
         left = self.operands[0].needs_join(env)
         right = self.operands[1].needs_join(env)
-        return left + right
-
+        # ✅ Flatten the list and remove unnecessary nesting
+        combined = left + right
+        return [item for item in combined if item] if combined else [[]]
 
 class SearchAndAction(BinaryLogical):
     name = "AND"
 
     def evaluate(self, env):
-        result = self.operands[0].evaluate(env)
+        result, attr = self.operands[0].evaluate(env)
         for operand in self.operands[1:]:
-            result = result.intersect(operand.evaluate(env))
-        return result
+            tmp_result,attr = operand.evaluate(env)
+            result = result.intersect(tmp_result)
+        return result, attr
+#    def evaluate(self, env):
+#        """Evaluates AND condition using SQLAlchemy expressions."""
+#        stmt, attr = self.operands[0].evaluate(env)
+#        conditions = [operand.evaluate(env)[0] for operand in self.operands[1:]]
+
+#        return stmt.where(and_(*[c.scalar_subquery() if isinstance(c, Select) else c for c in conditions]))
+        #return stmt.where(and_(*conditions)), attr
+
+
+#class SearchOrAction(BinaryLogical):
+#    name = 'OR'
+
+    # def evaluate(self, env):
+    #     result = self.operands[0].evaluate(env)
+    #     for operand in self.operands[1:]:
+    #         first_stmt = self.operands[0].evaluate(env)
+    #         print("First operand stmt:", first_stmt.compile(dialect=env.session.bind.dialect, compile_kwargs={"literal_binds": True}))
+    #         result = result.union(operand.evaluate(env))
+    #         union_stmt = result  # after union
+    #         print("After union, SQL:", select(env.domain).select_from(union_stmt).compile(dialect=env.session.bind.dialect, compile_kwargs={"literal_binds": True}))
+    #     return result
+
+#    def evaluate(self, env):
+#        """Evaluates OR condition using SQLAlchemy expressions."""
+#       stmt, attr = self.operands[0].evaluate(env)
+#       conditions = [operand.evaluate(env) for operand in self.operands[1:]]
+
+#       return stmt.where(or_(*conditions))
+#    def evaluate(self, env):
+#        result,attr = self.operands[0].evaluate(env)
+#        for i in self.operands[1:]:
+#            tmp,attr = i.evaluate(env)
+#            result = result.union(tmp)
+#        return result
 
 
 class SearchOrAction(BinaryLogical):
     name = 'OR'
 
     def evaluate(self, env):
-        result = self.operands[0].evaluate(env)
+        """Evaluates OR condition using SQLAlchemy expressions."""
+        first_stmt, attr = self.operands[0].evaluate(env)
+
+        # Start with the first operand's query
+        combined_stmt = first_stmt
+
+        # Iterate through remaining operands and apply UNION
         for operand in self.operands[1:]:
-            first_stmt = self.operands[0].evaluate(env)
-            print("First operand stmt:", first_stmt.compile(dialect=env.session.bind.dialect, compile_kwargs={"literal_binds": True}))
-            result = result.union(operand.evaluate(env))
-            union_stmt = result  # after union
-            print("After union, SQL:", select(env.domain).select_from(union_stmt).compile(dialect=env.session.bind.dialect, compile_kwargs={"literal_binds": True}))
-        return result
+            operand_stmt, _ = operand.evaluate(env)
+            combined_stmt = combined_stmt.union(operand_stmt)
 
+        # ✅ Ensure return type is (stmt, attr)
+        return combined_stmt, attr
 
+    
 class SearchNotAction(UnaryLogical):
     name = 'NOT'
 
@@ -656,19 +770,26 @@ class SearchNotAction(UnaryLogical):
         Evaluate the NOT action, which excludes the results of the operand
         from the base query.
         """
-        # Start with a SELECT statement for the main domain
-        stmt = select(env.domain)
 
-        # Apply joins for all domains
-        for domain in env.domains:
-            if domain:  # Skip empty domains
-                stmt = stmt.join(domain)
+        # Ensure domain resolution
+        domain = env['domain']
+
+        # Select only the primary key
+        primary_key_column = inspect(domain).primary_key[0]
+        stmt = select(primary_key_column)
 
         # Exclude the operand's results using an EXCEPT clause
-        operand_stmt = self.operand.evaluate(env)
-        stmt = except_(stmt, operand_stmt)
+        operand_stmt, attr = self.operand.evaluate(env)
 
-        return stmt
+        # Ensure operand_stmt also selects only the primary key
+        operand_stmt = operand_stmt.with_only_columns(primary_key_column)
+
+        
+        # Apply the EXCEPT clause to exclude results
+        stmt = stmt.except_(operand_stmt)
+
+        return stmt, attr
+
 
 
 class ParenthesisedQuery(object):
@@ -717,108 +838,93 @@ class QueryAction(object):
             Executes the query using the given search strategy and returns results.
 
     """
-
     def __init__(self, t):
         """
-        Initializes the QueryAction object.
+        QueryAction represents a structured database query.
 
-        Args:
-            t (list): A list containing the parsed query components:
-                      - t[0] (str): The domain (table/entity name).
-                      - t[1] (list): A list with a single filtering condition.
+        :param t: Parsed tokens from pyparsing.
         """
-        self.domain = t[0]
-        self.filter = t[1][0]
-        print(f"DEBUG: QueryAction initialized with domain='{self.domain}', filter='{self.filter}'")
+        self.domain = t[0]  # The domain/table name being queried
+        self.filter = t[1][0]  # The filtering condition (expression tree)
 
     def __repr__(self):
-        """ Returns a string representation of the SQL-like query. """
         return f"SELECT * FROM {self.domain} WHERE {self.filter}"
 
-    def invoke(self, search_strategy):
-        """
-        Executes the query using the specified search strategy.
-
-        Args:
-            search_strategy: The search strategy responsible for query execution.
-
-        Returns:
-            set: A set of ORM objects retrieved from the database.
-        """
-
-        logger.debug(f"QueryAction:invoke - {type(self.domain)}({self.domain}) {type(self.filter)}({self.filter})")
-
-        # Step 1: Resolve domain
-        domain_class = self._resolve_domain(search_strategy)
-
-        # Step 2: Validate search session
-        if not search_strategy._session:
-            return set()
-
-        session = search_strategy._session
-
-        # Step 3: Construct SQLAlchemy query
-        stmt = self._construct_query(domain_class, session)
-
-        # Step 4: Execute query
-        results = self._execute_query(stmt, session)
-
-        return results
 
     def _resolve_domain(self, search_strategy):
         """
-        Resolves the domain class from the search strategy.
+        Resolves the domain name using the search strategy.
         """
-        if self.domain not in search_strategy._domains and self.domain not in search_strategy._shorthand:
-            raise KeyError(f"Unknown search domain: {self.domain}")
+        resolved_domain = search_strategy._shorthand.get(self.domain, self.domain)
 
-        resolved_class = search_strategy._shorthand.get(self.domain, self.domain)
+        if resolved_domain not in search_strategy._domains:
+            raise KeyError(f"Unknown search domain: {resolved_domain}")
 
-        print(f"DEBUG: Resolved domain for '{self.domain}' -> {resolved_class} ({type(resolved_class)})")
+        return resolved_domain
 
-        return resolved_class
-
-
-    def _construct_query(self, domain_class, session):
+        
+    def invoke(self, search_strategy):
         """
-        Constructs the SQLAlchemy query statement.
-
-        Args:
-            domain_class: The ORM class representing the database table.
-            session: The active SQLAlchemy session.
-
-        Returns:
-            SQLAlchemy Select statement: The constructed query.
+        Executes the parsed query using the given search strategy.
         """
-        # ✅ Ensure self.filter gets access to search_strategy
-        stmt = self.filter.evaluate({"domain": domain_class, "search_strategy": session})
+        logger.debug(f'QueryAction:invoke - {type(self.domain)}({self.domain}) {type(self.filter)}({self.filter})')
 
-        # Handle compound selects (e.g., UNIONs)
-        if isinstance(stmt, CompoundSelect):
-            stmt = select(domain_class).where(domain_class.id.in_(stmt.subquery().c.id))
+        # Ensure domain resolution
+        domain = self.domain
+        if domain in search_strategy._shorthand:
+            domain = search_strategy._shorthand[domain]
 
-        logger.debug("QueryAction SQL: %s", stmt.compile(dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}))
+        if domain not in search_strategy._domains:
+            raise KeyError(f"Unknown search domain: {domain}")
 
-        return stmt
+        domain_class = search_strategy._domains[domain][0]
+        session = search_strategy._session
 
-    def _execute_query(self, stmt, session):
-        """
-        Executes the given SQLAlchemy query statement.
+        if not session:
+            raise ValueError("Session is required for query execution.")
 
-        Args:
-            stmt: The SQLAlchemy Select statement to execute.
-            session: The active SQLAlchemy session.
+        # ✅ Create an `env` dictionary to pass correctly formatted data
+        env = {
+            "domain": domain_class,
+            "session": session,
+            "search_strategy": search_strategy  # Ensure `search_strategy` is available
+        }
 
-        Returns:
-            set: The set of ORM objects retrieved from the database.
-        """
-        results = {obj for obj in session.execute(stmt).scalars().all() if obj is not None}
+        # Ensure `needs_join` is called before passing to evaluate
+        self.domains = self.filter.needs_join(env)
 
-        if None in results:
+        # ✅ Pass the correct `env` format
+        stmt, attr = self.filter.evaluate(env)
+
+        # Debugging: Print the compiled SQL query
+        compiled_sql = stmt.compile(dialect=session.bind.dialect, compile_kwargs={"literal_binds": True})
+        print(f"DEBUG: Compiled SQL Query:\n{compiled_sql}")
+
+        # ✅ Ensure only primary key (`id`) is selected
+        primary_key_column = inspect(domain_class).primary_key[0]  # Get the primary key column
+        #stmt = select(primary_key_column).where(stmt.whereclause)  # Modify query to select only the primary key
+
+        # if isinstance(stmt, CompoundSelect):
+        #     # Handle union queries by selecting only primary key from each subquery
+        #     subqueries = [select(primary_key_column).select_from(subq.subquery()) for subq in stmt.selects]
+        #     final_stmt = union_all(*subqueries)
+        # else:
+        #     final_stmt = select(primary_key_column).where(stmt.whereclause)
+
+        # # Execute the query
+        # result = set(session.execute(final_stmt).scalars().all())
+
+        # Execute the query and retrieve ORM objects
+        try:
+            result = set(session.scalars(stmt).all())
+        except NoResultFound:
+            resuls = set()
+
+        if None in result:
             logger.warning("Removing None from result set")
-            results.discard(None)
+            result.discard(None)
 
-        return results
+        return result
 
 
 class StatementAction(object):
@@ -935,6 +1041,17 @@ class BinomialNameAction(object):
     """
 
     def __init__(self, t):
+        """
+        Initializes a BinomialNameAction.
+
+        Args:
+            t (list): Parsed binomial name tokens, where:
+                      - t[0] is the genus epithet.
+                      - t[1] is the species epithet.
+        """
+        if len(t) < 2:
+            raise ValueError("BinomialNameAction requires both genus and species epithet.")
+        
         self.genus_epithet = t[0]
         self.species_epithet = t[1]
 
@@ -946,16 +1063,21 @@ class BinomialNameAction(object):
         from bauble.plugins.plants.species import Species
         logger.debug('BinomialNameAction:invoke')
 
+        # ✅ Ensure a valid session is available
+        session = search_strategy._session
+        if not isinstance(session, Session):
+            raise ValueError("Invalid session provided. Expected an instance of sqlalchemy.orm.Session.")
+
         stmt = (
             select(Species)
-            .filter(
+            .where(
                 or_(
                     Species.sp.startswith(self.species_epithet),
                     and_(self.species_epithet == 'sp', Species.infrasp1 == 'sp')
                 )
             )
             .join(Genus)
-            .filter(Genus.genus.startswith(self.genus_epithet))
+            .where(Genus.genus.startswith(self.genus_epithet))
         )
 
         result = set(search_strategy._session.scalars(stmt).all())
@@ -988,75 +1110,132 @@ class DomainExpressionAction(object):
     from sqlalchemy import select, or_
     from sqlalchemy import inspect
 
+    # def invoke(self, search_strategy):
+    #     logger.debug("DomainExpressionAction:invoke")
+
+    #     # Step 1: Validate domain
+    #     if self.domain in search_strategy._shorthand:
+    #         self.domain = search_strategy._shorthand[self.domain]
+
+    #     if self.domain not in search_strategy._domains:
+    #         raise KeyError(f"Unknown search domain: {self.domain}")
+
+    #     cls, properties = search_strategy._domains[self.domain]
+
+    #     # Step 2: Construct SQLAlchemy Query
+    #     stmt = select(cls)
+
+    #     # here is the place where to optionally filter out unrepresented
+    #     # domain values. each domain class should define its own 'I have
+    #     # accessions' filter. see issue #42
+
+    #     # Step 3: Handle the special case where '*' is used
+    #     if self.values == "*":
+    #         logger.debug(f"Wildcard search on {cls.__name__}, retrieving all records.")
+    #         self.stmt = stmt
+    #         return set(search_strategy._session.execute(stmt).scalars().all())
+        
+    #     # Step 4: Build the filtering logic
+    #     try:
+    #         mapper = inspect(cls).mapper  # Use inspect to get mapper
+    #     except NoInspectionAvailable:
+    #         raise ValueError(f"Cannot inspect class {cls}. Ensure it's mapped.")
+
+    #     inspect(cls)  # Validate cls as a mapped class
+
+    #     # Define condition mapping
+    #     condition_map = {
+    #         "=": lambda col, val: col == val,
+    #         "!=": lambda col, val: col != val,
+    #         "<": lambda col, val: col < val,
+    #         "<=": lambda col, val: col <= val,
+    #         ">": lambda col, val: col > val,
+    #         ">=": lambda col, val: col >= val,
+    #         "like": lambda col, val: col.like(f"{val}"),
+    #         "ilike": lambda col, val: col.ilike(f"{val}"),
+    #         "contains": lambda col, val: col.ilike(f"%{val}%"),  # Similar to ilike for flexible search
+    #         "has": lambda col, val: col.has(val),  # Used for relationships
+    #     }
+
+    #     if self.cond not in condition_map:
+    #         raise ValueError(f"Unsupported condition: {self.cond}")
+
+    #     condition_func = condition_map[self.cond]
+
+    #     # Step 5: Apply filters for the properties
+    #     filters = []
+    #     for col_name in properties:
+    #         if not hasattr(cls, col_name):
+    #             logger.warning(f"Column '{col_name}' not found on class '{cls}', skipping.")
+    #             continue
+
+    #         col = getattr(cls, col_name)
+    #         filters.extend([condition_func(col, val) for val in self.values.express()])
+
+    #     if not filters:
+    #         raise ValueError("No valid filters could be constructed.")
+
+    #     stmt = stmt.filter(or_(*filters))
+    #     self.stmt = stmt
+        
+    #     # Step 6: Execute query and return results
+    #     results = search_strategy._session.execute(stmt).scalars().all()
+    #     result_set = {item for item in results if item is not None}
+
+    #     logger.debug(f"DomainExpressionAction Results: {result_set}")
+    #     return result_set
+
     def invoke(self, search_strategy):
         logger.debug("DomainExpressionAction:invoke")
 
-        # Step 1: Validate domain
-        if self.domain in search_strategy._shorthand:
-            self.domain = search_strategy._shorthand[self.domain]
+        # ✅ Validate session
+        session = search_strategy._session
+        if not isinstance(session, Session):
+            raise ValueError("Invalid session provided. Expected an instance of sqlalchemy.orm.Session.")
 
-        if self.domain not in search_strategy._domains:
+        # ✅ Resolve domain name to ORM class
+        try:
+            if self.domain in search_strategy._shorthand:
+                self.domain = search_strategy._shorthand[self.domain]
+            cls, properties = search_strategy._domains[self.domain]
+        except KeyError:
             raise KeyError(f"Unknown search domain: {self.domain}")
 
-        cls, properties = search_strategy._domains[self.domain]
-
-        # Step 2: Construct SQLAlchemy Query
+        # ✅ Use `select()` instead of deprecated `query()`
         stmt = select(cls)
 
-        # here is the place where to optionally filter out unrepresented
-        # domain values. each domain class should define its own 'I have
-        # accessions' filter. see issue #42
-
-        # Step 3: Handle the special case where '*' is used
+        # ✅ Return all records if the value is "*"
         if self.values == "*":
-            logger.debug(f"Wildcard search on {cls.__name__}, retrieving all records.")
-            self.stmt = stmt
-            return set(search_strategy._session.execute(stmt).scalars().all())
-        
-        # Step 4: Build the filtering logic
-        try:
-            mapper = inspect(cls).mapper  # Use inspect to get mapper
-        except NoInspectionAvailable:
-            raise ValueError(f"Cannot inspect class {cls}. Ensure it's mapped.")
+            return set(session.execute(stmt).scalars().all())
 
-        inspect(cls)  # Validate cls as a mapped class
+        #mapper = class_mapper(cls)
 
-        # Define condition mapping
-        condition_map = {
-            "=": lambda col, val: col == val,
-            "!=": lambda col, val: col != val,
-            "<": lambda col, val: col < val,
-            "<=": lambda col, val: col <= val,
-            ">": lambda col, val: col > val,
-            ">=": lambda col, val: col >= val,
-            "like": lambda col, val: col.like(f"%{val}%"),
-            "ilike": lambda col, val: col.ilike(f"%{val}%"),
-            "contains": lambda col, val: col.ilike(f"%{val}%"),  # Similar to ilike for flexible search
-            "has": lambda col, val: col.has(val),  # Used for relationships
-        }
+        # ✅ Preserve exact condition logic
+        if self.cond in ("like", "ilike"):
+            condition = lambda col_name: lambda val: utils.ilike(getattr(cls, col_name), f"{val}")
+        elif self.cond in ("contains", "icontains", "has", "ihas"):
+            condition = lambda col_name: lambda val: utils.ilike(getattr(cls, col_name), f"%{val}%")
+        elif self.cond == "=":
+            condition = lambda col_name: lambda val: getattr(cls, col_name) == val
+        else:
+            condition = lambda col_name: lambda val: getattr(cls, col_name).op(self.cond)(val)
 
-        if self.cond not in condition_map:
-            raise ValueError(f"Unsupported condition: {self.cond}")
+        result = set()
 
-        condition_func = condition_map[self.cond]
-
-        # Step 5: Apply filters for the properties
         filters = []
         for col_name in properties:
             if not hasattr(cls, col_name):
                 logger.warning(f"Column '{col_name}' not found on class '{cls}', skipping.")
                 continue
 
-            col = getattr(cls, col_name)
-            filters.extend([condition_func(col, val) for val in self.values.express()])
+#            col = getattr(cls, col_name)
+            filters.extend([condition(col_name)(val) for val in self.values.express()])
 
-        if not filters:
-            raise ValueError("No valid filters could be constructed.")
+        # Step 7: Apply OR conditions correctly
+        if filters:
+            stmt = stmt.where(or_(*filters))
 
-        stmt = stmt.filter(or_(*filters))
-        self.stmt = stmt
-        
-        # Step 6: Execute query and return results
+        # Step 8: Execute query
         results = search_strategy._session.execute(stmt).scalars().all()
         result_set = {item for item in results if item is not None}
 
@@ -1124,6 +1303,12 @@ class ValueListAction(object):
                 value = str(value)
             return func.lower(getattr(cls, column)).like(f"%{value.lower()}%")
 
+
+        # ✅ Ensure a valid SQLAlchemy session
+        session = search_strategy._session
+        if not session:
+            raise ValueError("A valid session is required for executing searches.")
+
         result = set()
 
         for cls, columns in search_strategy._properties.items():
@@ -1138,7 +1323,7 @@ class ValueListAction(object):
             ]
 
             # Execute the query for the current class
-            query = select(cls).filter(or_(*filters))
+            query = select(cls).where(or_(*filters))
             query_result = search_strategy._session.scalars(query).all()
             result.update(query_result)
 
@@ -1289,7 +1474,7 @@ class SearchParser:
         and return a pyparsing.ParseResults object that represents the input
         """
 
-        return self.statement.parseString(text)
+        return self.statement.parse_string(text)
 
 
 class SearchStrategy(object):
@@ -1381,7 +1566,7 @@ class MapperSearch(SearchStrategy):
             d.setdefault(domain, item[0])
         return d
     
-    def search(self, text, session=None, search_strategy=None):
+    def search(self, text, session=None):
         """
         Perform a text-based search on the database using the MapperSearch strategy.
         
@@ -1404,15 +1589,8 @@ class MapperSearch(SearchStrategy):
         # ✅ Ensure a valid session is provided
         if session is None:
             raise ValueError("Session must be provided for searching.")
-        
-        # ✅ Validate search_strategy (should be MapperSearch or None)
-        if search_strategy and not isinstance(search_strategy, MapperSearch):
-            raise TypeError(
-                f"Invalid search_strategy: Expected MapperSearch, got {type(search_strategy)}"
-            )
 
         self._session = session  # ✅ Store session properly for queries
-
 
         super().search(text, session)
         #self._session = session  # Store the session for use in querying
@@ -1425,15 +1603,17 @@ class MapperSearch(SearchStrategy):
         statement = parse_result.statement  # Extract the parsed statement object
         logger.debug("statement : {}({})".format(type(statement), statement))
         print(f"DEBUG: MapperSearch.search() - Parsed statement type: {type(statement)}")
-        if hasattr(statement, "domain"):
-            print(f"DEBUG: Domain: {statement.domain}")
-        else:
-            print("ERROR: Parsed statement has no domain attribute!")
         
+        # Step 2: Ensure `invoke()` returns a valid statement
+        #select_stmt, attr = statement.invoke(self) 
         # Invoke the parsed statement and retrieve raw results (likely a set of IDs or objects)
         raw_results = statement.invoke(self)
         logger.debug("raw_results : {}".format(raw_results))
-        
+
+        # ✅ Ensure raw_results is a fresh set to prevent shared state issues
+        if raw_results:
+            raw_results = set(raw_results)  # Create a new set to avoid modifying shared references
+
         # Extract the action name, which determines how the query should be processed
         action_name = parse_result.getName()  # Possible values: "domain_expression", "query", "value_list"
         logger.debug("Pyparsing action: %s", action_name)
@@ -1441,44 +1621,31 @@ class MapperSearch(SearchStrategy):
         
         # If no results were found, return an empty set immediately
         if not raw_results:
-            return self._results  # Return an empty result set
+            return set(self._results)  # Return an empty result set
         
-        # Step 2: If the query type is a ValueListAction, perform domain fallback
-        if action_name == "value_list":
-            # Extract domain name from the query (first token before a space)
-            domain_name = text.split(" ")[0]
-            
-            # Attempt to map the domain name to a domain class
+        # Step 3: Check if raw_results contains primary keys instead of full objects
+        first_result = next(iter(raw_results))  if raw_results else None # Get first result
+        if isinstance(first_result, int):  # ✅ Assume raw_results are primary keys
+            domain_name = text.split(" ")[0]  # Extract domain name from query
             domain_class = self._domains.get(domain_name, [None])[0]
-            
-            if domain_class is not None:
-                # Use a subquery approach to match IDs from the raw results
-                subq = (
-                    select(domain_class.id)
-                    .where(domain_class.id.in_(obj.id for obj in raw_results))
-                    .subquery()
-                )
-                
-                # Execute the query using ORM to fetch complete objects
-                orm_results = (
-                    self._session.execute(
-                        select(domain_class).join(subq, domain_class.id == subq.c.id)
-                    )
-                    .scalars()
-                    .all()
-                )
-                
-                # Update the results with ORM-mapped objects
-                self._results.update(orm_results)
+
+            if domain_class:
+                # ✅ Fetch full ORM objects
+                stmt = select(domain_class).where(domain_class.id.in_(raw_results))
+
+                # ✅ Print raw SQL for debugging
+                compiled_sql = stmt.compile(self._session.bind, compile_kwargs={"literal_binds": True})
+                print("\n🔍 GENERATED SQL:\n", compiled_sql)
+
+                full_results = set(self._session.execute(stmt).scalars().all())
+                self._results.update(full_results)
             else:
-                # If domain name is not recognized, retain raw results
-                self._results.update(raw_results)
+                self._results.update(raw_results)  # Fallback to raw results
         else:
-            # Step 3: If query type is "domain_expression" or "query", accept raw results as is
             self._results.update(raw_results)
         
         # Return the final set of search results
-        return self._results
+        return set(self._results)
 
 # list of search strategies to be tried on each search string
 _search_strategies = {"MapperSearch": MapperSearch()}

@@ -376,7 +376,12 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             .where(GenusSynonym.synonym_id == self.id)
             .first()
         )
-
+        
+        #existing_synonym = (
+        #    session.execute(
+        #        select(GenusSynonym).where(GenusSynonym.synonym_id == self.id)  # ✅ `.where()` before `.scalars()`
+        #    ).scalars().first()
+        #)
         if existing_synonym:
             session.delete(existing_synonym)
             session.flush()  # Ensure the deletion is reflected in the database
