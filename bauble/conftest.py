@@ -72,13 +72,9 @@ def db_session(init_bauble):
     
 @pytest.fixture(autouse=True)
 def clean_db(db_session):
-    """
-    Deletes all records from tables but keeps schema.
-    Ensures a clean database for each test.
-    """
-    for table in reversed(db.metadata.sorted_tables):
-        db_session.execute(table.delete())  # Deletes all rows
-    db_session.commit()  # Ensure deletion is applied
+    """Drops and recreates all tables for a fully clean database before each test."""
+    db.metadata.drop_all(bind=db.engine)   # 🔥 Drop all tables
+    db.metadata.create_all(bind=db.engine)  # 🔄 Recreate schema
 
 @pytest.fixture
 def mock_logger(request):

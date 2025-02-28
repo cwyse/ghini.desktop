@@ -270,7 +270,11 @@ dbengine.html#create-engine-url-arguments>`_
     from bauble.prefs import prefs, use_sentry_client_pref
 
     prefs.init()
-
+    import warnings
+    os.environ['SQLALCHEMY_WARN_20'] = 'yes'
+    if not sys.warnoptions:
+        warnings.simplefilter("default")
+        
     try:
         # no raven.conf.setup_logging: just standard Python logging
         from raven import Client
