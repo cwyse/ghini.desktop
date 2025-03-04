@@ -905,7 +905,7 @@ class TestSearch:
     @pytest.mark.parametrize(
         "query1, query2",
         [
-            ("genus where author is not None", 'genus where NOT author = ""'),
+            ("genus where author is not None", "genus where NOT author = ''"),
             ("genus where author != None", 'genus where NOT author = ""'),
         ],
     )
