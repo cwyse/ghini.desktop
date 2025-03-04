@@ -527,16 +527,20 @@ class IdentExpression(object):
                 elif self.op in ('not', '<>', '!='):
                     return stmt.filter(attr.any()), attr  # At least one matching value
 
-        # Special handling for None
-        if comparison_value is None:
+        # ✅ Fix: Ensure `None` is correctly handled
+        if comparison_value is None or comparison_value == "None":
             if self.op in ('is', '=', '=='):
-                stmt = stmt.filter(attr.is_(None))  # ✅ Include empty strings
+                stmt = stmt.filter(attr.is_(None))  # ✅ Convert to SQL NULL
             elif self.op in ('not', '<>', '!='):
-                stmt = stmt.filter(attr.is_not(None))        
+                stmt = stmt.filter(attr.is_not(None))  # ✅ Convert to SQL NULL check
         else:
-            # Fallback: Apply operation generically
             clause = lambda x: self.operation(attr, x)
-            stmt = stmt.filter(clause(comparison_value))
+
+            # ✅ Ensure we never pass a string "None"
+            if isinstance(comparison_value, str) and comparison_value.lower() == "none":
+                comparison_value = None  # ✅ Convert to actual NoneType
+
+            stmt = stmt.filter(clause(comparison_value))                
 
         print("Updated IdentExpression stmt:", stmt.compile(dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}))
         return stmt, attr
@@ -1377,7 +1381,6 @@ class SearchParser:
     value = (
         typed_value
         | WordStart("0123456789.-e") + numeric_value + WordEnd("0123456789.-e")
-        | none_token
         | empty_token
         | string_value
     ).set_parse_action(ValueToken)("value")
@@ -1436,7 +1439,7 @@ class SearchParser:
         aggregating_func + Literal("(") + identifier + Literal(")")
     ).set_parse_action(AggregatingAction)
     ident_expression = (
-        Group(identifier + binop + value).set_parse_action(IdentExpression)
+        Group(identifier + binop + (value  | none_token)).set_parse_action(IdentExpression)
         | Group(identifier + binop_set + value_list).set_parse_action(
             ElementSetExpression
         )
@@ -1480,7 +1483,11 @@ class SearchParser:
         and return a pyparsing.ParseResults object that represents the input
         """
 
-        return self.statement.parse_string(text)
+        result = self.statement.parse_string(text)
+        
+        # ✅ Debugging Step: Print the raw parse result
+        print("🔍 PARSE RESULT:", result.dump())  
+        return result
 
 
 class SearchStrategy(object):
