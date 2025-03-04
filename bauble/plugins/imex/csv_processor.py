@@ -240,27 +240,14 @@ class CSVProcessor:
         inspector = inspect(self.session.bind)  # Get DB metadata
         table_info = inspector.get_columns(self.table.name)
 
-        print(f"\n🔍 Table: {self.table.name} - Column Type Information:")
-        for column in table_info:
-            print(f"   ➡ Column: {column['name']}, Type: {column['type']}")
-
-        print(f"\n📥 Inserting Data into {self.table.name}:")
-        for row in self.values:
-            for col, val in row.items():
-                print(f"   🟢 Column: {col}, Value: {val}, Python Type: {type(val)}")
-
         # Get the SQLite dialect's `colspecs`
         colspecs = base.dialect().colspecs
 
-        # Print out what’s missing
-        print("colspecs contains Integer?", sqltypes.Integer in colspecs)
-        print("Full colspecs:", colspecs)
         from btypes import Enum
 
         # Check for Enum types in self.values
         def convert_enum(value):
             if isinstance(value, Enum):
-                print(f"DEBUG: Found Enum {value} of type {type(value)} in insert batch")
                 return value.value  # Convert Enum to its stored value (string/int)
             return value
 
@@ -269,8 +256,6 @@ class CSVProcessor:
             {key: convert_enum(value) for key, value in row.items()}
             for row in self.values
         ]
-
-        print("DEBUG: Fixed self.values =", fixed_values)  # Debugging output
 
         self.session.execute(self.insert_stmt.values(fixed_values))
         self.values.clear()  # Clear the batch after insertion
