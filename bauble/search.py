@@ -31,15 +31,15 @@ from pyparsing import alphanums
 from pyparsing import alphas
 from pyparsing import alphas8bit
 from pyparsing import CaselessLiteral
-from pyparsing import delimitedList
+from pyparsing import DelimitedList
 from pyparsing import Forward
 from pyparsing import Group
-from pyparsing import infixNotation
+from pyparsing import infix_notation
 from pyparsing import Keyword
 from pyparsing import Literal
-from pyparsing import oneOf
+from pyparsing import one_of
 from pyparsing import OneOrMore
-from pyparsing import opAssoc
+from pyparsing import OpAssoc
 from pyparsing import quotedString
 from pyparsing import Regex
 from pyparsing import removeQuotes
@@ -510,6 +510,10 @@ class IdentExpression(object):
 
         # Ensure self.operands[1] contains a valid value
         comparison_value = self.operands[1].express()
+
+        # 🔍 Fix: Unwrap None if it's inside a list
+        if isinstance(comparison_value, list) and len(comparison_value) == 1:
+            comparison_value = comparison_value[0]
 
         if not isinstance(comparison_value, (str, int, float, bool, type(None), datetime, date)):
             raise ValueError(f"Invalid comparison value: {comparison_value}")
@@ -1278,7 +1282,9 @@ class ValueListAction(object):
         return str(self.values)
 
     def express(self):
-        return [i.express() for i in self.values]
+        result = [i.express() for i in self.values]
+        print(f"🔍 DEBUG: ValueListAction.express() -> {result} ({type(result)})")
+        return result
 
     from sqlalchemy import select, or_
 
@@ -1348,16 +1354,16 @@ wordStart, wordEnd = WordStart(), WordEnd()
 class SearchParser:
     """The parser for bauble.search.MapperSearch"""
 
-    numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?").setParseAction(
+    numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?").set_parse_action(
         NumericToken
     )("number")
     unquoted_string = Word(alphanums + alphas8bit + "%.-_*;:")
     string_value = (
-        quotedString.setParseAction(removeQuotes) | unquoted_string
-    ).setParseAction(StringToken)("string")
+        quotedString.set_parse_action(removeQuotes) | unquoted_string
+    ).set_parse_action(StringToken)("string")
 
-    none_token = Literal("None").setParseAction(NoneToken)
-    empty_token = Literal("Empty").setParseAction(EmptyToken)
+    none_token = Literal("None").set_parse_action(NoneToken)
+    empty_token = Literal("Empty").set_parse_action(EmptyToken)
 
     value_list = Forward()
     typed_value = (
@@ -1366,7 +1372,7 @@ class SearchParser:
         + Literal("|")
         + value_list
         + Literal("|")
-    ).setParseAction(TypedValueToken)
+    ).set_parse_action(TypedValueToken)
 
     value = (
         typed_value
@@ -1374,27 +1380,27 @@ class SearchParser:
         | none_token
         | empty_token
         | string_value
-    ).setParseAction(ValueToken)("value")
+    ).set_parse_action(ValueToken)("value")
     value_list <<= Group(
-        OneOrMore(value) ^ delimitedList(value)
-    ).setParseAction(ValueListAction)("value_list")
+        OneOrMore(value) ^ DelimitedList(value)
+    ).set_parse_action(ValueListAction)("value_list")
 
     domain = Word(alphas, alphanums)
-    binop = oneOf(
+    binop = one_of(
         "= == != <> < <= > >= not like contains has ilike " "icontains ihas is"
     )
-    binop_set = oneOf("in")
+    binop_set = one_of("in")
     equals = Literal("=")
     star_value = Literal("*")
     domain_values = (value_list.copy())("domain_values")
     domain_expression = (
         (domain + equals + star_value + stringEnd)
         | (domain + binop + domain_values + stringEnd)
-    ).setParseAction(DomainExpressionAction)("domain_expression")
+    ).set_parse_action(DomainExpressionAction)("domain_expression")
 
     caps = srange("[A-Z]")
     lowers = caps.lower()
-    binomial_name = (Word(caps, lowers) + Word(lowers)).setParseAction(
+    binomial_name = (Word(caps, lowers) + Word(lowers)).set_parse_action(
         BinomialNameAction
     )("binomial_name")
 
@@ -1420,36 +1426,36 @@ class SearchParser:
         + "]"
         + "."
         + atomic_identifier
-    ).setParseAction(FilteredIdentifierAction) | Group(
+    ).set_parse_action(FilteredIdentifierAction) | Group(
         atomic_identifier + ZeroOrMore("." + atomic_identifier)
-    ).setParseAction(
+    ).set_parse_action(
         IdentifierAction
     )
 
     aggregated = (
         aggregating_func + Literal("(") + identifier + Literal(")")
-    ).setParseAction(AggregatingAction)
+    ).set_parse_action(AggregatingAction)
     ident_expression = (
-        Group(identifier + binop + value).setParseAction(IdentExpression)
-        | Group(identifier + binop_set + value_list).setParseAction(
+        Group(identifier + binop + value).set_parse_action(IdentExpression)
+        | Group(identifier + binop_set + value_list).set_parse_action(
             ElementSetExpression
         )
-        | Group(aggregated + binop + value).setParseAction(
+        | Group(aggregated + binop + value).set_parse_action(
             AggregatedExpression
         )
-        | (Literal("(") + query_expression + Literal(")")).setParseAction(
+        | (Literal("(") + query_expression + Literal(")")).set_parse_action(
             ParenthesisedQuery
         )
     )
     between_expression = Group(
         identifier + BETWEEN_ + value + AND_ + value
-    ).setParseAction(BetweenExpressionAction)
-    query_expression <<= infixNotation(
+    ).set_parse_action(BetweenExpressionAction)
+    query_expression <<= infix_notation(
         (ident_expression | between_expression),
         [
-            (NOT_, 1, opAssoc.RIGHT, SearchNotAction),
-            (AND_, 2, opAssoc.LEFT, SearchAndAction),
-            (OR_, 2, opAssoc.LEFT, SearchOrAction),
+            (NOT_, 1, OpAssoc.RIGHT, SearchNotAction),
+            (AND_, 2, OpAssoc.LEFT, SearchAndAction),
+            (OR_, 2, OpAssoc.LEFT, SearchOrAction),
         ],
     )
     query = (
@@ -1457,14 +1463,14 @@ class SearchParser:
         + Keyword("where", caseless=True).suppress()
         + Group(query_expression)
         + stringEnd
-    ).setParseAction(QueryAction)
+    ).set_parse_action(QueryAction)
 
     statement = (
         query("query")
         | domain_expression("domain")
         | binomial_name("binomial")
         | value_list("value_list")
-    ).setParseAction(StatementAction)("statement")
+    ).set_parse_action(StatementAction)("statement")
 
     def parse_string(self, text):
         """request pyparsing object to parse text
