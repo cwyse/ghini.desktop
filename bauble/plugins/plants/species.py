@@ -39,6 +39,7 @@ from bauble.plugins.plants.species_model import DefaultVernacularName
 from bauble.plugins.plants.species_model import Species
 from bauble.plugins.plants.species_model import SpeciesNote
 from bauble.plugins.plants.species_model import SpeciesSynonym
+from bauble.plugins.plants.genus import Genus, GenusSynonym
 from bauble.plugins.plants.species_model import VernacularName
 from bauble.prefs import prefs
 from bauble.view import Action
@@ -55,7 +56,7 @@ from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 SpeciesDistribution  # will be imported by clients of this module
@@ -161,7 +162,7 @@ class SynonymSearch(search.SearchStrategy):
             prefs.save()
 
     def search(self, text, session):
-        from .genus import Genus, GenusSynonym
+        #from .genus import Genus, GenusSynonym
 
         super().search(text, session)
         if not prefs[self.return_synonyms_pref]:
@@ -176,17 +177,18 @@ class SynonymSearch(search.SearchStrategy):
             # synonym of something else, include that something else. that
             # is, the accepted name.
             if isinstance(result, Species):
-                q = session.execute(select(SpeciesSynonym)).scalars().where(
-                    synonym_id=result.id
-                )
+                q = session.execute(select(SpeciesSynonym).where(
+                    SpeciesSynonym.synonym_id==result.id
+                )).scalars().all()
                 results.extend([syn.species for syn in q])
             elif isinstance(result, Genus):
-                q = session.execute(select(GenusSynonym)).scalars().where(synonym_id=result.id)
+                q = session.execute(
+                    select(GenusSynonym).where(GenusSynonym.synonym_id==result.id)).scalars().all()
                 results.extend([syn.genus for syn in q])
             elif isinstance(results, VernacularName):
-                q = session.execute(select(SpeciesSynonym)).scalars().where(
-                    synonym_id=result.species.id
-                )
+                q = session.execute(select(SpeciesSynonym).where(
+                    SpeciesSynonym.synonym_id==result.species.id
+                )).scalars().all()
                 results.extend([syn.species for syn in q])
         return results
 
@@ -254,9 +256,9 @@ class SynonymsExpander(InfoExpander):
         logger.debug(row.synonyms)
         session = object_session(row)
         syn = (
-            session.execute(select(SpeciesSynonym)).scalars()
-            .where(SpeciesSynonym.synonym_id == row.id)
-            .first()
+            session.execute(
+                select(SpeciesSynonym).where(SpeciesSynonym.synonym_id == row.id)
+            ).scalars().first()
         )
         accepted = syn and syn.species
         logger.debug(
@@ -473,14 +475,14 @@ class SpeciesInfoBox(InfoBox):
         button_defs = [
             {
                 "name": "GoogleButton",
-                "_base_uri": "http://www.google.com/search?q=%s",
+                "_base_uri": "https://www.google.com/search?q=%s",
                 "_space": "+",
                 "title": "Search Google",
                 "tooltip": None,
             },
             {
                 "name": "GBIFButton",
-                "_base_uri": "http://www.gbif.org/species/search?q=%s",
+                "_base_uri": "https://www.gbif.org/species/search?q=%s",
                 "_space": "+",
                 "title": _("Search GBIF"),
                 "tooltip": _(
@@ -489,7 +491,7 @@ class SpeciesInfoBox(InfoBox):
             },
             {
                 "name": "ITISButton",
-                "_base_uri": "http://www.itis.gov/servlet/SingleRpt/SingleRpt?search_topic=Scientific_Name&search_value=%s&search_kingdom=Plant&search_span=containing&categories=All&source=html&search_credRating=All",
+                "_base_uri": "https://www.itis.gov/servlet/SingleRpt/SingleRpt?search_topic=Scientific_Name&search_value=%s&search_kingdom=Plant&search_span=containing&categories=All&source=html&search_credRating=All",
                 "_space": "%20",
                 "title": _("Search ITIS"),
                 "tooltip": _(
@@ -498,14 +500,14 @@ class SpeciesInfoBox(InfoBox):
             },
             {
                 "name": "GRINButton",
-                "_base_uri": "http://www.ars-grin.gov/cgi-bin/npgs/swish/accboth?query=%s&submit=Submit+Text+Query&si=0",
+                "_base_uri": "https://npgsweb.ars-grin.gov/gringlobal/search=%s",
                 "_space": "+",
                 "title": _("Search NPGS/GRIN"),
                 "tooltip": _("Search National Plant Germplasm System"),
             },
             {
                 "name": "ALAButton",
-                "_base_uri": "http://bie.ala.org.au/search?q=%s",
+                "_base_uri": "https://bie.ala.org.au/search?q=%s",
                 "_space": "+",
                 "title": _("Search ALA"),
                 "tooltip": _("Search the Atlas of Living Australia"),
@@ -519,14 +521,14 @@ class SpeciesInfoBox(InfoBox):
             },
             {
                 "name": "IPNIButton",
-                "_base_uri": "http://www.ipni.org/ipni/advPlantNameSearch.do?find_genus=%(genus.genus)s&find_species=%(sp)s&find_isAPNIRecord=on& find_isGCIRecord=on&find_isIKRecord=on&output_format=normal",
+                "_base_uri": "https://www.ipni.org/ipni/advPlantNameSearch.do?find_genus=%(genus.genus)s&find_species=%(sp)s&find_isAPNIRecord=on& find_isGCIRecord=on&find_isIKRecord=on&output_format=normal",
                 "_space": " ",
                 "title": _("Search IPNI"),
                 "tooltip": _("Search the International Plant Names Index"),
             },
             {
                 "name": "BGCIButton",
-                "_base_uri": "http://www.bgci.org/plant_search.php?action=Find&ftrGenus=%(genus.genus)s&ftrRedList=&ftrSpecies=%(sp)s&ftrRedList1997=&ftrEpithet=&ftrCWR=&x=0&y=0#results",
+                "_base_uri": "https://plantsearch.bgci.org/search?filter[genus]=%(genus.genus)s&filter[specific_epithet]=%(sp)s&sort=name",
                 "_space": " ",
                 "title": _("Search BGCI"),
                 "tooltip": _(
@@ -534,15 +536,15 @@ class SpeciesInfoBox(InfoBox):
                 ),
             },
             {
-                "name": "TPLButton",
-                "_base_uri": "http://www.theplantlist.org/tpl1.1/search?q=%(genus.genus)s+%(sp)s",
+                "name": "WFOButton",
+                "_base_uri": "https://www.worldfloraonline.org/search?query=%(genus.genus)s+%(sp)s",
                 "_space": "+",
-                "title": _("Search TPL"),
-                "tooltip": _("Search The Plant List online database"),
+                "title": _("Search WFO"),
+                "tooltip": _("Search The World Flora Online database"),
             },
             {
                 "name": "TropicosButton",
-                "_base_uri": "http://tropicos.org/NameSearch.aspx?name=%(genus.genus)s+%(sp)s",
+                "_base_uri": "https://tropicos.org/name/Search?name=%(genus.genus)s+%(sp)s",
                 "_space": "+",
                 "title": _("Search Tropicos"),
                 "tooltip": _("Search Tropicos (MissouriBG) online database"),

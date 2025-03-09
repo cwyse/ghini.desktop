@@ -77,9 +77,9 @@ class AskGBIF(threading.Thread):
         return self._stop
 
     def run(self):
-        def ask_gbif(binomial):
+        def ask_gbif(binomial):              
             result = requests.get(
-                "http://api.gbif.org/v1/species/match?verbose=false&name="
+                "https://api.gbif.org/v1/species/match?verbose=false&name="
                 + binomial,
                 timeout=self.timeout,
             )

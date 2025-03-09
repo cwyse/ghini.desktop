@@ -542,7 +542,8 @@ class CSVImporter(Importer):
         """
         try:
             from bauble import gui
-            gui.get_view().update()
+            if gui is not None: 
+                gui.get_view().update()
         except ImportError as e:
             logger.warning(f"GUI module import failed: {e}")
         except Exception as e:

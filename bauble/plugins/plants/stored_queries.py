@@ -32,7 +32,7 @@ from gi.repository import Pango
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 class StoredQueriesModel:

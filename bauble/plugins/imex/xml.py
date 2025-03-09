@@ -37,7 +37,7 @@ from sqlalchemy import select
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 # TODO: single file or one file per table

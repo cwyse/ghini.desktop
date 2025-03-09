@@ -27,28 +27,34 @@ from bauble.error import check
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-from pyparsing import alphanums
-from pyparsing import alphas
-from pyparsing import alphas8bit
-from pyparsing import CaselessLiteral
-from pyparsing import DelimitedList
-from pyparsing import Forward
-from pyparsing import Group
-from pyparsing import infix_notation
-from pyparsing import Keyword
-from pyparsing import Literal
-from pyparsing import one_of
-from pyparsing import OneOrMore
-from pyparsing import OpAssoc
-from pyparsing import quotedString
-from pyparsing import Regex
-from pyparsing import removeQuotes
-from pyparsing import srange
-from pyparsing import stringEnd
-from pyparsing import Word
-from pyparsing import WordEnd
-from pyparsing import WordStart
-from pyparsing import ZeroOrMore
+from pyparsing import (
+    Word, alphas8bit, removeQuotes, DelimitedList, Regex,
+    ZeroOrMore, OneOrMore, one_of, alphas, alphanums, Group, Literal,
+    CaselessLiteral, WordStart, WordEnd, srange,
+    stringEnd, Keyword, quotedString,
+    infix_notation, OpAssoc, Forward, MatchFirst, CaselessKeyword)
+# from pyparsing import alphanums
+# from pyparsing import alphas
+# from pyparsing import alphas8bit
+# from pyparsing import CaselessLiteral
+# from pyparsing import DelimitedList
+# from pyparsing import Forward
+# from pyparsing import Group
+# from pyparsing import infix_notation
+# from pyparsing import Keyword
+# from pyparsing import Literal
+# from pyparsing import one_of
+# from pyparsing import OneOrMore
+# from pyparsing import OpAssoc
+# from pyparsing import quotedString
+# from pyparsing import Regex
+# from pyparsing import removeQuotes
+# from pyparsing import srange
+# from pyparsing import stringEnd
+# from pyparsing import Word
+# from pyparsing import WordEnd
+# from pyparsing import WordStart
+# from pyparsing import ZeroOrMore
 from sqlalchemy import select
 from sqlalchemy import except_
 #from sqlalchemy import not_
@@ -75,7 +81,7 @@ from sqlalchemy.exc import NoResultFound
 from datetime import datetime, date, timedelta
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 RelationProperty = RelationshipProperty
@@ -475,6 +481,7 @@ class IdentExpression(object):
             "=": lambda x, y: x == y,
             "==": lambda x, y: x == y,
             "is": lambda x, y: x == y,
+            "is not": lambda x,y: x != y,
             "!=": lambda x, y: x != y,
             "<>": lambda x, y: x != y,
             "not": lambda x, y: x != y,
@@ -504,9 +511,17 @@ class IdentExpression(object):
         # Unpack the query and attribute from the first operand
         stmt, attr = self.operands[0].evaluate(env)
 
+        # Ensure correct column name from the ORM model
+        column_name = getattr(attr, "key", None) or attr.name
+
+        # Debugging step
+        print(f"🔍 Evaluating Column: {column_name} in table {attr.parent}")
+
+
         session = getattr(env, "session", None) or env.get("session", None)
 
-        print("IdentExpression stmt:", stmt.compile(dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}))
+        if session and session.bind:
+            print("IdentExpression stmt:", stmt.compile(dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}))
 
         # Ensure self.operands[1] contains a valid value
         comparison_value = self.operands[1].express()
@@ -515,33 +530,82 @@ class IdentExpression(object):
         if isinstance(comparison_value, list) and len(comparison_value) == 1:
             comparison_value = comparison_value[0]
 
+        # ✅ Normalize None and empty strings (for cross-database compatibility)
+        #if isinstance(comparison_value, str) and comparison_value.lower().strip() in {"", "none"}:
+        #    print(f"🔍 Normalizing '{comparison_value}' to None (Cross-DB Compatibility)")
+        #    comparison_value = None  # Convert empty strings and "none" to None
+        if isinstance(comparison_value, str) and comparison_value.strip() == "":
+            print(f"🔍 Normalizing '{comparison_value}' to both '' and None (Cross-DB Compatibility)")
+            is_null_check = True  # Mark that we need to check both NULL and empty string
+            comparison_value = None
+        else:
+            is_null_check = False
+
         if not isinstance(comparison_value, (str, int, float, bool, type(None), datetime, date)):
             raise ValueError(f"Invalid comparison value: {comparison_value}")
 
+        print(f"\n🔍 Evaluating: {attr} {self.op} {comparison_value} ({type(comparison_value)})")
+
+        # Debug: Fetch & Print Database Column Values Before Filtering
+        print("\n🔍 Fetching Current Column Values Before Filtering:")
+
+        # Instead of `attr.parent.table.name`, use the correct mapped class
+        parent_cls = inspect(attr.parent).class_
+        parent_inspect = inspect(parent_cls)
+        table_name = (
+            parent_inspect.persist_selectable.name
+            if hasattr(parent_inspect, "persist_selectable") and parent_inspect.persist_selectable is not None
+            else None
+)
+        if session and table_name:
+            try:
+                query_result = session.execute(text(f"SELECT id, {column_name} FROM {table_name}")).fetchall()
+                for row in query_result:
+                    print(f"🔍 DB Check: {column_name} = {row[column_name]} (Type: {type(row[column_name])})")
+            except Exception as e:
+                print(f"⚠️ Error fetching column data for debugging: {e}")
 
         # Check if the attribute is a relationship (i.e., a foreign key relationship)
         if isinstance(attr.property, RelationshipProperty):
-            if self.operands[1].express() == set():
+            if comparison_value is None or comparison_value == "":
+                if self.op in ('is', '=', '=='):
+                    return stmt.filter(or_(attr.is_(None), attr == ""))  # ✅ WHERE author IS NULL
+                elif self.op in ('is not', 'not', '<>', '!='):
+                    return stmt.filter(and_(attr.is_not(None), attr != ""))  # ✅ WHERE author IS NOT NULL
+
+            elif self.operands[1].express() == set():
                 if self.op in ('is', '=', '=='):
                     return stmt.filter(~attr.any()), attr  # No matching values
-                elif self.op in ('not', '<>', '!='):
+                elif self.op in ('is not', 'not', '<>', '!='):
                     return stmt.filter(attr.any()), attr  # At least one matching value
 
-        # ✅ Fix: Ensure `None` is correctly handled
-        if comparison_value is None or comparison_value == "None":
+        # # ✅ Fix: Ensure `None` is correctly handled
+        # if comparison_value is None or comparison_value == "None":
+        #     if self.op in ('is', '=', '=='):
+        #         stmt = stmt.filter(attr.is_(None))  # ✅ Convert to SQL NULL
+        #     elif self.op in ('is not', 'not', '<>', '!='):
+        #         stmt = stmt.filter(attr.is_not(None))  # ✅ Convert to SQL NULL check
+        # else:
+        #     clause = lambda x: self.operation(attr, x)
+
+
+        #     stmt = stmt.filter(clause(comparison_value))  
+
+        # ✅ Fix: Ensure `None` and `""` are correctly handled
+        if is_null_check:
+            # Special case: If filtering for an empty string, check for both NULL and ""
             if self.op in ('is', '=', '=='):
-                stmt = stmt.filter(attr.is_(None))  # ✅ Convert to SQL NULL
-            elif self.op in ('not', '<>', '!='):
-                stmt = stmt.filter(attr.is_not(None))  # ✅ Convert to SQL NULL check
+                stmt = stmt.filter(or_(attr.is_(None), attr == ""))
+            elif self.op in ('is not', 'not', '<>', '!='):
+                stmt = stmt.filter(and_(attr.is_not(None), attr != ""))
+        elif comparison_value is None or comparison_value == "None" or comparison_value == "":
+            if self.op in ('is', '=', '=='):
+                stmt = stmt.filter(or_(attr.is_(None), attr == ""))  # ✅ Convert to SQL NULL
+            elif self.op in ('is not', 'not', '<>', '!='):
+                stmt = stmt.filter(and_(attr.is_not(None), attr != ""))  # ✅ Convert to SQL NULL check
         else:
             clause = lambda x: self.operation(attr, x)
-
-            # ✅ Ensure we never pass a string "None"
-            if isinstance(comparison_value, str) and comparison_value.lower() == "none":
-                comparison_value = None  # ✅ Convert to actual NoneType
-
-            stmt = stmt.filter(clause(comparison_value))                
-
+            stmt = stmt.filter(clause(comparison_value))      
         print("Updated IdentExpression stmt:", stmt.compile(dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}))
         return stmt, attr
 
@@ -857,20 +921,7 @@ class QueryAction(object):
 
     def __repr__(self):
         return f"SELECT * FROM {self.domain} WHERE {self.filter}"
-
-
-    def _resolve_domain(self, search_strategy):
-        """
-        Resolves the domain name using the search strategy.
-        """
-        resolved_domain = search_strategy._shorthand.get(self.domain, self.domain)
-
-        if resolved_domain not in search_strategy._domains:
-            raise KeyError(f"Unknown search domain: {resolved_domain}")
-
-        return resolved_domain
-
-        
+            
     def invoke(self, search_strategy):
         """
         Executes the parsed query using the given search strategy.
@@ -933,7 +984,6 @@ class QueryAction(object):
             result.discard(None)
 
         return result
-
 
 class StatementAction(object):
     """
@@ -1358,16 +1408,23 @@ wordStart, wordEnd = WordStart(), WordEnd()
 class SearchParser:
     """The parser for bauble.search.MapperSearch"""
 
+    def debug_parse_action(name):
+        """Returns a parse action that prints the parsed tokens with a label."""
+        def action(tokens):
+            print(f"🔍 {name} parsed:", tokens.dump())  # Print structured result with a label
+            return tokens  # Ensure the original tokens are returned
+        return action
+
     numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?").set_parse_action(
         NumericToken
     )("number")
     unquoted_string = Word(alphanums + alphas8bit + "%.-_*;:")
     string_value = (
         quotedString.set_parse_action(removeQuotes) | unquoted_string
-    ).set_parse_action(StringToken)("string")
+    ).set_parse_action(debug_parse_action("string_value")).set_parse_action(StringToken)("string")
 
-    none_token = Literal("None").set_parse_action(NoneToken)
-    empty_token = Literal("Empty").set_parse_action(EmptyToken)
+    none_token = Literal("None").set_parse_action(debug_parse_action("none_token")).set_parse_action(NoneToken)
+    empty_token = Literal("Empty").set_parse_action(debug_parse_action("empty_token")).set_parse_action(EmptyToken)
 
     value_list = Forward()
     typed_value = (
@@ -1376,22 +1433,37 @@ class SearchParser:
         + Literal("|")
         + value_list
         + Literal("|")
-    ).set_parse_action(TypedValueToken)
+    ).set_parse_action(debug_parse_action("typed_value")).set_parse_action(TypedValueToken)
+
+
+    AND_ = wordStart + (CaselessLiteral("AND") | Literal("&&")) + wordEnd
+    OR_ = wordStart + (CaselessLiteral("OR") | Literal("||")) + wordEnd
+    NOT_ = wordStart + (CaselessLiteral("NOT") | Literal('!')) + wordEnd
+    BETWEEN_ = wordStart + CaselessLiteral("BETWEEN") + wordEnd
 
     value = (
         typed_value
         | WordStart("0123456789.-e") + numeric_value + WordEnd("0123456789.-e")
+        | none_token 
         | empty_token
         | string_value
-    ).set_parse_action(ValueToken)("value")
+    ).set_parse_action(debug_parse_action("value")).set_parse_action(ValueToken)("value")
     value_list <<= Group(
         OneOrMore(value) ^ DelimitedList(value)
-    ).set_parse_action(ValueListAction)("value_list")
+    ).set_parse_action(debug_parse_action("value_list")).set_parse_action(ValueListAction)("value_list")
 
     domain = Word(alphas, alphanums)
+
+    #binop = MatchFirst([Literal("is not"), Literal("="), Literal("=="), Literal("!="), Literal("<>"), Literal("<"), Literal("<="), Literal(">="), Literal("not"), Literal("like"), Literal("contains"), Literal("has"), Literal("ilike"), Literal("icontains"), Literal("ihas"), Literal("is")])
     binop = one_of(
-        "= == != <> < <= > >= not like contains has ilike " "icontains ihas is"
-    )
+        "= == != <> < <= > >= not like contains has ilike icontains ihas is"
+    ).set_parse_action(debug_parse_action("binop"))
+    binop = MatchFirst([
+        CaselessKeyword("is not"),
+        one_of(
+        "= == != <> < <= > >= not like contains has ilike icontains ihas is"
+        )
+    ])  
     binop_set = one_of("in")
     equals = Literal("=")
     star_value = Literal("*")
@@ -1407,11 +1479,6 @@ class SearchParser:
         BinomialNameAction
     )("binomial_name")
 
-    AND_ = wordStart + (CaselessLiteral("AND") | Literal("&&")) + wordEnd
-    OR_ = wordStart + (CaselessLiteral("OR") | Literal("||")) + wordEnd
-    NOT_ = wordStart + (CaselessLiteral("NOT") | Literal("!")) + wordEnd
-    BETWEEN_ = wordStart + CaselessLiteral("BETWEEN") + wordEnd
-
     aggregating_func = (
         Literal("sum") | Literal("min") | Literal("max") | Literal("count")
     )
@@ -1419,27 +1486,15 @@ class SearchParser:
     query_expression = Forward()("filter")
 
     atomic_identifier = Word(alphas + "_", alphanums + "_")
-    identifier = Group(
-        atomic_identifier
-        + ZeroOrMore("." + atomic_identifier)
-        + "["
-        + atomic_identifier
-        + binop
-        + value
-        + "]"
-        + "."
-        + atomic_identifier
-    ).set_parse_action(FilteredIdentifierAction) | Group(
-        atomic_identifier + ZeroOrMore("." + atomic_identifier)
-    ).set_parse_action(
-        IdentifierAction
+    identifier = (
+        Group(atomic_identifier + ZeroOrMore('.' + atomic_identifier) + '[' + atomic_identifier + binop + value + ']' + '.' + atomic_identifier).setParseAction(FilteredIdentifierAction)
+        | Group(atomic_identifier + ZeroOrMore('.' + atomic_identifier)).setParseAction(IdentifierAction)
     )
-
     aggregated = (
         aggregating_func + Literal("(") + identifier + Literal(")")
     ).set_parse_action(AggregatingAction)
     ident_expression = (
-        Group(identifier + binop + (value  | none_token)).set_parse_action(IdentExpression)
+        Group(identifier + binop + value).set_parse_action(IdentExpression)
         | Group(identifier + binop_set + value_list).set_parse_action(
             ElementSetExpression
         )
@@ -1449,7 +1504,7 @@ class SearchParser:
         | (Literal("(") + query_expression + Literal(")")).set_parse_action(
             ParenthesisedQuery
         )
-    )
+    ).set_parse_action(debug_parse_action("ident_expression"))
     between_expression = Group(
         identifier + BETWEEN_ + value + AND_ + value
     ).set_parse_action(BetweenExpressionAction)
@@ -1460,13 +1515,13 @@ class SearchParser:
             (AND_, 2, OpAssoc.LEFT, SearchAndAction),
             (OR_, 2, OpAssoc.LEFT, SearchOrAction),
         ],
-    )
+    ).set_debug(True,False).set_parse_action(debug_parse_action("query_expression"))
     query = (
         domain
         + Keyword("where", caseless=True).suppress()
         + Group(query_expression)
         + stringEnd
-    ).set_parse_action(QueryAction)
+    ).set_parse_action(debug_parse_action("query")).set_parse_action(QueryAction)
 
     statement = (
         query("query")

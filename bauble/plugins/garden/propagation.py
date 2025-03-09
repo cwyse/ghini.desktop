@@ -68,7 +68,7 @@ from sqlalchemy import asc
 #from sqlalchemy.ext.declarative import declared_attr
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 PlantPropagation = Table(

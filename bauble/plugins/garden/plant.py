@@ -73,7 +73,7 @@ from sqlalchemy import asc
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 # TODO: might be worthwhile to have a label or textview next to the

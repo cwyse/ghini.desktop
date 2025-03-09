@@ -23,7 +23,7 @@ import threading
 import requests
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 class AskTPL(threading.Thread):
@@ -76,23 +76,129 @@ class AskTPL(threading.Thread):
         return self._stop
 
     def run(self):
-        def ask_tpl(binomial):
-            result = requests.get(
-                "http://www.theplantlist.org/tpl1.1/search?q="
-                + binomial
-                + "&csv=true",
-                timeout=self.timeout,
-            )
-            logger.debug(result.text)
-            l = result.text.split("\n")
-            result = [row for row in csv.reader(k for k in l if k)]
-            header = result[0]
-            result = result[1:]
-            return [
-                dict(list(zip(header, k)))
-                for k in result
-                if k[7] == "" and k[10] in ["Accepted", "Synonym"]
-            ]
+
+        def extract_family(wfo_path):
+            parts = wfo_path.split("$")
+            parts = parts[0].split("/")
+            if len(parts) > 3:
+                return parts[-3]  # Third-to-last element
+            return None        
+        
+        def extract_species(wfo_path):
+            parts = wfo_path.split("$")
+            parts = parts[0].split("/")
+            if len(parts) > 3:
+                return parts[-1]  # Third-to-last element
+            return None
+
+        def query_wfo_api(input_string):
+            url = 'https://list.worldfloraonline.org/gql.php'
+            query = '''
+            query ($inputString: String!) {
+                taxonNameMatch(inputString: $inputString) {
+                    inputString
+                    searchString
+                    match {
+                        id
+                        title
+                        fullNameStringPlain
+                        genusString
+                        speciesString
+                        authorsString
+                        role
+                        rank
+                        wfoPath
+                        currentPreferredUsage {
+                            hasName {
+                                id
+                            }
+                        }
+                    }
+                    candidates {
+                        id
+                        title
+                        fullNameStringPlain
+                        genusString
+                        speciesString
+                        authorsString
+                        role
+                        rank
+                        wfoPath
+                        currentPreferredUsage {
+                            hasName {
+                                id
+                            }
+                        }
+                    }
+                }
+            }
+            '''
+            variables = {'inputString': input_string}
+            response = requests.post(url, json={'query': query, 'variables': variables})
+            return response.json()
+
+        def ask_wfo(name):
+            result = query_wfo_api(name)
+            data = result.get('data', {}).get('taxonNameMatch', {})
+
+            if 'match' in data and data['match']:
+                match = data['match']
+                family = extract_family(match['wfoPath'])
+                species = extract_species(match['wfoPath'])
+                return [{
+                        'ID': match['id'],
+                        'FullName': match['fullNameStringPlain'],
+                        'Genus': match['genusString'],
+                        'Species': ( species if match['speciesString'] is None else match['speciesString'] ),
+                        'role': match['role'],  # accepted, synonym, unplaced, deprecated
+                        'Accepted ID': (
+                            match['id'] if match.get('currentPreferredUsage') and 
+                                        match['currentPreferredUsage']['hasName']['id'] == match['id'] 
+                            else None
+                            ),  
+                        'Taxonomic status': (
+                            "Accepted" if match.get('currentPreferredUsage') and 
+                                        match['currentPreferredUsage']['hasName']['id'] == match['id']
+                            else "Synonym" if match.get('currentPreferredUsage') 
+                            else "Unplaced"
+                        ),
+                        'Genus hybrid marker': ('×' if match['fullNameStringPlain'].startswith('×') and match['genusString'] == "null" else ''),
+                        'Species hybrid marker': ('× ' if ' × ' in match['fullNameStringPlain'] and match['speciesString'] == "null" else ''),
+                        'Authorship': match['authorsString'],
+                        'Family': family,
+                        'Title': match['title']
+                }]
+            elif 'candidates' in data and data['candidates']:
+                candidates = []
+                for candidate in data['candidates']:
+                    family = extract_family(candidate['wfoPath'])
+                    species = extract_species(candidate['wfoPath'])
+                    candidates.append({
+                        'ID': candidate['id'],
+                        'FullName': candidate['fullNameStringPlain'],
+                        'Genus': candidate['genusString'],
+                        'Species': ( species if candidate['speciesString'] is None else candidate['speciesString'] ),
+                        'role': candidate['role'],  # accepted, synonym, unplaced, deprecated
+                        'Accepted ID': (
+                            candidate['id'] if candidate.get('currentPreferredUsage') and 
+                                        candidate['currentPreferredUsage']['hasName']['id'] == candidate['id'] 
+                            else None
+                            ), 
+                        'Taxonomic status': (
+                            "Accepted" if candidate.get('currentPreferredUsage') and 
+                                        candidate['currentPreferredUsage']['hasName']['id'] == candidate['id']
+                            else "Synonym" if candidate.get('currentPreferredUsage') 
+                            else "Unplaced"
+                        ),
+                        'Genus hybrid marker': ('×' if candidate['fullNameStringPlain'].startswith('×') and candidate['genusString'] == "null" else ''),
+                        'Species hybrid marker': ('×' if ' × ' in candidate['fullNameStringPlain'] and candidate['speciesString'] == "null" else ''),
+                        'Authorship': candidate['authorsString'],
+                        'Family': family,
+                        'Title': candidate['title']
+                    })
+                return candidates
+            else:
+                return None
 
         class ShouldStopNow(Exception):
             pass
@@ -106,7 +212,10 @@ class AskTPL(threading.Thread):
         try:
             accepted = None
             logger.debug("%s before first query", self.name)
-            candidates = ask_tpl(self.binomial)
+            candidates = ask_wfo(self.binomial)
+            if not candidates:  # ✅ FIX: Handle empty results properly
+                logger.info("nothing matches")  # ✅ Log correct message
+                return  # ✅ Exit instead of raising NoResult
             logger.debug("%s after first query", self.name)
             if self.stopped():
                 raise ShouldStopNow("after first query")
@@ -120,7 +229,7 @@ class AskTPL(threading.Thread):
 
                 found = sorted(
                     candidates,
-                    key=lambda a: (a["_score_"], a["Taxonomic status in TPL"]),
+                    key=lambda a: (a["_score_"], a["Taxonomic status"]),
                 )[-1]
                 logger.debug("best match has score %s", found["_score_"])
                 if found["_score_"] < self.threshold:
@@ -131,20 +240,21 @@ class AskTPL(threading.Thread):
                 raise NoResult
             logger.debug("found this: %s", str(found))
             if found["Accepted ID"]:
-                accepted = ask_tpl(found["Accepted ID"])
-                logger.debug("ask_tpl on the Accepted ID returns %s", accepted)
-                if accepted:
-                    accepted = accepted[0]
-                else:
-                    logger.debug(
-                        "taxon %s %s (%s) is marked as synonym. "
-                        "accepted form (%s) is at infraspecific rank.",
-                        found["Genus"],
-                        found["Species"],
-                        found["ID"],
-                        found["Accepted ID"],
-                    )
-                logger.debug("%s after second query", self.name)
+                accepted = found
+                # accepted = ask_wfo(found["FullName"])
+                # logger.debug("ask_tpl on the Accepted ID returns %s", accepted)
+                # if accepted:
+                #     accepted = accepted[0]
+                # else:
+                #     logger.debug(
+                #         "taxon %s %s (%s) is marked as synonym. "
+                #         "accepted form (%s) is at infraspecific rank.",
+                #         found["Genus"],
+                #         found["Species"],
+                #         found["ID"],
+                #         found["Accepted ID"],
+                #     )
+                # logger.debug("%s after second query", self.name)
             if self.stopped():
                 raise ShouldStopNow("after second query")
         except ShouldStopNow:
@@ -175,13 +285,13 @@ class AskTPL(threading.Thread):
 
 
 def citation(d):
-    return (
-        "%(Genus hybrid marker)s%(Genus)s "
-        "%(Species hybrid marker)s%(Species)s "
-        # "%(Infraspecific rank)s %(Infraspecific epithet)s "
-        "%(Authorship)s (%(Family)s)" % d
-    ).replace("   ", " ")
-
+    # return (
+    #     "%(Genus hybrid marker)s%(Genus)s "
+    #     "%(Species hybrid marker)s%(Species)s "
+    #     # "%(Infraspecific rank)s %(Infraspecific epithet)s "
+    #     "%(Authorship)s (%(Family)s)" % d
+    # ).replace("   ", " ")
+    return ("%(Title)s (%(Family)s)" % d).replace("   ", " ")
 
 def what_to_do_with_it(found, accepted):
     if found is None and accepted is None:

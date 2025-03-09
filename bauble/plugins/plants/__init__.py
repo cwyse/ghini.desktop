@@ -80,7 +80,7 @@ from .taxonomy_check import TaxonomyCheckTool
 # database is created there should be a way to recreate everything from scratch
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 # naming locally unused objects. will be imported by clients of the module

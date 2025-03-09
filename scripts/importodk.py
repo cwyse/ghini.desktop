@@ -29,12 +29,12 @@
 import logging
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 consoleHandler = logging.StreamHandler()
 logging.getLogger().addHandler(consoleHandler)
-consoleHandler.setLevel(logging.DEBUG)
-logging.getLogger().setLevel(logging.DEBUG)
+consoleHandler.setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.INFO)
 
 import codecs
 import datetime

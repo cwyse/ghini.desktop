@@ -26,7 +26,7 @@ import unittest
 from babel.messages.pofile import read_po
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 @pytest.fixture
 def po_files():

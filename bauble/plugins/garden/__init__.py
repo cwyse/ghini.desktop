@@ -66,7 +66,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import object_session
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 # from bauble.plugins.garden.propagation import *

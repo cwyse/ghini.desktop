@@ -50,7 +50,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm.session import object_session
 from sqlalchemy import select, func
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 def safe_set_text(gtk_widget, text):

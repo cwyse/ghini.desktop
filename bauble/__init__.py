@@ -41,8 +41,8 @@ from gi.repository import Gtk
 #debugpy.breakpoint()
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-consoleLevel = logging.WARNING
+logger.setLevel(logging.INFO)
+consoleLevel = logging.INFO
 
 
 try:
@@ -263,7 +263,7 @@ dbengine.html#create-engine-url-arguments>`_
     logging.getLogger().addHandler(consoleHandler)
     fileHandler.setFormatter(formatter)
     consoleHandler.setFormatter(formatter)
-    fileHandler.setLevel(logging.WARNING)
+    fileHandler.setLevel(logging.INFO)
     consoleHandler.setLevel(consoleLevel)
 
     # intialize the user preferences
