@@ -43,7 +43,7 @@ from gi.repository import Gtk
 from gi.repository import GLib
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 def safe_set_text(gtk_widget, text):

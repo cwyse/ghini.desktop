@@ -26,7 +26,7 @@ from bauble.plugins.garden.accession import AccessionNote
 
 prefs.testing = True
 
-db.sqlalchemy_debug(True)
+#db.sqlalchemy_debug(True)
 
 # Tests
 def test_class_of_object_genus():

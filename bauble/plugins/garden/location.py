@@ -54,7 +54,7 @@ from sqlalchemy.orm.session import object_session
 from sqlalchemy import asc
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 def edit_callback(locations):

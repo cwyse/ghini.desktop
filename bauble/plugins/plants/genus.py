@@ -355,44 +355,43 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         if not self._synonyms_synonym:
             return None
         return self._synonyms_synonym[0].genus if self._synonyms_synonym else None
-
     @accepted.setter
     def accepted(self, value):
-        "Name that should be used if name of self should be rejected"
+        "Assign self as a synonym of the given genus"
         assert isinstance(value, self.__class__)
-        if self in value.synonyms:
+
+        if self in value.synonyms:  # If already a synonym of value, do nothing
             return
-        
-        # remove any previous `accepted` link
+
         session = object_session(self)
         if not session:
             logger.warning("genus:accepted.setter - object not in session")
             return
-        
-        # Remove any existing synonym relationship
-        existing_synonym = (
-            session.execute(select(GenusSynonym))
-            .scalars()
-            .where(GenusSynonym.synonym_id == self.id)
-            .first()
-        )
-        
-        #existing_synonym = (
-        #    session.execute(
-        #        select(GenusSynonym).where(GenusSynonym.synonym_id == self.id)  # ✅ `.where()` before `.scalars()`
-        #    ).scalars().first()
-        #)
-        if existing_synonym:
-            session.delete(existing_synonym)
-            session.flush()  # Ensure the deletion is reflected in the database
 
-        # Add the new synonym relationship
-        new_synonym = GenusSynonym(genus=value, synonym=self)
-        session.add(new_synonym)
-        session.flush()  # Ensure the new relationship is reflected
+        try:
+            # ✅ Step 1: Remove ONLY the existing synonym relationship for `self`
+            existing_synonym = (
+                session.execute(
+                    select(GenusSynonym).where(GenusSynonym.synonym_id == self.id)
+                ).scalars().first()
+            )
 
-        # Update the value to reflect the new accepted genus
-        value.synonyms.append(self)
+            if existing_synonym:
+                session.delete(existing_synonym)
+                session.commit()  # Commit to remove previous synonym relationship
+
+            # ✅ Step 2: Insert the new synonym relationship
+            new_synonym = GenusSynonym(genus=value, synonym=self)
+            session.add(new_synonym)
+            session.commit()  # Finalize the new synonym addition
+
+            # ✅ Step 3: Preserve other synonyms while updating the accepted genus
+            if self not in value.synonyms:
+                value.synonyms.append(self)  # Ensure self is added to synonyms list
+
+        except Exception as e:
+            session.rollback()  # Rollback on failure
+            logger.error(f"Error setting accepted synonym: {e}")
 
     @staticmethod
     def str(genus, author=False):
@@ -1277,14 +1276,14 @@ class GenusInfoBox(InfoBox):
         button_defs = [
             {
                 "name": "GoogleButton",
-                "_base_uri": "http://www.google.com/search?q=%s",
+                "_base_uri": "https://www.google.com/search?q=%s",
                 "_space": "+",
                 "title": "Search Google",
                 "tooltip": None,
             },
             {
                 "name": "GBIFButton",
-                "_base_uri": "http://www.gbif.org/species/search?q=%s",
+                "_base_uri": "https://www.gbif.org/species/search?q=%s",
                 "_space": "+",
                 "title": _("Search GBIF"),
                 "tooltip": _(
@@ -1293,7 +1292,7 @@ class GenusInfoBox(InfoBox):
             },
             {
                 "name": "ITISButton",
-                "_base_uri": "http://www.itis.gov/servlet/SingleRpt/SingleRpt?search_topic=Scientific_Name&search_value=%s&search_kingdom=Plant&search_span=containing&categories=All&source=html&search_credRating=All",
+                "_base_uri": "https://www.itis.gov/servlet/SingleRpt/SingleRpt?search_topic=Scientific_Name&search_value=%s&search_kingdom=Plant&search_span=containing&categories=All&source=html&search_credRating=All",
                 "_space": "%20",
                 "title": _("Search ITIS"),
                 "tooltip": _(
@@ -1302,28 +1301,28 @@ class GenusInfoBox(InfoBox):
             },
             {
                 "name": "GRINButton",
-                "_base_uri": "http://www.ars-grin.gov/cgi-bin/npgs/swish/accboth?query=%s&submit=Submit+Text+Query&si=0",
+                "_base_uri": "https://npgsweb.ars-grin.gov/gringlobal/search?q=%s",
                 "_space": "+",
                 "title": _("Search NPGS/GRIN"),
                 "tooltip": _("Search National Plant Germplasm System"),
             },
             {
                 "name": "ALAButton",
-                "_base_uri": "http://bie.ala.org.au/search?q=%s",
+                "_base_uri": "https://bie.ala.org.au/search?q=%s",
                 "_space": "+",
                 "title": _("Search ALA"),
                 "tooltip": _("Search the Atlas of Living Australia"),
             },
             {
                 "name": "IPNIButton",
-                "_base_uri": "http://www.ipni.org/ipni/advPlantNameSearch.do?find_genus=%(genus)s&find_isAPNIRecord=on& find_isGCIRecord=on&find_isIKRecord=on&output_format=normal",
+                "_base_uri": "https://www.ipni.org/ipni/advPlantNameSearch.do?find_genus=%(genus)s&find_isAPNIRecord=on&find_isGCIRecord=on&find_isIKRecord=on&output_format=normal",
                 "_space": " ",
                 "title": _("Search IPNI"),
                 "tooltip": _("Search the International Plant Names Index"),
             },
             {
                 "name": "BGCIButton",
-                "_base_uri": "http://www.bgci.org/plant_search.php?action=Find&ftrGenus=%(genus)s&ftrRedList=&ftrRedList1997=&ftrEpithet=&ftrCWR=&x=0&y=0#results",
+                "_base_uri": "https://plantsearch.bgci.org/search?filter[genus]=%(genus)s&sort=name",
                 "_space": " ",
                 "title": _("Search BGCI"),
                 "tooltip": _(
@@ -1331,15 +1330,15 @@ class GenusInfoBox(InfoBox):
                 ),
             },
             {
-                "name": "TPLButton",
-                "_base_uri": "http://www.theplantlist.org/tpl1.1/search?q=%(genus)s",
+                "name": "WFOButton",
+                "_base_uri": "https://www.worldfloraonline.org/search?query=%(genus)s",
                 "_space": "+",
-                "title": _("Search TPL"),
-                "tooltip": _("Search The Plant List online database"),
+                "title": _("Search WFO"),
+                "tooltip": _("Search The World Flora Online database"),
             },
             {
                 "name": "TropicosButton",
-                "_base_uri": "http://tropicos.org/NameSearch.aspx?name=%(genus)s",
+                "_base_uri": "https://tropicos.org/name/Search?name=%(genus)s",
                 "_space": "+",
                 "title": _("Search Tropicos"),
                 "tooltip": _("Search Tropicos (MissouriBG) online database"),

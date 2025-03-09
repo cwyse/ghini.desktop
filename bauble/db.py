@@ -430,6 +430,59 @@ def open(uri, verify=True, show_error_dialogs=False):
 
     return engine
 
+from sqlalchemy import text, inspect
+
+def create_triggers(connection):
+    """
+    Creates triggers for all TEXT columns in SQLite to convert empty strings to NULL.
+    Adds constraints in PostgreSQL to prevent empty strings.
+    """
+    inspector = inspect(connection)
+
+    if connection.engine.name == "sqlite":
+        logger.info("Creating SQLite triggers to normalize empty strings to NULL.")
+
+        # Loop through all tables
+        for table_name in inspector.get_table_names():
+            # Get column details
+            columns = inspector.get_columns(table_name)
+            
+            for column in columns:
+                col_name = column['name']
+                col_type = column['type'].__class__.__name__.lower()
+
+                # Only apply triggers to TEXT columns
+                if "text" in col_type or "varchar" in col_type:
+                    trigger_name = f"normalize_empty_strings_{table_name}_{col_name}"
+
+                    connection.execute(text(f"""
+                        CREATE TRIGGER IF NOT EXISTS {trigger_name}
+                        BEFORE INSERT OR UPDATE ON {table_name}
+                        FOR EACH ROW
+                        WHEN NEW.{col_name} = ''
+                        BEGIN
+                            UPDATE {table_name} SET {col_name} = NULL WHERE rowid = NEW.rowid;
+                        END;
+                    """))
+
+        connection.commit()
+
+    elif connection.engine.name == "postgresql":
+        logger.info("Adding PostgreSQL column constraints to prevent empty strings.")
+
+        for table_name in inspector.get_table_names():
+            columns = inspector.get_columns(table_name)
+
+            for column in columns:
+                col_name = column['name']
+                col_type = column['type'].__class__.__name__.lower()
+
+                if "text" in col_type or "varchar" in col_type:
+                    connection.execute(text(f"""
+                        ALTER TABLE {table_name} ALTER COLUMN {col_name} SET DEFAULT NULL;
+                    """))
+
+        connection.commit()
 
 
 def create(import_defaults=True):
@@ -461,6 +514,9 @@ def create(import_defaults=True):
             logger.debug("Dropping and recreating all tables.")
             metadata.drop_all(bind=connection, checkfirst=True)
             metadata.create_all(bind=connection)
+
+            # 🛠️ Add triggers or column constraints for ALL TEXT columns
+            create_triggers(connection)
 
             # Populate the Bauble meta table
             meta_table = meta.BaubleMeta.__table__

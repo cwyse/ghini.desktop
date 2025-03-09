@@ -53,7 +53,7 @@ from sqlalchemy import select
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 # TODO: create a generic date entry that can take a mask for the date format

@@ -83,7 +83,7 @@ from sqlalchemy import asc
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 # TODO: underneath the species entry create a label that shows information

@@ -57,7 +57,7 @@ from sqlalchemy import Unicode
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 

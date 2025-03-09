@@ -137,5 +137,6 @@ def test_be_able_to_skip_first_query_if_invalid():
     """
     Skipped: Grammar rewriting is required to handle this case.
     """
-    raise SkipTest("we can't do that without rewriting the grammar")
+    pytest.skip("we can't do that without rewriting the grammar", allow_module_level=True)
+
 

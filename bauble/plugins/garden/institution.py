@@ -582,11 +582,11 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
 
         # create the handler first
         handler = self.get_sentry_handler()
-        handler.setLevel(logging.WARNING)
+        handler.setLevel(logging.INFO)
 
         # the registration logger gets the above handler
         registrations = logging.getLogger("bauble.registrations")
-        registrations.setLevel(logging.WARNING)
+        registrations.setLevel(logging.INFO)
         registrations.addHandler(handler)
 
         # produce the log record

@@ -62,7 +62,7 @@ from bauble.shared import InfoExpander
 from sqlalchemy import select, func
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 from gi.repository import Gdk, Clutter, GtkClutter
 
