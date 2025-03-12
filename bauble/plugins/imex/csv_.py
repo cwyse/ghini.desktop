@@ -23,12 +23,14 @@
 # Description: have to name this module csv_ in order to avoid conflict
 # with the system csv module
 #
+import sys
 import csv
 import logging
 import os
 import traceback
 from gettext import gettext as _
-
+import threading
+from queue import Queue
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
 from bauble.plugins.imex.csv_processor import CSVProcessor
@@ -48,7 +50,7 @@ from sqlalchemy import func
 #from sqlalchemy.exc import DataError
 from sqlalchemy.orm import configure_mappers
 from sqlalchemy.orm import sessionmaker
-
+from sqlalchemy.exc import IntegrityError
 
 logger = logging.getLogger(__name__)
 QUOTE_STYLE = csv.QUOTE_MINIMAL
@@ -118,6 +120,9 @@ class CSVImporter(Importer):
         self.__cancel = False  # flag to cancel importing
         self.__pause = False  # flag to pause importing
         self.__error_exc = False
+        self.q = Queue()  # Producer-Consumer Queue
+        self.job_done = object()  # Sentinel for completion
+        self.flush_count = 0
 
     def start(self, filenames=None, metadata=None, force=False):
         """start the import process. this is a non blocking method: we queue
@@ -142,32 +147,40 @@ class CSVImporter(Importer):
         """
         Create a mapping of table names to filenames.
 
-        :param filenames: List of file paths to map.
+        - Ensures that each table has only one corresponding file.
+        - Displays an error if multiple files map to the same table.
+        - Displays a warning if filenames do not match any known table.
+
+        :param filenames: List of file paths.
         :return: Dictionary mapping table names to file paths.
-        :raises ValueError: If there are duplicate filenames for the same table.
+        :raises ValueError: If there are duplicate filenames for a table.
         """
         filename_dict = {}
+
+        # Extract table names from filenames
         for f in filenames:
             path, base = os.path.split(f)
             table_name, ext = os.path.splitext(base)
+
             if table_name in filename_dict:
+                # Show an error message before raising an exception
                 safe = utils.xml_safe
-                values = dict(
-                    table_name=safe(table_name),
-                    file_name=safe(filename_dict[table_name]),
-                    file_name2=safe(f),
-                )
-                msg = (
-                    _(
-                        "More than one file given to import into table "
-                        "<b>%(table_name)s</b>: %(file_name)s, "
-                        "(file_name2)s"
-                    )
-                    % values
-                )
+                values = {
+                    "table_name": safe(table_name),
+                    "file_name": safe(filename_dict[table_name]),
+                    "file_name2": safe(f),
+                }
+                msg = _(
+                    "More than one file given to import into table "
+                    "<b>%(table_name)s</b>: %(file_name)s, %(file_name2)s"
+                ) % values
+
                 raise ValueError(msg)
+
             filename_dict[table_name] = f
-        return filename_dict
+
+        return filename_dict  # No sorting, since `run` already does it
+
 
     def _calculate_total_lines(self, filenames):
         """
@@ -369,6 +382,7 @@ class CSVImporter(Importer):
         import logging
         logging.basicConfig()
         logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+        self.flush_count = 0
 
         self.__error_exc = BaubleError(_("Unknown Error."))
 
@@ -391,7 +405,7 @@ class CSVImporter(Importer):
                     for table in metadata.sorted_tables:
                         try:
                             sorted_tables.insert(0, (table, filename_dict.pop(table.name)))
-                        except KeyError:
+                        except KeyError as e:
                             # table.name not in list of filenames
                             pass
 
@@ -413,7 +427,7 @@ class CSVImporter(Importer):
 
                     created_tables = []
 
-                    steps_so_far = 0
+                    self.steps_so_far = 0
 
                     # Fetch and handle dependencies
                     try:
@@ -421,7 +435,6 @@ class CSVImporter(Importer):
                     except ValueError as e:
                         utils.message_dialog(str(e), Gtk.MessageType.ERROR)
                         return
-
 
             # import the tables one at a time, breaking every so often
             # so the GUI can update
@@ -453,17 +466,17 @@ class CSVImporter(Importer):
 
                             # update_every determines how many rows we will insert at
                             # a time and consequently how often we update the gui
-                            processor = CSVProcessor(table, filename, session, defaults, update_every=127)
+                            processor = CSVProcessor(table, filename, defaults, update_every=127, flush_count=self.flush_count, steps_so_far=self.steps_so_far)
                             # Prepare the file for import and get column keys
                             processor.prepare_file()
 
                             for steps in processor.process_rows():
-                                steps_so_far += steps
+                                self.steps_so_far += steps
                                 yield        
                                                     
                             # Count rows in the table
-                            row_count = session.execute(sa.select(func.count()).select_from(table)).scalar_one()
-                            logger.debug(f"{table.name}: {row_count}")
+                            #row_count = session.execute(sa.select(func.count()).select_from(table)).scalar_one()
+                            #logger.debug(f"{table.name}: {row_count}")
                         
                             # we have commit after create after each table is imported
                             # or Postgres will complain if two tables that are
@@ -472,16 +485,24 @@ class CSVImporter(Importer):
                             # 'with' block.
 
                             logger.info(f"Successfully imported table: {table.name}")
+                            
+                            # Important: Cleanup after processing each table
+                            processor.cleanup()
 
+                        except IntegrityError as e:
+                            logger.error(f"Constraint violation in table {table.name}: {e}")
+                            session.rollback()  # Rollback to prevent partial imports
+                            utils.message_dialog(_("Data import failed due to integrity constraints."), Gtk.MessageType.ERROR)
+                            self.__error = True
+                            return
                         except Exception as e:
                             logger.error(f"Error processing table {table.name}: {e}")
-
+                            session.rollback()
                             raise
-                        
+                       
                     # Update the GUI
                     self._update_gui()
                         
-
             with db.Session() as session:
 
                 # TODO: need to get those tables from depends that need to
@@ -494,7 +515,7 @@ class CSVImporter(Importer):
 
                 # Update the GUI
                 self._update_gui()
-
+       
         except Exception as e:
             msg = _("Error during import process.\n\n%s") % utils.xml_safe(e)
             utils.message_dialog(msg, Gtk.MessageType.ERROR)
@@ -504,6 +525,7 @@ class CSVImporter(Importer):
             self.__error = True
             self.__error_exc = e
             raise
+
 
     def _reset_sequences(self, sorted_tables):
         """
@@ -628,7 +650,7 @@ class CSVExporter:
 
     def __export_task(self, path):
         filename_template = os.path.join(path, "%s.txt")
-        steps_so_far = 0
+        self.steps_so_far = 0
         ntables = 0
 
         # Count the number of tables   
@@ -664,8 +686,8 @@ class CSVExporter:
 
         for table in db.metadata.sorted_tables:
             filename = filename_template % table.name
-            steps_so_far += 1
-            fraction = float(steps_so_far) / float(ntables)
+            self.steps_so_far += 1
+            fraction = float(self.steps_so_far) / float(ntables)
             pb_set_fraction(fraction)
             spinner_index = 0
             msg = _("exporting %(table)s table to %(filename)s") % {

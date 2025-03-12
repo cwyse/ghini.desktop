@@ -24,12 +24,15 @@
 # with the system csv module
 #
 import csv
+import sys
 import logging
 import os
 #import traceback
 #from gettext import gettext as _
+import threading
+import queue  # For producer-consumer handling
 
-#import bauble.db as db
+from bauble.db import Session
 #import bauble.pluginmgr as pluginmgr
 #import bauble.task
 import bauble.utils as utils
@@ -54,7 +57,7 @@ QUOTE_CHAR = '"'
 
 
 class CSVProcessor:
-    def __init__(self, table, filename, session, defaults, update_every):
+    def __init__(self, table, filename, defaults, update_every, flush_count=0, steps_so_far=0):
         """
         Initialize the CSV processor.
 
@@ -66,67 +69,173 @@ class CSVProcessor:
         """
         self.table = table
         self.filename = filename
-        self.session = session
         self.defaults = defaults
         self.update_every = update_every
         self.column_keys = None  # Determined after file analysis
-        self.insert_stmt = None  # Prepared insert statement
+        self.insert_stmt = self.table.insert()
         self.values = []  # Batch of rows to insert
+        self.flush_count = flush_count
+        self.steps_so_far = steps_so_far
 
+        # 🆕 **Thread-safe Queue for batch inserts**
+        self.batch_queue = queue.Queue()
+        
+        # 🆕 **Start a worker thread to process inserts in order**
+        self.worker_thread = threading.Thread(target=self._batch_worker, daemon=True)
+        self.worker_thread.start()
+
+    # @staticmethod
+    # def _toposort_file(filename, key_pairs):
+    #     """
+    #     filename: the csv file to sort
+
+    #     key_pairs: tuples of the form (parent, child) where for each
+    #     line in the file the line[parent] needs to be sorted before
+    #     any of the line[child].  parent is usually the name of the
+    #     foreign_key column and child is usually the column that the
+    #     foreign key points to, e.g ('parent_id', 'id')
+    #     """
+    #     print(f"Performing topological sorting for {filename} using key pairs: {key_pairs}")
+    #     f = open(filename)
+    #     reader = UnicodeReader(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
+
+    #     # create a dictionary of the lines mapped to the child field
+    #     bychild = {}
+    #     for line in reader:
+    #         for parent, child in key_pairs:
+    #             bychild[line[child]] = line
+    #     print(f"Initial unsorted rows: {list(bychild.values())[:5]}")  # Print first few rows
+    #     f.close()
+    #     fields = reader.reader.fieldnames
+    #     del reader
+
+    #     # create pairs from the values in the lines where pair[0]
+    #     # should come before pair[1] when the lines are sorted
+    #     pairs = []
+    #     for line in list(bychild.values()):
+    #         for parent, child in key_pairs:
+    #             if line[parent] and line[child]:
+    #                 pairs.append((line[parent], line[child]))
+
+    #     # sort the keys and flatten the lines back into a list
+    #     sorted_keys = utils.topological_sort(list(bychild.keys()), pairs)
+    #     print(f"Sorted order of keys: {sorted_keys[:10]}")  # Print first 10 sorted keys
+    #     sorted_lines = []
+    #     for key in sorted_keys:
+    #         sorted_lines.append(bychild[key])
+    #     # Check if sorting actually made a difference
+    #     if list(bychild.keys()) != sorted_keys:
+    #         print("Topological sort altered row order!")
+
+    #     # write a temporary file of the sorted lines
+    #     import tempfile
+
+    #     tmppath = tempfile.mkdtemp()
+    #     head, tail = os.path.split(filename)
+    #     filename = os.path.join(tmppath, tail)
+    #     tmpfile = open(filename, "w")
+    #     tmpfile.write("%s\n" % ",".join(fields))
+    #     writer = UnicodeWriter(
+    #         tmpfile, fields=fields, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE
+    #     )
+    #     writer.writerows(sorted_lines)
+    #     tmpfile.flush()
+    #     tmpfile.close()
+    #     del writer
+    #     return filename
     @staticmethod
     def _toposort_file(filename, key_pairs):
         """
-        filename: the csv file to sort
+        Perform a topological sort of a CSV file based on foreign key dependencies.
 
-        key_pairs: tuples of the form (parent, child) where for each
+        :param filename: The CSV file to sort
+        :param key_pairs: tuples of the form (parent, child) where for each
         line in the file the line[parent] needs to be sorted before
         any of the line[child].  parent is usually the name of the
         foreign_key column and child is usually the column that the
         foreign key points to, e.g ('parent_id', 'id')
+        :return: Path to the sorted CSV file
         """
-        f = open(filename)
-        reader = UnicodeReader(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
+        print(f"🔍 Performing topological sorting for {filename} using key pairs: {key_pairs}")
 
-        # create a dictionary of the lines mapped to the child field
-        bychild = {}
-        for line in reader:
-            for parent, child in key_pairs:
-                bychild[line[child]] = line
-        f.close()
-        fields = reader.reader.fieldnames
-        del reader
+        with open(filename, "r") as f:
+            reader = UnicodeReader(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
+            fields = reader.reader.fieldnames  # Extract header fields
 
-        # create pairs from the values in the lines where pair[0]
-        # should come before pair[1] when the lines are sorted
+            # Store all rows indexed by their ID
+            all_nodes = {}  
+            root_nodes = []  
+            dependency_graph = {}
+
+            rows = []  
+            for line in reader:
+                rows.append(line)
+                child_key = line.get("id")
+                parent_key = line.get("parent_id")
+
+                # Convert to integer if possible
+                if child_key.isdigit():
+                    child_key = int(child_key)
+                if parent_key and parent_key.isdigit():
+                    parent_key = int(parent_key)
+                else:
+                    parent_key = None
+
+                # Store in dictionary
+                all_nodes[child_key] = line  
+
+                if parent_key is None:
+                    root_nodes.append(line)  # Root-level nodes
+                else:
+                    # Track parent-child dependencies
+                    dependency_graph.setdefault(parent_key, []).append(child_key)
+
+        # 🔎 Debug: Check all root nodes
+        print(f"✅ Found {len(root_nodes)} root nodes (should include continents like Europe, Africa, etc.)")
+        root_ids = [node["id"] for node in root_nodes]
+        print(f"🟢 Root node IDs: {root_ids}")
+
+        # Ensure all parents exist
+        missing_parents = set(dependency_graph.keys()) - set(all_nodes.keys())
+        if missing_parents:
+            print(f"❌ ERROR: The following parent IDs are missing from the dataset: {missing_parents}")
+            exit(1)  # Stop execution
+
+        # Create dependency pairs
         pairs = []
-        for line in list(bychild.values()):
-            for parent, child in key_pairs:
-                if line[parent] and line[child]:
-                    pairs.append((line[parent], line[child]))
+        for parent_key, children in dependency_graph.items():
+            for child_key in children:
+                if parent_key in all_nodes and child_key in all_nodes:
+                    pairs.append((parent_key, child_key))
 
-        # sort the keys and flatten the lines back into a list
-        sorted_keys = utils.topological_sort(list(bychild.keys()), pairs)
-        sorted_lines = []
-        for key in sorted_keys:
-            sorted_lines.append(bychild[key])
+        print(f"🔗 Dependency pairs (first 20): {pairs[:20]}")
 
-        # write a temporary file of the sorted lines
+        # Perform topological sorting
+        sorted_keys = utils.topological_sort(list(all_nodes.keys()), pairs)
+
+        # 🔥 Ensure root nodes come first
+        sorted_keys = [int(k) for k in sorted_keys]  # Ensure sorting by int
+        sorted_keys = sorted(root_ids) + [k for k in sorted_keys if k not in root_ids]
+
+        print(f"✅ Final sorted order of keys (first 10): {sorted_keys[:10]}")
+
+        # Build sorted file
+        sorted_lines = [all_nodes[k] for k in sorted_keys if k in all_nodes]
+
+        # Write sorted data to temp file
         import tempfile
-
         tmppath = tempfile.mkdtemp()
         head, tail = os.path.split(filename)
-        filename = os.path.join(tmppath, tail)
-        tmpfile = open(filename, "w")
-        tmpfile.write("%s\n" % ",".join(fields))
-        writer = UnicodeWriter(
-            tmpfile, fields=fields, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE
-        )
-        writer.writerows(sorted_lines)
-        tmpfile.flush()
-        tmpfile.close()
-        del writer
-        return filename
-        
+        sorted_filename = os.path.join(tmppath, tail)
+
+        with open(sorted_filename, "w") as tmpfile:
+            tmpfile.write("%s\n" % ",".join(fields))  # Write header
+            writer = UnicodeWriter(tmpfile, fields=fields, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
+            writer.writerows(sorted_lines)
+
+        print(f"✅ Sorted file saved as: {sorted_filename}")
+        return sorted_filename
+
     def prepare_file(self):
         """
         Prepare the file by determining column keys and sorting rows if necessary.
@@ -144,23 +253,26 @@ class CSVProcessor:
         Yields control after every `update_every` rows for GUI updates.
         """
         steps_so_far = 0
+        batch_queue = []  # Store rows for batch insert
 
         with open(self.filename) as f:
             reader = UnicodeReader(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
             for row in reader:
                 cleaned_row = self._process_row(row)
-                self.values.append(cleaned_row)
+                batch_queue.append(cleaned_row)
                 steps_so_far += 1
 
                 if steps_so_far % self.update_every == 0:
-                    self._insert_batch()
-                    logger.debug(f"Before yielding, self.values: {self.values}")
+                    self._insert_batch(batch_queue)  # Insert current batch
+                    batch_queue.clear()  # Clear queue before yielding
+                    logger.debug(f"✅ Batch inserted. Yielding at step {steps_so_far}...")
+
                     yield steps_so_far
                     logger.debug("Resumed after yield.")
 
         # Insert remaining rows
-        if self.values:
-            self._insert_batch()
+        if batch_queue:
+            self._insert_batch(batch_queue)
 
         yield steps_so_far
 
@@ -175,7 +287,19 @@ class CSVProcessor:
 
     def _sort_by_foreign_keys(self):
         key_pairs = [(fk.parent.name, fk.column.name) for fk in self.table.foreign_keys if fk.column.table == self.table]
-        return self._toposort_file(self.filename, key_pairs)
+        print(f"Sorting {self.filename} based on foreign key dependencies: {key_pairs}")
+        
+        sorted_filename = self._toposort_file(self.filename, key_pairs)
+
+        print(f"Sorted file saved as: {sorted_filename}")
+        
+        return sorted_filename
+    
+    def cleanup(self):
+        """ Ensure all batches are processed before exiting. """
+        self.batch_queue.join()  # Wait for all batches to be inserted
+        self.batch_queue.put(None)  # Signal the worker to stop
+        self.worker_thread.join()  # Ensure worker thread exits cleanly
 
     def _process_row(self, row):
         """
@@ -229,34 +353,62 @@ class CSVProcessor:
 
         return value  # Return as-is for any other data types
 
-    def _insert_batch(self):
+
+    def _batch_worker(self):
+        while True:
+            batch = self.batch_queue.get()
+            if batch is None:
+                self.batch_queue.task_done()
+                break  # Exit signal received
+
+            # Create a new session within the thread
+            with Session() as thread_session:
+                try:
+                    # Execute insert with new session
+                    thread_session.execute(self.insert_stmt.values(batch))
+                    thread_session.commit()  # Commit after insertion
+                    self.flush_count += 1
+                    print(f"✅ Flushed batch #{self.flush_count} for {self.table.name}")
+
+                except Exception as e:
+                    print(f"❌ Error inserting batch in {self.table.name}: {e}")
+                    thread_session.rollback()
+
+            self.batch_queue.task_done()
+
+
+    def _insert_batch(self, batch_values=None):
         """
         Insert the current batch of rows into the database.
         Convert any Enum values to their corresponding string/int representations.
+
+        :param batch_values: Optional. List of rows to insert instead of self.values.
         """
         from sqlalchemy.sql import sqltypes
         from sqlalchemy.dialects.sqlite import base
         from sqlalchemy import inspect
-        inspector = inspect(self.session.bind)  # Get DB metadata
-        table_info = inspector.get_columns(self.table.name)
 
-        # Get the SQLite dialect's `colspecs`
-        colspecs = base.dialect().colspecs
 
         from btypes import Enum
 
-        # Check for Enum types in self.values
+        # Check for Enum types in batch_values or self.values
         def convert_enum(value):
             if isinstance(value, Enum):
                 return value.value  # Convert Enum to its stored value (string/int)
             return value
 
+        # Use batch_values if provided, otherwise fallback to self.values
+        values_to_insert = batch_values if batch_values is not None else self.values
+
         # Apply conversion to each row in the batch
         fixed_values = [
             {key: convert_enum(value) for key, value in row.items()}
-            for row in self.values
+            for row in values_to_insert
         ]
 
-        self.session.execute(self.insert_stmt.values(fixed_values))
-        self.values.clear()  # Clear the batch after insertion
+        # ✅ **Put batch in the queue instead of inserting directly**
+        self.batch_queue.put(fixed_values)
 
+        # Clear batch only if using self.values (to avoid clearing passed batch_values)
+        if batch_values is None:
+            self.values.clear()

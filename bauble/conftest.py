@@ -28,7 +28,11 @@ from bauble.error import BaubleError
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 prefs.testing = True
-URI = "sqlite:///:memory:"
+
+# 🔹 Configure Test Databases (SQLite & PostgreSQL)
+SQLITE_URI = "sqlite:///:memory:"
+POSTGRESQL_URI = "postgresql://ghini:9yuzebes@192.168.40.32/pytest_db"  # ⚠️ Update this!
+URI = SQLITE_URI
 
 # Fixtures for Pytest
 @pytest.fixture(scope="session")
