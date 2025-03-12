@@ -30,7 +30,7 @@ logger.setLevel(logging.WARNING)
 prefs.testing = True
 
 # 🔹 Configure Test Databases (SQLite & PostgreSQL)
-SQLITE_URI = "sqlite:///:memory:"
+SQLITE_URI = "sqlite:///sqlite_test_db"
 POSTGRESQL_URI = "postgresql://ghini:9yuzebes@192.168.40.32/pytest_db"  # ⚠️ Update this!
 URI = SQLITE_URI
 
