@@ -565,12 +565,12 @@ class PlantsPlugin(pluginmgr.Plugin):
             os.path.join(path, f)
             for f in (
                 "family.txt",
-                "family_note.txt",
                 "family_synonym.txt",
                 "genus.txt",
                 "genus_synonym.txt",
                 "geographic_area.txt",
                 "habit.txt",
+                "family_note.txt",
             )
         ]
 

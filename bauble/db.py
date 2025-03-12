@@ -383,7 +383,11 @@ def open(uri, verify=True, show_error_dialogs=False):
         poolclass = (
             SingletonThreadPool if bauble.prefs.testing else NullPool
         )
-        connect_args = {"timeout": 30} if bauble.prefs.testing else {}
+
+        connect_args = {}
+        if "sqlite" in uri and bauble.prefs.testing:
+            connect_args["timeout"] = 30  # SQLite supports this, PostgreSQL does not
+
         new_engine = sa.create_engine(
             uri,
             echo=SQLALCHEMY_DEBUG,
