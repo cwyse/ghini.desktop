@@ -1,0 +1,11 @@
+{
+    "python.testing.pytestArgs": [
+        "."
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.defaultInterpreterPath": "/opt/venv/migrate_to_1.3/bin/python",  // Update this path based on where Python is installed in the container
+    "python.pythonPath": "/opt/venv/migrate_to_1.3/bin/python"               // Same as above
+}
