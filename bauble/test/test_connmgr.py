@@ -470,7 +470,7 @@ class TestConnMgrPresenter:
         valid, message = presenter.check_parameters_valid(sqlite_params)
         assert valid
 
-        sqlite_params["file"] = "/usr/bin/sh"
+        sqlite_params["file"] = "/sys"
         valid, message = presenter.check_parameters_valid(sqlite_params)
         assert not valid
 

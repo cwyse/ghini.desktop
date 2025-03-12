@@ -177,7 +177,7 @@ class TestEnumModel:
                 "value": Column(types.Enum(values=values, **kwargs), default=""),
             },
         )
-        table_class.__table__.create(bind=db.engine)
+        table_class.__table__.create(bind=db.engine, checkfirst=True)
         return table_class
 
     def test_bad_enum(self, db_session):
