@@ -317,15 +317,15 @@ LABEL org.opencontainers.image.title="Ghini Desktop Test Application" \
 
 # Set working directory and entry point
 WORKDIR /app
-ENV DEBUG=false
+ENV DEBUG=true
 #
 # Run tests with coverage
 #CMD ["/bin/bash", "-c", "/opt/venv/migrate_to_1.3/bin/python -m coverage run --source=bauble -m pytest && coverage report && coverage html"]
 CMD bash -c ". $VIRTUAL_ENV/bin/activate && \
     if [ \"$DEBUG\" = \"true\" ]; then \
         #valgrind --tool=memcheck python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m pytest \$PYTEST_ARGS ; \
-        G_DEBUG=fatal_warnings GTK_DEBUG=all G_MESSAGES_DEBUG=all GDK_SYNCHRONIZE=1 G_ENABLE_DIAGNOSTIC=1 python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m pytest \$PYTEST_ARGS ; \
-        read \
+        touch /tmp/sqlite_test_db && chmod 777 /tmp/sqlite_test_db ; \
+        DEBUG=:99 GTK_DEBUG=all G_MESSAGES_DEBUG=all GDK_SYNCHRONIZE=1 G_ENABLE_DIAGNOSTIC=1 python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m pytest \$PYTEST_ARGS ; \
     else \
         /app/scripts/ghini; \
     fi"
