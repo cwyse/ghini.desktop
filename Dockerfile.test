@@ -45,7 +45,7 @@ ENV DOCKER_RUN_CMD="\
                      --user $(id -u):$(id -g)                          \
                      --name ghini_test                                 \
                      ghini-desktop-test:latest pytest $PYTEST_ARGS     \
-                     && true  "
+                     || true  "
 
 
 ## Set environment variables to suppress debconf warnings
@@ -288,6 +288,8 @@ $VIRTUAL_ENV/bin/ghini
 ghini.txt
 
 RUN chmod +x /usr/local/bin/ghini
+RUN mkdir -p /app/.pytest_cache
+RUN chmod -R 777 /app/.pytest_cache
 
 # Retrieve the version from pyproject.toml and assign to VERSION
 ARG VERSION

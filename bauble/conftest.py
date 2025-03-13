@@ -71,7 +71,8 @@ def db_session(init_bauble):
 
     session.rollback()  # Rollback to clean state
     session.close()
-    transaction.rollback()  # Revert transaction
+    if transaction.is_active:
+        transaction.rollback()
     connection.close()  # Close connection
     
 @pytest.fixture(autouse=True)
