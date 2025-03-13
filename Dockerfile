@@ -39,7 +39,7 @@ ENV DOCKER_RUN_CMD="\
                      -v /usr/lib/dri:/usr/lib/dri                      \
                      --device /dev/dri:/dev/dri                        \
                      --user $(id -u):$(id -g)                          \
-                     --name ghini_debug                                \
+                     --name ghini_beta                                 \
                      ghini-desktop:latest                              "
 
 
@@ -293,7 +293,7 @@ LABEL org.opencontainers.image.title="Ghini Desktop Application" \
 
 # Set working directory and entry point
 WORKDIR /app
-ENV DEBUG=false
+ENV DEBUG=true
 
 # CMD to run debugpy if DEBUG=true, else launch ghini
 CMD if [ "$DEBUG" = "true" ]; then \
