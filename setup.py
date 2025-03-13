@@ -28,16 +28,15 @@ except ImportError:
     use_setuptools()
     import setuptools
 
-import gi
+#import gi
 
-gi.require_version("Gtk", "3.0")
+#gi.require_version("Gtk", "3.0")
 
 import glob
 import os
 import sys
 
 spawn = setuptools.distutils.spawn
-dep_util = setuptools.distutils.dep_util
 dir_util = setuptools.distutils.dir_util
 file_util = setuptools.distutils.file_util
 from distutils.command.build import build as _build
@@ -67,8 +66,10 @@ plugins = setuptools.find_packages(
 )
 plugins_pkgs = ["bauble.plugins.%s" % p for p in plugins]
 all_packages = setuptools.find_packages(
+    include=["bauble", "bauble.*"],
     exclude=["test", "bauble.*.test", "ghini.*.test"]
 )
+#all_packages = setuptools.find_packages()
 
 package_data = {
     "": ["README.rst", "CHANGES", "LICENSE"],
@@ -370,7 +371,7 @@ class build(_build):
             mo = "{}/{}.mo".format(localedir, TEXT_DOMAIN)
             if not os.path.exists(localedir):
                 dir_util.mkpath(localedir)
-            if not os.path.exists(mo) or dep_util.newer(po, mo):
+            if not os.path.exists(mo) or os.path.getmtime(po) > os.path.getmtime(mo):
                 spawn.spawn(["msgfmt", po, "-o", mo])
 
         # copy .desktop and icons
@@ -638,7 +639,7 @@ setuptools.setup(
     ),
     license=project_info["license"]["text"],
     keywords=project_info["keywords"],
-    platforms=project_info["platforms"],
+    platforms=pyproject.get("tool", {}).get("ghini", {}).get("platforms"),
     url=homepage,
     project_urls=project_urls,
     options=py2exe_options,

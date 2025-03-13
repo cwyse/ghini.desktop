@@ -9,21 +9,25 @@ FROM debian:bullseye AS build
 
 # Environment setup and commands for Docker build and run
 ENV DOCKER_BUILD_CMD="\
-          docker buildx build --ssh default                                                \
+          docker buildx build --no-cache                                                   \
+                              --ssh default                                                \
                               --progress=plain                                             \
                               --build-arg COMMIT=$(git rev-parse HEAD)                     \
                               --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')      \
                               --build-arg USER_ID=$(id -u)                                 \
                               --build-arg GROUP_ID=$(id -g)                                \
-                              --load                                                       \
+                              --load -f Dockerfile.test                                    \
                               -t ghini-desktop-test:latest .                               "
 
 ENV DOCKER_RUN_CMD="\
+          xhost + &&                                                   \
+          PYTEST_ARGS='--maxfail=1 -s -v'                              \
           docker run --rm -it                                          \
                      -p 5678:5678                                      \
-                     -e DEBUG=true                                     \
+                     -e DEBUG=false                                    \
                      -e USER=ghini                                     \
                      -e DISPLAY=$DISPLAY                               \
+                     -e PYTEST_ARGS=$PYTEST_ARGS                       \
                      -e DB_HOST=postgres.wysechoice.net                \
                      -e DB_PORT=5432                                   \
                      -e DB_NAME=ghini_test3                            \
@@ -35,12 +39,13 @@ ENV DOCKER_RUN_CMD="\
                      -v /tmp/.X11-unix:/tmp/.X11-unix                  \
                      -v $HOME/krb5:/krb5:ro                            \
                      -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1      \
-                     -v $HOME/repositories/ghini.desktop:/app          \
+                     -v $HOME/debug/ghini.desktop:/app                 \
                      -v /usr/lib/dri:/usr/lib/dri                      \
                      --device /dev/dri:/dev/dri                        \
                      --user $(id -u):$(id -g)                          \
                      --name ghini_test                                 \
-                     ghini-desktop-test:latest                         "
+                     ghini-desktop-test:latest pytest $PYTEST_ARGS     \
+                     && true  "
 
 
 ## Set environment variables to suppress debconf warnings
@@ -107,16 +112,29 @@ RUN mkdir -p $HOME/.ssh && chmod 700 $HOME/.ssh \
 # Working directory for the application
 WORKDIR /app
 
+COPY . /app
+
+RUN ls -al /app
+RUN ls -al /app/bauble
+
 # Create virtual environment and configure Python path
 RUN python3 -m venv $VIRTUAL_ENV \
     && . $VIRTUAL_ENV/bin/activate \
-    && pip install --upgrade pip wheel 'setuptools<58.0.0' importlib-metadata debugpy toml PyGObject==3.50.0
+    && pip install --upgrade pip wheel 'setuptools<58.0.0' importlib-metadata debugpy toml \
+    && python generate_pyproject.py \   
+    && test -f pyproject.toml || (echo "Error: pyproject.toml not found!" && exit 1) \ 
+    && pip install PyGObject==3.50.0 --no-cache-dir \
+    && python setup.py sdist bdist_wheel \
+    && pip install dist/*.whl --no-cache-dir
 
 # Copy and install application dependencies
-COPY . /app
-RUN . $VIRTUAL_ENV/bin/activate \
-    && python setup.py build \
-    && python setup.py install
+
+#RUN . $VIRTUAL_ENV/bin/activate \
+#    && python setup.py build \
+#    && python setup.py install
+#RUN . $VIRTUAL_ENV/bin/activate \
+#    && pip install --upgrade pip wheel setuptools \
+#    && pip install .
 
 # Initialize Alembic with a preconfigured database URL
 RUN . $VIRTUAL_ENV/bin/activate \
