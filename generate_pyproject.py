@@ -9,7 +9,7 @@ bauble_version = version_data.get("version")
 def create_pyproject():
     pyproject_data = {
         "build-system": {
-            "requires": ["setuptools>=40.8.0", "wheel"],
+            "requires": ["setuptools>=40.8.0", "wheel", "toml"],
             "build-backend": "setuptools.build_meta",
         },
         "project_urls": {
@@ -38,7 +38,6 @@ def create_pyproject():
                 {"name": "Mario Frasca", "email": "mario@anche.no"},
                 {"name": "Chris Wyse", "email": "chris.wyse@wysechoice.net"},
             ],
-            "platforms": ["Linux", "Windows", "macOS"],
             "dependencies": [
                 # Main requirements from requirements.txt and constraints.txt
                 #                                        Latest as of 11/19/24
@@ -86,7 +85,6 @@ def create_pyproject():
         },
     }
 
-
     # Dynamically create `tool.poetry.dependencies` and `tool.poetry.extras`
     poetry_dependencies = {}
     poetry_extras = {}
@@ -109,6 +107,9 @@ def create_pyproject():
     # Add Python version
     poetry_dependencies["python"] = pyproject_data["project"]["requires-python"]
 
+    # Add Bauble path
+    poetry_dependencies["bauble"] = { "path": "./bauble" }
+    
     # Add Poetry-specific sections
     pyproject_data["tool"] = {
         "poetry": {
@@ -128,6 +129,11 @@ def create_pyproject():
             "dependencies": poetry_dependencies,
             "extras": poetry_extras,
         }
+    }
+
+    # Supported ghini platforms
+    pyproject_data["tool"]["ghini"] = {
+        "platforms": ["Linux", "Windows", "macOS"]
     }
 
     print("pyproject.toml generation started.")
