@@ -35,7 +35,6 @@ logger = logging.getLogger(__name__)
 
 # TODO: store all times as UTC or support timezones
 
-
 class EnumError(error.BaubleError):
     """Raised when a bad value is inserted or returned from the Enum type"""
 
@@ -54,8 +53,9 @@ class Enum(types.TypeDecorator):
         return f"Enum(values={self.values}, empty_to_none={self.empty_to_none}, strict={self.strict})"
 
     def __eq__(self, other):
+        if not isinstance(other, Enum):
+            return False
         return (
-            isinstance(other, Enum) and
             self.values == other.values and
             self.empty_to_none == other.empty_to_none and
             self.strict == other.strict
@@ -70,38 +70,41 @@ class Enum(types.TypeDecorator):
         """
         logger.debug("Enum::init %s %s %s", type(self).__name__, values, empty_to_none)
         
-        # Validate the provided values
-        if values is None or len(values) == 0:
-            raise EnumError(_("Enum requires a list of values"))
-        if not set(type(x) for x in values).issubset({type(None), str}):
-            raise EnumError(_("Enum requires string values (or None)"))
+        # Validate values
+        if not values or not isinstance(values, (list, set, tuple)):
+            raise ValueError("Enum requires a list or tuple of values")
+        if not all(isinstance(x, (str, type(None))) for x in values):
+            raise ValueError("Enum requires string values (or None)")
         if len(values) != len(set(values)):
-            raise EnumError(_("Enum requires the values to be unique"))
+            raise ValueError("Enum requires unique values")
         
         # Ensure None is present if `empty_to_none` is True
         if empty_to_none and None not in values:
             raise EnumError(_("You have configured empty_to_none=True, but None is not in the values list"))
 
-        # Convert values to a tuple (✅ Fix for hashability)
-        self.values = tuple(values)  # ✅ This makes Enum hashable and immutable
+        # Convert values to a **mutable list**
+        self.values = list(values)  # ✅ Now mutable
         self.strict = strict
         self.empty_to_none = empty_to_none
         
-        # Ensure translations is always a dictionary before calling `.items()`
-        if not isinstance(translations, dict):
-            translations = dict(translations) if translations is not None else {}  # ✅ Prevents NoneType error
+        # Ensure translations is always a dictionary
+        self.translations = translations if isinstance(translations, dict) else {}
 
-        self.translations = tuple(sorted(translations.items(), key=lambda item: (item[0] is None, item[0])))
-
-
-        # Determine the maximum length of the values for the column size
+        # Determine max length for database storage
         max_length = max(len(v) for v in values if v is not None)
-        self.impl = types.Unicode(max_length)  # Set the underlying SQL column type
+        self.impl = types.Unicode(max_length)
 
         # Call the parent class's constructor
-        #super().__init__(**kwargs)
         super().__init__()
 
+    def __setattr__(self, key, value):
+        """
+        Allow modifying `values` dynamically while ensuring correct behavior.
+        """
+        if key == "values" and hasattr(self, "values"):
+            object.__setattr__(self, key, value)
+        else:
+            super().__setattr__(key, value)
 
     def process_bind_param(self, value, dialect):
         """
@@ -113,11 +116,11 @@ class Enum(types.TypeDecorator):
         if self.empty_to_none and not value:
             value = None
 
-        # Convert None to empty string if None is not in values but an empty string is
+        # Convert None to empty string if needed
         if value is None and None not in self.values and '' in self.values:
             value = ''
 
-        # Validate the value against the allowed values
+        # Validate the value
         if value not in self.values:
             raise EnumError(
                 _(
@@ -133,11 +136,7 @@ class Enum(types.TypeDecorator):
         Process the value returned from the database.
         """
         if self.strict and value not in self.values:
-            raise EnumError(
-                _(
-                    f"Value '{value}' is not in Enum.values: {self.values}"
-                )
-            )
+            raise ValueError(f"Value '{value}' is not in Enum values: {self.values}")
         return value
 
     def copy(self):
@@ -145,10 +144,10 @@ class Enum(types.TypeDecorator):
         Create a copy of the Enum type with the same configuration.
         """
         return Enum(
-            values=self.values,
+            values=self.values.copy(),  # ✅ Preserve mutability
             empty_to_none=self.empty_to_none,
             strict=self.strict,
-            translations=self.translations,
+            translations=self.translations.copy(),
         )
 
 
