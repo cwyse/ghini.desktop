@@ -17,10 +17,6 @@
 import os
 import sys
 
-import gi
-
-gi.require_version('Gtk', '3.0')
-
 if 'PYTHONPATH' in os.environ:
     sys.path.insert(0, os.environ['PYTHONPATH'])
 
