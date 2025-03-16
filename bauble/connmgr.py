@@ -290,7 +290,11 @@ class ConnMgrPresenter(GenericEditorPresenter):
         view.combobox_init("type_combo", dbtypes, type_combo_cell_data_func)
         self.connection_names = []
         # Use the provided prefs or fall back to the global prefs
-        self.connections = prefs.prefs[bauble.conn_list_pref] or {}
+        if prefs:
+            self.connections = prefs.prefs[bauble.conn_list_pref]
+        else:
+            self.connections = {}
+            
         for ith_connection_name in sorted(self.connections):
             view.combobox_append_text("name_combo", ith_connection_name)
             self.connection_names.append(ith_connection_name)
@@ -784,7 +788,7 @@ def start_connection_manager(default_conn=None):
         glade_path, parent=None, root_widget_name="main_dialog"
     )
 
-    cm = ConnMgrPresenter(view)
+    cm = ConnMgrPresenter(view, prefs)
     result = cm.start()
     if result == Gtk.ResponseType.OK:
         return cm.connection_name, cm.connection_uri
