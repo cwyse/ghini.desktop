@@ -9,19 +9,21 @@ FROM debian:bullseye AS build
 
 # Environment setup and commands for Docker build and run
 ENV DOCKER_BUILD_CMD="\
-          docker buildx build --ssh default                                                \
+          docker buildx build --no-cache                                                   \
+                              --ssh default                                                \
                               --progress=plain                                             \
                               --build-arg COMMIT=$(git rev-parse HEAD)                     \
                               --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')      \
                               --build-arg USER_ID=$(id -u)                                 \
                               --build-arg GROUP_ID=$(id -g)                                \
-                              --load                                                       \
+                              --load -f Dockerfile                                         \
                               -t ghini-desktop:latest .                                    "
 
 ENV DOCKER_RUN_CMD="\
+          xhost + &&                                                   \
           docker run --rm -it                                          \
                      -p 5678:5678                                      \
-                     -e DEBUG=true                                     \
+                     -e DEBUG=false                                    \
                      -e USER=ghini                                     \
                      -e DISPLAY=$DISPLAY                               \
                      -e DB_HOST=postgres.wysechoice.net                \
@@ -35,11 +37,11 @@ ENV DOCKER_RUN_CMD="\
                      -v /tmp/.X11-unix:/tmp/.X11-unix                  \
                      -v $HOME/krb5:/krb5:ro                            \
                      -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1      \
-                     -v $HOME/repositories/ghini.desktop:/app          \
+                     -v $HOME/debug/ghini.desktop:/app                 \
                      -v /usr/lib/dri:/usr/lib/dri                      \
                      --device /dev/dri:/dev/dri                        \
                      --user $(id -u):$(id -g)                          \
-                     --name ghini_beta                                 \
+                     --name ghini                                      \
                      ghini-desktop:latest                              "
 
 
@@ -106,16 +108,17 @@ RUN mkdir -p $HOME/.ssh && chmod 700 $HOME/.ssh \
 # Working directory for the application
 WORKDIR /app
 
+COPY . /app
+
 # Create virtual environment and configure Python path
 RUN python3 -m venv $VIRTUAL_ENV \
     && . $VIRTUAL_ENV/bin/activate \
-    && pip install --upgrade pip wheel 'setuptools<58.0.0' importlib-metadata debugpy toml PyGObject==3.50.0
-
-# Copy and install application dependencies
-COPY . /app
-RUN . $VIRTUAL_ENV/bin/activate \
-    && python setup.py build \
-    && python setup.py install
+    && pip install --upgrade pip wheel 'setuptools<58.0.0' importlib-metadata debugpy toml \
+    && python generate_pyproject.py \   
+    && test -f pyproject.toml || (echo "Error: pyproject.toml not found!" && exit 1) \ 
+    && pip install PyGObject==3.50.0 --no-cache-dir \
+    && python setup.py sdist bdist_wheel \
+    && pip install dist/*.whl --no-cache-dir
 
 # Initialize Alembic with a preconfigured database URL
 RUN . $VIRTUAL_ENV/bin/activate \
@@ -141,6 +144,7 @@ ENV NO_AT_BRIDGE=1
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    adwaita-icon-theme \
     at-spi2-core \
     gdk-pixbuf2.0-0 \
     gir1.2-champlain-0.12 \
@@ -149,7 +153,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gir1.2-gtkclutter-1.0 \
     git \
     glade \
+    gnome-icon-theme \    
     gtk-update-icon-cache \
+    hicolor-icon-theme \
     krb5-user \
     libcairo2 \
     libcanberra-gtk-module \
