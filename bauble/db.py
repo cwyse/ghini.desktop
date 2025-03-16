@@ -625,7 +625,7 @@ def verify_connection(engine, show_error_dialogs=False):
 
             try:
                 major, minor, _ = map(int, version_row.value.split("."))
-                if (major, minor) != bauble.version_tuple[:2]:
+                if (str(major), str(minor)) != bauble.version_tuple[:2]:
                     handle_error(
                         error.VersionError(version_row.value),
                         _(
