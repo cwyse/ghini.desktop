@@ -26,39 +26,27 @@ from gi.repository import Gtk
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
-class PicturesView(Gtk.Box):
-    """shows pictures corresponding to selection.
-
-    at any time, no more than one PicturesView object will exist.
-
-    when activated, the PicturesView object will be informed of changes
-    to the selection and whatever the selection contains, the
-    PicturesView object will ask each object in the selection to please
-    return pictures, so that the PicturesView object can display them.
-
-    if an object in the selection does not know of pictures (like it
-    raises an exception because it does not define the 'pictures'
-    property), the PicturesView object will silently accept the failure.
-
-    """
+class PicturesView:
+    """Displays pictures corresponding to selection."""
 
     def __init__(self, parent=None, fake=False):
         logger.debug(
             "entering PicturesView.__init__(parent=%s, fake=%s)"
             % (parent, fake)
         )
-        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.fake = fake
+        
         if self.fake:
             return
-        
-        import os
 
+        import os
         from bauble import paths
 
         glade_file = os.path.join(paths.lib_dir(), "pictures_view.glade")
         self.widgets = utils.BuilderWidgets(glade_file)
+
+        # Use Gtk.Box for layout composition
+        self.pictures_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
         # Remove parent reference from builder and add to the new parent
         self.widgets.remove_parent(self.widgets.scrolledwindow2)
@@ -66,13 +54,11 @@ class PicturesView(Gtk.Box):
         parent.show_all()
         self.widgets.scrolledwindow2.show()
 
-
     def set_selection(self, selection):
         """
         Updates the view based on the current selection.
-
-        If an object in the selection contains a `pictures` property, its
-        pictures will be displayed.
+        If an object in the selection contains a `pictures` property, 
+        its pictures will be displayed.
         """
         logger.debug(f"Setting selection: {selection}")
         if self.fake:
@@ -93,12 +79,7 @@ class PicturesView(Gtk.Box):
 
             for pic in pics:
                 logger.debug(f"Object {obj} has picture {pic}")
-                picture_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-                picture_box.add(pic)
-                self.ghini_box.pack_start(picture_box, False, False, 0)
-                self.ghini_box.reorder_child(picture_box, 0)
-                picture_box.show_all()
-                pic.show()
+                self.add_picture(pic)
 
         self.ghini_box.show_all()
 
@@ -110,14 +91,19 @@ class PicturesView(Gtk.Box):
             logger.warning("add_picture() called with no picture provided.")
             return None
 
+        # Create a picture container box
         picture_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         picture_box.add(picture)
 
+        # Add the picture box to the container
         self.ghini_box.pack_start(picture_box, False, False, 0)
         picture_box.show_all()
 
         return picture_box
 
+    def get_widget(self):
+        """Returns the main widget (Gtk.Box) containing the pictures."""
+        return self.pictures_box
 
 floating_window = None
 

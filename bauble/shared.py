@@ -11,26 +11,19 @@ from bauble import prefs
 
 logger = logging.getLogger(__name__)
 
-# class InfoExpander(Gtk.Expander):
-#     """
-#     Abstract class for an expandable info box.
-#     """
+import logging
+from gi.repository import Gtk
 
-#     def __init__(self, label):
-#         super().__init__()
-#         self.set_label(label)
-#         self.vbox = Gtk.VBox()
-#         self.add(self.vbox)
-#         self.set_expanded(True)
+logger = logging.getLogger(__name__)
 
-
-class InfoExpander(Gtk.Expander):
+class InfoExpander:
     """
-    an abstract class that is really just a generic expander with a vbox
-    to extend this you just have to implement the update() method
+    A generic expander widget with a vbox for structured layout.
+
+    To extend this, implement the `update()` method.
     """
 
-    # preference for storing the expanded state
+    # Preference for storing the expanded state
     expanded_pref = None
 
     def __init__(self, label, widgets=None):
@@ -38,15 +31,20 @@ class InfoExpander(Gtk.Expander):
         :param label: The name of this info expander, displayed on the expander.
         :param widgets: A bauble.utils.BuilderWidgets instance.
         """
-        super().__init__()
-        self.set_label(label)
-        self.vbox = Gtk.VBox(spacing=10)  # Standardizes spacing
+        self.expander = Gtk.Expander(label=label)
+        self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.vbox.set_border_width(5)
-        self.add(self.vbox)
+        self.expander.add(self.vbox)
         self.widgets = widgets or {}  # Ensure widgets is always a dictionary
+
         if not self.expanded_pref:
-            self.set_expanded(True)
-        self.connect("notify::expanded", self.on_expanded)
+            self.expander.set_expanded(True)
+
+        self.expander.connect("notify::expanded", self.on_expanded)
+
+    def get_widget(self):
+        """Return the main widget (Gtk.Expander) for integration in UI layouts."""
+        return self.expander
 
     def on_expanded(self, expander, *args):
         """
@@ -55,11 +53,11 @@ class InfoExpander(Gtk.Expander):
         if self.expanded_pref:
             prefs.prefs[self.expanded_pref] = expander.get_expanded()
             prefs.prefs.save()
-            
+
     def set_labeled_value(self, prefix, value):
         """
         Toggle visibility of a labeled field and set its value.
-        
+
         Labels and data widgets are identified using `prefix+'_label'`
         and `prefix+'_data'`.
 
@@ -82,28 +80,66 @@ class InfoExpander(Gtk.Expander):
 
     def widget_set_value(self, widget_name, value, markup=False, default=None):
         """
-        a shorthand for L{bauble.utils.set_widget_value()}
+        A shorthand for L{bauble.utils.set_widget_value()}
         """
-        set_widget_value(
-            self.widgets[widget_name], value, markup, default
-        )
+        if widget_name in self.widgets:
+            set_widget_value(self.widgets[widget_name], value, markup, default)
 
     def update(self, value):
         """
-        This method should be implemented by classes that extend InfoExpander
+        This method should be implemented by classes that extend InfoExpander.
         """
         raise NotImplementedError("InfoExpander.update(): not implemented")
 
 
-class Action(Gtk.Action):
+class Action:
     """
     Represents an action with a callback and optional visibility toggles.
+    
+    Uses `Gio.SimpleAction`, as `Gtk.Action` is deprecated in GTK 4.
     """
 
-    def __init__(self, name, label, tooltip=None, stock_id=None, callback=None):
-        super().__init__(name=name, label=label, tooltip=tooltip, stock_id=stock_id)
+    def __init__(self, name, label, tooltip=None, stock_id=None, callback=None, app=None):
+        """
+        :param name: Unique action name (e.g., "open").
+        :param label: The action label.
+        :param tooltip: Tooltip text.
+        :param stock_id: Icon name for the action.
+        :param callback: Function to execute when activated.
+        :param app: The `Gtk.Application` where the action will be registered.
+        """
+        self.name = name
+        self.label = label
+        self.tooltip = tooltip
+        self.stock_id = stock_id  # Save stock_id for potential icon use
         self.callback = callback
+        self.app = app
+
+        # Create the action
+        self.action = Gio.SimpleAction.new(name, None)
+        if callback:
+            self.action.connect("activate", self._on_activate)
+
+        # Register the action with the application if provided
+        if app:
+            app.add_action(self.action)
+
+    def _on_activate(self, action, param):
+        """Call the provided callback function when activated."""
+        if self.callback:
+            self.callback()
+
+    def set_enabled(self, enable):
+        """Enable or disable the action."""
+        self.action.set_enabled(enable)
+
+    def get_enabled(self):
+        """Check if the action is enabled."""
+        return self.action.get_enabled()
+
+    enabled = property(get_enabled, set_enabled)
 
     def execute(self, *args):
-        if self.callback:
-            self.callback(*args)
+        """Manually trigger the action execution."""
+        self._on_activate(None, None)
+

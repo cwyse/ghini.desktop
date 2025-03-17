@@ -1145,7 +1145,8 @@ def setup_date_button(view, entry, button, date_func=None):
     image = Gtk.Image()
     image.set_from_file(icon)
     button.set_tooltip_text(_("Today's date"))
-    button.set_image(image)
+    # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
+    button.set_child(image)
 
     def on_clicked(b):
         s = ""
@@ -1619,7 +1620,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, Pango
 
-class GenericMessageBox(Gtk.EventBox):
+class GenericMessageBox(Gtk.EventBox):  # identify_subclassing_issues (Consider using composition instead of subclassing GtkWidget)
     """
     Abstract class for showing a message box at the top of an editor.
     """
@@ -1655,13 +1656,14 @@ class GenericMessageBox(Gtk.EventBox):
         self.show_all()
 
 
-class MessageBox(GenericMessageBox):
+
+class MessageBox:
     """
     A MessageBox that can display a message label at the top of an editor.
     """
 
     def __init__(self, msg=None, details=None):
-        super().__init__()
+        self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.box.pack_start(self.vbox, True, True, 0)
 
@@ -1673,17 +1675,20 @@ class MessageBox(GenericMessageBox):
             self.buffer.set_text(msg)
         self.vbox.pack_start(self.label, True, True, 0)
 
+        # Button Box
         button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.box.pack_start(button_box, False, False, 0)
         button = Gtk.Button()
         image = Gtk.Image.new_from_icon_name(Gtk.STOCK_CLOSE, Gtk.IconSize.BUTTON)
-        button.set_image(image)
+        # Pack the Gtk.Image manually inside Gtk.Button
         button.set_relief(Gtk.ReliefStyle.NONE)
         button_box.pack_start(button, False, False, 0)
 
+        # Details Expander
         self.details_expander = Gtk.Expander()
         self.vbox.pack_start(self.details_expander, True, True, 0)
 
+        # Scrolled Window with Viewport
         sw = Gtk.ScrolledWindow()
         sw.set_size_request(-1, 200)
         sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -1698,13 +1703,10 @@ class MessageBox(GenericMessageBox):
         self.details = (details or '')[:4096]
         self.details_expander.add(sw)
 
-        def on_expanded(*args):
-            width, height = self.get_preferred_size()[1]
-            self.set_size_request(width, -1)
-            self.queue_resize()
+        # Connect expanded signal
+        self.details_expander.connect('notify::expanded', self.on_expanded)
 
-        self.details_expander.connect('notify::expanded', on_expanded)
-
+        # Button Close Handler
         def on_close(*args):
             parent = self.get_parent()
             if parent is not None:
@@ -1712,7 +1714,7 @@ class MessageBox(GenericMessageBox):
 
         button.connect('clicked', on_close, True)
 
-        # Use Gdk.RGBA for colors instead of hex strings
+        # Color setup
         colors = [
             ("bg", Gtk.StateFlags.NORMAL, Gdk.RGBA()),
             ("bg", Gtk.StateFlags.PRELIGHT, Gdk.RGBA())
@@ -1724,11 +1726,21 @@ class MessageBox(GenericMessageBox):
         for color in colors:
             self.set_color(*color)
 
+    def set_color(self, state, flag, rgba):
+        """Helper to set color based on the state."""
+        self.box.override_background_color(flag, rgba)
+
+    def on_expanded(self, *args):
+        """Adjust size when expanded."""
+        width, height = self.box.get_preferred_size()[1]
+        self.box.set_size_request(width, -1)
+        self.box.queue_resize()
+
     def show_all(self):
         """
         Show the widget but hide the details expander if there is no text.
         """
-        super().show_all()
+        self.box.show_all()
         if not self.details_label.get_text():
             self.details_expander.hide()
 
@@ -1750,8 +1762,6 @@ class MessageBox(GenericMessageBox):
             self.details_label.set_text(msg)
         else:
             self.details_label.set_text("")
-
-
 
 class YesNoMessageBox(GenericMessageBox):
     """

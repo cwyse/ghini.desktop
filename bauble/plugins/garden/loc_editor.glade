@@ -17,11 +17,16 @@
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="button10">
-                <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="can-default">True</property>
                 <property name="receives-default">False</property>
+                <child>
+                  <object class="GtkImage" id="button10_image">
+                    <property name="icon-name">cancel</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -31,13 +36,18 @@
             </child>
             <child>
               <object class="GtkButton" id="loc_ok_button">
-                <property name="label">gtk-ok</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="can-default">True</property>
                 <property name="receives-default">False</property>
                 <accelerator key="Return" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                <child>
+                  <object class="GtkImage" id="loc_ok_button_image">
+                    <property name="icon-name">ok</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>

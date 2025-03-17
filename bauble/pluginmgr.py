@@ -525,22 +525,33 @@ class Tool:
         pass
 
 
-class View(Gtk.VBox):
+class View(Gtk.Box):
+    """
+    A generic view class that uses Gtk.VBox for layout and supports threading for async tasks.
+    It is designed to be extended with custom UI logic and widgets.
+
+    If a class extends this View and provides its own __init__ it *must* call its parent (this) __init__.
+    """
 
     def __init__(self, *args, **kwargs):
         """
-        If a class extends this View and provides its own __init__ it *must*
-        call its parent (this) __init__
+        Initializes the view, optionally loading a UI from a .glade file.
+
+        :param filename: Path to the .glade file (optional).
+        :param root_widget_name: The root widget's name in the .glade file (optional).
         """
         filename = kwargs.get("filename")
         if filename is not None:
             del kwargs["filename"]
             root_widget_name = kwargs.get("root_widget_name")
             del kwargs["root_widget_name"]
-        super().__init__(*args, **kwargs)
+        
+        # Initialize Gtk.Box with the parent constructor
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        
         if filename is not None:
             from bauble import editor, utils
-
+            
             self.widgets = utils.BuilderWidgets(filename)
             self.view = editor.GenericEditorView(
                 filename, root_widget_name=root_widget_name
@@ -548,10 +559,12 @@ class View(Gtk.VBox):
             root_widget = getattr(self.view.widgets, root_widget_name)
             widget = root_widget.get_children()[0]
             self.view.widgets.remove_parent(widget)
-            self.add(widget)
+            self.pack_start(widget, True, True, 0)
+
         self.running_threads = []
 
     def cancel_threads(self):
+        """Cancel and join all running threads."""
         for k in self.running_threads:
             k.cancel()
         for k in self.running_threads:
@@ -559,11 +572,13 @@ class View(Gtk.VBox):
         self.running_threads = []
 
     def start_thread(self, thread):
+        """Start a new thread and add it to the list of running threads."""
         self.running_threads.append(thread)
         thread.start()
         return thread
 
     def idle_start_thread(self, cls, *args, **kwargs):
+        """Start a thread after the main loop yields control."""
         def create_and_start(cls, args, kwargs):
             thread = cls(*args, **kwargs)
             self.running_threads.append(thread)
@@ -572,8 +587,16 @@ class View(Gtk.VBox):
         GObject.idle_add(create_and_start, cls, args, kwargs)
 
     def update(self):
+        """Override this method in a subclass to update the view."""
         pass
 
+    def get_widget(self):
+        """Returns the main widget (Gtk.Box) containing the view's UI."""
+        return self
+
+    def add(self, widget):
+        """Add a widget to the vbox container."""
+        self.pack_start(widget, True, True, 0)
 
 class CommandHandler:
 

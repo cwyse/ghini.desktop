@@ -20,10 +20,15 @@
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="button2">
-                <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <child>
+                  <object class="GtkImage" id="button2_image">
+                    <property name="icon-name">cancel</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -33,10 +38,15 @@
             </child>
             <child>
               <object class="GtkButton" id="button1">
-                <property name="label">gtk-ok</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <child>
+                  <object class="GtkImage" id="button1_image">
+                    <property name="icon-name">ok</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -205,10 +215,15 @@
             <property name="can-focus">False</property>
             <child>
               <object class="GtkButton" id="notes_add_button">
-                <property name="label">gtk-add</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <child>
+                  <object class="GtkImage" id="notes_add_button_image">
+                    <property name="icon-name">add</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>

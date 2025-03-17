@@ -103,13 +103,19 @@ class TagsMenuManager:
 
     def show_active_tag(self):
         """Update UI to reflect the active tag."""
-        for widget in self.item_list.values():
-            widget.set_image(None)
+        for c in list(self.item_list.values()):
+            if isinstance(c, Gtk.Button):
+                # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
+                c.remove(c.get_child())  # Remove the current image from the button
 
         widget = self.item_list.get(self.active_tag_name)
         if widget:
-            image = Gtk.Image.new_from_stock(Gtk.STOCK_APPLY, Gtk.IconSize.MENU)
-            widget.set_image(image)
+            # Create an image from the icon name (not stock)
+            image = Gtk.Image.new_from_icon_name("apply", Gtk.IconSize.MENU)
+            if isinstance(widget, Gtk.Button):
+                # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
+                widget.set_child(image)  # Add the image to the button widget
+
             self.apply_active_tag_menu_item.set_sensitive(True)
             self.remove_active_tag_menu_item.set_sensitive(True)
         else:
@@ -464,7 +470,7 @@ class TagItemGUI(editor.GenericEditorView):
         if the user hits the delete key on a selected tag in the tag editor
         then delete the tag
         """
-        keyname = Gdk.keyval_name(event.keyval)
+        keyname = Gdk.keyval_name(event.get_keyval())  # 1. issue_gdkevent_structs
         if keyname != "Delete":
             return
         model, row_iter = self.tag_tree.get_selection().get_selected()

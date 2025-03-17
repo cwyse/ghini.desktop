@@ -38,9 +38,14 @@ def _open_link(data=None, *args, **kwargs):
         )
     )
     desktop.open(data)
+import re
+from gi.repository import Gtk
 
-
-class BaubleLinkButton(Gtk.LinkButton):
+class BaubleLinkButton:
+    """
+    A button that acts as a link, but instead of using subclassing, 
+    it uses composition to wrap around a Gtk.LinkButton.
+    """
 
     _base_uri = "%s"
     _space = "_"
@@ -49,19 +54,39 @@ class BaubleLinkButton(Gtk.LinkButton):
     pt = re.compile(r"%\(([a-z_\.]*)\)s")
 
     def __init__(self, title=_("Search"), tooltip=None):
-        super().__init__("", self.title)
-        self.set_tooltip_text(self.tooltip or self.title)
-        self.__class__.fields = self.pt.findall(self._base_uri)
+        # Create the Gtk.LinkButton instance
+        self.link_button = Gtk.LinkButton(label=title, uri="")
+        self.set_tooltip(tooltip or title)
+
+        # Find the fields based on the URI pattern
+        self.fields = self.pt.findall(self._base_uri)
+
+    def set_tooltip(self, tooltip_text):
+        """Set the tooltip text for the link button."""
+        self.link_button.set_tooltip_text(tooltip_text)
 
     def set_string(self, row):
-        if self.fields == []:
+        """
+        Set the URI for the link button based on a row's values.
+        
+        The row can be an object with attributes matching the pattern
+        in the URI (_base_uri).
+        """
+        if not self.fields:
             s = str(row)
-            self.set_uri(self._base_uri % s.replace(" ", self._space))
+            self.link_button.set_uri(self._base_uri % s.replace(" ", self._space))
         else:
             values = {}
             for key in self.fields:
                 value = row
                 for step in key.split("."):
                     value = getattr(value, step, "-")
-                values[key] = (value == str(value)) and value or ""
-            self.set_uri(self._base_uri % values)
+                values[key] = str(value) if value == str(value) else ""
+            self.link_button.set_uri(self._base_uri % values)
+
+    def get_widget(self):
+        """
+        Returns the Gtk.LinkButton widget.
+        This can be added to any container as a regular widget.
+        """
+        return self.link_button

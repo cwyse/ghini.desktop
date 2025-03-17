@@ -95,11 +95,10 @@ def get_species_in_geographic_area(geo):
     )
     return list(q)
 
-
-class GeographicAreaMenu(Gtk.Menu):
-
+class GeographicAreaMenu:
     def __init__(self, callback):
-        super().__init__()
+        # Create an instance of Gtk.Menu instead of subclassing it
+        self.menu = Gtk.Menu()  
         geographic_area_table = GeographicArea.__table__
 
         # Query the database for the geographic area information
@@ -112,9 +111,6 @@ class GeographicAreaMenu(Gtk.Menu):
         ).fetchall()
 
         geos_hash = {}
-        # TODO: i think the geo_hash should be calculated in an idle
-        # function so that starting the editor isn't delayed while the
-        # hash is being built
         for geo_id, name, parent_id in geos:
             if parent_id not in geos_hash:
                 geos_hash[parent_id] = []
@@ -139,20 +135,15 @@ class GeographicAreaMenu(Gtk.Menu):
         def build_menu(geo_id, name):
             item = Gtk.MenuItem(name)
             if not has_kids(geo_id):
-                if item.get_submenu() is None:
-                    item.connect("activate", callback, geo_id)
-                    # self.view.connect(item, 'activate',
-                    #                   self.on_activate_add_menu_item, geo_id)
+                item.connect("activate", callback, geo_id)
                 return item
 
             kids_added = False
             submenu = Gtk.Menu()
-            # removes two levels of kids with the same name, there must be a
-            # better way to do this but i got tired of thinking about it
             kids = get_kids(geo_id)
             if len(kids) > 0:
                 kids_added = True
-            for kid_id, kid_name in kids:  # get_kids(geo_id):
+            for kid_id, kid_name in kids:
                 submenu.append(build_menu(kid_id, kid_name))
 
             if kids_added:
@@ -160,7 +151,6 @@ class GeographicAreaMenu(Gtk.Menu):
                 submenu.insert(sel_item, 0)
                 submenu.insert(Gtk.SeparatorMenuItem(), 1)
                 item.set_submenu(submenu)
-                # self.view.connect(sel_item, 'activate',callback, geo_id)
                 sel_item.connect("activate", callback, geo_id)
             else:
                 item.connect("activate", callback, geo_id)
@@ -168,29 +158,29 @@ class GeographicAreaMenu(Gtk.Menu):
 
         def populate():
             """
-            add geographic_area value to the menu, any top level items that don't
-            have any kids are appended to the bottom of the menu
+            Add geographic_area values to the menu. Any top-level items that don't
+            have any kids are appended to the bottom of the menu.
             """
             if not geos_hash:
-                # we would get here if the GeographicArea menu is populate,
-                # usually during a unit test
                 return
+
             no_kids = []
             for geo_id, geo_name in geos_hash[None]:
                 if geo_id not in list(geos_hash.keys()):
                     no_kids.append((geo_id, geo_name))
                 else:
-                    self.append(build_menu(geo_id, geo_name))
+                    self.menu.append(build_menu(geo_id, geo_name))
 
             for geo_id, geo_name in sorted(no_kids):
-                self.append(build_menu(geo_id, geo_name))
+                self.menu.append(build_menu(geo_id, geo_name))
 
-            self.show_all()
+            self.menu.show_all()
 
         from gi.repository import GObject
-
         GObject.idle_add(populate)
 
+    def get_menu(self):
+        return self.menu
 
 class GeographicArea(db.Base):
     """

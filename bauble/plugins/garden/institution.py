@@ -79,27 +79,21 @@ def safe_set_text(gtk_widget, text):
         text = ""
     gtk_widget.set_text(text)
 
-
-class MapViewer(Gtk.Dialog):
-
+class MapViewer:
     def __init__(self, title="", parent=None, *args, **kwargs):
-        super().__init__(title, parent, *args, **kwargs)
+        self.dialog = Gtk.Dialog(title, parent, *args, **kwargs)  # Use composition instead of subclassing
         self.result = None
 
-        self.connect("key-press-event", self.on_key_press)
+        # Connect key press event
+        self.dialog.connect("key-press-event", self.on_key_press)
 
         self.map_widget = GtkChamplain.Embed()
         self.map_widget.set_size_request(640, 480)
         self.clutter_view = self.map_widget.get_view()
         self.clutter_view.set_horizontal_wrap(True)
 
-        box = self.get_content_area()
+        box = self.dialog.get_content_area()
         box.add(self.map_widget)
-
-        # now the Clutter stuff
-        self.map_widget.set_size_request(640, 480)
-        self.clutter_view = self.map_widget.get_view()
-        self.clutter_view.set_horizontal_wrap(True)
 
         self.layer = None
 
@@ -126,6 +120,7 @@ class MapViewer(Gtk.Dialog):
         self.buttons = buttons = Clutter.Actor()
         self.clutter_view.add_child(buttons)
 
+        # Creating the buttons for OK, Cancel, and Activate
         button = self.make_button(_("OK"))
         button.set_position(offset, PADDING)
         (width, height) = button.get_size()
@@ -150,7 +145,7 @@ class MapViewer(Gtk.Dialog):
 
         self.clutter_view.center_on(5.0, 13.0)
         self.clutter_view.set_zoom_level(1)
-        self.show_all()
+        self.dialog.show_all()
 
     def make_button(self, text):
         black = Clutter.Color.new(0x00, 0x00, 0x00, 0xFF)
@@ -236,7 +231,7 @@ class MapViewer(Gtk.Dialog):
         if event.source == self.place_button:
             x1, y1 = (i / 2 for i in self.clutter_view.get_size())
         else:
-            y1, x1 = event.y, event.x
+            y1, x1 = event.get_y(), event.get_x()  # 1. issue_gdkevent_structs
         lon = self.clutter_view.x_to_longitude(x1)
         lat = self.clutter_view.y_to_latitude(y1)
         # move the circle
@@ -251,17 +246,17 @@ class MapViewer(Gtk.Dialog):
             self.place_button = None
 
     def on_view_button_release(self, widget, event):
-        if event.button == 3:
+        if event.get_button() == 3:  # 1. issue_gdkevent_structs
             self.on_clutter_place_button(widget, event)
 
     def on_clutter_ok_button(self, widget, event):
         if self.layer is None:
             return
         self.result = self.get_centre()
-        self.response(Gtk.ResponseType.OK)
+        self.dialog.response(Gtk.ResponseType.OK)
 
     def on_clutter_cancel_button(self, widget, event):
-        self.response(Gtk.ResponseType.CANCEL)
+        self.dialog.response(Gtk.ResponseType.CANCEL)
 
     def on_animation_completed(self, *args, **kwargs):
         if self.layer is None:

@@ -586,7 +586,8 @@ class PropagationHandler:
         # Edit Button
         edit_button = Gtk.Button(label="Edit")  # Cleaner alternative to Gtk.Button.new_with_label()
         edit_icon = Gtk.Image.new_from_icon_name("document-edit", Gtk.IconSize.BUTTON)
-        edit_button.set_image(edit_icon)
+        # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
+        edit_button.set_child(edit_icon)  # Add the image to the button widget
         edit_button.set_always_show_image(True)
 
         self.view.connect(edit_button, "clicked", on_edit_clicked, propagation, label)
@@ -629,7 +630,8 @@ class PropagationHandler:
         # Remove Button
         remove_button = Gtk.Button()
         remove_icon = Gtk.Image.new_from_icon_name("edit-delete", Gtk.IconSize.BUTTON)  
-        remove_button.set_image(remove_icon)
+        # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
+        remove_button.set_child(remove_icon)  # Add the image to the button widget        
         self.view.connect(remove_button, "clicked", on_remove_clicked, propagation, hbox)
         button_box.pack_start(remove_button, False, False, 0)
 

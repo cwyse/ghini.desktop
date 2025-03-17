@@ -89,11 +89,13 @@ def apply_css():
     style_provider = Gtk.CssProvider()
     style_provider.load_from_data(css)
 
-    Gtk.StyleContext.add_provider_for_screen(
-        Gdk.Screen.get_default(),
+    display = Gdk.Display.get_default()
+    Gtk.StyleContext.add_provider_for_display(
+        display,
         style_provider,
         Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
     )
+
 
 def safe_set_text(gtk_widget, text):
     """
@@ -301,20 +303,18 @@ class MapInfoExpander(InfoExpander):
             self.map_widget.set_zoom_level(18)
 
 
-
-class InfoBoxPage(Gtk.ScrolledWindow):
+class InfoBoxPage:
     """
-    A :class:`Gtk.ScrolledWindow` that contains
-    :class:`bauble.view.InfoExpander` objects.
+    Container for :class:`bauble.view.InfoExpander` objects.
+    Uses composition instead of subclassing Gtk.ScrolledWindow.
     """
-
     def __init__(self):
-        super().__init__()
-        self.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.container = Gtk.ScrolledWindow()
+        self.container.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-
-        self.add(self.vbox)
+        self.container.add(self.vbox)
         self.expanders = {}
+
 
     def add_expander(self, expander):
         """
@@ -360,8 +360,8 @@ class InfoBoxPage(Gtk.ScrolledWindow):
             expander.update(row)
             from gi.repository import Gtk, Gdk, Pango
 
-
-class InfoBox(Gtk.Notebook):
+            
+class InfoBox:
     """
     Holds a list of expanders with an optional tabbed layout.
 
@@ -371,24 +371,24 @@ class InfoBox(Gtk.Notebook):
     """
 
     def __init__(self, tabbed=False):
-        super().__init__()
+        self.notebook = Gtk.Notebook()
         self.row = None
-        self.set_show_border(False)
+        self.notebook.set_show_border(False)
 
         if not tabbed:
             page = InfoBoxPage()
-            self.append_page(page, None)  # insert_page → append_page for clarity
-            self.set_show_tabs(False)
+            self.notebook.append_page(page, None)  # insert_page → append_page for clarity
+            self.notebook.set_show_tabs(False)
 
-        self.set_current_page(0)
-        self.connect("switch-page", self.on_switch_page)
+        self.notebook.set_current_page(0)
+        self.notebook.connect("switch-page", self.on_switch_page)
 
     def on_switch_page(self, notebook, dummy_page, page_num, *args):
         """
         Called when a page is switched.
         """
         if self.row:
-            page = self.get_nth_page(page_num)
+            page = self.notebook.get_nth_page(page_num)
             page.update(self.row)
 
     def add_expander(self, expander, page_num=0):
@@ -398,7 +398,7 @@ class InfoBox(Gtk.Notebook):
         :param expander: The expander to add.
         :param page_num: The page index in the InfoBox to add the expander.
         """
-        page = self.get_nth_page(page_num)
+        page = self.notebook.get_nth_page(page_num)
         page.add_expander(expander)
 
     def update(self, row):
@@ -406,8 +406,8 @@ class InfoBox(Gtk.Notebook):
         Update the current page with the given row.
         """
         self.row = row
-        page_num = self.get_current_page()
-        self.get_nth_page(page_num).update(row)
+        page_num = self.notebook.get_current_page()
+        self.notebook.get_nth_page(page_num).update(row)
 
 
 class LinksExpander(InfoExpander):
@@ -1207,7 +1207,7 @@ class SearchView(pluginmgr.View):
 
         Popup a context menu on the selected row.
         """
-        if event.button != 3:
+        if event.get_button() != 3:  # 1. issue_gdkevent_structs
             return False  # if not right click then leave
 
         selected = self.get_selected_values()
@@ -1270,7 +1270,7 @@ class SearchView(pluginmgr.View):
             )
 
         # (parent_menu_shell, parent_menu_item, func, data, button, activate_time)
-        menu.popup(None, None, None, None, event.button, event.time)
+        menu.popup(None, None, None, None, event.get_button(), event.time)  # 1. issue_gdkevent_structs
         return True
 
     def update(self):
@@ -1361,9 +1361,9 @@ class SearchView(pluginmgr.View):
             This ensures that users can open the context menu without losing their
             current selection when using a right-click.
             """
-            if event.button == Gdk.BUTTON_SECONDARY:  # Right-click
+            if event.get_button() == Gdk.BUTTON_SECONDARY:  # Right-click  # 1. issue_gdkevent_structs
                 if (event.get_state() & Gdk.ModifierType.CONTROL_MASK) == 0:
-                    path_info = view.get_path_at_pos(int(event.x), int(event.y))
+                    path_info = view.get_path_at_pos(int(event.get_x()), int(event.get_y()))  # 1. issue_gdkevent_structs
                     if path_info:
                         path, _, _, _ = path_info
                         if not view.get_selection().path_is_selected(path):

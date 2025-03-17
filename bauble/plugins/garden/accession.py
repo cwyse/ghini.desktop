@@ -1364,286 +1364,249 @@ class VerificationPresenter(editor.GenericEditorPresenter):
         box.show_all()
         return box
 
-    class VerificationBox(Gtk.Box):
+from utils import ilike
+class VerificationBox:
+    """
+    A widget that manages the verification details for a species,
+    allowing the user to input verification data such as date, verifier,
+    species, and reference.
+    """
 
-        def __init__(self, parent, model):
-            super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-            check(not model or isinstance(model, Verification))
+    def __init__(self, parent, model):
+        check(not model or isinstance(model, Verification))
+        
+        # Create the container box for the layout
+        self.box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        self.presenter = weakref.ref(parent)
+        self.model = model
 
-            self.presenter = weakref.ref(parent)
-            self.model = model
-            if not self.model:
-                self.model = Verification()
-                self.model.prev_species = self.presenter().model.species
+        if not self.model:
+            self.model = Verification()
+            self.model.prev_species = self.presenter().model.species
 
-            # copy UI definitions from the accession editor glade file
-            filename = os.path.join(
-                paths.lib_dir(), "plugins", "garden", "acc_editor.glade"
-            )
-            xml = etree.parse(filename)
-            el = xml.find(".//object[@id='ver_box']")
-            builder = Gtk.Builder()
+        # Load the UI from Glade file
+        filename = os.path.join(paths.lib_dir(), "plugins", "garden", "acc_editor.glade")
+        xml = etree.parse(filename)
+        el = xml.find(".//object[@id='ver_box']")
+        builder = Gtk.Builder()
 
-            s = f"<interface>{etree.tostring(el, encoding='utf-8').decode()}</interface>"
+        s = f"<interface>{etree.tostring(el, encoding='utf-8').decode()}</interface>"
+        builder.add_from_string(s.encode())  # Ensure string is properly encoded
 
-            builder.add_from_string(s.encode())  # Ensure string is properly encoded
+        # Create the widgets
+        self.widgets = utils.BuilderWidgets(builder)
 
-            self.widgets = utils.BuilderWidgets(builder)
+        # Remove the widgets from the parent and add them to the current box
+        ver_box = self.widgets.ver_box
+        self.widgets.remove_parent(ver_box)
+        self.box.pack_start(ver_box, True, True, 0)
 
-            ver_box = self.widgets.ver_box
-            self.widgets.remove_parent(ver_box)
-            self.pack_start(ver_box, True, True, 0)
+        # Set up the entry for the verifier
+        entry = self.widgets.ver_verifier_entry
+        if self.model.verifier:
+            entry.set_text(self.model.verifier)
+        self.presenter().view.connect(entry, "changed", self.on_entry_changed, "verifier")
 
-            # verifier entry
-            entry = self.widgets.ver_verifier_entry
-            if self.model.verifier:
-                entry.set_text(self.model.verifier)
-            self.presenter().view.connect(
-                entry, "changed", self.on_entry_changed, "verifier"
-            )
+        # Set up the date entry
+        self.date_entry = self.widgets.ver_date_entry
+        if self.model.date:
+            utils.set_widget_value(self.date_entry, self.model.date)
+        else:
+            self.date_entry.set_text = utils.today_str()
+        self.presenter().view.connect(self.date_entry, "changed", self.on_date_entry_changed)
 
-            # date entry
-            self.date_entry = self.widgets.ver_date_entry
-            if self.model.date:
-                utils.set_widget_value(self.date_entry, self.model.date)
-            else:
-                self.date_entry.set_text = utils.today_str()
-            self.presenter().view.connect(
-                self.date_entry, "changed", self.on_date_entry_changed
-            )
+        # Set up the reference entry
+        ref_entry = self.widgets.ver_ref_entry
+        if self.model.reference:
+            ref_entry.set_text = self.model.reference
+        self.presenter().view.connect(ref_entry, "changed", self.on_entry_changed, "reference")
 
-            # reference entry
-            ref_entry = self.widgets.ver_ref_entry
-            if self.model.reference:
-                ref_entry.set_text = self.model.reference
-            self.presenter().view.connect(
-                ref_entry, "changed", self.on_entry_changed, "reference"
-            )
+        # Set up the species entries
+        self._setup_species_entries()
 
-            # species entries
-            def sp_get_completions(text):
-                from utils import ilike
+        # Set up the taxon level combo box
+        self._setup_taxon_level_combo()
 
-                query = (
-                    self.presenter()
-                    .session.execute(select(Species)).scalars()
-                    .join(Species.genus)
-                    .where(ilike(Genus.genus, f"{text}%"))
-                    .where(Species.id != self.model.id)
-                    .order_by(Species.sp)
-                )
-                return query
+        # Set up the notes text view
+        self._setup_notes_text_view()
 
-            def sp_cell_data_func(col, cell, model, treeiter, data=None):
-                v = model[treeiter][0]
-                cell.set_property(
-                    "text", "%s (%s)" % (v.str(authors=True), v.genus.family)
-                )
+        # Set up the remove and copy to taxon general buttons
+        self._setup_buttons()
 
-            ver_prev_taxon_entry = self.widgets.ver_prev_taxon_entry
+        # Update the label
+        self.update_label()
 
-            def on_prevsp_select(value):
-                self.set_model_attr("prev_species", value)
+    def _setup_species_entries(self):
+        """Set up the species-related entries with auto-completion."""
+        def sp_get_completions(text):
+            query = (self.presenter()
+                     .session.execute(select(Species)).scalars()
+                     .join(Species.genus)
+                     .where(ilike(Genus.genus, f"{text}%"))
+                     .where(Species.id != self.model.id)
+                     .order_by(Species.sp))
+            return query
 
-            self.presenter().view.attach_completion(
-                ver_prev_taxon_entry, sp_cell_data_func
-            )
-            if self.model.prev_species:
-                ver_prev_taxon_entry.set_text = "%s" % self.model.prev_species
-            self.presenter().assign_completions_handler(
-                ver_prev_taxon_entry, sp_get_completions, on_prevsp_select
-            )
+        def sp_cell_data_func(col, cell, model, treeiter, data=None):
+            v = model[treeiter][0]
+            cell.set_property("text", f"{v.str(authors=True)} ({v.genus.family})")
 
-            ver_new_taxon_entry = self.widgets.ver_new_taxon_entry
+        ver_prev_taxon_entry = self.widgets.ver_prev_taxon_entry
 
-            def on_sp_select(value):
-                self.set_model_attr("species", value)
+        def on_prevsp_select(value):
+            self.set_model_attr("prev_species", value)
 
-            self.presenter().view.attach_completion(
-                ver_new_taxon_entry, sp_cell_data_func
-            )
-            if self.model.species:
-                ver_new_taxon_entry.set_text = utils.utf8(self.model.species)
-            self.presenter().assign_completions_handler(
-                ver_new_taxon_entry, sp_get_completions, on_sp_select
-            )
+        self.presenter().view.attach_completion(ver_prev_taxon_entry, sp_cell_data_func)
+        if self.model.prev_species:
+            ver_prev_taxon_entry.set_text = f"{self.model.prev_species}"
+        self.presenter().assign_completions_handler(ver_prev_taxon_entry, sp_get_completions, on_prevsp_select)
 
-            # add a taxon implies setting the ver_new_taxon_entry
-            self.presenter().view.connect(
-                self.widgets.ver_taxon_add_button,
-                "clicked",
-                self.on_taxon_add_button_clicked,
-                ver_new_taxon_entry,
-            )
+        ver_new_taxon_entry = self.widgets.ver_new_taxon_entry
 
-            combo = self.widgets.ver_level_combo
-            renderer = Gtk.CellRendererText()
-            renderer.set_property("wrap-mode", Pango.WrapMode.WORD)
-            # TODO: should auto calculate the wrap width with a
-            # on_size_allocation callback
-            renderer.set_property("wrap-width", 400)
-            combo.pack_start(renderer, True)
+        def on_sp_select(value):
+            self.set_model_attr("species", value)
 
-            def cell_data_func(col, cell, model, treeiter, data=None):
-                level = model[treeiter][0]
-                descr = model[treeiter][1]
-                cell.set_property(
-                    "markup", "<b>%s</b>  :  %s" % (level, descr)
-                )
+        self.presenter().view.attach_completion(ver_new_taxon_entry, sp_cell_data_func)
+        if self.model.species:
+            ver_new_taxon_entry.set_text = utils.utf8(self.model.species)
+        self.presenter().assign_completions_handler(ver_new_taxon_entry, sp_get_completions, on_sp_select)
 
-            combo.set_cell_data_func(renderer, cell_data_func)
-            model = Gtk.ListStore(int, str)
-            for level, descr in list(ver_level_descriptions.items()):
-                model.append([level, descr])
-            combo.set_model(model)
-            if self.model.level:
-                utils.set_widget_value(combo, self.model.level)
-            self.presenter().view.connect(
-                combo, "changed", self.on_level_combo_changed
-            )
+    def _setup_taxon_level_combo(self):
+        """Set up the taxon level combo box."""
+        combo = self.widgets.ver_level_combo
+        renderer = Gtk.CellRendererText()
+        renderer.set_property("wrap-mode", Pango.WrapMode.WORD)
+        renderer.set_property("wrap-width", 400)
+        combo.pack_start(renderer, True)
 
-            # notes text view
-            textview = self.widgets.ver_notes_textview
-            textview.set_border_width(1)
-            buff = Gtk.TextBuffer()
-            if self.model.notes:
-                buff.set_text = self.model.notes
-            textview.set_buffer(buff)
-            self.presenter().view.connect(
-                buff, "changed", self.on_entry_changed, "notes"
-            )
+        def cell_data_func(col, cell, model, treeiter, data=None):
+            level = model[treeiter][0]
+            descr = model[treeiter][1]
+            cell.set_property("markup", f"<b>{level}</b>  :  {descr}")
 
-            # remove button
-            button = self.widgets.ver_remove_button
-            self._sid = self.presenter().view.connect(
-                button, "clicked", self.on_remove_button_clicked
-            )
+        combo.set_cell_data_func(renderer, cell_data_func)
+        model = Gtk.ListStore(int, str)
+        for level, descr in list(ver_level_descriptions.items()):
+            model.append([level, descr])
+        combo.set_model(model)
+        if self.model.level:
+            utils.set_widget_value(combo, self.model.level)
+        self.presenter().view.connect(combo, "changed", self.on_level_combo_changed)
 
-            # copy to general tab
-            button = self.widgets.ver_copy_to_taxon_general
-            self._sid = self.presenter().view.connect(
-                button, "clicked", self.on_copy_to_taxon_general_clicked
-            )
+    def _setup_notes_text_view(self):
+        """Set up the notes text view."""
+        textview = self.widgets.ver_notes_textview
+        textview.set_border_width(1)
+        buff = Gtk.TextBuffer()
+        if self.model.notes:
+            buff.set_text = self.model.notes
+        textview.set_buffer(buff)
+        self.presenter().view.connect(buff, "changed", self.on_entry_changed, "notes")
 
-            self.update_label()
+    def _setup_buttons(self):
+        """Set up the remove and copy to taxon general buttons."""
+        button = self.widgets.ver_remove_button
+        self._sid = self.presenter().view.connect(button, "clicked", self.on_remove_button_clicked)
 
-        def on_date_entry_changed(self, entry, data=None):
-            from bauble.editor import ValidatorError
+        button = self.widgets.ver_copy_to_taxon_general
+        self._sid = self.presenter().view.connect(button, "clicked", self.on_copy_to_taxon_general_clicked)
 
-            value = None
-            PROBLEM = "INVALID_DATE"
-            try:
-                value = editor.DateValidator().to_python(entry.set_text)
-            except ValidatorError as e:
-                logger.debug(e)
-                self.presenter().add_problem(PROBLEM, entry)
-            else:
-                self.presenter().remove_problem(PROBLEM, entry)
-            self.set_model_attr("date", value)
+    def on_entry_changed(self, entry, attr):
+        """Update the model attribute when an entry is changed."""
+        text = entry.set_text
+        if not text:
+            self.set_model_attr(attr, None)
+        else:
+            self.set_model_attr(attr, utils.utf8(text))
 
-        def on_copy_to_taxon_general_clicked(self, button):
-            if self.model.species is None:
-                return
-            self.get_parent()
-            msg = _(
-                "Are you sure you want to copy this verification to the general taxon?"
-            )
-            if not utils.yes_no_dialog(msg):
-                return
-            # copy verification species to general tab
-            if self.model.accession:
-                safe_set_text(
-                    self.presenter()
-                    .parent_ref()
-                    .view.widgets.acc_species_entry,
-                    utils.utf8(self.model.species),
-                )
-                self.presenter()._dirty = True
-                self.presenter().parent_ref().refresh_sensitivity()
+    def on_level_combo_changed(self, combo, *args):
+        """Update the level attribute when the combo box is changed."""
+        i = combo.get_active_iter()
+        level = combo.get_model()[i][0]
+        self.set_model_attr("level", level)
 
-        def on_remove_button_clicked(self, button):
-            parent = self.get_parent()
-            msg = _("Are you sure you want to remove this verification?")
-            if not utils.yes_no_dialog(msg):
-                return
-            if parent:
-                parent.remove(self)
+    def on_date_entry_changed(self, entry, data=None):
+        """Handle date entry change."""
+        from bauble.editor import ValidatorError
+        value = None
+        PROBLEM = "INVALID_DATE"
+        try:
+            value = editor.DateValidator().to_python(entry.set_text)
+        except ValidatorError as e:
+            logger.debug(e)
+            self.presenter().add_problem(PROBLEM, entry)
+        else:
+            self.presenter().remove_problem(PROBLEM, entry)
+        self.set_model_attr("date", value)
 
-            # disconnect clicked signal to make garbage collecting work
-            button.disconnect(self._sid)
+    def on_remove_button_clicked(self, button):
+        """Handle the remove button click."""
+        parent = self.get_parent()
+        msg = _("Are you sure you want to remove this verification?")
+        if not utils.yes_no_dialog(msg):
+            return
+        if parent:
+            parent.remove(self)
 
-            # remove verification from accession
-            if self.model.accession:
-                self.model.accession.verifications.remove(self.model)
-            self.presenter()._dirty = True
-            self.presenter().parent_ref().refresh_sensitivity()
+        # Disconnect the signal to allow garbage collection
+        button.disconnect(self._sid)
 
-        def on_entry_changed(self, entry, attr):
-            text = entry.set_text
-            if not text:
-                self.set_model_attr(attr, None)
-            else:
-                self.set_model_attr(attr, utils.utf8(text))
+        # Remove verification from accession
+        if self.model.accession:
+            self.model.accession.verifications.remove(self.model)
+        self.presenter()._dirty = True
+        self.presenter().parent_ref().refresh_sensitivity()
 
-        def on_level_combo_changed(self, combo, *args):
-            i = combo.get_active_iter()
-            level = combo.get_model()[i][0]
-            self.set_model_attr("level", level)
+    def set_model_attr(self, attr, value):
+        """Set the model attribute and handle side effects."""
+        setattr(self.model, attr, value)
+        if attr != "date" and not self.model.date:
+            tmp = self.date_entry.set_text
+            self.date_entry.set_text = ""
+            self.date_entry.set_text = tmp
+        if not self.model.accession:
+            self.presenter().model.verifications.append(self.model)
+        self.presenter()._dirty = True
+        self.update_label()
+        self.presenter().parent_ref().refresh_sensitivity()
 
-        def set_model_attr(self, attr, value):
-            setattr(self.model, attr, value)
-            if attr != "date" and not self.model.date:
-                # When we create a new verification box we set today's date
-                # in the GtkEntry but not in the model so the presenter
-                # doesn't appear dirty.  Now that the user is setting
-                # something, we trigger the 'changed' signal on the 'date'
-                # entry as well, by first clearing the entry then setting it
-                # to its intended value.
-                tmp = self.date_entry.set_text
-                self.date_entry.set_text = ""
-                self.date_entry.set_text = tmp
-            # if the verification isn't yet associated with an accession
-            # then set the accession when we start changing values, this way
-            # we can setup a dummy verification in the interface
-            if not self.model.accession:
-                self.presenter().model.verifications.append(self.model)
-            self.presenter()._dirty = True
-            self.update_label()
-            self.presenter().parent_ref().refresh_sensitivity()
+    def update_label(self):
+        """Update the label that displays verification information."""
+        parts = []
+        if self.model.date:
+            parts.append("<b>%(date)s</b> : ")
+        if self.model.species:
+            parts.append(_("verified as %(species)s "))
+        if self.model.verifier:
+            parts.append(_("by %(verifier)s"))
+        label = " ".join(parts) % dict(
+            date=self.model.date,
+            species=self.model.species,
+            verifier=self.model.verifier,
+        )
+        self.widgets.ver_expander_label.set_property("use-markup", True)
+        self.widgets.ver_expander_label.set_property("label", label)
 
-        def update_label(self):
-            parts = []
-            # TODO: the parts string isn't being translated
-            if self.model.date:
-                parts.append("<b>%(date)s</b> : ")
-            if self.model.species:
-                parts.append(_("verified as %(species)s "))
-            if self.model.verifier:
-                parts.append(_("by %(verifier)s"))
-            label = " ".join(parts) % dict(
-                date=self.model.date,
-                species=self.model.species,
-                verifier=self.model.verifier,
-            )
-            self.widgets.ver_expander_label.set_property("use-markup", True)
-            self.widgets.ver_expander_label.set_property("label", label)
+    def set_expanded(self, expanded):
+        """
+        Set the expanded state of the expander widget.
+        """
+        self.widgets.ver_expander.set_expanded(expanded)
 
+    def on_taxon_add_button_clicked(self, button, taxon_entry):
+        """
+        This method is called when the user clicks the button to add a taxon.
+        It allows the user to create a new verification associated with a new taxon.
+        """
+        generic_taxon_add_action(
+            self.model,
+            self.presenter().view,
+            self.presenter(),
+            self.presenter().parent_ref(),
+            button,
+            taxon_entry,
+        )
 
-        def set_expanded(self, expanded):
-            self.widgets.ver_expander.set_expanded = expanded
-
-        def on_taxon_add_button_clicked(self, button, taxon_entry):
-            # we come here when we are adding a Verification, and the
-            # Verification wants to refer to a new taxon.
-
-            generic_taxon_add_action(
-                self.model,
-                self.presenter().view,
-                self.presenter(),
-                self.presenter().parent_ref(),
-                button,
-                taxon_entry,
-            )
 
 
 class SourcePresenter(editor.GenericEditorPresenter):

@@ -352,23 +352,36 @@ def get_pertinent_objects(cls, objs):
     unions = union(*[q.statement for q in queries])
     return session.execute(select(cls)).scalars().from_statement(unions)
 
-
-class SettingsBox(Gtk.VBox):
+class SettingsBox:
     """
-    the interface to use for the settings box, formatters should
-    implement this interface and return it from the formatters's get_settings
-    method
+    The interface to use for the settings box. Formatters should
+    implement this interface and return it from the formatter's get_settings
+    method.
     """
 
     def __init__(self):
-        super().__init__()
-
+        # Create an instance of Gtk.VBox instead of subclassing it
+        self.vbox = Gtk.VBox()
+    
     def get_settings(self):
+        """
+        Should be implemented by subclasses or other classes to retrieve
+        the settings.
+        """
         raise NotImplementedError
 
     def update(self, settings):
+        """
+        Should be implemented by subclasses or other classes to update
+        the settings with the given data.
+        """
         raise NotImplementedError
-
+    
+    def get_vbox(self):
+        """
+        Returns the Gtk.VBox instance managed by this class.
+        """
+        return self.vbox
 
 class FormatterPlugin(pluginmgr.Plugin):
     """

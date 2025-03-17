@@ -21,10 +21,15 @@
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="pad_cancel_button">
-                <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <child>
+                  <object class="GtkImage" id="pad_cancel_button_image">
+                    <property name="icon-name">cancel</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -34,11 +39,16 @@
             </child>
             <child>
               <object class="GtkButton" id="pad_ok_button">
-                <property name="label">gtk-ok</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <accelerator key="Return" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                <child>
+                  <object class="GtkImage" id="pad_ok_button_image">
+                    <property name="icon-name">ok</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -871,10 +881,15 @@
                         <property name="left-padding">5</property>
                         <child>
                           <object class="GtkButton" id="prop_add_button">
-                            <property name="label">gtk-add</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <child>
+                              <object class="GtkImage" id="prop_add_button_image">
+                                <property name="icon-name">add</property>
+                                <property name="icon-size">button</property>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>
@@ -993,10 +1008,15 @@
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="split_planting_ok">
-                <property name="label">gtk-ok</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <child>
+                  <object class="GtkImage" id="split_planting_ok_image">
+                    <property name="icon-name">ok</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -1006,10 +1026,15 @@
             </child>
             <child>
               <object class="GtkButton" id="split_planting_cancel">
-                <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <child>
+                  <object class="GtkImage" id="split_planting_cancel_image">
+                    <property name="icon-name">cancel</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
