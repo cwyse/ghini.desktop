@@ -120,16 +120,20 @@ class FlatFileExporter(GenericEditorPresenter):
         """browse for output file"""
         previously = self.view.widget_get_value("output_file")
         last_folder, bn = os.path.split(previously)
+        
+        # Use the window from self.view
+        parent_window = self.view.get_window()
+        
         self.view.run_file_chooser_dialog(
             _("Choose a file…"),
-            parent=self,
+            parent=parent_window,
             action=Gtk.FileChooserAction.SAVE,
-            buttons=(
-                Gtk.STOCK_OK,
+            buttons = [
+                _("Ok"),
                 Gtk.ResponseType.ACCEPT,
-                Gtk.STOCK_CANCEL,
+                _("Cancel"),
                 Gtk.ResponseType.CANCEL,
-            ),
+            ],
             last_folder=last_folder,
             target="output_file",
         )

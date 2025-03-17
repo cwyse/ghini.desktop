@@ -335,16 +335,19 @@ class ConnMgrPresenter(GenericEditorPresenter):
     def on_file_btnbrowse_clicked(self, *args):
         previously = self.view.widget_get_value("file_entry")
         last_folder, bn = os.path.split(previously)
+        # Use the window from self.view
+        parent_window = self.view.get_window()
+        
         self.view.run_file_chooser_dialog(
             _("Choose a file…"),
-            parent=self,
+            parent=parent_window,
             action=Gtk.FileChooserAction.SAVE,
-            buttons=(
-                _("OK"),
-                Gtk.ResponseType.ACCEPT,
-                 _("Cancel"),
-                Gtk.ResponseType.CANCEL,
-            ),
+            buttons=[ 
+                (_("OK"),
+                Gtk.ResponseType.ACCEPT),
+                (_("Cancel"),
+                Gtk.ResponseType.CANCEL),
+            ],
             last_folder=last_folder,
             target="file_entry",
         )
@@ -353,16 +356,20 @@ class ConnMgrPresenter(GenericEditorPresenter):
     def on_pictureroot_btnbrowse_clicked(self, *args):
         previously = self.view.widget_get_value("pictureroot_entry")
         last_folder, bn = os.path.split(previously)
+        
+        # Use the window from self.view
+        parent_window = self.view.get_window()
+
         self.view.run_file_chooser_dialog(
             _("Choose a file…"),
-            parent=self,
+            parent=parent_window,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
-            buttons=(
-                _("OK"),
-                Gtk.ResponseType.ACCEPT,
-                _("Cancel"),
-                Gtk.ResponseType.CANCEL,
-            ),
+            buttons=[
+                (_("OK"),
+                Gtk.ResponseType.ACCEPT),
+                (_("Cancel"),
+                Gtk.ResponseType.CANCEL),
+            ],
             last_folder=last_folder,
             target="pictureroot_entry",
         )
@@ -371,16 +378,20 @@ class ConnMgrPresenter(GenericEditorPresenter):
     def on_pictureroot2_btnbrowse_clicked(self, *args):
         previously = self.view.widget_get_value("pictureroot2_entry")
         last_folder, bn = os.path.split(previously)
+        
+        # Use the window from self.view
+        parent_window = self.view.get_window()
+        
         self.view.run_file_chooser_dialog(
             _("Choose a file…"),
-            parent=self,
+            parent=parent_window,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
-            buttons=(
-                _("OK"),
-                Gtk.ResponseType.ACCEPT,
-                _("Cancel"),
-                Gtk.ResponseType.CANCEL,
-            ),
+            buttons=[
+                (_("OK"),
+                Gtk.ResponseType.ACCEPT),
+                (_("Cancel"),
+                Gtk.ResponseType.CANCEL),
+            ],
             last_folder=last_folder,
             target="pictureroot2_entry",
         )
