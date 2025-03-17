@@ -297,7 +297,7 @@ class GenericEditorView:
 
         """
         chooser = Gtk.FileChooserDialog(title=text, transient_for=parent, action=action)
-        chooser.add_buttons(buttons)
+        chooser.add_buttons(*[item for button in buttons for item in button])
         # chooser.set_do_overwrite_confirmation(True)
         # chooser.connect("confirm-overwrite", confirm_overwrite_callback)
         try:
