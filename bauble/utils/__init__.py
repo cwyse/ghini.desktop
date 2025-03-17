@@ -1385,11 +1385,11 @@ def make_label_clickable(label, on_clicked, *args):
         fg_color.parse("blue")
 
         # Apply background and foreground colors
-        widget.override_background_color(Gtk.StateFlags.NORMAL, bg_color)
-        label.override_color(Gtk.StateFlags.NORMAL, fg_color)
+        widget.set_property('background-color', bg_color)  # For background color
+        label.set_property('color', fg_color)  # For text color
         
     def on_leave_notify(widget, event, label, *args):
-        widget.modify_bg(Gtk.StateType.NORMAL, None)
+        widget.set_property('background-color', None)
         label.modify_fg(Gtk.StateType.NORMAL, None)
         label.__pressed = False
 
