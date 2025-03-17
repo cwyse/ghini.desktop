@@ -44,7 +44,7 @@ from bauble.prefs import prefs
 from bauble.utils import safe_set_props
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import Gtk
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm.session import object_session
@@ -522,7 +522,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             new_pos = position + len(text)
             # Can't modify the cursor position from within this handler,
             # so we add it to be done at the end of the main loop:
-            GObject.idle_add(entry.set_position, new_pos)
+            GLib.idle_add(entry.set_position, new_pos)
 
         # We handled the signal so stop it from being processed further.
         entry.stop_emission("insert_text")
@@ -813,7 +813,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
             self.geo_menu.attach_to_widget(add_button, None)
             add_button.set_sensitive(True)
 
-        GObject.idle_add(_init_geo)
+        GLib.idle_add(_init_geo)
 
     def refresh_view(self):
         label = self.view.widgets.sp_dist_label

@@ -47,7 +47,7 @@ import gi
 import sqlalchemy.orm.exc as orm_exc
 from bauble.error import BaubleError
 gi.require_version("Gtk", "3.0")
-from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import Gtk
 from sqlalchemy import Column
 from sqlalchemy import Integer
@@ -584,7 +584,7 @@ class View(Gtk.Box):
             self.running_threads.append(thread)
             thread.start()
 
-        GObject.idle_add(create_and_start, cls, args, kwargs)
+        GLib.idle_add(create_and_start, cls, args, kwargs)
 
     def update(self):
         """Override this method in a subclass to update the view."""

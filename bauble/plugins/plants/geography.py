@@ -176,8 +176,8 @@ class GeographicAreaMenu:
 
             self.menu.show_all()
 
-        from gi.repository import GObject
-        GObject.idle_add(populate)
+        from gi.repository import GLib
+        GLib.idle_add(populate)
 
     def get_menu(self):
         return self.menu

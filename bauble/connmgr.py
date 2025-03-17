@@ -227,9 +227,9 @@ def check_and_notify_new_version(view):
             # Any code that modifies the UI that is called from outside the
             # main thread must be pushed into the main thread and called
             # asynchronously in the main loop, with GObject.idle_add.
-            from gi.repository import GObject
+            from gi.repository import GLib
 
-            GObject.idle_add(show_message_box)
+            GLib.idle_add(show_message_box)
     except urllib.error.URLError:
         logger.info("connection is slow or down")
     except ssl.SSLError as e:

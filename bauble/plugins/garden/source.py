@@ -40,7 +40,7 @@ from bauble.utils import safe_set_text
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk
-from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import Gtk
 from sqlalchemy import Column
 from sqlalchemy import Float
@@ -443,7 +443,7 @@ class CollectionPresenter(editor.ChildPresenter):
             self.geo_menu.attach_to_widget(add_button, None)
             add_button.set_sensitive(True)
 
-        GObject.idle_add(_init_geo)
+        GLib.idle_add(_init_geo)
 
         self._dirty = False
 

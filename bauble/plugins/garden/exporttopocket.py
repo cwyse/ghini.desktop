@@ -26,7 +26,7 @@ from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import GObject
+from gi.repository import GLib
 from sqlalchemy import bindparam, select
 
 
@@ -166,7 +166,7 @@ class ExportToPocketThread(threading.Thread):
                 )
             count += 1
             if self.progressbar:
-                GObject.idle_add(
+                GLib.idle_add(
                     self.progressbar.set_fraction, 0.05 * count / len(species)
                 )
             if not self.keep_running:
@@ -192,7 +192,7 @@ class ExportToPocketThread(threading.Thread):
                 )
             count += 1
             if self.progressbar:
-                GObject.idle_add(
+                GLib.idle_add(
                     self.progressbar.set_fraction,
                     0.05 + 0.40 * count / len(accessions),
                 )
@@ -221,7 +221,7 @@ class ExportToPocketThread(threading.Thread):
                 )
             count += 1
             if self.progressbar:
-                GObject.idle_add(
+                GLib.idle_add(
                     self.progressbar.set_fraction,
                     0.45 + 0.55 * count / len(plants),
                 )
@@ -230,7 +230,7 @@ class ExportToPocketThread(threading.Thread):
         cn.commit()
         session.close()
         if self.callback:
-            GObject.idle_add(self.callback)
+            GLib.idle_add(self.callback)
         return True
 
     def cancel(self):
