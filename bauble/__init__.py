@@ -230,7 +230,7 @@ dbengine.html#create-engine-url-arguments>`_
     :type uri: str
     """
     try:
-        from gi.repository import GObject
+        from gi.repository import GLib
         #from gi.repository import Gtk
     except ImportError as e:
         print(_("** Error: could not import gtk and/or gobject"))
@@ -450,7 +450,8 @@ dbengine.html#create-engine-url-arguments>`_
         gui.get_view().update()
         Gdk.threads_leave()
 
-    GObject.idle_add(_post_loop)
+    #GObject.idle_add(_post_loop)
+    GLib.idle_add(_post_loop)
     logger.info(
         "This version installed on: %s; "
         "This version installed at: %s; "

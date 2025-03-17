@@ -1368,7 +1368,7 @@ class GenericEditorPresenter:
             self.running_threads.append(thread)
             thread.start()
 
-        GObject.idle_add(create_and_start, cls, args, kwargs)
+        GLib.idle_add(create_and_start, cls, args, kwargs)
 
     def commit_changes(self):
         """
@@ -1877,7 +1877,7 @@ class GenericEditorPresenter:
             key_length = widget.get_completion().get_property("minimum-key-length")
             values = get_completions(text[:key_length])
             logger.debug("completions to add: %s" % str([i for i in values]))
-            GObject.idle_add(idle_callback, values)
+            GLib.idle_add(idle_callback, values)
 
         def on_changed(entry, *args):
             logger.debug(
@@ -1953,7 +1953,7 @@ class GenericEditorPresenter:
                     self.remove_problem(PROBLEM, widget)
                 logger.debug("on_changed - part two - returning")
 
-            GObject.idle_add(idle_callback, text)
+            GLib.idle_add(idle_callback, text)
             logger.debug("on_changed - part one - returning")
             return True
 

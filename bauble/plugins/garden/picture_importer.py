@@ -101,7 +101,7 @@ class ListStoreHandler(logging.Handler):
     def __init__(self, container, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.container = container
-        GObject.idle_add(utils.none, self.container.clear)
+        GLib.idle_add(utils.none, self.container.clear)
 
     def emit(self, record):
         msg = self.format(record)
@@ -110,7 +110,7 @@ class ListStoreHandler(logging.Handler):
             12: "gtk-file",
             13: "gtk-new",
         }[record.levelno]
-        GObject.idle_add(utils.none, self.container.append, [stock, msg])
+        GLib.idle_add(utils.none, self.container.append, [stock, msg])
 
 
 def query_session_new(session, cls, **kwargs):
@@ -212,7 +212,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
                 def set_thumbnail(store, path, col, value):
                     store[path][col] = value
 
-                GObject.idle_add(
+                GLib.idle_add(
                     set_thumbnail,
                     self.review_liststore,
                     path,

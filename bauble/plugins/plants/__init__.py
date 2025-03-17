@@ -68,7 +68,7 @@ from bauble.utils import safe_set_text
 from bauble.view import SearchView
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import GObject
+from gi.repository import GLib
 #from gi.repository import Gtk
 from sqlalchemy import select
 from sqlalchemy import text
@@ -99,7 +99,7 @@ class LabelUpdater(Thread):
                 # Wrap the raw SQL string in text()
                 result = session.execute(text(self.query)).first()
                 (value,) = result if result else (None,)
-                GObject.idle_add(
+                GLib.idle_add(
                     utils.none,
                     self.widget.set_text,
                     str(value) if value is not None else "",

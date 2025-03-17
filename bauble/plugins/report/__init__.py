@@ -46,7 +46,7 @@ from bauble.prefs import prefs
 #from gi.repository import Gdk
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import Gtk
 from sqlalchemy import union, select
 
@@ -713,7 +713,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             prefs[default_config_pref] = (
                 name  # set the default to the new name
             )
-        GObject.idle_add(self._names_combo_changed_idle, combo)
+        GLib.idle_add(self._names_combo_changed_idle, combo)
         
     def _names_combo_changed_idle(self, combo):
         index = self.view.widgets.names_combo.get_active()
@@ -856,7 +856,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             item = names_ls.insert_before(item, new_row)
         else:
             item = names_ls.append(new_row)
-        GObject.idle_add(
+        GLib.idle_add(
             butils.none, self.view.widgets.names_combo.set_active_iter, item
         )
 
@@ -910,7 +910,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
                     names.add(candidate)
                 else:
                     logger.debug("{} refuses {}".format(title, candidate))
-        GObject.idle_add(
+        GLib.idle_add(
             butils.none, self.view.widget_set_sensitive, "names_combo", True
         )
 
@@ -984,7 +984,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
                     target=self.run_thread, args=[formatter, todo, settings]
                 )
                 self.running = True
-                GObject.timeout_add(200, self.update_progress)
+                GLib.timeout_add(200, self.update_progress)
                 self.view.widgets.main_grid.set_sensitive(False)
                 self.view.widget_set_sensitive("ok_button", False)
                 self.view.widget_set_sensitive("cancel_button", False)
@@ -1031,7 +1031,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             )
 
         session.close()
-        GObject.idle_add(self.stop_progress)
+        GLib.idle_add(self.stop_progress)
 
     def stop_progress(self):
         self.running = False

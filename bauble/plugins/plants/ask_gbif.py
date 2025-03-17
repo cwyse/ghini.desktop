@@ -136,9 +136,9 @@ class AskGBIF(threading.Thread):
         if self.gui:
             import gi
             gi.require_version("Gtk", "3.0")
-            from gi.repository import GObject
+            from gi.repository import GLib
 
-            GObject.idle_add(self.callback, found, accepted)
+            GLib.idle_add(self.callback, found, accepted)
         else:
             self.callback(found, accepted)
 

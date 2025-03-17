@@ -1164,7 +1164,7 @@ class SearchView(pluginmgr.View):
                         model.remove(found)
                     self.results_view.set_model(model)
 
-                GObject.idle_add(remove)
+                GLib.idle_add(remove)
 
             except Exception as e:
                 logger.error(
@@ -1453,11 +1453,11 @@ class AppendThousandRows(threading.Thread):
 
         while offset < count and not self.__stopped.isSet():
             rows = q.offset(offset).limit(step).all()
-            GObject.idle_add(self.callback, rows)
+            GLib.idle_add(self.callback, rows)
             offset += step
         session.close()
         if offset < count:
-            GObject.idle_add(self.cancel_callback)
+            GLib.idle_add(self.cancel_callback)
 
 
 class HistoryView(pluginmgr.View):
