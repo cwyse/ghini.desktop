@@ -313,38 +313,12 @@ class GenericEditorView:
             )
         chooser.destroy()
 
-    def run_entry_dialog(self, title, parent, flags, buttons, visible=True):
+    def run_entry_dialog(self, title, parent, modal, destroy_with_parent, buttons, visible=True):
         # Create the dialog using keyword arguments instead of the deprecated positional arguments
-        d = Gtk.Dialog(title, parent, modal=True, destroy_with_parent=True)
+        d = Gtk.Dialog(title=title, transient_for=parent, modal=modal, destroy_with_parent=destroy_with_parent)
         
-        def response_type_to_string(response_type):
-            response_map = {
-                Gtk.ResponseType.OK: "OK",
-                Gtk.ResponseType.CANCEL: "Cancel",
-                Gtk.ResponseType.YES: "Yes",
-                Gtk.ResponseType.NO: "No",
-                Gtk.ResponseType.APPLY: "Apply",
-                Gtk.ResponseType.REJECT: "Reject",
-                Gtk.ResponseType.NONE: "None"
-            }
-            return response_map.get(response_type, "Unknown")
-        def string_to_response_type(response_str):
-            response_map = {
-                "OK": Gtk.ResponseType.OK,
-                "Cancel": Gtk.ResponseType.CANCEL,
-                "Yes": Gtk.ResponseType.YES,
-                "No": Gtk.ResponseType.NO,
-                "Apply": Gtk.ResponseType.APPLY,
-                "Reject": Gtk.ResponseType.REJECT,
-                "None": Gtk.ResponseType.NONE
-            }
-            return response_map.get(response_str, Gtk.ResponseType.NONE)        
-        # Add buttons to the dialog using the add_buttons method
-        for button in buttons:
-            if isinstance(button, Gtk.ResponseType):
-                    d.add_button(response_type_to_string(button), button)
-            else:
-                d.add_button(button, string_to_response_type(button))
+        d.add_buttons(*[item for button in buttons for item in button])
+
         d.set_default_response(Gtk.ResponseType.ACCEPT)
         d.set_default_size(250, -1)
         entry = Gtk.Entry()
