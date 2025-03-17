@@ -986,7 +986,7 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
 
         def _name_data_func(column, cell, model, treeiter, data=None):
             v = model[treeiter][0]
-            cell.set_property("text", v.name)
+            cell.set_property("text", v.name.decode('utf-8') if isinstance(v.name, bytes) else v.name)
             # just added so change the background color to indicate it's new
             if v.id is None:  # hasn't been committed
                 cell.set_property("foreground", "blue")

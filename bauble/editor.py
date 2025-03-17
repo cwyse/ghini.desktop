@@ -1661,8 +1661,7 @@ class GenericEditorPresenter:
                 or (w == widget and problem_id is None)
             ):
                 if w and not prefs.testing:
-                    w.modify_bg(Gtk.StateType.NORMAL, None)
-                    w.modify_base(Gtk.StateType.NORMAL, None)
+                    w.set_property('background-color', None)
                     w.queue_draw()
                 self.problems.remove((p, w))
         logger.debug("problems now: %s" % self.problems)
@@ -1697,8 +1696,7 @@ class GenericEditorPresenter:
         if isinstance(widget, str):
             self.view.mark_problem(widget)
         elif widget is not None:
-            widget.modify_bg(Gtk.StateType.NORMAL, self.problem_color.color)
-            widget.modify_base(Gtk.StateType.NORMAL, self.problem_color.color)
+            widget.set_property('background-color', self.problem_color.color)
             widget.queue_draw()
         logger.debug("problems now: %s" % self.problems)
 
@@ -2199,7 +2197,8 @@ class NoteBox:
         self.widgets.remove_parent(self.widgets.notes_box)
         self.presenter._dirty = True
         self.presenter.parent_ref().refresh_sensitivity()
-
+        self.widgets.notes_box.destroy()  # Destroy the box to release resources
+        
     def on_date_entry_changed(self, entry, *args):
         """Validate and update the date entry."""
         PROBLEM = "BAD_DATE"
