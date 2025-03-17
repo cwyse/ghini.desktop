@@ -160,15 +160,15 @@ class FlatFileExporter(GenericEditorPresenter):
         store = self.view.widgets.exported_fields_ls
         this = store.get_iter(path)
         other = None
-        if event.keyval in (Gdk.KEY_Delete, Gdk.KEY_KP_Delete):
+        if event.get_keyval() in (Gdk.KEY_Delete, Gdk.KEY_KP_Delete):  # 1. issue_gdkevent_structs
             store.remove(this)
         elif (
-            event.keyval in (Gdk.KEY_Down, Gdk.KEY_J)
+            event.get_keyval() in (Gdk.KEY_Down, Gdk.KEY_J)  # 1. issue_gdkevent_structs
             and event.state == Gdk.ModifierType.SHIFT_MASK
         ):
             other = store.iter_next(this)
         elif (
-            event.keyval in (Gdk.KEY_Up, Gdk.KEY_K)
+            event.get_keyval() in (Gdk.KEY_Up, Gdk.KEY_K)  # 1. issue_gdkevent_structs
             and event.state == Gdk.ModifierType.SHIFT_MASK
         ):
             other = store.iter_previous(this)
@@ -208,7 +208,7 @@ class FlatFileExporter(GenericEditorPresenter):
         self.mapper = class_mapper(self.domain_map[self.domain])
 
         def on_prop_button_clicked(button, event, menu):
-            menu.popup(None, None, None, None, event.button, event.time)
+            menu.popup(None, None, None, None, event.get_button(), event.time)  # 1. issue_gdkevent_structs
 
         def relation_filter(container, prop):
             if isinstance(prop, ColumnProperty):

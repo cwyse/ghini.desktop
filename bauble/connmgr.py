@@ -427,18 +427,20 @@ class ConnMgrPresenter(GenericEditorPresenter):
         self.view.widget_set_sensitive("file_btnbrowse", x)
         self.view.widget_set_sensitive("pictureroot_btnbrowse", x)
 
-    def on_dialog_response(self, dialog, response, data=None, prefs=None):
+    def on_dialog_response(self, dialog, response, data=None, mock_prefs=None):
         """
         The dialog's response signal handler.
         """
+        if mock_prefs is None:
+            mock_prefs = prefs
         if response == Gtk.ResponseType.OK:
             settings = self.get_params()
             valid, msg = self.check_parameters_valid(settings)
             if not valid:
                 self.view.run_message_dialog(msg, Gtk.MessageType.ERROR)
-            if valid:
+            if valid and mock_prefs is not None:
                 # picture root is also made available in global setting
-                prefs.prefs[prefs.picture_root_pref] = make_absolute(
+                mock_prefs.prefs[mock_prefs.picture_root_pref] = make_absolute(
                     settings["pictures"]
                 )
                 self.save_current_to_prefs()

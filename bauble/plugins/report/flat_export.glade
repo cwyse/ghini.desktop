@@ -42,10 +42,15 @@
                 <property name="column-homogeneous">True</property>
                 <child>
                   <object class="GtkButton" id="confirm_button">
-                    <property name="label">gtk-execute</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
+                    <child>
+                      <object class="GtkImage" id="confirm_button_image">
+                        <property name="icon-name">execute</property>
+                        <property name="icon-size">button</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="left-attach">7</property>
@@ -55,10 +60,15 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="cancel_button">
-                    <property name="label">gtk-cancel</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
+                    <child>
+                      <object class="GtkImage" id="cancel_button_image">
+                        <property name="icon-name">cancel</property>
+                        <property name="icon-size">button</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="left-attach">5</property>

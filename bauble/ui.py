@@ -637,7 +637,9 @@ class GUI:
             (what, width, height) = Gtk.IconSize.lookup(Gtk.IconSize.MENU)
             pixbuf = pixbuf.scale_simple(width, height, GdkPixbuf.InterpType.BILINEAR)
             image = Gtk.Image.new_from_pixbuf(pixbuf)
-            bug_report_item.set_image(image)
+            # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
+            bug_report_item.set_child(image)
+
         except Exception as e:
             logger.debug(f"Cannot set icon {icon_name}: {e}")
         bug_report_item.connect("activate", self.on_help_menu_bug)

@@ -19,11 +19,16 @@
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="sp_cancel_button">
-                <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="can-default">True</property>
                 <property name="receives-default">True</property>
+                <child>
+                  <object class="GtkImage" id="sp_cancel_button_image">
+                    <property name="icon-name">cancel</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -33,13 +38,18 @@
             </child>
             <child>
               <object class="GtkButton" id="sp_ok_button">
-                <property name="label">gtk-ok</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="can-default">True</property>
                 <property name="receives-default">True</property>
                 <accelerator key="Return" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                <child>
+                  <object class="GtkImage" id="sp_ok_button_image">
+                    <property name="icon-name">ok</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -1014,10 +1024,15 @@
                                             <property name="orientation">vertical</property>
                                             <child>
                                               <object class="GtkButton" id="sp_syn_add_button">
-                                                <property name="label">gtk-add</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">True</property>
+                                                <child>
+                                                  <object class="GtkImage" id="sp_syn_add_button_image">
+                                                    <property name="icon-name">add</property>
+                                                    <property name="icon-size">button</property>
+                                                  </object>
+                                                </child>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -1027,11 +1042,16 @@
                                             </child>
                                             <child>
                                               <object class="GtkButton" id="sp_syn_remove_button">
-                                                <property name="label">gtk-remove</property>
                                                 <property name="visible">True</property>
                                                 <property name="sensitive">False</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">True</property>
+                                                <child>
+                                                  <object class="GtkImage" id="sp_syn_remove_button_image">
+                                                    <property name="icon-name">remove</property>
+                                                    <property name="icon-size">button</property>
+                                                  </object>
+                                                </child>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>

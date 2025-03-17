@@ -1729,17 +1729,21 @@ def get_strategy(name):
 #def get_strategy(name):
 #    return _search_strategies.get(name, None)
 
+class SchemaBrowser:
+    """
+    A UI component for browsing schema properties.
+    """
 
-class SchemaBrowser(Gtk.VBox):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.set_property("spacing", 10)
+    def __init__(self):
+        self.container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        
         # WARNING: this is a hack from MapperSearch
         self.domain_map = MapperSearch.get_domain_classes().copy()
 
+        # Search Domain Selection
         frame = Gtk.Frame(label=_("Search Domain"))
-        self.pack_start(frame, False, False, 0)
+        self.container.pack_start(frame, False, False, 0)
+        
         self.table_combo = Gtk.ComboBoxText()
         frame.add(self.table_combo)
         for key in sorted(self.domain_map.keys()):
@@ -1747,8 +1751,10 @@ class SchemaBrowser(Gtk.VBox):
 
         self.table_combo.connect("changed", self.on_table_combo_changed)
 
+        # Property TreeView
         self.prop_tree = Gtk.TreeView()
         self.prop_tree.set_headers_visible(False)
+        
         cell = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn(_("Property"), cell)
         self.prop_tree.append_column(column)
@@ -1756,11 +1762,20 @@ class SchemaBrowser(Gtk.VBox):
 
         self.prop_tree.connect("test_expand_row", self.on_row_expanded)
 
+        # Domain Properties Frame
         frame = Gtk.Frame(label=_("Domain Properties"))
         sw = Gtk.ScrolledWindow()
         sw.add(self.prop_tree)
         frame.add(sw)
-        self.pack_start(frame, True, True, 0)
+        self.container.pack_start(frame, True, True, 0)
+
+    def on_table_combo_changed(self, combo):
+        """Handle table combo box selection change."""
+        pass  # Implement this function as needed
+
+    def on_row_expanded(self, tree_view, tree_iter, path):
+        """Handle row expansion event."""
+        pass  # Implement this function as needed
 
     def _insert_props(self, mapper, model, treeiter):
         """

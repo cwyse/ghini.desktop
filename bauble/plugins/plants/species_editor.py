@@ -713,7 +713,8 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             img = Gtk.Image.new_from_stock(
                 Gtk.STOCK_REMOVE, Gtk.IconSize.BUTTON
             )
-            self.remove_button.set_image(img)
+            # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
+            self.remove_button.set_child(img)
             presenter.view.connect(
                 self.remove_button, "clicked", self.on_remove_button_clicked
             )
@@ -825,7 +826,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
             None,
             None,
             None,
-            button=event.button,
+            button=event.get_button(),  # 1. issue_gdkevent_structs
             activate_time=event.time,
         )
 
@@ -842,7 +843,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
             self.remove_menu.append(item)
         self.remove_menu.show_all()
         self.remove_menu.popup(
-            None, None, None, None, event.button, event.time
+            None, None, None, None, event.get_button(), event.time  # 1. issue_gdkevent_structs
         )
 
     def on_activate_add_menu_item(self, widget, geoid=None):

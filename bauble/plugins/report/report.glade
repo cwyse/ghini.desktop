@@ -71,10 +71,15 @@
             </child>
             <child>
               <object class="GtkButton" id="choose_ok">
-                <property name="label">gtk-ok</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <child>
+                  <object class="GtkImage" id="choose_ok_image">
+                    <property name="icon-name">ok</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="left-attach">5</property>
@@ -83,10 +88,15 @@
             </child>
             <child>
               <object class="GtkButton" id="choose_cancel">
-                <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <child>
+                  <object class="GtkImage" id="choose_cancel_image">
+                    <property name="icon-name">cancel</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="left-attach">4</property>
@@ -217,11 +227,16 @@
             </child>
             <child>
               <object class="GtkButton" id="new_button">
-                <property name="label">gtk-add</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">False</property>
                 <signal name="clicked" handler="on_new_button_clicked" swapped="no"/>
+                <child>
+                  <object class="GtkImage" id="new_button_image">
+                    <property name="icon-name">add</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="left-attach">3</property>
@@ -230,11 +245,16 @@
             </child>
             <child>
               <object class="GtkButton" id="remove_button">
-                <property name="label">gtk-remove</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">False</property>
                 <signal name="clicked" handler="on_remove_button_clicked" swapped="no"/>
+                <child>
+                  <object class="GtkImage" id="remove_button_image">
+                    <property name="icon-name">remove</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="left-attach">4</property>
@@ -541,11 +561,16 @@
             </child>
             <child>
               <object class="GtkButton" id="clear_button">
-                <property name="label">gtk-clear</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <signal name="clicked" handler="on_clear_button_clicked" swapped="no"/>
+                <child>
+                  <object class="GtkImage" id="clear_button_image">
+                    <property name="icon-name">clear</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="left-attach">4</property>
@@ -630,11 +655,16 @@
             </child>
             <child>
               <object class="GtkButton" id="cancel_button">
-                <property name="label">gtk-close</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="can-default">True</property>
                 <property name="receives-default">False</property>
+                <child>
+                  <object class="GtkImage" id="cancel_button_image">
+                    <property name="icon-name">close</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="left-attach">3</property>
@@ -643,11 +673,16 @@
             </child>
             <child>
               <object class="GtkButton" id="ok_button">
-                <property name="label">gtk-execute</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">False</property>
+                <child>
+                  <object class="GtkImage" id="ok_button_image">
+                    <property name="icon-name">execute</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="left-attach">4</property>

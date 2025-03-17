@@ -59,19 +59,14 @@ def parse_typed_value(value):
         return value  # fallback to string
 
 
-class SchemaMenu(Gtk.Menu):
-    """SchemaMenu
+class SchemaMenu:
+    """
+    SchemaMenu - Manages a context menu populated based on the mapper properties.
 
-    TODO: Mario has the idea that this class is quite a mess: a smart GUI
-    object, implementing non GUI logic.  then itself containing a menu,
-    behaving as the top object, but not of its own class, so the logic is
-    implemented in the top object alone, and needing to pass information
-    around between smart and dumb objects.  some day someone can put order.
-
-    :param mapper:
-    :param activate cb:
-    :param relation_filter:
-
+    :param mapper: The mapper to extract properties from.
+    :param activate_cb: Callback to invoke when a menu item is activated.
+    :param relation_filter: Function to filter relations.
+    :param leading_items: List of leading items to append to the menu.
     """
 
     def __init__(
@@ -79,34 +74,42 @@ class SchemaMenu(Gtk.Menu):
         mapper,
         activate_cb=None,
         relation_filter=lambda c, p: True,
-        leading_items=[],
+        leading_items=[]
     ):
-        super().__init__()
+        self.mapper = mapper
         self.activate_cb = activate_cb
         self.relation_filter = relation_filter
         self.leading_items = leading_items
-        self.append_menuitems(mapper, target=self)
-        self.show_all()
+
+        # Use Gtk.Menu as a contained widget instead of subclassing
+        self.menu = Gtk.Menu()
+        self.append_menuitems(mapper, target=self.menu)
+        self.menu.show_all()
+
+    def get_menu(self):
+        """Returns the menu widget."""
+        return self.menu
 
     def on_activate(self, menuitem, prop):
-        """invoke activate_cb on selected menu item"""
+        """Invoke activate_cb on selected menu item."""
         path = []
-        path = [menuitem.get_child().get_property("label")]
+        path.append(menuitem.get_child().get_property("label"))
         menu = menuitem.get_parent()
-        while menu is not None:
-            menuitem = menu.get_attach_widget()  # Replaces menu.props.attach_widget
+        while menu:
+            menuitem = menu.get_attach_widget()
             if not menuitem:
                 break
-            label = menuitem.get_child().get_property("label")  # Access label property
+            label = menuitem.get_child().get_property("label")
             path.append(label)
             menu = menuitem.get_parent()
         full_path = ".".join(reversed(path))
-        self.activate_cb(menuitem, full_path, prop)
+        if self.activate_cb:
+            self.activate_cb(menuitem, full_path, prop)
 
     def on_select(self, menuitem, prop):
-        """construct and show submenu corresponding to RelationProperty"""
+        """Construct and show submenu corresponding to RelationProperty."""
         submenu = menuitem.get_submenu()
-        if len(submenu.get_children()) == 0:  # still empty: construct it
+        if len(submenu.get_children()) == 0:  # If still empty, construct it
             self.append_menuitems(prop.mapper, prop, target=submenu)
         submenu.show_all()
 
@@ -135,7 +138,6 @@ class SchemaMenu(Gtk.Menu):
         # Separate properties in column_properties and relation_properties.
         # Do not offer any foreign key: can be reached as 'id' of relation.
         # First in order is own 'id'.
-
         column_properties = sorted(
             [
                 x
@@ -202,7 +204,7 @@ class ExpressionRow:
         self.prop_button.set_property("use-underline", False)
 
         def on_prop_button_clicked(button, event, menu):
-            menu.popup(None, None, None, None, event.button, event.time)
+            menu.popup(None, None, None, None, event.get_button(), event.time)  # 1. issue_gdkevent_structs
 
         self.schema_menu = SchemaMenu(
             self.presenter.mapper,
@@ -231,7 +233,8 @@ class ExpressionRow:
                 "edit-delete", Gtk.IconSize.BUTTON
             )
             self.remove_button = Gtk.Button()
-            self.remove_button.set_image(image)
+            # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
+            self.remove_button.set_child(image)
             self.remove_button.connect(
                 "clicked", lambda b: remove_callback(self)
             )

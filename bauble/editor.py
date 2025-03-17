@@ -314,7 +314,37 @@ class GenericEditorView:
         chooser.destroy()
 
     def run_entry_dialog(self, title, parent, flags, buttons, visible=True):
-        d = Gtk.Dialog(title, parent, flags, buttons)
+        # Create the dialog using keyword arguments instead of the deprecated positional arguments
+        d = Gtk.Dialog(title, parent, modal=True, destroy_with_parent=True)
+        
+        def response_type_to_string(response_type):
+            response_map = {
+                Gtk.ResponseType.OK: "OK",
+                Gtk.ResponseType.CANCEL: "Cancel",
+                Gtk.ResponseType.YES: "Yes",
+                Gtk.ResponseType.NO: "No",
+                Gtk.ResponseType.APPLY: "Apply",
+                Gtk.ResponseType.REJECT: "Reject",
+                Gtk.ResponseType.NONE: "None"
+            }
+            return response_map.get(response_type, "Unknown")
+        def string_to_response_type(response_str):
+            response_map = {
+                "OK": Gtk.ResponseType.OK,
+                "Cancel": Gtk.ResponseType.CANCEL,
+                "Yes": Gtk.ResponseType.YES,
+                "No": Gtk.ResponseType.NO,
+                "Apply": Gtk.ResponseType.APPLY,
+                "Reject": Gtk.ResponseType.REJECT,
+                "None": Gtk.ResponseType.NONE
+            }
+            return response_map.get(response_str, Gtk.ResponseType.NONE)        
+        # Add buttons to the dialog using the add_buttons method
+        for button in buttons:
+            if isinstance(button, Gtk.ResponseType):
+                    d.add_button(response_type_to_string(button), button)
+            else:
+                d.add_button(button, string_to_response_type(button))
         d.set_default_response(Gtk.ResponseType.ACCEPT)
         d.set_default_size(250, -1)
         entry = Gtk.Entry()
@@ -2079,101 +2109,91 @@ class GenericModelViewPresenterEditor:
             self.session.commit()
             self.session.close()
 
+class NoteBox:
+    """
+    Manages a note editor UI with structured input fields.
+    """
 
-class NoteBox(Gtk.Box):
     glade_ui = "notes.glade"
 
-    def set_content(self, text):
-        buff = Gtk.TextBuffer()
-        self.widgets.note_textview.set_buffer(buff)
-        utils.set_widget_value(self.widgets.note_textview, text or "")
-        if not text:
-            self.presenter.add_problem(
-                self.presenter.PROBLEM_EMPTY, self.widgets.note_textview
-            )
-        buff.connect(
-            "changed", self.on_note_buffer_changed, self.widgets.note_textview
-        )
-
     def __init__(self, presenter, model=None, prefs=None):
-        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=6, prefs=prefs)
+        """
+        Initializes the NoteBox.
 
-        # open the glade file and extract the markup that the
-        # expander will use
-        filename = os.path.join(paths.lib_dir(), self.glade_ui)
+        :param presenter: The presenter managing the note logic.
+        :param model: The note model instance.
+        :param prefs: User preferences.
+        """
+        self.box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        self.presenter = presenter
+        self.prefs = prefs
+        self.model = model if model else presenter.note_cls()
+
+        # Load UI from Glade file
+        filename = os.path.join(utils.paths.lib_dir(), self.glade_ui)
         xml = etree.parse(filename)
         el = xml.find(".//object[@id='notes_box']")
         builder = Gtk.Builder()
         s = "<interface>%s</interface>" % etree.tostring(el)
-        if sys.platform == "win32":
-            # NOTE: PyGTK for Win32 is broken so we have to include
-            # this little hack
-            #
-            # TODO: is this only a specific set of version of
-            # PyGTK/GTK...it was only tested with PyGTK 2.12
-            builder.add_from_string(s, -1)
-        else:
-            builder.add_from_string(s)
+        builder.add_from_string(s)
+        
         self.widgets = utils.BuilderWidgets(builder)
-
         notes_box = self.widgets.notes_box
         self.widgets.remove_parent(notes_box)
-        self.pack_start(notes_box, True, True, 0)
+        self.box.pack_start(notes_box, True, True, 0)
 
+        # Set session and preferences
         self.session = object_session(presenter.model)
-        self.presenter = presenter
-        if model:
-            self.model = model
-        else:
-            self.model = presenter.note_cls()
 
+        # Configure Expander
         self.widgets.notes_expander.set_property("use-markup", True)
         self.widgets.notes_expander.set_property("label", "")
-
         label_widget = self.widgets.notes_expander.get_label_widget()
         if label_widget:
             label_widget.set_property("ellipsize", Pango.EllipsizeMode.END)
 
-        # set the model values on the widgets
-        mapper = object_mapper(self.model)
+        # Setup model bindings
+        mapper = utils.object_mapper(self.model)
         values = utils.get_distinct_values(mapper.c["category"], self.session)
         utils.setup_text_combobox(self.widgets.category_comboentry, values)
-        utils.set_widget_value(
-            self.widgets.category_comboentry, self.model.category or ""
-        )
-        utils.setup_date_button(
-            None, self.widgets.date_entry, self.widgets.date_button
-        )
-        date_str = utils.today_str()
-        if self.model.date:
-            format = prefs.prefs[prefs.date_format_pref]
-            date_str = self.model.date.strftime(format)
+        utils.set_widget_value(self.widgets.category_comboentry, self.model.category or "")
+        utils.setup_date_button(None, self.widgets.date_entry, self.widgets.date_button)
+
+        # Set initial values
+        date_str = self.model.date.strftime(prefs.prefs[prefs.date_format_pref]) if self.model.date else utils.today_str()
         utils.set_widget_value(self.widgets.date_entry, date_str)
         utils.set_widget_value(self.widgets.user_entry, self.model.user or "")
         self.set_content(self.model.note)
 
-        # connect the signal handlers
+        # Connect signal handlers
         self.widgets.date_entry.connect("changed", self.on_date_entry_changed)
         self.widgets.user_entry.connect("changed", self.on_user_entry_changed)
-        # connect category comboentry widget and child entry
-        self.widgets.category_comboentry.connect(
-            "changed", self.on_category_combo_changed
-        )
-        self.widgets.category_comboentry.get_child().connect(
-            "changed", self.on_category_entry_changed
-        )
-        self.widgets.notes_remove_button.connect(
-            "clicked", self.on_notes_remove_button
-        )
+        self.widgets.category_comboentry.connect("changed", self.on_category_combo_changed)
+        self.widgets.category_comboentry.get_child().connect("changed", self.on_category_entry_changed)
+        self.widgets.notes_remove_button.connect("clicked", self.on_notes_remove_button)
 
         self.update_label()
-        self.show_all()
+        self.box.show_all()
+
+    def get_widget(self):
+        """Returns the main UI container (Gtk.Box) for integration."""
+        return self.box
 
     def set_expanded(self, expand):
-        self.widgets.notes_expander.set_expanded = expand
+        """Set the expansion state of the notes expander."""
+        self.widgets.notes_expander.set_expanded(expand)
+
+    def set_content(self, text):
+        """Set the text content in the note editor."""
+        buff = Gtk.TextBuffer()
+        self.widgets.note_textview.set_buffer(buff)
+        utils.set_widget_value(self.widgets.note_textview, text or "")
+        if not text:
+            self.presenter.add_problem(self.presenter.PROBLEM_EMPTY, self.widgets.note_textview)
+        buff.connect("changed", self.on_note_buffer_changed, self.widgets.note_textview)
 
     def on_notes_remove_button(self, button, *args):
-        """ """
+        """Handle the removal of the note entry."""
         if self.model in self.presenter.notes:
             self.presenter.notes.remove(self.model)
         self.widgets.remove_parent(self.widgets.notes_box)
@@ -2181,10 +2201,11 @@ class NoteBox(Gtk.Box):
         self.presenter.parent_ref().refresh_sensitivity()
 
     def on_date_entry_changed(self, entry, *args):
+        """Validate and update the date entry."""
         PROBLEM = "BAD_DATE"
         text = entry.get_text()
         try:
-            text = DateValidator().to_python(text)
+            text = utils.DateValidator().to_python(text)
         except Exception as e:
             logger.debug(e)
             self.presenter.add_problem(PROBLEM, entry)
@@ -2193,108 +2214,81 @@ class NoteBox(Gtk.Box):
             self.set_model_attr("date", text)
 
     def on_user_entry_changed(self, entry, *args):
-        value = utils.utf8(entry.get_text())
-        if not value:  # if value == ''
-            value = None
+        """Update the user entry value."""
+        value = utils.utf8(entry.get_text()) or None
         self.set_model_attr("user", value)
 
     def on_category_combo_changed(self, combo, *args):
-        """
-        Sets the text on the entry.  The model value is set in the
-        entry "changed" handler.
-        """
-        text = ""
+        """Update the category combo box entry when selection changes."""
         treeiter = combo.get_active_iter()
         if treeiter:
             text = utils.utf8(combo.get_model()[treeiter][0])
-        else:
-            return
-        self.widgets.category_comboentry.get_child().set_text(utils.utf8(
-            text
-        ))
+            self.widgets.category_comboentry.get_child().set_text(text)
 
     def on_category_entry_changed(self, entry, *args):
-        """ """
-        value = utils.utf8(entry.get_text())
-        if not value:  # if value == ''
-            value = None
+        """Update the category value."""
+        value = utils.utf8(entry.get_text()) or None
         self.set_model_attr("category", value)
 
     def on_note_buffer_changed(self, buff, widget, *args):
-        value = utils.utf8(buff.get_text())
-        if not value:  # if value == ''
-            value = None
-            self.presenter.add_problem(self.presenter.PROBLEM_EMPTY, widget)
-        else:
+        """Handle changes in the note text buffer."""
+        value = utils.utf8(buff.get_text()) or None
+        if value:
             self.presenter.remove_problem(self.presenter.PROBLEM_EMPTY, widget)
+        else:
+            self.presenter.add_problem(self.presenter.PROBLEM_EMPTY, widget)
         self.set_model_attr("note", value)
 
     def update_label(self):
+        """Update the expander label based on note details."""
         label = []
         date_str = None
         if self.model.date and isinstance(self.model.date, datetime.date):
-            format = prefs.prefs[prefs.date_format_pref]
+            format = self.prefs.prefs[self.prefs.date_format_pref]
             date_str = utils.xml_safe(self.model.date.strftime(format))
-        elif self.model.date:
-            date_str = utils.xml_safe(self.model.date)
         else:
             date_str = self.widgets.date_entry.get_text()
 
-        if self.model.user and date_str:  # and self.model.date:
-            label.append(
-                _("%(user)s on %(date)s")
-                % dict(user=utils.xml_safe(self.model.user), date=date_str)
-            )
+        if self.model.user and date_str:
+            label.append(_("%(user)s on %(date)s") % {"user": utils.xml_safe(self.model.user), "date": date_str})
         elif date_str:
-            label.append("%s" % date_str)
+            label.append(date_str)
         elif self.model.user:
-            label.append("%s" % utils.xml_safe(self.model.user))
+            label.append(utils.xml_safe(self.model.user))
 
         if self.model.category:
-            label.append("(%s)" % utils.xml_safe(self.model.category))
+            label.append(f"({utils.xml_safe(self.model.category)})")
 
         if self.model.note:
-            note_str = " : %s" % utils.xml_safe(self.model.note).replace(
-                "\n", "  "
-            )
+            note_str = utils.xml_safe(self.model.note).replace('\n', '  ')
+            note_str = f" : {note_str}"
+            #note_str = f" : {utils.xml_safe(self.model.note).replace('\n', '  ')}"
+            #note_str = f" : {utils.xml_safe(self.model.note).replace('\n', '  ')}"
             max_length = 25
-            # label.props.ellipsize doesn't work properly on a
-            # label in an expander we just do it ourselves here
-            if len(self.model.note) > max_length:
-                label.append("%s …" % note_str[0: max_length - 1])
-            else:
-                label.append(note_str)
+            label.append(f"{note_str[:max_length-1]} …" if len(self.model.note) > max_length else note_str)
 
         self.widgets.notes_expander.set_label(" ".join(label))
 
     def set_model_attr(self, attr, value):
+        """Set a model attribute and trigger updates."""
         setattr(self.model, attr, value)
         self.presenter._dirty = True
+
+        # Ensure date is set when modifying other attributes
         if attr != "date" and not self.model.date:
-            # this is a little voodoo to set the date on the model
-            # since when we create a new note box we add today's
-            # date to the entry but we don't set the model so the
-            # presenter doesn't appear dirty...we have to use a
-            # tmp variable since the changed signal won't fire if
-            # the new value is the same as the old
             entry = self.widgets.date_entry
             tmp = entry.get_text()
             safe_set_props(entry, "text", "")
             safe_set_props(entry, "text", tmp)
-            # if the note is new and isn't yet associated with an
-            # accession then set the accession when we start
-            # changing values, this way we can setup a dummy
-            # verification in the interface
             self.presenter.notes.append(self.model)
 
         self.update_label()
-
         self.presenter.parent_ref().refresh_sensitivity()
 
     @classmethod
     def is_valid_note(cls, note):
+        """Check if a given note is valid."""
         return True
-
 
 class PictureBox(NoteBox):
     glade_ui = "pictures.glade"

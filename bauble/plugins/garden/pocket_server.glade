@@ -180,12 +180,17 @@
             </child>
             <child>
               <object class="GtkButton" id="new_snapshot_button">
-                <property name="label">gtk-refresh</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Update ghini.pocket database snapshot.</property>
                 <signal name="clicked" handler="on_new_snapshot_button_clicked" swapped="no"/>
+                <child>
+                  <object class="GtkImage" id="new_snapshot_button_image">
+                    <property name="icon-name">refresh</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="left-attach">7</property>
@@ -312,12 +317,17 @@
                 <property name="column-homogeneous">True</property>
                 <child>
                   <object class="GtkButton" id="remove_client_button">
-                    <property name="label">gtk-remove</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
                     <property name="tooltip-text" translatable="yes">Remove selected client from list.</property>
                     <signal name="clicked" handler="on_remove_client_button_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkImage" id="remove_client_button_image">
+                        <property name="icon-name">remove</property>
+                        <property name="icon-size">button</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="left-attach">7</property>
@@ -365,12 +375,17 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="refresh_code_button">
-                    <property name="label">gtk-new</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
                     <property name="tooltip-text" translatable="yes">Refresh registration code.b</property>
                     <signal name="clicked" handler="on_refresh_code_button_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkImage" id="refresh_code_button_image">
+                        <property name="icon-name">new</property>
+                        <property name="icon-size">button</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="left-attach">7</property>
@@ -557,10 +572,15 @@
             </child>
             <child>
               <object class="GtkButton" id="close_button">
-                <property name="label">gtk-close</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <child>
+                  <object class="GtkImage" id="close_button_image">
+                    <property name="icon-name">close</property>
+                    <property name="icon-size">button</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="left-attach">7</property>

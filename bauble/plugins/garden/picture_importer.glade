@@ -531,12 +531,17 @@
                 <property name="column-homogeneous">True</property>
                 <child>
                   <object class="GtkButton" id="button_ok">
-                    <property name="label">gtk-ok</property>
                     <property name="use-action-appearance">False</property>
                     <property name="related-action">action_ok</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
+                    <child>
+                      <object class="GtkImage" id="button_ok_image">
+                        <property name="icon-name">ok</property>
+                        <property name="icon-size">button</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="left-attach">3</property>
@@ -545,12 +550,17 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="button_cancel">
-                    <property name="label">gtk-cancel</property>
                     <property name="use-action-appearance">False</property>
                     <property name="related-action">action_cancel</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
+                    <child>
+                      <object class="GtkImage" id="button_cancel_image">
+                        <property name="icon-name">cancel</property>
+                        <property name="icon-size">button</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="left-attach">2</property>
@@ -559,12 +569,17 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="button_next">
-                    <property name="label">gtk-media-next</property>
                     <property name="use-action-appearance">False</property>
                     <property name="related-action">action_next</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
+                    <child>
+                      <object class="GtkImage" id="button_next_image">
+                        <property name="icon-name">media-next</property>
+                        <property name="icon-size">button</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -573,12 +588,17 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="button_prev">
-                    <property name="label">gtk-media-previous</property>
                     <property name="use-action-appearance">False</property>
                     <property name="related-action">action_prev</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
+                    <child>
+                      <object class="GtkImage" id="button_prev_image">
+                        <property name="icon-name">media-previous</property>
+                        <property name="icon-size">button</property>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>

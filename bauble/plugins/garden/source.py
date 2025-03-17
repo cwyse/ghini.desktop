@@ -430,7 +430,7 @@ class CollectionPresenter(editor.ChildPresenter):
 
         def on_add_button_pressed(button, event):
             self.geo_menu.popup(
-                None, None, None, None, event.button, event.time
+                None, None, None, None, event.get_button(), event.time  # 1. issue_gdkevent_structs
             )
 
         self.view.connect(
