@@ -296,7 +296,7 @@ class GenericEditorView:
         make sure you have a Gtk.ResponseType.ACCEPT button.
 
         """
-        chooser = Gtk.FileChooserDialog(text, parent, action)
+        chooser = Gtk.FileChooserDialog(title=text, transient_for=parent, action=action)
         chooser.add_buttons(buttons)
         # chooser.set_do_overwrite_confirmation(True)
         # chooser.connect("confirm-overwrite", confirm_overwrite_callback)
@@ -2351,7 +2351,7 @@ class PictureBox(NoteBox):
 
     def on_activate_browse_button(self, widget, data=None):
         fileChooserDialog = Gtk.FileChooserDialog(
-            _("Choose a file…"), parent=self, action=Gtk.FileChooserAction.OPEN
+            title=_("Choose a file…"), transient_for=self, action=Gtk.FileChooserAction.OPEN
         )
         fileChooserDialog.add_buttons(
             _("OK"),
