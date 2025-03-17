@@ -517,10 +517,11 @@ class ConnMgrPresenter(GenericEditorPresenter):
                 self.save_current_to_prefs()
         self.prev_connection_name = None
         name = self.view.run_entry_dialog(
-            _("Enter a connection name"),
-            self.view.get_window(),
-            Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            (_("OK"), Gtk.ResponseType.ACCEPT),
+            title=_("Enter a connection name"),
+            parent=self.view.get_window(),
+            modal=True,
+            destroy_with_parent=True,
+            buttons=[(_("OK"), Gtk.ResponseType.ACCEPT)],
         )
         if name != "":
             self.connection_name = name
@@ -616,10 +617,11 @@ class ConnMgrPresenter(GenericEditorPresenter):
         # TODO: if self.dialog is None then ask from the command line
         # or just set dialog parent to None
         passwd = self.view.run_entry_dialog(
-            title,
-            self.view.get_window(),
-            Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            (_("OK"), Gtk.ResponseType.ACCEPT),
+            title=title,
+            parent=self.view.get_window(),
+            modal=True,
+            destroy_with_parent=True,            
+            buttons=[(_("OK"), Gtk.ResponseType.ACCEPT)],
             visible=False,
         )
         return passwd
