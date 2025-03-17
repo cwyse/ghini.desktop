@@ -694,7 +694,7 @@ class GUI:
             :param menu:
             :param index:
             """
-            menu_item = Gtk.MenuItem(name)
+            menu_item = Gtk.MenuItem(label=name)
             menu_item.set_submenu(menu)
             self.menubar.insert(menu_item, len(self.menubar.get_children()) - 1)
             self.menubar.show_all()
