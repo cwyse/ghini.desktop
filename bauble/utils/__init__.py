@@ -1356,6 +1356,42 @@ def reset_sequence(column):
     finally:
         conn.close()
 
+class WidgetStyler:
+    def __init__(self):
+        self.css_provider = Gtk.CssProvider()
+        self.css_provider.load_from_data(b"""
+            .background-set {
+                background-color: #FAF8F7;
+            }
+            .foreground-set {
+                color: blue;
+            }
+        """)
+
+    def apply_styles(self, widget, label):
+        """Apply the CSS styles for background and foreground."""
+        widget_style_context = widget.get_style_context()
+        label_style_context = label.get_style_context()
+
+        # Apply the CSS provider once to the widget and label's style context
+        widget_style_context.add_provider(self.css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        label_style_context.add_provider(self.css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+        # Add the respective CSS classes
+        widget_style_context.add_class('background-set')
+        label_style_context.add_class('foreground-set')
+
+    def reset_styles(self, widget, label):
+        """Reset the applied CSS classes."""
+        widget_style_context = widget.get_style_context()
+        label_style_context = label.get_style_context()
+
+        # Remove the CSS classes
+        widget_style_context.remove_class('background-set')
+        label_style_context.remove_class('foreground-set')
+
+# Example usage:
+styler = WidgetStyler()
 
 def make_label_clickable(label, on_clicked, *args):
     """
@@ -1377,20 +1413,27 @@ def make_label_clickable(label, on_clicked, *args):
         """Handles mouse entering the widget, changing background and foreground colors."""
 
         # Use Gdk.RGBA instead of deprecated Gdk.Color
-        bg_color = Gdk.RGBA()
-        fg_color = Gdk.RGBA()
+        #bg_color = Gdk.RGBA()
+        #fg_color = Gdk.RGBA()
 
         # Parse colors correctly
-        bg_color.parse("#FAF8F7")
-        fg_color.parse("blue")
+        #bg_color.parse("#FAF8F7")
+        #fg_color.parse("blue")
+        styler.apply_styles(widget, label)
 
         # Apply background and foreground colors
-        widget.set_property('background-color', bg_color)  # For background color
-        label.set_property('color', fg_color)  # For text color
+        #idget.get_style_context().add_class('background-set')  # This will add the CSS class
+        #widget.override_color(bg_color)  
+        #label.get_style_context().add_class('foreground-set')  # This will add the CSS class
+        #label.override_color(Gtk.StateFlags.NORMAL, fg_color)  # For text color
         
     def on_leave_notify(widget, event, label, *args):
-        widget.set_property('background-color', None)
-        label.set_property('color', None)
+        # Get the widget's style context
+        #widget.get_style_context().add_class('background-set')  # This will add the CSS class
+        #widget.override_color(Gdk.RGBA())  
+      
+        #label.override_color(Gtk.StateFlags.NORMAL, None)
+        styler.reset_styles(widget, label)
         label.__pressed = False
 
     def on_press(widget, event, label, *args):
