@@ -1663,49 +1663,63 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, Pango
 
-class GenericMessageBox(Gtk.EventBox):  # identify_subclassing_issues (Consider using composition instead of subclassing GtkWidget)
+class GenericMessageBox():  # identify_subclassing_issues (Consider using composition instead of subclassing GtkWidget)
     """
     Abstract class for showing a message box at the top of an editor.
     """
 
     def __init__(self):
-        super().__init__()
+        self.event_box = Gtk.EventBox()
         self.box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        self.add(self.box)
+        self.event_box.add(self.box)
 
     def set_color(self, attr, state, color):
-        """
-        Sets background or foreground color dynamically using CSS.
-        """
-        context = self.get_style_context()
+        """Sets background or foreground color dynamically using CSS."""
+        context = self.event_box.get_style_context()
 
+        # Convert the color to RGBA string
         color_str = f"rgba({int(color.red * 255)}, {int(color.green * 255)}, {int(color.blue * 255)}, {color.alpha})"
-        css_provider = Gtk.CssProvider()
-        css_provider.load_from_data(f"* {{ background-color: {color_str}; }}".encode("utf-8"))
 
+        # Create a dynamic CSS rule based on the provided attribute, state, and color
+        css_rule = f"""
+        .{attr}:{state} {{
+            background-color: {color_str};
+        }}
+        """
+
+        # Create the CSS provider
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data(css_rule.encode("utf-8"))
+
+        # Apply the CSS provider to the widget's style context
         context.add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
     def show_all(self):
         """
         Displays the widget and adjusts size dynamically.
         """
-        self.get_parent().show_all()
-        requisition = self.get_preferred_size()[1]
+        self.event_box.get_parent().show_all()
+        requisition = self.event_box.get_preferred_size()[1]
         height = requisition.height
         width = requisition.width
-        self.set_size_request(width, height + 10)
+        self.event_box.set_size_request(width, height + 10)
 
     def show(self):
         self.show_all()
+    
+    def get_widget(self):
+        """Returns the event box widget."""
+        return self.event_box
 
 
 
-class MessageBox:
+class MessageBox(GenericMessageBox):
     """
     A MessageBox that can display a message label at the top of an editor.
     """
 
     def __init__(self, msg=None, details=None):
+        super().__init__()
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.box.pack_start(self.vbox, True, True, 0)
@@ -1722,8 +1736,8 @@ class MessageBox:
         button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.box.pack_start(button_box, False, False, 0)
         button = Gtk.Button()
-        image = Gtk.Image.new_from_icon_name(Gtk.STOCK_CLOSE, Gtk.IconSize.BUTTON)
-        # Pack the Gtk.Image manually inside Gtk.Button
+        image = Gtk.Image.new_from_icon_name("window-close", Gtk.IconSize.BUTTON)# Pack the Gtk.Image manually inside Gtk.Button
+        button.set_image(image)
         button.set_relief(Gtk.ReliefStyle.NONE)
         button_box.pack_start(button, False, False, 0)
 
@@ -1759,8 +1773,8 @@ class MessageBox:
 
         # Color setup
         colors = [
-            ("bg", Gtk.StateFlags.NORMAL, Gdk.RGBA()),
-            ("bg", Gtk.StateFlags.PRELIGHT, Gdk.RGBA())
+            ("background-color", "normal", Gdk.RGBA()),
+            ("background-color", "prelight", Gdk.RGBA())
         ]
 
         colors[0][2].parse("#FFFFFF")
@@ -1768,10 +1782,6 @@ class MessageBox:
 
         for color in colors:
             self.set_color(*color)
-
-    def set_color(self, state, flag, rgba):
-        """Helper to set color based on the state."""
-        self.box.override_background_color(flag, rgba)
 
     def on_expanded(self, *args):
         """Adjust size when expanded."""
@@ -1806,6 +1816,11 @@ class MessageBox:
         else:
             self.details_label.set_text("")
 
+    def get_widget(self):
+        # Return the box containing all the widgets
+        return self.box
+    
+
 class YesNoMessageBox(GenericMessageBox):
     """
     A message box that can present a Yes or No question to the user
@@ -1825,14 +1840,14 @@ class YesNoMessageBox(GenericMessageBox):
         self.label.set_alignment(0.1, 0.1)
         self.box.pack_start(self.label, True, True, 0)
 
-        button_box = Gtk.VBox()
+        button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.box.pack_start(button_box, False, False, 0)
         self.yes_button = Gtk.Button(label=_("Yes"))
         if on_response:
             self.yes_button.connect("clicked", on_response, True)
         button_box.pack_start(self.yes_button, False, False, 0)
 
-        button_box = Gtk.VBox()
+        button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.box.pack_start(button_box, False, False, 0)
         self.no_button = Gtk.Button(label=_("No"))
         if on_response:
@@ -1840,8 +1855,8 @@ class YesNoMessageBox(GenericMessageBox):
         button_box.pack_start(self.no_button, False, False, 0)
 
         colors = [
-            ("bg", Gtk.StateType.NORMAL, Gdk.Color.parse("#FFFFFF").color),
-            ("bg", Gtk.StateType.PRELIGHT, Gdk.Color.parse("#FFFFFF").color),
+            ("background-color", "normal", Gdk.Color.parse("#FFFFFF").color),
+            ("background-color", "prelight", Gdk.Color.parse("#FFFFFF").color),
         ]
         for color in colors:
             self.set_color(*color)
@@ -1860,6 +1875,9 @@ class YesNoMessageBox(GenericMessageBox):
 
     message = property(_get_message, _set_message)
 
+    def get_widget(self):
+        # Return the box containing all the widgets
+        return self.box
 
 MESSAGE_BOX_INFO = 1
 MESSAGE_BOX_ERROR = 2
@@ -1883,7 +1901,7 @@ def add_message_box(parent, type=MESSAGE_BOX_INFO):
         msg_box = YesNoMessageBox()
     else:
         raise ValueError("unknown message box type: %s" % type)
-    parent.pack_start(msg_box, True, True, 0)
+    parent.pack_start(msg_box.get_widget(), True, True, 0)
     return msg_box
 
 

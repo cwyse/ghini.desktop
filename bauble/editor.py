@@ -320,7 +320,7 @@ class GenericEditorView:
         d.add_buttons(*[item for button in buttons for item in button])
 
         d.set_default_response(Gtk.ResponseType.ACCEPT)
-        d.set_default_size(250, -1)
+        d.set_default_size(500, -1)
         entry = Gtk.Entry()
         if visible is not True:
             entry.set_visibility(False)
