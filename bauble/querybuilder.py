@@ -93,13 +93,15 @@ class SchemaMenu:
     def on_activate(self, menuitem, prop):
         """Invoke activate_cb on selected menu item."""
         path = []
-        path.append(menuitem.get_child().get_property("label"))
+        #path.append(menuitem.get_child().get_property("label"))
+        path.append(menuitem.get_label())
         menu = menuitem.get_parent()
         while menu:
             menuitem = menu.get_attach_widget()
             if not menuitem:
                 break
-            label = menuitem.get_child().get_property("label")
+            #label = menuitem.get_child().get_property("label")
+            label = menuitem.get_label()
             path.append(label)
             menu = menuitem.get_parent()
         full_path = ".".join(reversed(path))
@@ -160,26 +162,30 @@ class SchemaMenu:
 
         if container is None or not container.uselist:
             for key in self.leading_items:
-                item = Gtk.MenuItem(key, use_underline=False)
+                item = Gtk.MenuItem(label=key, use_underline=False)
                 item.connect("activate", self.on_activate, None)
                 target.append(item)
 
         for prop in column_properties:
             if not self.relation_filter(container, prop):
                 continue
-            item = Gtk.MenuItem(prop.key, use_underline=False)
+            item = Gtk.MenuItem(label=prop.key, use_underline=False)
             item.connect("activate", self.on_activate, prop)
             target.append(item)
 
         for prop in relation_properties:
             if not self.relation_filter(container, prop):
                 continue
-            item = Gtk.MenuItem(prop.key, use_underline=False)
+            item = Gtk.MenuItem(label=prop.key, use_underline=False)
             submenu = Gtk.Menu()
             item.set_submenu(submenu)
             item.connect("select", self.on_select, prop)
             target.append(item)
 
+    def show_menu(self, widget, event):
+        """Show the menu at the pointer position"""
+        # Ensure that the menu shows up where the user clicked
+        self.menu.popup_at_pointer(event)
 
 class ExpressionRow:
     """ """
@@ -200,12 +206,15 @@ class ExpressionRow:
             self.and_or_combo.set_hexpand(False)
             self.table.attach(self.and_or_combo, 0, row_number, 1, 1)
 
-        self.prop_button = Gtk.Button(_("Choose a property…"))
+        self.prop_button = Gtk.Button(label=_("Choose a property…"))
         self.prop_button.set_property("use-underline", False)
 
+        #def on_prop_button_clicked(button, event, menu):
+        #    menu.popup(None, None, None, None, event.get_button(), event.time)  # 1. issue_gdkevent_structs
         def on_prop_button_clicked(button, event, menu):
-            menu.popup(None, None, None, None, event.get_button(), event.time)  # 1. issue_gdkevent_structs
-
+            """Handle button click and show the menu at the pointer position"""
+            # Assuming that 'menu' is a SchemaMenu instance
+            menu.show_menu(button, event)  # Show the menu at the event position
         self.schema_menu = SchemaMenu(
             self.presenter.mapper,
             self.on_schema_menu_activated,
@@ -341,7 +350,7 @@ class ExpressionRow:
                 value = model[active_iter][0]
         else:
             # assume it's a Gtk.Entry or other widget with a text property
-            value = self.value_widget.set_text.strip()
+            value = self.value_widget.get_text().strip()
         value = parse_typed_value(value)
         and_or = ""
         if self.and_or_combo:
