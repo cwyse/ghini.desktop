@@ -69,7 +69,7 @@ class Enum(types.TypeDecorator):
         :param translations: A dictionary of value -> translation mappings.
         """
         logger.debug("Enum::init %s %s %s", type(self).__name__, values, empty_to_none)
-        
+        super().__init__()
         # Validate values
         if not values or not isinstance(values, (list, set, tuple)):
             raise ValueError("Enum requires a list or tuple of values")
@@ -160,6 +160,9 @@ class DateTime(types.TypeDecorator):
 
     import re
     _rx_tz = re.compile('[+-]')
+
+    def __init__(self):
+        super().__init__()
 
     def process_bind_param(self, value, dialect):
         """
