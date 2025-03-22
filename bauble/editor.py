@@ -28,7 +28,7 @@ import sys
 import weakref
 from gettext import gettext as _
 from random import random
-
+from gi.repository import Gtk, Gio, Gdk
 import bauble
 import bauble.db as db
 import bauble.paths as paths
@@ -1238,31 +1238,43 @@ class GenericEditorPresenter:
                 self.refresh_view()
             view.connect_signals(self)
 
+
     def create_toolbar(self, *args, **kwargs):
         view = self.view
         logging.debug(
             "creating toolbar in content_area presenter %s"
             % self.__class__.__name__
         )
-        actiongroup = Gtk.ActionGroup("window-clip-actions")
-        accelgroup = Gtk.AccelGroup()
+
+        # Use Gio.SimpleAction instead of Gtk.Action
+        action_group = view.get_window().get_application()
+
+        # Create a fake toolbar (GTK 3 still allows usage)
         fake_toolbar = Gtk.Toolbar()
         fake_toolbar.set_name("toolbar")
-        view.get_window().add_accel_group(accelgroup)
         view.get_window().get_content_area().pack_start(
             fake_toolbar, True, True, 0
         )
+
         for shortcut, cb in (
             ("<ctrl><shift>c", self.on_window_clip_copy),
             ("<ctrl><shift>v", self.on_window_clip_paste),
         ):
-            action = Gtk.Action(shortcut, shortcut, "clip-action", None)
-            actiongroup.add_action_with_accel(action, shortcut)
+            action_name = shortcut.replace("<", "").replace(">", "").replace("-", "_")
+            
+            # Create Gio.SimpleAction
+            action = Gio.SimpleAction.new(action_name, None)
             action.connect("activate", cb)
-            action.set_accel_group(accelgroup)
-            action.connect_accelerator()
-            toolitem = action.create_tool_item()
+            action_group.add_action(action)
+
+            # Assign shortcut globally
+            Gtk.Application.get_default().set_accels_for_action(f"app.{action_name}", [shortcut])
+
+            # Create toolbar button
+            toolitem = Gtk.ToolButton(label=shortcut)
+            toolitem.connect("clicked", cb)
             fake_toolbar.insert(toolitem, -1)
+
         fake_toolbar.set_visible(False)
         self.clipboard_presenters.append(self)
 
@@ -1423,7 +1435,10 @@ class GenericEditorPresenter:
         if attr is None:
             return
         if value is None:
-            value = widget.get_text()
+            start_iter = widget.get_start_iter()  # Get start of buffer
+            end_iter = widget.get_end_iter()  # Get end of buffer
+            value = widget.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+            #value = widget.get_text()
             value = value and utils.utf8(value) or None
         logger.debug(
             "on_text_entry_changed(%s, %s) - %s → %s"
@@ -1485,7 +1500,10 @@ class GenericEditorPresenter:
         if attr is None:
             return
         if value is None:
-            value = widget.get_text()
+            start_iter = widget.get_start_iter()  # Get start of buffer
+            end_iter = widget.get_end_iter()  # Get end of buffer
+            value = widget.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+            #value = widget.get_text()
             value = value and utils.utf8(value) or None
         if not value:
             self.add_problem(self.PROBLEM_EMPTY, widget)
@@ -1516,7 +1534,10 @@ class GenericEditorPresenter:
         attr = self.__get_widget_attr(widget)
         logger.debug("on_datetime_entry_changed({}, {})".format(widget, attr))
         if value is None:
-            value = widget.get_text()
+            start_iter = widget.get_start_iter()  # Get start of buffer
+            end_iter = widget.get_end_iter()  # Get end of buffer
+            value = widget.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+            #value = widget.get_text()
             value = value and utils.utf8(value) or None
         self.__set_model_attr(attr, value)
 
@@ -1782,13 +1803,19 @@ class GenericEditorPresenter:
         if isinstance(widget, Gtk.Entry):
 
             def on_changed(entry):
-                self.set_model_attr(model_attr, entry.get_text(), validator)
+                start_iter = entry.get_start_iter()  # Get start of buffer
+                end_iter = entry.get_end_iter()  # Get end of buffer
+                value = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+                self.set_model_attr(model_attr, value, validator)
 
             self.view.connect(widget, "changed", on_changed)
         elif isinstance(widget, Gtk.TextView):
 
             def on_changed(textbuff):
-                self.set_model_attr(model_attr, textbuff.get_text(), validator)
+                start_iter = textbuff.get_start_iter()  # Get start of buffer
+                end_iter = textbuff.get_end_iter()  # Get end of buffer
+                value = textbuff.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+                self.set_model_attr(model_attr, value, validator)
 
             buff = widget.get_buffer()
             self.view.connect(buff, "changed", on_changed)
@@ -1811,7 +1838,10 @@ class GenericEditorPresenter:
                 self.set_model_attr(model_attr, value, validator)
 
             def entry_changed(entry, data=None):
-                self.set_model_attr(model_attr, entry.get_text(), validator)
+                start_iter = entry.get_start_iter()  # Get start of buffer
+                end_iter = entry.get_end_iter()  # Get end of buffer
+                value = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+                self.set_model_attr(model_attr, value, validator)
 
             self.view.connect(widget, "changed", combo_changed)
             if isinstance(widget, Gtk.ComboBox) and isinstance(
@@ -1883,7 +1913,9 @@ class GenericEditorPresenter:
             logger.debug(
                 "assign_completions_handler::on_changed %s %s" % (entry, args)
             )
-            text = entry.get_text()
+            start_iter = entry.get_start_iter()  # Get start of buffer
+            end_iter = entry.get_end_iter()  # Get end of buffer
+            text = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
 
             key_length = widget.get_completion().get_property("minimum-key-length")
             if len(text) > key_length:
@@ -2176,7 +2208,9 @@ class NoteBox:
     def on_date_entry_changed(self, entry, *args):
         """Validate and update the date entry."""
         PROBLEM = "BAD_DATE"
-        text = entry.get_text()
+        start_iter = entry.get_start_iter()  # Get start of buffer
+        end_iter = entry.get_end_iter()  # Get end of buffer
+        text = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
         try:
             text = utils.DateValidator().to_python(text)
         except Exception as e:
@@ -2188,7 +2222,10 @@ class NoteBox:
 
     def on_user_entry_changed(self, entry, *args):
         """Update the user entry value."""
-        value = utils.utf8(entry.get_text()) or None
+        start_iter = entry.get_start_iter()  # Get start of buffer
+        end_iter = entry.get_end_iter()  # Get end of buffer
+        text = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+        value = utils.utf8(text) or None
         self.set_model_attr("user", value)
 
     def on_category_combo_changed(self, combo, *args):
@@ -2200,12 +2237,18 @@ class NoteBox:
 
     def on_category_entry_changed(self, entry, *args):
         """Update the category value."""
-        value = utils.utf8(entry.get_text()) or None
+        start_iter = entry.get_start_iter()  # Get start of buffer
+        end_iter = entry.get_end_iter()  # Get end of buffer
+        text = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+        value = utils.utf8(text) or None
         self.set_model_attr("category", value)
 
     def on_note_buffer_changed(self, buff, widget, *args):
         """Handle changes in the note text buffer."""
-        value = utils.utf8(buff.get_text()) or None
+        start_iter = buff.get_start_iter()  # Get start of buffer
+        end_iter = buff.get_end_iter()  # Get end of buffer
+        text = buff.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+        value = utils.utf8(text) or None
         if value:
             self.presenter.remove_problem(self.presenter.PROBLEM_EMPTY, widget)
         else:
@@ -2220,7 +2263,10 @@ class NoteBox:
             format = self.prefs.prefs[self.prefs.date_format_pref]
             date_str = utils.xml_safe(self.model.date.strftime(format))
         else:
-            date_str = self.widgets.date_entry.get_text()
+            start_iter = self.widgets.date_entry.get_start_iter()  # Get start of buffer
+            end_iter = self.widgets.date_entry.get_end_iter()  # Get end of buffer
+            date_str = self.widgets.date_entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text            
+            #date_str = self.widgets.date_entry.get_text()
 
         if self.model.user and date_str:
             label.append(_("%(user)s on %(date)s") % {"user": utils.xml_safe(self.model.user), "date": date_str})
@@ -2250,7 +2296,10 @@ class NoteBox:
         # Ensure date is set when modifying other attributes
         if attr != "date" and not self.model.date:
             entry = self.widgets.date_entry
-            tmp = entry.get_text()
+            start_iter = entry.get_start_iter()  # Get start of buffer
+            end_iter = entry.get_end_iter()  # Get end of buffer
+            tmp = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text            
+            #tmp = entry.get_text()
             safe_set_props(entry, "text", "")
             safe_set_props(entry, "text", tmp)
             self.presenter.notes.append(self.model)
