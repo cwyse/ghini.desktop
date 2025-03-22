@@ -8,6 +8,7 @@ from gi.repository import Gtk
 from bauble.utils import set_widget_value
 #from bauble.utils import safe_set_text
 from bauble import prefs
+from gi.repository import Gio
 
 logger = logging.getLogger(__name__)
 
