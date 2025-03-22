@@ -127,7 +127,7 @@ complete content of your log file.
 
 Values: True, False (Default: False)
 """
-
+testing_pref = "bauble.testing"
 
 class _prefs(dict):
 
@@ -219,6 +219,7 @@ class _prefs(dict):
         self.setdefault(date_format_pref, "%d-%m-%Y")
         self.setdefault(units_pref, "metric")
         self.setdefault(ask_timeout_pref, 4)
+        self.setdefault(testing_pref, False)
         if parse_dayfirst_pref not in self:
             format = self[date_format_pref]
             if format.find("%d") < format.find("%m"):
@@ -355,8 +356,9 @@ class PrefsView(pluginmgr.View):
         from bauble.pluginmgr import PluginRegistry
 
         session = db.Session()
-        plugins = session.execute(select(PluginRegistry.name, PluginRegistry.version)).scalars()
-        for name, version in plugins:
+        plugins = session.execute(select(PluginRegistry.name, PluginRegistry.version)).all()
+        for plugin in plugins:
+            name, version  = plugin
             self.plugins_ls.append((name, version))
         session.close()
 
