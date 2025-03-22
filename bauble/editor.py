@@ -1195,6 +1195,9 @@ class GenericEditorPresenter:
     ):
         self.model = model
         self.view = view
+        win = self.view.get_window() if hasattr(self.view, 'get_window') else self.view
+        if win and win.get_action_group("win") is None:
+            win.insert_action_group("win", Gio.SimpleActionGroup())
         self.problems = set()
         self._dirty = False
         self.is_committing_presenter = do_commit
@@ -1247,7 +1250,11 @@ class GenericEditorPresenter:
         )
 
         # Use Gio.SimpleAction instead of Gtk.Action
-        action_group = view.get_window().get_application()
+        #action_group = view.get_window().get_application()
+        win = view.get_window()
+        action_group = win.get_action_group("win")
+        if action_group is None:
+            raise RuntimeError("No 'win' action group found in window")
 
         # Create a fake toolbar (GTK 3 still allows usage)
         fake_toolbar = Gtk.Toolbar()
@@ -1256,22 +1263,22 @@ class GenericEditorPresenter:
             fake_toolbar, True, True, 0
         )
 
-        for shortcut, cb in (
-            ("<ctrl><shift>c", self.on_window_clip_copy),
-            ("<ctrl><shift>v", self.on_window_clip_paste),
+        for label, shortcut, name, cb in (
+            ("Copy", "<Ctrl><Shift>C", "copy", self.on_window_clip_copy),
+            ("Paste", "<Ctrl><Shift>V", "paste", self.on_window_clip_paste),
         ):
-            action_name = shortcut.replace("<", "").replace(">", "").replace("-", "_")
+            #action_name = shortcut.replace("<", "").replace(">", "").replace("-", "_")
             
             # Create Gio.SimpleAction
-            action = Gio.SimpleAction.new(action_name, None)
+            action = Gio.SimpleAction.new(name, None)
             action.connect("activate", cb)
             action_group.add_action(action)
 
             # Assign shortcut globally
-            Gtk.Application.get_default().set_accels_for_action(f"app.{action_name}", [shortcut])
+            Gtk.Application.get_default().set_accels_for_action(f"win.{name}", [shortcut])
 
             # Create toolbar button
-            toolitem = Gtk.ToolButton(label=shortcut)
+            toolitem = Gtk.ToolButton(label=label)
             toolitem.connect("clicked", cb)
             fake_toolbar.insert(toolitem, -1)
 
@@ -2439,7 +2446,7 @@ class NotesPresenter(GenericEditorPresenter):
     ContentBox = NoteBox
 
     def __init__(self, presenter, notes_property, parent_container, prefs=None):
-        super().__init__(presenter.model, None, prefs=prefs)
+        super().__init__(model=presenter.model, view=None, prefs=prefs)
 
         # The glade file named in ContentBox is structured with two top
         # GtkWindow next to each other. Here, by not doing any lookup, we

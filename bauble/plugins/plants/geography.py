@@ -70,7 +70,7 @@ def get_species_in_geographic_area(geo):
         stmt = select(geo_table.c.id).where(geo_table.c.parent_id == parent_id)
 
         # Use the session for query execution
-        result = db.session.execute(stmt)
+        result = db.Session().execute(stmt)
         kids = [row.id for row in result.scalars()]
         
         for kid in kids:
@@ -100,9 +100,9 @@ class GeographicAreaMenu:
         # Create an instance of Gtk.Menu instead of subclassing it
         self.menu = Gtk.Menu()  
         geographic_area_table = GeographicArea.__table__
-
+        import bauble.db as db
         # Query the database for the geographic area information
-        geos = db.session.execute(
+        geos = db.Session.execute(
             select(
                 geographic_area_table.c.id,
                 geographic_area_table.c.name,

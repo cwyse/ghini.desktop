@@ -380,8 +380,9 @@ class GhiniApp:
 
     def create_gui(self):
         """Creates and returns the GUI object."""
+        import bauble.ui as ui
+        gui = ui.GUI()
         import bauble
-        gui = bauble.ui.GUI()
         bauble.gui = gui
         gui.window.set_application(self.gtk_app)
         return gui
