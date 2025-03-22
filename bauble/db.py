@@ -302,7 +302,13 @@ database deadlocks, particularly when using PostgreSQL based
 databases.
 """
 
-Base = declarative_base(metaclass=MapperBase)
+class TypedBaseMixin:
+    id: int
+    _created: datetime.datetime
+    _last_updated: datetime.datetime
+
+
+Base = declarative_base(cls=TypedBaseMixin, metaclass=MapperBase)
 """
 All tables/mappers in Ghini which use the SQLAlchemy declarative
 plugin for declaring tables and mappers should derive from this class.

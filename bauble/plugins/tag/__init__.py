@@ -65,7 +65,12 @@ from sqlalchemy.orm.session import object_session
 from contextlib import contextmanager
 from bauble.plugins.garden.propagation import Propagation
 
+from typing import Optional
 
+from sqlalchemy.orm import Session as SASession
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from bauble.types import BaseModelProtocol
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -618,11 +623,11 @@ class Tag(db.Base, db.WithNotes):
         # Return the cached objects
         return self.__last_objects
 
-    def is_tagging(self, obj: bauble.db.Base) -> bool:
+    def is_tagging(self, obj: "BaseModelProtocol") -> bool:
         """tell whether self tags obj"""
         return obj in self.objects
 
-    def get_tagged_objects(self, session: bauble.db.Session = None) -> list:
+    def get_tagged_objects(self, session: Optional[SASession] = None) -> list:
         """
         Return all objects tagged with this tag.
 
@@ -650,7 +655,7 @@ class Tag(db.Base, db.WithNotes):
 
 
     @classmethod
-    def attached_to(cls, obj: bauble.db.Base) -> list:
+    def attached_to(cls, obj: "BaseModelProtocol") -> list:
         """Return the list of tags attached to the given object."""
         with db.Session() as session:
             qto = session.execute(select(TaggedObj)).scalars().where(

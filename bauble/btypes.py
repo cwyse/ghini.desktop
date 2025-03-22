@@ -32,6 +32,11 @@ _prefs_lock = Lock()  # ✅ Add this at the module level
 
 logger = logging.getLogger(__name__)
 
+from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class BaseModelProtocol(Protocol):
+    id: int
 
 # TODO: store all times as UTC or support timezones
 
