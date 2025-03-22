@@ -34,8 +34,29 @@ import debugpy
 import gi
 from bauble.version import version
 gi.require_version("Gtk", "3.0")
+gi.require_version("GLib", "2.0")
 from gi.repository import Gtk
 
+
+
+version_tuple = tuple(version.split("."))
+release_date = None
+release_version = None
+installation_date = "1970-01-01T00:00:00Z"
+
+from bauble.connmgr import start_connection_manager
+
+
+from gi.repository import Gtk, Gio, GLib, Gdk
+
+try:
+    from gi.repository import GObject  # Ensures compatibility
+except ImportError as e:
+    print(_("** Error: could not import Gtk and/or GObject"))
+    print(e)
+    if sys.platform == "win32":
+        print(_("Please make sure that GTK_ROOT\\bin is in your PATH."))
+    sys.exit(1)
 
 
 #debugpy.breakpoint()
@@ -52,11 +73,6 @@ try:
 except:
     pass
 
-
-version_tuple = tuple(version.split("."))
-release_date = None
-release_version = None
-installation_date = "1970-01-01T00:00:00Z"
 
 
 def pb_set_fraction(fraction):
@@ -120,7 +136,17 @@ gui = None
 """bauble.gui is the instance :class:`bauble.ui.GUI`
 """
 
-default_icon = None
+# Ensure the default icon path exists
+default_icon = os.path.join(paths.lib_dir(), "images", "icon.png")
+
+if not os.path.exists(default_icon):
+    logger.warning("Default icon not found at %s", default_icon)
+    default_icon = "/usr/share/icons/default-icon.png"  # Fallback to a system icon
+
+if not os.path.exists(default_icon):  # If fallback is also missing
+    logger.error("No valid default icon found! UI may not display correctly.")
+    default_icon = None  # Allow UI to handle missing icons gracefully
+
 """The default icon.
 """
 
@@ -218,131 +244,109 @@ def command_handler(cmd, arg):
 conn_default_pref = "conn.default"
 conn_list_pref = "conn.list"
 
+from gi.repository import Gtk, Gio, GLib, Gdk
+from bauble.prefs import prefs, use_sentry_client_pref
+import bauble.pluginmgr as pluginmgr
+import bauble.utils as utils
+from bauble.view import DefaultCommandHandler
+import bauble.db as db
 
-def main(uri=None):
-    """
-    Run the main Ghini application.
+class GhiniApp:
+    """Manages application logic without subclassing Gtk.Application."""
 
-    :param uri:  the URI of the database to connect to.  For more information
-                 about database URIs see `<http://www.sqlalchemy.org/docs/05/\
-dbengine.html#create-engine-url-arguments>`_
+    def __init__(self):
+        self.gui = None
+        self.open_exc = None
+        self.conn_name = None
+        self.uri = None
+        self.gtk_app = Gtk.Application(application_id="com.ghini.app",
+                                       flags=Gio.ApplicationFlags.FLAGS_NONE)
 
-    :type uri: str
-    """
-    try:
-        from gi.repository import GLib
-        #from gi.repository import Gtk
-    except ImportError as e:
-        print(_("** Error: could not import gtk and/or gobject"))
-        print(e)
-        if sys.platform == "win32":
-            print(_("Please make sure that GTK_ROOT\\bin is in your PATH."))
-        sys.exit(1)
+        # Connect signals for lifecycle events
+        self.gtk_app.connect("startup", self.on_startup)
+        self.gtk_app.connect("activate", self.on_activate)
 
-    # create the user directory
-    if not os.path.exists(paths.appdata_dir()):
-        os.makedirs(paths.appdata_dir())
+        # Ensure user directory exists
+        self.create_user_directory()
 
-    # a hack to write stderr and stdout to a file in a py2exe environment
-    # prevents failed attempts at creating ghini.exe.log
-    if paths.main_is_frozen():
-        _stdout = os.path.join(paths.user_dir(), "stdout.log")
-        _stderr = os.path.join(paths.user_dir(), "stderr.log")
-        sys.stdout = open(_stdout, "w")
-        sys.stderr = open(_stderr, "w")
+        # Handle py2exe stdout and stderr redirection
+        self.setup_py2exe_logging()
 
-    # add console root handler, and file root handler, set it at the logging
-    # level specified by BAUBLE_LOGGING, or at INFO level.
-    filename = os.path.join(paths.appdata_dir(), "bauble.log")
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(thread)d - %(message)s"
-    )
-    fileHandler = logging.FileHandler(filename, "w+")
-    logging.getLogger().addHandler(fileHandler)
-    consoleHandler = logging.StreamHandler()
-    logging.getLogger().addHandler(consoleHandler)
-    fileHandler.setFormatter(formatter)
-    consoleHandler.setFormatter(formatter)
-    fileHandler.setLevel(logging.INFO)
-    consoleHandler.setLevel(consoleLevel)
+    def run(self, argv):
+        """Run the GTK application."""
+        return self.gtk_app.run(argv)
 
-    # intialize the user preferences
-    from bauble.prefs import prefs, use_sentry_client_pref
-
-    prefs.init()
-    import warnings
-    os.environ['SQLALCHEMY_WARN_20'] = 'yes'
-    if not sys.warnoptions:
-        warnings.simplefilter("default")
+    def on_startup(self, app):
+        """Runs initialization tasks before the UI is shown."""
+        self.setup_logging()
+        prefs.init()
         
-    try:
-        # no raven.conf.setup_logging: just standard Python logging
-        from raven import Client
-        from raven.handlers.logging import SentryHandler
+        # Optional: configure Sentry
+        self.setup_sentry()
 
-        # only register the sentry client if the user agrees on it
-        if prefs[use_sentry_client_pref]:
-            logger.debug("registering sentry client")
-            sentry_client = Client(
-                "https://59105d22a4ad49158796088c26bf8e4c:"
-                "00268114ed47460b94ce2b1b0b2a4a20@"
-                "app.getsentry.com/45704"
-            )
-            sentry_client.name = hex(hash(sentry_client.name) + 2**64)[2:-1]
-            handler = SentryHandler(sentry_client)
-            logging.getLogger().addHandler(handler)
-            handler.setLevel(logging.WARNING)
-        else:
-            logger.debug("not registering sentry client")
+        self.uri, self.open_exc = self.setup_database()
+        pluginmgr.load()
+        prefs.save()
+        pluginmgr.register_command(DefaultCommandHandler)
 
-    except Exception as e:
-        logger.warning("can't configure sentry client")
-        logger.debug("{} - {}".format(type(e), e))
+    def on_activate(self, app):
+        """Runs when the application is launched (or brought to foreground)."""
+        self.gui = self.create_gui()
+        self.gui.show()
+        self.handle_open_errors()
 
-    import gi
-    from gi.repository import Gdk
 
-    if not paths.main_is_frozen():
-        gi.require_version("Gtk", "3.0")
+    def setup_logging(self):
+        """Configures application logging."""
+        filename = os.path.join(paths.appdata_dir(), "bauble.log")
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(thread)d - %(message)s')
+        
+        fileHandler = logging.FileHandler(filename, "w+")
+        consoleHandler = logging.StreamHandler()
+        
+        logging.getLogger().addHandler(fileHandler)
+        logging.getLogger().addHandler(consoleHandler)
+        
+        fileHandler.setFormatter(formatter)
+        consoleHandler.setFormatter(formatter)
+        
+        fileHandler.setLevel(logging.INFO)
+        consoleHandler.setLevel(logging.WARNING)
 
-    display = Gdk.Display.get_default()
-    if display is None:
-        print(_("**Error: Ghini must be run in a windowed environment."))
-        sys.exit(1)
+    def setup_sentry(self):
+        """Configures Sentry for error tracking if enabled in preferences."""
+        try:
+            from raven import Client
+            from raven.handlers.logging import SentryHandler
 
-    import bauble.pluginmgr as pluginmgr
-    import bauble.utils as utils
+            if prefs[use_sentry_client_pref]:
+                logger.debug("Registering Sentry client")
+                sentry_client = Client("https://59105d22a4ad49158796088c26bf8e4c:"
+                                       "00268114ed47460b94ce2b1b0b2a4a20@"
+                                       "app.getsentry.com/45704")
+                handler = SentryHandler(sentry_client)
+                logging.getLogger().addHandler(handler)
+                handler.setLevel(logging.WARNING)
+            else:
+                logger.debug("Sentry client not registered")
+        except Exception as e:
+            logger.warning("Failed to configure Sentry client: %s", e)
 
-    # initialize threading
-    # Deprecated: GObject.threads_init()
-
-    try:
-        import bauble.db as db
-    except Exception as e:
-        utils.message_dialog(utils.xml_safe(e), Gtk.MessageType.ERROR)
-        sys.exit(1)
-
-    # declare module level variables
-    global gui, default_icon, conn_name
-
-    default_icon = os.path.join(paths.lib_dir(), "images", "icon.png")
-
-    open_exc = None
-    # open default database
-    if uri is None:
-        from bauble.connmgr import start_connection_manager
+    def setup_database(self):
+        """Handles database connection and returns URI and any errors."""
+        open_exc = None
 
         while True:
-            if not uri or not conn_name:
-                conn_name, uri = start_connection_manager()
-                if conn_name is None:
-                    quit()
+            conn_name, uri = start_connection_manager() if not self.uri else (self.conn_name, self.uri)
+            if conn_name is None:
+                quit()
+
             try:
                 if db.open(uri, True, True):
-                    prefs[conn_default_pref] = conn_name
+                    prefs["conn_default_pref"] = conn_name
                     break
                 else:
-                    uri = conn_name = None
+                    uri = conn_name = None     
             except err.VersionError as e:
                 logger.warning("{}({})".format(type(e), e))
                 db.open(uri, False)
@@ -369,106 +373,89 @@ dbengine.html#create-engine-url-arguments>`_
                 msg = _("Could not open connection.\n\n%s") % e
                 utils.message_details_dialog(
                     msg, traceback.format_exc(), Gtk.MessageType.ERROR
-                )
-                uri = None
-    else:
-        db.open(uri, True, True)
+                )                
+            uri = None
 
-    # load the plugins
-    pluginmgr.load()
+        return uri, open_exc
 
-    # save any changes made in the conn manager before anything else has
-    # chance to crash
-    prefs.save()
+    def create_gui(self):
+        """Creates and returns the GUI object."""
+        import bauble
+        gui = bauble.ui.GUI()
+        bauble.gui = gui
+        gui.window.set_application(self.gtk_app)
+        return gui
+        
 
-    # set the default command handler
-    from bauble.view import DefaultCommandHandler
 
-    pluginmgr.register_command(DefaultCommandHandler)
-
-    # now that we have a connection create the gui, start before the plugins
-    # are initialized in case they have to do anything like add a menu
-    import bauble.ui as ui
-
-    gui = ui.GUI()
-
-    def _post_loop():
-        Gdk.threads_enter()
-        try:
-            if isinstance(open_exc, err.DatabaseError):
-                msg = _(
-                    "Would you like to create a new Ghini database at "
+    def handle_open_errors(self):
+        """Handles any errors encountered when opening the database."""
+        if self.open_exc:
+            msg = _("Would you like to create a new Ghini database at "
                     "the current connection?\n\n<i>Warning: If there is "
-                    "already a database at this connection any existing "
-                    "data will be destroyed!</i>"
-                )
-                d = utils.create_yes_no_dialog(
-                    msg, buttons=Gtk.ButtonsType.NONE
-                )
-                d.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
-                d.add_button(_("Create"), 24)
-                d.add_button(_("Create and Initialize"), 42)
-                d.set_response_sensitive(24, False)
-                d.set_response_sensitive(42, False)
+                    "already a database at this connection, any existing "
+                    "data will be destroyed!</i>")
+            d = utils.create_yes_no_dialog(msg, buttons=Gtk.ButtonsType.NONE)
+            d.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+            d.add_button(_("Create"), 24)
+            d.add_button(_("Create and Initialize"), 42)
 
-                def on_timeout():
-                    if d.get_property(
-                        "visible"
-                    ):  # conditional avoids GTK+ warning
-                        d.set_response_sensitive(24, True)
-                        d.set_response_sensitive(42, True)
-                        return False
+            def enable_buttons():
+                """Enables buttons after a short delay to prevent accidental clicks."""
+                if d.get_property("visible"):
+                    d.set_response_sensitive(24, True)
+                    d.set_response_sensitive(42, True)
+                return False
 
-                from gi.repository import GObject
+            GLib.timeout_add(2000, enable_buttons)
 
-                GObject.timeout_add(2 * 1000, on_timeout)
+            response = d.run()
+            d.destroy()
+            if response in (24, 42):
+                try:
+                    db.create(response == 42)
+                    pluginmgr.init()
+                    prefs["conn_default_pref"] = self.conn_name
+                except Exception as e:
+                    utils.message_details_dialog(_("Error creating database: %s") % e,
+                                                 traceback.format_exc(), Gtk.MessageType.ERROR)
+                    logger.error("Database creation failed: %s", e)
+        else:
+            pluginmgr.init()
 
-                response = d.run()
-                d.destroy()
-                if response in (24, 42):
-                    try:
-                        db.create(response == 42)
-                        # db.create() creates all tables registered with
-                        # the default metadata so the pluginmgr should be
-                        # loaded after the database is created so we don't
-                        # inadvertantly create tables from the plugins
-                        pluginmgr.init()
-                        # set the default connection
-                        prefs[conn_default_pref] = conn_name
-                    except Exception as e:
-                        utils.message_details_dialog(
-                            utils.xml_safe(e),
-                            traceback.format_exc(),
-                            Gtk.MessageType.ERROR,
-                        )
-                        logger.error("{}({})".format(type(e), e))
-            else:
-                pluginmgr.init()
-        except Exception as e:
-            logger.warning("%s\n%s(%s)" % (traceback.format_exc(), type(e), e))
-            utils.message_dialog(utils.utf8(e), Gtk.MessageType.WARNING)
-        gui.get_view().update()
-        Gdk.threads_leave()
+        self.gui.get_view().update()
 
-    #GObject.idle_add(_post_loop)
-    GLib.idle_add(_post_loop)
-    logger.info(
-        "This version installed on: %s; "
-        "This version installed at: %s; "
-        "Latest published version: %s; "
-        "Publication date: %s"
-        % (
-            bauble.installation_date,
-            __file__,
-            bauble.release_version,
-            bauble.release_date,
+        # Log version information
+        logger.info(
+            "This version installed on: %s; "
+            "This version installed at: %s; "
+            "Latest published version: %s; "
+            "Publication date: %s",
+            bauble.installation_date, __file__, bauble.release_version, bauble.release_date
         )
-    )
 
-    gui.show()
-    Gdk.threads_enter()
-    Gtk.main()
-    active_view = gui.get_view()
-    if active_view:
-        active_view.cancel_threads()
-    Gdk.threads_leave()
+    def create_user_directory(self):
+        """Ensures user directory exists for configuration and logging."""
+        user_dir = paths.appdata_dir()
+        if not os.path.exists(user_dir):
+            os.makedirs(user_dir)
+            logger.info("Created user directory: %s", user_dir)
+
+    def setup_py2exe_logging(self):
+        """Redirects stdout and stderr to files when running in py2exe mode."""
+        if paths.main_is_frozen():
+            _stdout = os.path.join(paths.user_dir(), "stdout.log")
+            _stderr = os.path.join(paths.user_dir(), "stderr.log")
+            sys.stdout = open(_stdout, "w")
+            sys.stderr = open(_stderr, "w")
+            logger.info("Redirecting stdout and stderr to logs in frozen environment")
+
+# Define app as a global variable
+app = GhiniApp()  # 🔹 Now accessible globally
+gtk_app = app.gtk_app  # Shortcut to access Gtk.Application if needed
+
+def main():
+    """Entry point for the application."""
+    global app
+    return app.run(sys.argv)
+
