@@ -43,6 +43,7 @@ from bauble import utils
 from bauble.error import BaubleError
 from bauble.error import check
 
+
 gi.require_version("Gtk", "3.0")
 gi.require_version("Champlain", "0.12")
 gi.require_version("GtkChamplain", "0.12")
@@ -85,16 +86,22 @@ css = b"""
 """
 
 def apply_css():
-    """Apply CSS styling to enable alternating row colors."""
-    style_provider = Gtk.CssProvider()
-    style_provider.load_from_data(css)
+    css_provider = Gtk.CssProvider()
+    css_provider.load_from_data(css)
 
     display = Gdk.Display.get_default()
-    Gtk.StyleContext.add_provider_for_display(
-        display,
-        style_provider,
-        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-    )
+
+    try:
+        # Try GTK 4 method
+        Gtk.StyleContext.add_provider_for_display(
+            display, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+    except AttributeError:
+        # Fallback to GTK 3 method
+        screen = display.get_default_screen()
+        Gtk.StyleContext.add_provider_for_screen(
+            screen, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
 
 
 def safe_set_text(gtk_widget, text):
@@ -136,8 +143,7 @@ class Action:
         callback=None,
         accelerator=None,
         multiselect=False,
-        singleselect=True,
-        app=None,
+        singleselect=True
     ):
         """
         :param name: Unique action name (e.g., "open").
@@ -158,18 +164,34 @@ class Action:
         self.multiselect = multiselect
         self.singleselect = singleselect
         self.accelerator = accelerator
-        self.app = app
 
         # Create the action
         self.action = Gio.SimpleAction.new(name, None)
         if callback:
-            self.action.connect("activate", self._on_activate)
+            self.action.connect("activate", callback)
+        
+        from bauble import app
+
+        app.gtk_app.add_action(self.action)
 
         # Register the action with the application if provided
-        if app:
-            app.add_action(self.action)
-            if accelerator:
-                app.set_accels_for_action(f"app.{name}", [accelerator])
+        if accelerator:
+            self.set_action_accelerator(app, name, accelerator)
+
+    def set_action_accelerator(self, app, action_name, accelerator):
+        """
+        Set keyboard accelerators for an action, compatible with both GTK 3 and GTK 4.
+        """
+        if Gtk.get_major_version() >= 4:
+            # GTK 4 uses set_accels_for_action
+            app.set_accels_for_action(f"app.{action_name}", [accelerator])
+        else:
+            accel_path = f"<Actions>/app.{action_name}"
+            key, mods = Gtk.accelerator_parse(accelerator)
+
+            # Ensure we pass the correct number of arguments
+            Gtk.AccelMap.add_entry(accel_path, key, mods)
+            Gtk.AccelMap.change_entry(accel_path, key, mods, True)
 
     def _on_activate(self, action, param):
         """Call the provided callback function when activated."""
