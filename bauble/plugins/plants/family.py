@@ -33,7 +33,6 @@ import bauble.editor as editor
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-import bauble.view as view
 from bauble.prefs import prefs
 from bauble.view import InfoBox
 from bauble.shared import InfoExpander
@@ -63,7 +62,8 @@ from sqlalchemy.orm.session import object_session
 from sqlalchemy import asc
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.hybrid import hybrid_property
-
+import importlib
+view = importlib.import_module("bauble.view")
 logger = logging.getLogger(__name__)
 
 
@@ -129,19 +129,19 @@ def remove_callback(families):
 
     return True
 
-
 edit_action = view.Action(
-    "family_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
+    name="family_edit", label=_("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
 )
+
 add_species_action = view.Action(
-    "family_genus_add",
-    _("_Add genus"),
+    name="family_genus_add",
+    label=_("_Add genus"),
     callback=add_genera_callback,
     accelerator="<ctrl>k",
 )
 remove_action = view.Action(
-    "family_remove",
-    _("_Delete"),
+    name="family_remove",
+    label=_("_Delete"),
     callback=remove_callback,
     accelerator="<ctrl>Delete",
     multiselect=True,
