@@ -33,7 +33,7 @@ import bauble.db as db
 import bauble.editor as editor
 import bauble.paths as paths
 import bauble.utils as utils
-import bauble.view as view
+import importlib
 from bauble.plugins.plants.geography import GeographicArea
 from bauble.plugins.plants.geography import GeographicAreaMenu
 from bauble.utils import safe_set_text
@@ -57,7 +57,7 @@ from sqlalchemy import asc
 #from sqlalchemy.orm import configure_mappers
 #from sqlalchemy.ext.declarative import declared_attr
 
-
+view = importlib.import_module("bauble.view")
 logger = logging.getLogger(__name__)
 
 def collection_edit_callback(coll):
