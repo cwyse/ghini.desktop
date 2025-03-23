@@ -639,7 +639,11 @@ class GUI:
             image = Gtk.Image.new_from_pixbuf(pixbuf)
             # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
             bug_report_item.set_child(image)
-
+            if Gtk.get_major_version() >= 4:
+                bug_report_item.set_child(image)
+            else:
+                bug_report_item.add(image)
+                bug_report_item.show_all()
         except Exception as e:
             logger.debug(f"Cannot set icon {icon_name}: {e}")
         bug_report_item.connect("activate", self.on_help_menu_bug)

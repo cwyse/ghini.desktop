@@ -108,24 +108,36 @@ class TagsMenuManager:
 
     def show_active_tag(self):
         """Update UI to reflect the active tag."""
-        for c in list(self.item_list.values()):
-            if isinstance(c, Gtk.Button):
-                # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
-                c.remove(c.get_child())  # Remove the current image from the button
-
+        # Remove any current tag icons
+        for widget in self.item_list.values():
+            if hasattr(widget, "set_child"):
+                # GTK4
+                widget.set_child(None)
+            elif hasattr(widget, "set_image"):
+                # GTK3
+                widget.set_image(None)
+        
+        # Get the currently active tag widget
         widget = self.item_list.get(self.active_tag_name)
+
         if widget:
             # Create an image from the icon name (not stock)
             image = Gtk.Image.new_from_icon_name("apply", Gtk.IconSize.MENU)
             if isinstance(widget, Gtk.Button):
-                # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
-                widget.set_child(image)  # Add the image to the button widget
+                # Use named icon (emblem-ok is a good alternative to STOCK_APPLY)
+                image = Gtk.Image.new_from_icon_name("emblem-ok")
 
-            self.apply_active_tag_menu_item.set_sensitive(True)
-            self.remove_active_tag_menu_item.set_sensitive(True)
-        else:
-            self.apply_active_tag_menu_item.set_sensitive(False)
-            self.remove_active_tag_menu_item.set_sensitive(False)
+                # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
+                if hasattr(widget, "set_child"):
+                    widget.set_child(image)  # GTK4
+                elif hasattr(widget, "set_image"):
+                    widget.set_image(image)  # GTK3
+
+                self.apply_active_tag_menu_item.set_sensitive(True)
+                self.remove_active_tag_menu_item.set_sensitive(True)
+            else:
+                self.apply_active_tag_menu_item.set_sensitive(False)
+                self.remove_active_tag_menu_item.set_sensitive(False)
 
         logger.debug(f"Showing active tag: {self.active_tag_name}")
 
