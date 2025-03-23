@@ -48,7 +48,6 @@
                     <child>
                       <object class="GtkImage" id="confirm_button_image">
                         <property name="icon-name">execute</property>
-                        <property name="icon-size">button</property>
                       </object>
                     </child>
                   </object>
@@ -66,7 +65,6 @@
                     <child>
                       <object class="GtkImage" id="cancel_button_image">
                         <property name="icon-name">cancel</property>
-                        <property name="icon-size">button</property>
                       </object>
                     </child>
                   </object>

@@ -24,7 +24,6 @@
                 <child>
                   <object class="GtkImage" id="button10_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -45,7 +44,6 @@
                 <child>
                   <object class="GtkImage" id="loc_ok_button_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>

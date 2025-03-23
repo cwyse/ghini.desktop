@@ -29,8 +29,7 @@
         <child>
           <object class="GtkImage" id="sd_cancel_button_image">
           <property name="icon-name">cancel</property>
-          <property name="icon-size">button</property>
-          </object>
+         </object>
         </child>
         </object>
         <packing>
@@ -48,7 +47,6 @@
         <child>
           <object class="GtkImage" id="sd_ok_button_image">
           <property name="icon-name">ok</property>
-          <property name="icon-size">button</property>
           </object>
         </child>
         </object>

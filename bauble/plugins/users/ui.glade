@@ -29,7 +29,6 @@
                 <child>
                   <object class="GtkImage" id="main_ok_button_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -110,7 +109,6 @@
                                     <child>
                                       <object class="GtkImage" id="add_button_image">
                                         <property name="icon-name">add</property>
-                                        <property name="icon-size">button</property>
                                       </object>
                                     </child>
                                   </object>
@@ -129,7 +127,6 @@
                                     <child>
                                       <object class="GtkImage" id="remove_button_image">
                                         <property name="icon-name">remove</property>
-                                        <property name="icon-size">button</property>
                                       </object>
                                     </child>
                                   </object>
@@ -364,7 +361,6 @@
                 <child>
                   <object class="GtkImage" id="pwd_cancel_button_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -382,7 +378,6 @@
                 <child>
                   <object class="GtkImage" id="pwd_ok_button_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>

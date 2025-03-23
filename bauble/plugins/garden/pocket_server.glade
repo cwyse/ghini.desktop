@@ -188,7 +188,6 @@
                 <child>
                   <object class="GtkImage" id="new_snapshot_button_image">
                     <property name="icon-name">refresh</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -325,7 +324,6 @@
                     <child>
                       <object class="GtkImage" id="remove_client_button_image">
                         <property name="icon-name">remove</property>
-                        <property name="icon-size">button</property>
                       </object>
                     </child>
                   </object>
@@ -383,7 +381,6 @@
                     <child>
                       <object class="GtkImage" id="refresh_code_button_image">
                         <property name="icon-name">new</property>
-                        <property name="icon-size">button</property>
                       </object>
                     </child>
                   </object>
@@ -578,7 +575,6 @@
                 <child>
                   <object class="GtkImage" id="close_button_image">
                     <property name="icon-name">close</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>

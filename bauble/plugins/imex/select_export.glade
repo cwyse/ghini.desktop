@@ -27,7 +27,6 @@
                 <child>
                   <object class="GtkImage" id="sed-button-cancel_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -46,7 +45,6 @@
                 <child>
                   <object class="GtkImage" id="sed-button-ok_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -387,7 +385,6 @@
                 <child>
                   <object class="GtkImage" id="sid-button-cancel_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -406,7 +403,6 @@
                 <child>
                   <object class="GtkImage" id="sid-button-ok_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>

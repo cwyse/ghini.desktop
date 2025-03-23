@@ -30,7 +30,6 @@
                 <child>
                   <object class="GtkImage" id="button1_image">
                     <property name="icon-name">close</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -82,7 +81,7 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="0">button1</action-widget>
+      <action-widget response="-7">button1</action-widget>
     </action-widgets>
   </object>
 </interface>

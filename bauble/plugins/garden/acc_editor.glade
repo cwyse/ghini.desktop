@@ -42,7 +42,6 @@
                 <child>
                   <object class="GtkImage" id="button2_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -60,7 +59,6 @@
                 <child>
                   <object class="GtkImage" id="button1_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -129,8 +127,8 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="-1">button2</action-widget>
-      <action-widget response="1">button1</action-widget>
+      <action-widget response="-6">button2</action-widget>
+      <action-widget response="-5">button1</action-widget>
     </action-widgets>
   </object>
   <object class="GtkWindow" id="collection_window">
@@ -183,7 +181,6 @@
                 <child>
                   <object class="GtkImage" id="acc_cancel_button_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -203,7 +200,6 @@
                 <child>
                   <object class="GtkImage" id="acc_ok_button_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -1368,7 +1364,6 @@
                             <child>
                               <object class="GtkImage" id="new_source_button_image">
                                 <property name="icon-name">new</property>
-                                <property name="icon-size">button</property>
                               </object>
                             </child>
                           </object>
@@ -2531,7 +2526,6 @@
                             <child>
                               <object class="GtkImage" id="ver_add_button_image">
                                 <property name="icon-name">new</property>
-                                <property name="icon-size">button</property>
                               </object>
                             </child>
                           </object>

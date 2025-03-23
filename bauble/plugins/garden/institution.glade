@@ -38,7 +38,6 @@
                                 <child>
                                     <object class="GtkImage" id="inst_ok_image">
                                         <property name="icon-name">ok</property>
-                                        <property name="icon-size">button</property>
                                     </object>
                                 </child>
                             </object>
