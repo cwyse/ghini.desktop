@@ -1827,9 +1827,7 @@ class GenericEditorPresenter:
         if isinstance(widget, Gtk.Entry):
 
             def on_changed(entry):
-                start_iter = entry.get_start_iter()  # Get start of buffer
-                end_iter = entry.get_end_iter()  # Get end of buffer
-                value = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+                value = entry.get_text() 
                 self.set_model_attr(model_attr, value, validator)
 
             self.view.connect(widget, "changed", on_changed)
