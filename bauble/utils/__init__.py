@@ -1119,6 +1119,28 @@ def today_str(format=None):
     today = datetime.date.today()
     return today.strftime(format)
 
+def set_button_contents(button, label_text=None, icon_name=None, orientation=Gtk.Orientation.HORIZONTAL):
+    """
+    Set button contents with optional icon and label.
+    Works in both GTK 3 and GTK 4.
+    """
+    # Create a container box
+    box = Gtk.Box(orientation=orientation, spacing=6)
+
+    if icon_name:
+        image = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.BUTTON)
+        box.pack_start(image, False, False, 0)
+
+    if label_text:
+        label = Gtk.Label(label=label_text)
+        box.pack_start(label, False, False, 0)
+
+    # Set as button child using appropriate API
+    if hasattr(button, "set_child"):  # GTK 4
+        button.set_child(box)
+    else:  # GTK 3
+        button.add(box)
+        button.show_all()
 
 def setup_date_button(view, entry, button, date_func=None):
     """
@@ -1143,7 +1165,11 @@ def setup_date_button(view, entry, button, date_func=None):
     image.set_from_file(icon)
     button.set_tooltip_text(_("Today's date"))
     # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
-    button.set_child(image)
+    if Gtk.get_major_version() >= 4:
+        button.set_child(image)
+    else:
+        button.add(image)
+        button.show_all()
 
     def on_clicked(b):
         s = ""
