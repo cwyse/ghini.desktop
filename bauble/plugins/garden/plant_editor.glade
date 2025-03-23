@@ -27,7 +27,6 @@
                 <child>
                   <object class="GtkImage" id="pad_cancel_button_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -46,7 +45,6 @@
                 <child>
                   <object class="GtkImage" id="pad_ok_button_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -887,7 +885,6 @@
                             <child>
                               <object class="GtkImage" id="prop_add_button_image">
                                 <property name="icon-name">add</property>
-                                <property name="icon-size">button</property>
                               </object>
                             </child>
                           </object>
@@ -1014,7 +1011,6 @@
                 <child>
                   <object class="GtkImage" id="split_planting_ok_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -1032,7 +1028,6 @@
                 <child>
                   <object class="GtkImage" id="split_planting_cancel_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>

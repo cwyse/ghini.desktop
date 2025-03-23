@@ -26,7 +26,6 @@
                 <child>
                   <object class="GtkImage" id="gen_cancel_button_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -47,7 +46,6 @@
                 <child>
                   <object class="GtkImage" id="gen_ok_button_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -348,7 +346,6 @@
                                         <child>
                                           <object class="GtkImage" id="gen_syn_add_button_image">
                                             <property name="icon-name">add</property>
-                                            <property name="icon-size">button</property>
                                           </object>
                                         </child>
                                       </object>
@@ -367,7 +364,6 @@
                                         <child>
                                           <object class="GtkImage" id="gen_syn_remove_button_image">
                                             <property name="icon-name">remove</property>
-                                            <property name="icon-size">button</property>
                                           </object>
                                         </child>
                                       </object>

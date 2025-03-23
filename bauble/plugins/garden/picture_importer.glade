@@ -539,7 +539,6 @@
                     <child>
                       <object class="GtkImage" id="button_ok_image">
                         <property name="icon-name">ok</property>
-                        <property name="icon-size">button</property>
                       </object>
                     </child>
                   </object>
@@ -558,7 +557,6 @@
                     <child>
                       <object class="GtkImage" id="button_cancel_image">
                         <property name="icon-name">cancel</property>
-                        <property name="icon-size">button</property>
                       </object>
                     </child>
                   </object>
@@ -577,7 +575,6 @@
                     <child>
                       <object class="GtkImage" id="button_next_image">
                         <property name="icon-name">media-next</property>
-                        <property name="icon-size">button</property>
                       </object>
                     </child>
                   </object>
@@ -596,7 +593,6 @@
                     <child>
                       <object class="GtkImage" id="button_prev_image">
                         <property name="icon-name">media-previous</property>
-                        <property name="icon-size">button</property>
                       </object>
                     </child>
                   </object>

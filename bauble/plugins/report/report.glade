@@ -77,7 +77,6 @@
                 <child>
                   <object class="GtkImage" id="choose_ok_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -94,7 +93,6 @@
                 <child>
                   <object class="GtkImage" id="choose_cancel_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -234,7 +232,6 @@
                 <child>
                   <object class="GtkImage" id="new_button_image">
                     <property name="icon-name">add</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -252,7 +249,6 @@
                 <child>
                   <object class="GtkImage" id="remove_button_image">
                     <property name="icon-name">remove</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -568,7 +564,6 @@
                 <child>
                   <object class="GtkImage" id="clear_button_image">
                     <property name="icon-name">clear</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -662,7 +657,6 @@
                 <child>
                   <object class="GtkImage" id="cancel_button_image">
                     <property name="icon-name">close</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -680,7 +674,6 @@
                 <child>
                   <object class="GtkImage" id="ok_button_image">
                     <property name="icon-name">execute</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>

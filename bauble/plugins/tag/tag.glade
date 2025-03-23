@@ -150,7 +150,6 @@
                 <child>
                   <object class="GtkImage" id="tag_cancel_button_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -168,7 +167,6 @@
                 <child>
                   <object class="GtkImage" id="tag_ok_button_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -425,7 +423,7 @@
     </child>
     <action-widgets>
       <action-widget response="-4">tag_cancel_button</action-widget>
-      <action-widget response="0">tag_ok_button</action-widget>
+      <action-widget response="-5">tag_ok_button</action-widget>
     </action-widgets>
   </object>
   <object class="GtkDialog" id="tag_item_dialog">
@@ -507,7 +505,6 @@
                 <child>
                   <object class="GtkImage" id="button4_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -646,7 +643,7 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="0">new_button</action-widget>
+      <action-widget response="100">new_button</action-widget>
       <action-widget response="-5">button4</action-widget>
     </action-widgets>
   </object>

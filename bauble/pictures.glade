@@ -26,7 +26,6 @@
                 <child>
                   <object class="GtkImage" id="button2_image">
                     <property name="icon-name">cancel</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -44,7 +43,6 @@
                 <child>
                   <object class="GtkImage" id="button1_image">
                     <property name="icon-name">ok</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
@@ -191,8 +189,8 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="0">button2</action-widget>
-      <action-widget response="0">button1</action-widget>
+      <action-widget response="-6">button2</action-widget>
+      <action-widget response="-5">button1</action-widget>
     </action-widgets>
   </object>
   <object class="GtkWindow" id="notes_editor">
@@ -215,7 +213,6 @@
                 <child>
                   <object class="GtkImage" id="notes_add_button_image">
                     <property name="icon-name">add</property>
-                    <property name="icon-size">button</property>
                   </object>
                 </child>
               </object>
