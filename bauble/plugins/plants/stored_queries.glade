@@ -3,7 +3,7 @@
 <interface>
   <requires lib="gtk+" version="3.24"/>
   <object class="GtkTextBuffer" id="stqr_query_textbuffer">
-    <signal name="changed" handler="on_stqr_query_textbuffer_changed" swapped="no"/>
+    <signal handler="on_stqr_query_textbuffer_changed" name="changed" swapped="no"/>
   </object>
   <object class="GtkDialog" id="stqr_dialog">
     <property name="can-focus">False</property>
@@ -22,7 +22,6 @@
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="stqr_cancel_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -41,7 +40,6 @@
             </child>
             <child>
               <object class="GtkButton" id="stqr_ok_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -137,7 +135,7 @@
                 <property name="invisible-char">•</property>
                 <property name="primary-icon-activatable">False</property>
                 <property name="secondary-icon-activatable">False</property>
-                <signal name="changed" handler="on_label_entry_changed" swapped="no"/>
+                <signal handler="on_label_entry_changed" name="changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">1</property>
@@ -167,7 +165,7 @@
                 <property name="invisible-char">•</property>
                 <property name="primary-icon-activatable">False</property>
                 <property name="secondary-icon-activatable">False</property>
-                <signal name="changed" handler="on_text_entry_changed" swapped="no"/>
+                <signal handler="on_text_entry_changed" name="changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">1</property>
@@ -177,13 +175,12 @@
             </child>
             <child>
               <object class="GtkToggleButton" id="stqr_01_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_button_clicked" swapped="no"/>
+                <signal handler="on_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkLabel" id="stqr_01_label">
                     <property name="visible">True</property>
@@ -202,13 +199,12 @@
             </child>
             <child>
               <object class="GtkToggleButton" id="stqr_02_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_button_clicked" swapped="no"/>
+                <signal handler="on_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkLabel" id="stqr_02_label">
                     <property name="visible">True</property>
@@ -225,13 +221,12 @@
             </child>
             <child>
               <object class="GtkToggleButton" id="stqr_03_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_button_clicked" swapped="no"/>
+                <signal handler="on_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkLabel" id="stqr_03_label">
                     <property name="visible">True</property>
@@ -248,13 +243,12 @@
             </child>
             <child>
               <object class="GtkToggleButton" id="stqr_04_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_button_clicked" swapped="no"/>
+                <signal handler="on_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkLabel" id="stqr_04_label">
                     <property name="visible">True</property>
@@ -271,13 +265,12 @@
             </child>
             <child>
               <object class="GtkToggleButton" id="stqr_05_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_button_clicked" swapped="no"/>
+                <signal handler="on_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkLabel" id="stqr_05_label">
                     <property name="visible">True</property>
@@ -294,13 +287,12 @@
             </child>
             <child>
               <object class="GtkToggleButton" id="stqr_06_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_button_clicked" swapped="no"/>
+                <signal handler="on_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkLabel" id="stqr_06_label">
                     <property name="visible">True</property>
@@ -317,13 +309,12 @@
             </child>
             <child>
               <object class="GtkToggleButton" id="stqr_07_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_button_clicked" swapped="no"/>
+                <signal handler="on_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkLabel" id="stqr_07_label">
                     <property name="visible">True</property>
@@ -340,13 +331,12 @@
             </child>
             <child>
               <object class="GtkToggleButton" id="stqr_08_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_button_clicked" swapped="no"/>
+                <signal handler="on_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkLabel" id="stqr_08_label">
                     <property name="visible">True</property>
@@ -363,13 +353,12 @@
             </child>
             <child>
               <object class="GtkToggleButton" id="stqr_09_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_button_clicked" swapped="no"/>
+                <signal handler="on_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkLabel" id="stqr_09_label">
                     <property name="visible">True</property>
@@ -386,13 +375,12 @@
             </child>
             <child>
               <object class="GtkToggleButton" id="stqr_10_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_button_clicked" swapped="no"/>
+                <signal handler="on_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkLabel" id="stqr_10_label">
                     <property name="visible">True</property>
@@ -474,13 +462,12 @@
             </child>
             <child>
               <object class="GtkButton" id="stqr_prev_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_prev_button_clicked" swapped="no"/>
+                <signal handler="on_prev_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkBox" id="hbox1">
                     <property name="visible">True</property>
@@ -519,13 +506,12 @@
             </child>
             <child>
               <object class="GtkButton" id="stqr_next_button">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="receives-default">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <signal name="clicked" handler="on_next_button_clicked" swapped="no"/>
+                <signal handler="on_next_button_clicked" name="clicked" swapped="no"/>
                 <child>
                   <object class="GtkBox" id="hbox2">
                     <property name="visible">True</property>

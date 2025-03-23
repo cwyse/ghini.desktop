@@ -24,7 +24,6 @@
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="button1">
-                <property name="use-action-appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
