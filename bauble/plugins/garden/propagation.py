@@ -584,11 +584,8 @@ class PropagationHandler:
         hbox.pack_end(button_box, False, False, 0)  # Align to right
 
         # Edit Button
-        edit_button = Gtk.Button(label="Edit")  # Cleaner alternative to Gtk.Button.new_with_label()
-        edit_icon = Gtk.Image.new_from_icon_name("document-edit", Gtk.IconSize.BUTTON)
-        # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
-        edit_button.set_child(edit_icon)  # Add the image to the button widget
-        edit_button.set_always_show_image(True)
+        edit_button = Gtk.Button()
+        utils.set_button_contents(edit_button, label_text="Edit", icon_name="document-edit")
 
         self.view.connect(edit_button, "clicked", on_edit_clicked, propagation, label)
         button_box.pack_start(edit_button, False, False, 0)
@@ -631,7 +628,11 @@ class PropagationHandler:
         remove_button = Gtk.Button()
         remove_icon = Gtk.Image.new_from_icon_name("edit-delete", Gtk.IconSize.BUTTON)  
         # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
-        remove_button.set_child(remove_icon)  # Add the image to the button widget        
+        if Gtk.get_major_version() >= 4:
+            remove_button.set_child(remove_icon)
+        else:
+            remove_button.add(remove_icon)
+            remove_button.show_all()  
         self.view.connect(remove_button, "clicked", on_remove_clicked, propagation, hbox)
         button_box.pack_start(remove_button, False, False, 0)
 
