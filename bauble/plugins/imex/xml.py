@@ -103,9 +103,8 @@ class XMLExporter:
             self.on_dialog_response,
             check,
         )
-        dialog.show_all()
-        dialog.run()
-        dialog.hide()
+        dialog.show()
+
 
     def on_open_file_chooser_dialog(self, button):
         chooser = Gtk.FileChooserDialog(

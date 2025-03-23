@@ -28,7 +28,9 @@ import bauble.utils as utils
 from bauble.error import CheckConditionError
 from bauble.utils import topological_sort
 from sqlalchemy import MetaData, Table, ForeignKey, Column, Integer, Sequence
-
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
 
 def test_create_message_details_dialog():
     pytest.skip("Not Implemented")  # Skip the test with pytest's skip functionality
@@ -39,7 +41,9 @@ asd
 addasdadadad"""
     msg = "msg"
     dialog = utils.create_message_details_dialog(msg, details)
-    dialog.run()
+    dialog.show()
+    dialog.response(Gtk.ResponseType.OK)
+    dialog.destroy()
 
 
 def test_create_message_dialog():
@@ -47,7 +51,10 @@ def test_create_message_dialog():
     msg = "msg"
     # msg = ' this is a longer message to test that the dialog width is correct.....but what if it keeps going'
     dialog = utils.create_message_dialog(msg)
-    dialog.run()
+    dialog.show()
+    dialog.response(Gtk.ResponseType.OK)
+    dialog.destroy()
+
 
 
 def test_search_tree_model():

@@ -1206,6 +1206,7 @@ class GenericEditorPresenter:
         self.owns_session = False
         self.session = session
         self.clipboard_presenters = []
+        self.init_problem_style()
         if not hasattr(self.__class__, "clipboard"):
             logging.debug(
                 "creating clipboard in presenter class %s"
@@ -1630,6 +1631,21 @@ class GenericEditorPresenter:
         list([self.remove_problem(p[0], p[1]) for p in tmp])
         self.problems.clear()
 
+    def init_problem_style(self):
+        css = """
+        .problem {
+            background-color: rgba(255, 0, 0, 0.2);  /* Light red background */
+        }
+        """
+        provider = Gtk.CssProvider()
+        provider.load_from_data(css.encode())
+        display = Gdk.Display.get_default()
+        if hasattr(Gtk.StyleContext, "add_provider_for_display"):
+            Gtk.StyleContext.add_provider_for_display(display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        else:
+            screen = Gdk.Screen.get_default()
+            Gtk.StyleContext.add_provider_for_screen(screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
     def remove_problem(self, problem_id, widget=None):
         """
         Remove problem_id from self.problems and reset the background
@@ -1663,7 +1679,8 @@ class GenericEditorPresenter:
                 or (w == widget and problem_id is None)
             ):
                 if w and not prefs.testing:
-                    w.set_property('background-color', None)
+                    w.get_style_context().remove_class("problem")
+                    #w.set_property('background-color', None)
                     w.queue_draw()
                 self.problems.remove((p, w))
         logger.debug("problems now: %s" % self.problems)
@@ -1698,7 +1715,7 @@ class GenericEditorPresenter:
         if isinstance(widget, str):
             self.view.mark_problem(widget)
         elif widget is not None:
-            widget.set_property('background-color', self.problem_color.color)
+            widget.get_style_context().add_class("problem")
             widget.queue_draw()
         logger.debug("problems now: %s" % self.problems)
 
@@ -1920,9 +1937,18 @@ class GenericEditorPresenter:
             logger.debug(
                 "assign_completions_handler::on_changed %s %s" % (entry, args)
             )
-            start_iter = entry.get_start_iter()  # Get start of buffer
-            end_iter = entry.get_end_iter()  # Get end of buffer
-            text = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+            if isinstance(widget, Gtk.Entry):
+                text = widget.get_text()
+
+            elif isinstance(widget, Gtk.TextView):
+                buffer = widget.get_buffer()
+                start_iter = buffer.get_start_iter()
+                end_iter = buffer.get_end_iter()
+                text = buffer.get_text(start_iter, end_iter, include_hidden_chars=False)
+
+            else:
+                logger.warning(f"Unsupported widget type: {type(widget)}")
+                return
 
             key_length = widget.get_completion().get_property("minimum-key-length")
             if len(text) > key_length:

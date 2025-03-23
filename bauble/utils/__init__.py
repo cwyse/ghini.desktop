@@ -857,16 +857,15 @@ def create_yes_no_dialog(msg, parent=None, buttons=Gtk.ButtonsType.YES_NO):
     d.show_all()
     return d
 
-def yes_no_cancel_dialog(msg, yes_label, no_label, cancel_label):
+def yes_no_cancel_dialog(msg, yes_label, no_label, cancel_label, parent=None, callback=None):
     """
     Displays a dialog with Yes, No, and Cancel options.
     Returns a DialogResponse enum value.
     """
-    if parent is None:
-        try:  # This might get called before bauble has started
-            parent = bauble.gui.window
-        except Exception:
-            parent = None
+    try:  # This might get called before bauble has started
+        parent = parent or bauble.gui.window
+    except Exception:
+        parent = None
 
     dialog = Gtk.MessageDialog(
         transient_for=parent,
@@ -878,25 +877,23 @@ def yes_no_cancel_dialog(msg, yes_label, no_label, cancel_label):
     dialog.set_markup(msg)
     dialog.set_destroy_with_parent(True)  # Ensure it is destroyed with parent
 
-    # Ensure dialog closes when parent is destroyed
-    if parent is not None:
-        parent.connect("destroy", lambda *_: dialog.destroy())
-
     dialog.add_button(yes_label, Gtk.ResponseType.YES)
     dialog.add_button(no_label, Gtk.ResponseType.NO)
     dialog.add_button(cancel_label, Gtk.ResponseType.CANCEL)
 
-    response = dialog.run()
-    dialog.destroy()
+    def on_response(dlg, response):
+        dlg.destroy()
+        if callback:
+            if response == Gtk.ResponseType.YES:
+                callback(utils.DialogResponse.YES)
+            elif response == Gtk.ResponseType.NO:
+                callback(utils.DialogResponse.NO)
+            else:
+                callback(utils.DialogResponse.CANCEL)
 
-    if response == Gtk.ResponseType.YES:
-        return utils.DialogResponse.YES
-    elif response == Gtk.ResponseType.NO:
-        return utils.DialogResponse.NO
-    else:
-        return utils.DialogResponse.CANCEL
-
-
+    dialog.connect("response", on_response)
+    dialog.show_all()
+    
 def yes_no_dialog(msg, parent=None, yes_delay=-1):
     """
     Create and run a yes/no dialog.
@@ -1678,12 +1675,12 @@ class GenericMessageBox():  # identify_subclassing_issues (Consider using compos
         context = self.event_box.get_style_context()
 
         # Convert the color to RGBA string
-        color_str = f"rgba({int(color.red * 255)}, {int(color.green * 255)}, {int(color.blue * 255)}, {color.alpha})"
+        color_str = f"rgba({int(color.red * 255)}, {int(color.green * 255)}, {int(color.blue * 255)})"
 
         # Create a dynamic CSS rule based on the provided attribute, state, and color
         css_rule = f"""
         .{attr}:{state} {{
-            background-color: {color_str};
+            {attr}: {color_str};
         }}
         """
 
