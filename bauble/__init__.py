@@ -343,6 +343,8 @@ class GhiniApp:
 
             try:
                 if db.open(uri, True, True):
+                    self.conn_name = conn_name
+                    self.uri = uri
                     prefs["conn_default_pref"] = conn_name
                     break
                 else:
@@ -360,10 +362,16 @@ class GhiniApp:
             ) as e:
                 logger.info("{}({})".format(type(e), e))
                 open_exc = e
-                # reopen without verification so that db.Session and
-                # db.engine, db.metadata will be bound to an engine
-                db.open(uri, False)
-                break
+                try:
+                    # reopen without verification so that db.Session and
+                    # db.engine, db.metadata will be bound to an engine
+                    db.open(uri, False)
+                    self.conn_name = conn_name
+                    self.uri = uri
+                    break
+                except Exception as inner:
+                    logger.error("Fallback open(uri, False) failed: %s", inner)
+                    uri = conn_name = None
             except err.DatabaseError as e:
                 logger.debug("{}({})".format(type(e), e))
                 # traceback.format_exc()

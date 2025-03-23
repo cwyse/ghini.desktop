@@ -706,58 +706,36 @@ class UsersEditor(editor.GenericEditorView):
         tree.set_model(model)
         if len(model) > 0:
             tree.set_cursor("0")
-
+            
     def on_pwd_button_clicked(self, button, *args):
         dialog = self.widgets.pwd_dialog
         dialog.set_transient_for(self.get_window())
 
-        def _on_something(d, *args):
-            d.hide()
-            return True
-
-        self.connect(dialog, "delete-event", _on_something)
-        self.connect(dialog, "close", _on_something)
-        self.connect(dialog, "response", _on_something)
         safe_set_text(self.widgets.pwd_entry1, "")
         safe_set_text(self.widgets.pwd_entry2, "")
-        response = dialog.run()
-        if response == Gtk.ResponseType.OK:
-            pwd1 = self.widgets.pwd_entry1.get_text()
-            pwd2 = self.widgets.pwd_entry2.get_text()
-            user = self.get_selected_user()
-            if pwd1 == "" or pwd2 == "":
-                msg = (
-                    _(
-                        "The password for user <b>%s</b> has not been "
-                        "changed."
-                    )
-                    % user
-                )
-                utils.message_dialog(
-                    msg, Gtk.MessageType.WARNING, parent=self.get_window()
-                )
-                return
-            elif pwd1 != pwd2:
-                msg = (
-                    _(
-                        "The passwords do not match.  The password for "
-                        "user <b>%s</b> has not been changed."
-                    )
-                    % user
-                )
-                utils.message_dialog(
-                    msg, Gtk.MessageType.WARNING, parent=self.get_window()
-                )
-                return
-            else:
-                try:
-                    set_password(pwd1, user)
-                except Exception as e:
-                    utils.message_dialog(
-                        utils.utf8(e),
-                        Gtk.MessageType.ERROR,
-                        parent=self.get_window(),
-                    )
+
+        def on_response(d, response_id):
+            if response_id == Gtk.ResponseType.OK:
+                pwd1 = self.widgets.pwd_entry1.get_text()
+                pwd2 = self.widgets.pwd_entry2.get_text()
+                user = self.get_selected_user()
+
+                if pwd1 == "" or pwd2 == "":
+                    msg = _("The password for user <b>%s</b> has not been changed.") % user
+                    utils.message_dialog(msg, Gtk.MessageType.WARNING, parent=self.get_window())
+                elif pwd1 != pwd2:
+                    msg = _("The passwords do not match. The password for user <b>%s</b> has not been changed.") % user
+                    utils.message_dialog(msg, Gtk.MessageType.WARNING, parent=self.get_window())
+                else:
+                    try:
+                        set_password(pwd1, user)
+                    except Exception as e:
+                        utils.message_dialog(utils.utf8(e), Gtk.MessageType.ERROR, parent=self.get_window())
+
+            dialog.destroy()
+
+        dialog.connect("response", on_response)
+        dialog.show()
 
         # TODO: show a dialog that says the pwd has been changed or
         # just put a message in the status bar
