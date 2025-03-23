@@ -714,7 +714,11 @@ class InfraspPresenter(editor.GenericEditorPresenter):
                 Gtk.STOCK_REMOVE, Gtk.IconSize.BUTTON
             )
             # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
-            self.remove_button.set_child(img)
+            if Gtk.get_major_version() >= 4:
+                self.remove_button.set_child(img)
+            else:
+                self.remove_button.add(img)
+                self.remove_button.show_all()
             presenter.view.connect(
                 self.remove_button, "clicked", self.on_remove_button_clicked
             )
