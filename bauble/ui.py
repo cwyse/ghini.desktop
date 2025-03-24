@@ -213,7 +213,6 @@ class GUI:
             logger.warning(traceback.format_exc())
 
         menubar = self.create_main_menu()
-        self.widgets.menu_box.pack_start(menubar, True, True, 0)
 
         combo = self.widgets.main_comboentry
         model = Gtk.ListStore(str)
