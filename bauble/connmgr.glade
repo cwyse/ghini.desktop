@@ -123,17 +123,28 @@
                     <property name="always-show-image">True</property>
                     <property name="border-width">3</property>
                     <property name="can-focus">False</property>
-                    <property name="image">image_add</property>
-                    <property name="label">Add</property>
                     <property name="receives-default">False</property>
                     <property name="visible">True</property>
                     <signal name="clicked" handler="on_add_button_clicked"/>
                     <child>
-                      <object class="GtkImage" id="add_button_image">
-                        <property name="halign">center</property>
-                        <property name="icon-name">list-add</property>
-                        <property name="pixel-size">24</property>
-                        <property name="margin-bottom">11</property>
+                      <object class="GtkBox">
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">4</property>
+                        <property name="visible">True</property>
+                        <child>
+                          <object class="GtkImage" id="add_button_image">
+                            <property name="halign">center</property>
+                            <property name="icon-name">list-add</property>
+                            <property name="pixel-size">24</property>
+                            <property name="visible">True</property>
+                          </object>                          
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Add</property>
+                            <property name="visible">True</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
@@ -147,17 +158,28 @@
                     <property name="always-show-image">True</property>
                     <property name="border-width">3</property>
                     <property name="can-focus">False</property>
-                    <property name="image">image_remove</property>
-                    <property name="label">Remove</property>
                     <property name="receives-default">False</property>
                     <property name="visible">True</property>
                     <signal name="clicked" handler="on_remove_button_clicked"/>
-                     <child>
-                      <object class="GtkImage" id="remove_button_image">
-                        <property name="halign">center</property>
-                        <property name="icon-name">edit-delete</property>
-                        <property name="pixel-size">24</property>
-                        <property name="margin-bottom">11</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">4</property>
+                        <property name="visible">True</property>
+                        <child>
+                          <object class="GtkImage" id="remove_button_image">
+                            <property name="halign">center</property>
+                            <property name="icon-name">edit-delete</property>
+                            <property name="pixel-size">24</property>
+                            <property name="visible">True</property>
+                          </object>                          
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Remove</property>
+                            <property name="visible">True</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
