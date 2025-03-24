@@ -97,6 +97,16 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         self.dist_presenter = DistributionPresenter(self)
         self.infrasp_presenter = InfraspPresenter(self)
 
+        # Ignore this warning:  g_value_get_int: assertion 'G_VALUE_HOLDS_INT (value)' failed
+        # It is a known python bug:  https://bugzilla.gnome.org/show_bug.cgi?id=708676
+        import warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=".*g_value_get_int.*set_text.*",
+                category=Warning
+            )
+
         notes_parent = self.view.widgets.notes_parent_box
         notes_parent.foreach(notes_parent.remove)
         self.notes_presenter = editor.NotesPresenter(
@@ -499,33 +509,42 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
 
     def on_sp_species_entry_insert_text(self, entry, text, length, position):
         """remove all spaces from epithet"""
-
         while self.species_check_messages:
             kid = self.species_check_messages.pop()
             self.view.widgets.remove_parent(kid)
 
+        new_text = text
+        current_text = entry.get_text()
         # get position from entry, can't trust position parameter
-        position = entry.get_position()
-        if text.count("×"):
+        cursor_pos = entry.get_position()
+
+        # Prepare new text
+        if "×" in new_text:
             self.species_space = True
-        if text.count("*"):
+        if "*" in new_text:
             self.species_space = True
-            text = text.replace("*", " × ")
-        if self.species_space is False:
-            text = text.replace(" ", "")
-        if text != "":
+            new_text = new_text.replace("*", " × ")
+        if not self.species_space:
+            new_text = new_text.replace(" ", "")
+        if new_text != '':
+            # Construct the final text to be set
             # Insert the text at cursor (block handler to avoid recursion).
             entry.handler_block_by_func(self.on_sp_species_entry_insert_text)
-            entry.insert_text(text, position)
-            entry.handler_unblock_by_func(self.on_sp_species_entry_insert_text)
-            # Set the new cursor position immediately after the inserted text.
-            new_pos = position + len(text)
+            entry.insert_text(new_text, cursor_pos)
+            entry.handler_unblock_by_func(self.on_sp_species_entry_insert_text)            
+            
+            new_pos = cursor_pos + len(new_text)
             # Can't modify the cursor position from within this handler,
             # so we add it to be done at the end of the main loop:
             GLib.idle_add(entry.set_position, new_pos)
 
         # We handled the signal so stop it from being processed further.
-        entry.stop_emission("insert_text")
+        try:
+            entry.stop_emission("insert-text")
+        except Exception as e:
+            print(f"Error: {e}")
+
+        return True
 
     def ensure_string(self, value):
         """
