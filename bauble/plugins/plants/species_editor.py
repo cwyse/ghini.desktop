@@ -158,13 +158,17 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             "sp_habit_comboentry", "changed", self.on_habit_comboentry_changed
         )
 
-        # connect signals
+        # connect signals  
         def gen_get_completions(text):
-            return self.session.scalars(
-                select(Genus)
-                .where(Genus.genus.ilike(f"{text}%"))
-                .order_by(Genus.genus)
-            )
+            clause = utils.ilike(Genus.genus, f"{text}%")
+            stmt = select(Genus).where(clause).order_by(Genus.genus)
+
+            print(stmt.compile(compile_kwargs={"literal_binds": True}))  # optional debug
+
+            result = list(self.session.scalars(stmt))
+            print("Completion query returned:", [g.genus for g in result])
+            return result
+
         def sp_species_TPL_callback(found, accepted):
             # both found and accepted are dictionaries, their keys here
             # relevant: 'Species hybrid marker', 'Species', 'Authorship',
