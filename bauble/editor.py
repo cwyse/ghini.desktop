@@ -1973,7 +1973,7 @@ class GenericEditorPresenter:
                     # it from the popup
                     def _cmp(row, data):
                         return (
-                            utils.utf8(row[0])[: len(text)].lower()
+                            str(row[0])[: len(text)].lower()
                             == data.lower()
                         )
 
@@ -2014,6 +2014,8 @@ class GenericEditorPresenter:
                     on_select(text)  # `on_select` will know how to convert the
                     # text into a properly typed value.
                     self.remove_problem(PROBLEM, widget)
+                else:
+                    print("Why are we here?")
                 logger.debug("on_changed - part two - returning")
 
             GLib.idle_add(idle_callback, text)
@@ -2024,8 +2026,9 @@ class GenericEditorPresenter:
             value = compl_model[treeiter][0]
             # temporarily block the changed ID so that this function
             # doesn't get called twice
+            str_val = str(value)
             widget.handler_block(_changed_sid)
-            widget.set_text(utils.utf8(value))
+            widget.set_text(str_val)
             widget.handler_unblock(_changed_sid)
             self.remove_problem(PROBLEM, widget)
             on_select(value)

@@ -502,7 +502,8 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         }
     
     def __repr__(self):
-        return f"<Genus(id={self.id}, epithet='{self.epithet}')>"
+#        return f"<Genus(id={self.id}, epithet='{self.epithet}')>"
+        return Genus.str(self)
 
 def compute_serializable_fields(cls, session, keys):
     result = {"genus": None}
