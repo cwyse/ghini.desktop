@@ -122,7 +122,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         self.init_enum_combo("sp_spqual_combo", "sp_qual")
 
         def cell_data_func(column, cell, model, treeiter, data=None):
-            safe_set_text(cell, utils.utf8(model[treeiter][0]))
+            safe_set_text(cell, str(model[treeiter][0]))
 
         combo = self.view.widgets.sp_habit_comboentry
         model = Gtk.ListStore(str, object)
@@ -445,7 +445,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         value = combo.get_model()[treeiter][1]
         self.set_model_attr("habit", value)
         # the entry change handler does the validation of the model
-        safe_set_text(combo.get_child(), utils.utf8(value))
+        safe_set_text(combo.get_child(), str(value))
         combo.get_child().set_position(-1)
 
     def __del__(self):
@@ -787,13 +787,13 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             it = combo.get_active_iter()
             value = model[it][0]
             if value is not None:
-                self.set_model_attr("rank", utils.utf8(model[it][0]))
+                self.set_model_attr("rank", str(model[it][0]))
             else:
                 self.set_model_attr("rank", None)
 
         def on_epithet_entry_changed(self, entry, *args):
             logger.info("on_epithet_entry_changed({}, {})".format(entry, args))
-            value = utils.utf8(entry.get_text())
+            value = entry.get_text()
             if not value:  # if None or ''
                 value = None
             self.set_model_attr("epithet", value)
@@ -801,7 +801,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
 
         def on_author_entry_changed(self, entry, *args):
             logger.info("on_author_entry_changed({}, {})".format(entry, args))
-            value = utils.utf8(entry.get_text())
+            value = entry.get_text()
             if not value:  # if None or ''
                 value = None
             self.set_model_attr("author", value)
@@ -996,7 +996,7 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
         vn = treemodel[path][0]
         if getattr(vn, prop) == new_text:
             return  # didn't change
-        setattr(vn, prop, utils.utf8(new_text))
+        setattr(vn, prop, new_text)
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 

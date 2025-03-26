@@ -1447,7 +1447,7 @@ class GenericEditorPresenter:
             end_iter = widget.get_end_iter()  # Get end of buffer
             value = widget.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
             #value = widget.get_text()
-            value = value and utils.utf8(value) or None
+            value = value or None
         logger.debug(
             "on_text_entry_changed(%s, %s) - %s → %s"
             % (widget, attr, getattr(self.model, attr), value)
@@ -1512,7 +1512,7 @@ class GenericEditorPresenter:
             end_iter = widget.get_end_iter()  # Get end of buffer
             value = widget.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
             #value = widget.get_text()
-            value = value and utils.utf8(value) or None
+            value = value or None
         if not value:
             self.add_problem(self.PROBLEM_EMPTY, widget)
         else:
@@ -1546,7 +1546,7 @@ class GenericEditorPresenter:
             end_iter = widget.get_end_iter()  # Get end of buffer
             value = widget.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
             #value = widget.get_text()
-            value = value and utils.utf8(value) or None
+            value = value or None
         self.__set_model_attr(attr, value)
 
     def on_check_toggled(self, widget, value=None):
@@ -1856,7 +1856,7 @@ class GenericEditorPresenter:
                 if isinstance(widget, Gtk.ComboBox) and isinstance(
                     widget.get_child(), Gtk.Entry
                 ):
-                    safe_set_text(widget.get_child(), utils.utf8(value) or "")
+                    safe_set_text(widget.get_child(), str(value) or "")
                 self.set_model_attr(model_attr, value, validator)
 
             def entry_changed(entry, data=None):
@@ -1988,7 +1988,7 @@ class GenericEditorPresenter:
                         )
                         v = comp.get_model()[found[0]][0]
                         # only auto select if the full string has been entered
-                        if text.lower() == utils.utf8(v).lower():
+                        if text.lower() == str(v).lower():
                             comp.emit(
                                 "match-selected", comp.get_model(), found[0]
                             )
@@ -2259,14 +2259,14 @@ class NoteBox:
         start_iter = entry.get_start_iter()  # Get start of buffer
         end_iter = entry.get_end_iter()  # Get end of buffer
         text = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
-        value = utils.utf8(text) or None
+        value = text or None
         self.set_model_attr("user", value)
 
     def on_category_combo_changed(self, combo, *args):
         """Update the category combo box entry when selection changes."""
         treeiter = combo.get_active_iter()
         if treeiter:
-            text = utils.utf8(combo.get_model()[treeiter][0])
+            text = str(combo.get_model()[treeiter][0])
             self.widgets.category_comboentry.get_child().set_text(text)
 
     def on_category_entry_changed(self, entry, *args):
@@ -2274,7 +2274,7 @@ class NoteBox:
         start_iter = entry.get_start_iter()  # Get start of buffer
         end_iter = entry.get_end_iter()  # Get end of buffer
         text = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
-        value = utils.utf8(text) or None
+        value = text or None
         self.set_model_attr("category", value)
 
     def on_note_buffer_changed(self, buff, widget, *args):
@@ -2282,7 +2282,7 @@ class NoteBox:
         start_iter = buff.get_start_iter()  # Get start of buffer
         end_iter = buff.get_end_iter()  # Get end of buffer
         text = buff.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
-        value = utils.utf8(text) or None
+        value = text or None
         if value:
             self.presenter.remove_problem(self.presenter.PROBLEM_EMPTY, widget)
         else:
