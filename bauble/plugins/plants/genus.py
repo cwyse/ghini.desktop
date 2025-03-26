@@ -729,7 +729,7 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
                     completion.set_model(model)
                     safe_set_text(
                         self.view.widgets.gen_family_entry,
-                        utils.utf8(syn.family),
+                        str(syn.family),
                     )
                     # the family value should be set properly when the
                     # text is set on the entry but it doesn't hurt to

@@ -674,15 +674,15 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
         # or we should just catch the error(is there an error) and call
         # set_text if set_markup fails
         if markup:
-            widget.set_markup(utf8(value) or "")
+            widget.set_markup(str(value) or "")
         else:
-            safe_set_text(widget, utf8(value) or "")
+            safe_set_text(widget, str(value) or "")
     elif isinstance(widget, Gtk.TextView):
         safe_set_text(widget.get_buffer(), "%s" % value)
     elif isinstance(widget, Gtk.TextBuffer):
         safe_set_text(widget, "%s" % value)
     elif isinstance(widget, Gtk.Entry):
-        safe_set_text(widget, utf8(value) or "")
+        safe_set_text(widget, str(value) or "")
     elif isinstance(widget, Gtk.ComboBox):
         treeiter = None
         if not widget.get_model():
@@ -720,7 +720,7 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
         if value is None:
             widget.set_label("")
         else:
-            widget.set_label(utf8(value))
+            widget.set_label(str(value))
 
     else:
         raise TypeError(
@@ -1065,7 +1065,7 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
 
     # if combo is a Gtk.ComboBoxEntry then setup completions
     def compl_cell_data_func(col, cell, model, treeiter, data=None):
-        safe_set_text(cell, utf8(model[treeiter][0]))
+        safe_set_text(cell, str(model[treeiter][0]))
 
     completion = Gtk.EntryCompletion()
     completion.set_model(model)
@@ -1078,7 +1078,7 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
     def match_func(completion, key, treeiter, data=None):
         model = completion.get_model()
         value = model[treeiter][0]
-        return utf8(value).lower().startswith(key.lower())
+        return str(value).lower().startswith(key.lower())
 
     completion.set_match_func(match_func)
 
@@ -1086,7 +1086,7 @@ def setup_text_combobox(combo, values=None, cell_data_func=None):
         value = model[treeiter][0]
         if value:
             set_combo_from_value(combo, value)
-            safe_set_text(combo.get_child(), utf8(value))
+            safe_set_text(combo.get_child(), str(value))
         else:
             safe_set_props(combo.get_child(), "text", "")
 
