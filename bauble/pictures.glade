@@ -234,7 +234,8 @@
           </packing>
         </child>
         <child>
-          <object class="GtkHSeparator" id="hseparator1">
+          <object class="GtkSeparator" id="hseparator1">
+            <property name="orientation">horizontal</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
           </object>
@@ -401,17 +402,11 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkAlignment" id="alignment2">
+                          <object class="GtkLabel" id="label2">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="left-padding">10</property>
-                            <child>
-                              <object class="GtkLabel" id="label2">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">Date</property>
-                              </object>
-                            </child>
+                            <property name="label" translatable="yes">Date</property>
+                            <property name="margin-start">10</property>                                
                           </object>
                           <packing>
                             <property name="left-attach">2</property>
@@ -474,25 +469,19 @@
               </packing>
             </child>
             <child>
-              <object class="GtkAlignment" id="alignment1">
+              <object class="GtkButton" id="notes_remove_button">
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="yalign">0</property>
-                <property name="yscale">0</property>
-                <property name="left-padding">8</property>
-                <property name="right-padding">8</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="halign">fill</property> <!-- Assuming horizontal stretch -->
+                <property name="valign">start</property> <!-- Align at top -->
+                <property name="margin-start">8</property>
+                <property name="margin-end">8</property>
                 <child>
-                  <object class="GtkButton" id="notes_remove_button">
+                  <object class="GtkImage" id="image1">
                     <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">True</property>
-                    <child>
-                      <object class="GtkImage" id="image1">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="icon-name">list-remove</property>
-                      </object>
-                    </child>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">list-remove</property>
                   </object>
                 </child>
               </object>
@@ -510,7 +499,8 @@
           </packing>
         </child>
         <child>
-          <object class="GtkHSeparator" id="hseparator2">
+          <object class="GtkSeparator" id="hseparator2">
+            <property name="orientation">horizontal</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
           </object>

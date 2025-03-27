@@ -70,25 +70,19 @@
                 <property name="shadow-type">none</property>
                 <property name="visible">True</property>
                 <child>
-                  <object class="GtkAlignment" id="alignment1">
+                  <object class="GtkComboBox" id="domain_combo">
                     <property name="can-focus">False</property>
-                    <property name="left-padding">12</property>
+                    <property name="entry-text-column">0</property>
+                    <property name="model">domain_liststore</property>
                     <property name="visible">True</property>
+                    <property name="margin-start">12</property>
+                    <signal name="changed" handler="on_domain_combo_changed"/>
                     <child>
-                      <object class="GtkComboBox" id="domain_combo">
-                        <property name="can-focus">False</property>
-                        <property name="entry-text-column">0</property>
-                        <property name="model">domain_liststore</property>
-                        <property name="visible">True</property>
-                        <signal name="changed" handler="on_domain_combo_changed"/>
-                        <child>
-                          <object class="GtkCellRendererText" id="domain_combo_cell_1"/>
-                          <!-- Custom child fragments -->
-                          <attributes>
-                            <attribute name="text">0</attribute>
-                          </attributes>
-                        </child>
-                      </object>
+                      <object class="GtkCellRendererText" id="domain_combo_cell_1"/>
+                      <!-- Custom child fragments -->
+                      <attributes>
+                        <attribute name="text">0</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
@@ -115,17 +109,10 @@
                 <property name="shadow-type">none</property>
                 <property name="visible">True</property>
                 <child>
-                  <object class="GtkAlignment" id="alignment2">
+                  <object class="GtkGrid" id="expressions_table">
                     <property name="can-focus">False</property>
-                    <property name="left-padding">12</property>
                     <property name="visible">True</property>
-                    <child>
-                      <!-- n-columns=4 n-rows=1 -->
-                      <object class="GtkGrid" id="expressions_table">
-                        <property name="can-focus">False</property>
-                        <property name="visible">True</property>
-                      </object>
-                    </child>
+                    <property name="margin-start">12</property>
                   </object>
                 </child>
                 <child type="label">
@@ -145,46 +132,40 @@
               </packing>
             </child>
             <child>
-              <object class="GtkAlignment" id="alignment3">
+              <object class="GtkBox" id="hbox3">
                 <property name="can-focus">False</property>
                 <property name="visible">True</property>
                 <child>
-                  <object class="GtkBox" id="hbox3">
-                    <property name="can-focus">False</property>
+                  <object class="GtkButton" id="add_clause_button">
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
                     <property name="visible">True</property>
+                    <signal name="clicked" handler="on_add_clause"/>
                     <child>
-                      <object class="GtkButton" id="add_clause_button">
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
+                      <object class="GtkImage" id="image1">
+                        <property name="can-focus">False</property>
+                        <property name="stock">gtk-add</property>
                         <property name="visible">True</property>
-                        <signal name="clicked" handler="on_add_clause"/>
-                        <child>
-                          <object class="GtkImage" id="image1">
-                            <property name="can-focus">False</property>
-                            <property name="stock">gtk-add</property>
-                            <property name="visible">True</property>
-                          </object>
-                        </child>
                       </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                      </packing>
                     </child>
                   </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-          </packing>
-        </child>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                   </packing>
+                  </child>
+                </object>
+                <packing>
+                  <property name="expand">True</property>
+                  <property name="fill">True</property>
+                </packing>
+              </child>
+            </object>
+            <packing>
+              <property name="expand">True</property>
+              <property name="fill">True</property>
+            </packing>
+          </child>
       </object>
     </child>
     <action-widgets>
