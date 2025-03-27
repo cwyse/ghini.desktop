@@ -158,12 +158,9 @@ def func_modify_labels(tree_old: ET.ElementTree, tree_new: ET.ElementTree):
         old_id = btn_old.get("id")
         label_prop = btn_old.find("./property[@name='label']")
         stock_label = btn_old.find("./property[@name='stock']")
-        if stock_label is not None:
-            stock = stock_label.text.strip()
-        else:
-            stock = None
-
         use_stock = btn_old.find("./property[@name='use-stock']")
+
+        stock = stock_label.text.strip() if stock_label is not None and stock_label.text else None
         use_stock_val = use_stock.text.strip().lower() == "true" if use_stock is not None else False
 
         btn_new = tree_new.xpath(f".//object[@class='GtkButton'][@id='{old_id}']")
@@ -181,8 +178,11 @@ def func_modify_labels(tree_old: ET.ElementTree, tree_new: ET.ElementTree):
             label_text = old_id.replace("_", " ").title()
 
         if use_stock_val and stock in label_replacements:
-            # full stock emulation
-            ensure_gtkbox_with_image_and_label(btn_new, icon_name, label_text)
+            label_direct = btn_new.find("./property[@name='label']")
+            if label_direct is not None and label_direct.text and label_direct.text.startswith("gtk-"):
+                btn_new.remove(label_direct)
+
+            func_ensure_gtkbox_with_image_and_label(btn_new, icon_name, label_text)
         elif label_text:
             label_direct = btn_new.find("./property[@name='label']")
             if label_direct is None:
@@ -306,14 +306,13 @@ def output_shadow_types():
         file.write("}\n")
 
 modification_functions = [
-func_ensure_button_labels,
-func_handle_deprecated_properties,
-func_map_attach_properties,
-func_map_property_names,
-func_map_shadow_type,
-func_modify_labels,
-func_update_images_from_stock,
-func_update_images_from_stock,
+    func_ensure_button_labels,
+    func_handle_deprecated_properties,
+    func_map_attach_properties,
+    func_map_property_names,
+    func_map_shadow_type,
+    func_modify_labels,
+    func_update_images_from_stock,
 ]
 
 base_old = Path("/home/chris/repositories/ghini.desktop.new/bauble")
