@@ -307,11 +307,11 @@ def output_shadow_types():
 
 modification_functions = [
     func_ensure_button_labels,
+    func_modify_labels,
     func_handle_deprecated_properties,
     func_map_attach_properties,
     func_map_property_names,
     func_map_shadow_type,
-    func_modify_labels,
     func_update_images_from_stock,
 ]
 
