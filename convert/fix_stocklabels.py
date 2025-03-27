@@ -182,7 +182,7 @@ def func_modify_labels(tree_old: ET.ElementTree, tree_new: ET.ElementTree):
             if label_direct is not None and label_direct.text and label_direct.text.startswith("gtk-"):
                 btn_new.remove(label_direct)
 
-            func_ensure_gtkbox_with_image_and_label(btn_new, icon_name, label_text)
+            ensure_gtkbox_with_image_and_label(btn_new, icon_name, label_text)
         elif label_text:
             label_direct = btn_new.find("./property[@name='label']")
             if label_direct is None:
@@ -210,7 +210,7 @@ def func_update_images_from_stock(tree_old: ET.ElementTree, tree_new: ET.Element
 
 
 
-def func_ensure_gtkbox_with_image_and_label(obj_new, icon_name, label_text):
+def ensure_gtkbox_with_image_and_label(obj_new, icon_name, label_text):
     label_prop_direct = obj_new.find("./property[@name='label']")
     if label_prop_direct is not None:
         obj_new.remove(label_prop_direct)
