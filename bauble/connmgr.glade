@@ -33,9 +33,6 @@
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <property name="visible">True</property>
-
-
-
         <child internal-child="action_area">
           <object class="GtkButtonBox" id="hbuttonbox2">
             <property name="can-focus">False</property>
@@ -137,7 +134,7 @@
                             <property name="icon-name">list-add</property>
                             <property name="pixel-size">24</property>
                             <property name="visible">True</property>
-                          </object>                          
+                          </object>
                         </child>
                         <child>
                           <object class="GtkLabel">
@@ -172,7 +169,7 @@
                             <property name="icon-name">edit-delete</property>
                             <property name="pixel-size">24</property>
                             <property name="visible">True</property>
-                          </object>                          
+                          </object>
                         </child>
                         <child>
                           <object class="GtkLabel">
