@@ -171,6 +171,64 @@ class PictureImporterPresenter(GenericEditorPresenter):
         init_location_comboentry(
             self, self.view.widgets.location_combobox, on_location_select
         )
+        
+        # Gio.SimpleActions setup:
+        self.create_actions()
+
+from gi.repository import Gio, Gtk
+
+class PictureImporterPresenter(GenericEditorPresenter):
+    widget_to_field_map = {
+        "accno_entry": "accno_format",
+        "filepath_entry": "filepath",
+        "recurse_checkbutton": "recurse",
+    }
+
+    def __init__(self, model, view, **kwargs):
+        kwargs["refresh_view"] = True
+        super().__init__(model, view, **kwargs)
+
+        self.panes = [
+            self.view.widgets.box_define,
+            self.view.widgets.box_review,
+            self.view.widgets.box_log,
+        ]
+        self.review_liststore = self.view.widgets.review_liststore
+        self.running_thread = None
+        self.keep_running = None
+        self.show_visible_pane()
+        self.view.widgets.use_tvc.set_sort_column_id(use_me_col)
+        self.view.widgets.filename_tvc.set_sort_column_id(filename_col)
+        self.view.widgets.accno_tvc.set_sort_column_id(accno_col)
+        self.view.widgets.binomial_tvc.set_sort_column_id(binomial_col)
+        self.view.widgets.iseditable_tvc.set_sort_column_id(iseditable_col)
+
+        from bauble.plugins.garden import init_location_comboentry
+
+        def on_location_select(location):
+            self.model.location = location.code
+
+        init_location_comboentry(
+            self, self.view.widgets.location_combobox, on_location_select
+        )
+
+        # Gio.SimpleActions setup:
+        self.create_actions()
+
+    def create_actions(self):
+        actions = {
+            "cancel": self.on_action_cancel_activate,
+            "ok": self.on_action_ok_activate,
+            "browse": self.on_action_browse_activate,
+            "next": self.on_action_next_activate,
+            "prev": self.on_action_prev_activate,
+        }
+
+        for action_name, callback in actions.items():
+            action = Gio.SimpleAction.new(action_name, None)
+            action.connect("activate", callback)
+            # Actions are added to the application or window
+            self.view.get_window().add_action(action)
 
     def show_visible_pane(self):
         for n, i in enumerate(self.panes):
@@ -464,11 +522,11 @@ class PictureImporterPresenter(GenericEditorPresenter):
     def on_picture_importer_dialog_response(self, widget, response, **kwargs):
         self.keep_running = None
 
-    def on_action_prev_activate(self, *args, **kwargs):
+    def on_action_prev_activate(self, action, parameter):
         self.model.visible_pane -= 1
         self.show_visible_pane()
 
-    def on_action_next_activate(self, *args, **kwargs):
+    def on_action_next_activate(self, action, parameter):
         self.model.visible_pane += 1
         self.show_visible_pane()
         if self.model.visible_pane == 1:  # let user review import
@@ -496,7 +554,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         for i in Gtk.stock_list_ids():
             self.view.widgets.log_liststore.append([i, i])
 
-    def on_action_cancel_activate(self, *args, **kwargs):
+    def on_action_cancel_activate(self, action, parameter):
         if self.running_thread:
             self.keep_running = None  # any running thread will return soon
             if self.running_thread.name == "do_import":
@@ -505,7 +563,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
             self.running_thread = None
         self.view.get_window().emit("response", Gtk.ResponseType.DELETE_EVENT)
 
-    def on_action_ok_activate(self, *args, **kwargs):
+    def on_action_ok_activate(self, action, parameter):
         # OK is set active only in do_import.  if we're here, means that
         # do_import has been running and is now waiting for us at the lock.
         self.should_commit = True
@@ -514,10 +572,10 @@ class PictureImporterPresenter(GenericEditorPresenter):
         self.running_thread = None
         self.view.get_window().emit("response", Gtk.ResponseType.OK)
 
-    def on_action_browse_activate(self, *args, **kwargs):
+    def on_action_browse_activate(self, action, parameter):
         text = _("Select pictures source directory")
         parent = None
-        action = Gtk.FileChooserAction.SELECT_FOLDER
+        action_type = Gtk.FileChooserAction.SELECT_FOLDER
         buttons = [
             _("Cancel"),
             Gtk.ResponseType.CANCEL,
@@ -527,7 +585,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         last_folder = self.model.filepath
         target = "filepath_entry"
         self.view.run_file_chooser_dialog(
-            text, parent, action, buttons, last_folder, target
+            text, parent, action_type, buttons, last_folder, target
         )
 
 

@@ -73,9 +73,9 @@
                   <object class="GtkComboBox" id="domain_combo">
                     <property name="can-focus">False</property>
                     <property name="entry-text-column">0</property>
+                    <property name="margin-start">12</property>
                     <property name="model">domain_liststore</property>
                     <property name="visible">True</property>
-                    <property name="margin-start">12</property>
                     <signal name="changed" handler="on_domain_combo_changed"/>
                     <child>
                       <object class="GtkCellRendererText" id="domain_combo_cell_1"/>
@@ -111,8 +111,8 @@
                 <child>
                   <object class="GtkGrid" id="expressions_table">
                     <property name="can-focus">False</property>
-                    <property name="visible">True</property>
                     <property name="margin-start">12</property>
+                    <property name="visible">True</property>
                   </object>
                 </child>
                 <child type="label">
@@ -152,20 +152,20 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                   </packing>
-                  </child>
-                </object>
-                <packing>
-                  <property name="expand">True</property>
-                  <property name="fill">True</property>
-                </packing>
-              </child>
-            </object>
-            <packing>
-              <property name="expand">True</property>
-              <property name="fill">True</property>
-            </packing>
-          </child>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+          </packing>
+        </child>
       </object>
     </child>
     <action-widgets>
