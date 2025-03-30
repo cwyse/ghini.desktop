@@ -1338,6 +1338,14 @@ class SpeciesEditorView(editor.GenericEditorView):
             pass
         self.widgets.sp_next_button.set_sensitive(sensitive)
 
+    def connect_actions(self):
+        dialog = self.get_window()
+        self.widgets.sp_cancel_button.connect("clicked", lambda b: dialog.response(Gtk.ResponseType.CANCEL))
+        self.widgets.sp_ok_button.connect("clicked", lambda b: dialog.response(Gtk.ResponseType.OK))
+        self.widgets.sp_ok_and_add_button.connect("clicked", lambda b: dialog.response(11))
+        self.widgets.sp_next_button.connect("clicked", lambda b: dialog.response(22))
+
+
     @staticmethod
     def genus_completion_cell_data_func(
         column, renderer, model, treeiter, data=None

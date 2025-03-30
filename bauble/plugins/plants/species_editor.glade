@@ -79,7 +79,11 @@
 								<property name="image-position">left</property>
 								
 								<accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK" />
-								<child><object class="GtkImage"><property name="icon-name">go-next</property><property name="pixel-size">16</property></object></child></object>
+								<child>
+<object class="GtkImage">
+<property name="icon-name">go-next</property>
+<property name="pixel-size">16</property>
+</object><packing><property name="expand">False</property><property name="fill">True</property><property name="position">0</property></packing></child></object>
 							<packing>
 								<property name="expand">False</property>
 								<property name="fill">False</property>
@@ -289,8 +293,8 @@
 																		<property name="can-focus">True</property>
 																		<property name="receives-default">True</property>
 																		<property name="always-show-image">True</property>
-																		<property name="pixel-size">16</property>
-																	<child><object class="GtkImage"><property name="icon-name">emblem-ok</property><property name="pixel-size">16</property></object></child></object>
+																
+																	<child><object class="GtkImage"><property name="icon-name">emblem-ok</property><property name="pixel-size">16</property></object><packing><property name="expand">False</property><property name="fill">True</property><property name="position">0</property></packing></child></object>
 																	<packing>
 																		<property name="expand">False</property>
 																		<property name="fill">True</property>
@@ -496,7 +500,7 @@
 																<property name="receives-default">True</property>
 																<property name="visible">True</property>
 																<property name="always-show-image">True</property>
-															<child><object class="GtkImage"><property name="icon-name">list-add</property><property name="pixel-size">16</property></object></child></object>
+															<child><object class="GtkImage"><property name="icon-name">list-add</property><property name="pixel-size">16</property></object><packing><property name="expand">False</property><property name="fill">True</property><property name="position">0</property></packing></child></object>
 															<packing>
 																<property name="expand">False</property>
 																<property name="fill">False</property>
@@ -605,7 +609,7 @@
 																<property name="receives-default">True</property>
 																<property name="visible">True</property>
 																<property name="always-show-image">True</property>
-															<child><object class="GtkImage"><property name="icon-name">list-add</property><property name="pixel-size">16</property></object></child></object>
+															<child><object class="GtkImage"><property name="icon-name">list-add</property><property name="pixel-size">16</property></object><packing><property name="expand">False</property><property name="fill">True</property><property name="position">0</property></packing></child></object>
 															<packing>
 																<property name="expand">True</property>
 																<property name="fill">True</property>
@@ -618,7 +622,7 @@
 																<property name="receives-default">True</property>
 																<property name="visible">True</property>
 																<property name="always-show-image">True</property>
-															<child><object class="GtkImage"><property name="icon-name">list-remove</property><property name="pixel-size">16</property></object></child></object>
+															<child><object class="GtkImage"><property name="icon-name">list-remove</property><property name="pixel-size">16</property></object><packing><property name="expand">False</property><property name="fill">True</property><property name="position">0</property></packing></child></object>
 															<packing>
 																<property name="expand">True</property>
 																<property name="fill">True</property>
@@ -859,7 +863,7 @@
 																				<property name="can-focus">True</property>
 																				<property name="receives-default">True</property>
 																				<property name="always-show-image">True</property>
-																			<child><object class="GtkImage"><property name="icon-name">list-add</property><property name="pixel-size">16</property></object></child></object>
+																			<child><object class="GtkImage"><property name="icon-name">list-add</property><property name="pixel-size">16</property></object><packing><property name="expand">False</property><property name="fill">True</property><property name="position">0</property></packing></child></object>
 																			<packing>
 																				<property name="expand">False</property>
 																				<property name="fill">False</property>
@@ -874,7 +878,7 @@
 																				<property name="receives-default">True</property>
 																				<property name="label">Remove</property>
 																				<property name="always-show-image">True</property>
-																			<child><object class="GtkImage"><property name="icon-name">list-remove</property><property name="pixel-size">16</property></object></child></object>
+																			<child><object class="GtkImage"><property name="icon-name">list-remove</property><property name="pixel-size">16</property></object><packing><property name="expand">False</property><property name="fill">True</property><property name="position">0</property></packing></child></object>
 																			<packing>
 																				<property name="expand">False</property>
 																				<property name="fill">False</property>
@@ -981,7 +985,7 @@
 																								<property name="receives-default">True</property>
 																								<property name="label" translatable="yes">Add</property>
 																								<property name="always-show-image">True</property>
-																							<child><object class="GtkImage"><property name="icon-name">list-add</property><property name="pixel-size">16</property></object></child></object>
+																							<child><object class="GtkImage"><property name="icon-name">list-add</property><property name="pixel-size">16</property></object><packing><property name="expand">False</property><property name="fill">True</property><property name="position">0</property></packing></child></object>
 																							<packing>
 																								<property name="expand">False</property>
 																								<property name="fill">False</property>
@@ -996,7 +1000,7 @@
 																								<property name="receives-default">True</property>
 																								<property name="label" translatable="yes">Remove</property>
 																								<property name="always-show-image">True</property>
-																							<child><object class="GtkImage"><property name="icon-name">list-remove</property><property name="pixel-size">16</property></object></child></object>
+																							<child><object class="GtkImage"><property name="icon-name">list-remove</property><property name="pixel-size">16</property></object><packing><property name="expand">False</property><property name="fill">True</property><property name="position">0</property></packing></child></object>
 																							<packing>
 																								<property name="expand">False</property>
 																								<property name="fill">False</property>
@@ -1115,12 +1119,7 @@
 						</child>
 					</object>
 				</child>
-				<action-widgets>
-					<action-widget response="-6">sp_cancel_button</action-widget>
-					<action-widget response="-5">sp_ok_button</action-widget>
-					<action-widget response="11">sp_ok_and_add_button</action-widget>
-					<action-widget response="22">sp_next_button</action-widget>
-				</action-widgets>
+
 			</object>
 			<object class="GtkWindow" id="window1">
 				<property name="can-focus">False</property>
