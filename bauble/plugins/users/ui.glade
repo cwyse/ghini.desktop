@@ -23,14 +23,11 @@
             </child>
             <child>
               <object class="GtkButton" id="main_ok_button">
+                <property name="label">gtk-ok</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <child>
-                  <object class="GtkImage" id="main_ok_button_image">
-                    <property name="icon-name">ok</property>
-                  </object>
-                </child>
+                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -102,15 +99,12 @@
                                 <property name="can-focus">False</property>
                                 <child>
                                   <object class="GtkButton" id="add_button">
+                                    <property name="label">gtk-add</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">True</property>
+                                    <property name="use-stock">True</property>
                                     <signal name="clicked" handler="on_add_button_clicked" swapped="no"/>
-                                    <child>
-                                      <object class="GtkImage" id="add_button_image">
-                                        <property name="icon-name">add</property>
-                                      </object>
-                                    </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -120,15 +114,12 @@
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="remove_button">
+                                    <property name="label">gtk-remove</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">True</property>
+                                    <property name="use-stock">True</property>
                                     <signal name="clicked" handler="on_remove_button_clicked" swapped="no"/>
-                                    <child>
-                                      <object class="GtkImage" id="remove_button_image">
-                                        <property name="icon-name">remove</property>
-                                      </object>
-                                    </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -355,14 +346,11 @@
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="pwd_cancel_button">
+                <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <child>
-                  <object class="GtkImage" id="pwd_cancel_button_image">
-                    <property name="icon-name">cancel</property>
-                  </object>
-                </child>
+                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -372,14 +360,11 @@
             </child>
             <child>
               <object class="GtkButton" id="pwd_ok_button">
+                <property name="label">gtk-ok</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <child>
-                  <object class="GtkImage" id="pwd_ok_button_image">
-                    <property name="icon-name">ok</property>
-                  </object>
-                </child>
+                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
