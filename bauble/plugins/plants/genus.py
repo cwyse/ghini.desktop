@@ -36,6 +36,7 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.view as view
+from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.family import FamilySynonym
 from bauble.plugins.plants.species_model import Species
 from bauble.prefs import prefs
@@ -684,13 +685,29 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
         # initialize widgets
         self.synonyms_presenter = SynonymsPresenter(self)
         self.refresh_view()  # put model values in view
-
+        # connect signals  
+#        def gen_get_completions(text):
+#            clause = utils.ilike(Genus.genus, f"{text}%")
+#            stmt = select(Genus).where(clause).order_by(Genus.genus)#
+#
+#            print(stmt.compile(compile_kwargs={"literal_binds": True}))  # optional debug
+#
+#            result = list(self.session.scalars(stmt))
+#            print("Completion query returned:", [g.genus for g in result])
+#            return result
         # connect signals
         def fam_get_completions(text_val):
-            query = self.session.execute(select(family_instance)).scalars()
-            return query.where(family_instance.epithet.like("%s%%" % text_val)).order_by(
-                family_instance.epithet
-            )
+            clause = utils.ilike(Family.family, f"{text_val}%")
+            stmt = select(Family).where(clause).order_by(Family.family)
+
+            result = list(self.session.scalars(stmt))
+            print("Completion query returned:", [g.family for g in result])
+            return result
+#        def fam_get_completions(text_val):
+#            query = self.session.execute(select(family_instance)).scalars()
+#            return query.where(family_instance.epithet.like("%s%%" % text_val)).order_by(
+#                family_instance.epithet
+#            )
 
         def on_select(value):
             for kid in self.view.widgets.message_box_parent.get_children():
@@ -1041,7 +1058,9 @@ class GenusEditor(editor.GenericModelViewPresenterEditor):
 
     def start(self):
         family_instance = get_family_class()
-        if self.session.execute(select(family_instance)).scalars().count() == 0:
+        if self.session.execute(select(family_instance)).scalars().first() is None:
+            # No matching row found
+
             msg = _(
                 "You must first add or import at least one Family into "
                 "the database before you can add plants."
