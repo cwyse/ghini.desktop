@@ -1,90 +1,88 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 0.94.1 -->
 <!-- Generated with glade 3.38.2 -->
 <interface>
+  <!-- interface-name gui.glade -->
   <requires lib="gtk+" version="3.24"/>
   <object class="GtkWindow" id="window1">
     <property name="can-focus">False</property>
     <child>
       <object class="GtkBox" id="settings_box">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
         <property name="border-width">10</property>
+        <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <property name="spacing">15</property>
+        <property name="visible">True</property>
         <child>
           <object class="GtkFrame" id="frame2">
-            <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
+            <property name="visible">True</property>
             <child>
-              <object class="GtkAlignment" id="alignment2">
-                <property name="visible">True</property>
+              <object class="GtkBox" id="box4">
                 <property name="can-focus">False</property>
-                <property name="border-width">5</property>
-                <property name="left-padding">12</property>
+                <property name="spacing">0</property>
+                <property name="visible">True</property>
                 <child>
                   <object class="GtkFileChooserButton" id="template_chooser">
-                    <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <signal name="file-set" handler="on_template_chooser_file_set" swapped="no"/>
+                    <property name="visible">True</property>
+                    <signal name="file-set" handler="on_template_chooser_file_set"/>
                   </object>
                 </child>
               </object>
             </child>
             <child type="label">
               <object class="GtkLabel" id="label3">
-                <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="label" translatable="yes">&lt;b&gt;Template&lt;/b&gt;</property>
                 <property name="use-markup">True</property>
+                <property name="visible">True</property>
               </object>
             </child>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
-            <property name="position">0</property>
           </packing>
         </child>
         <child>
           <object class="GtkCheckButton" id="private_check">
-            <property name="visible">True</property>
             <property name="can-focus">True</property>
-            <property name="receives-default">False</property>
-            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
             <property name="draw-indicator">True</property>
+            <property name="events">button-press-mask|button-release-mask|pointer-motion-hint-mask|pointer-motion-mask</property>
+            <property name="receives-default">False</property>
+            <property name="visible">True</property>
             <child>
               <object class="GtkBox" id="hbox1">
-                <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                <property name="events">button-press-mask|button-release-mask|pointer-motion-hint-mask|pointer-motion-mask</property>
                 <property name="spacing">20</property>
+                <property name="visible">True</property>
                 <child>
                   <object class="GtkLabel" id="label4">
-                    <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                    <property name="events">button-press-mask|button-release-mask|pointer-motion-hint-mask|pointer-motion-mask</property>
                     <property name="label" translatable="yes">&lt;b&gt;Include data marked as private&lt;/b&gt;</property>
                     <property name="use-markup">True</property>
+                    <property name="visible">True</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkImage" id="image1">
-                    <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                    <property name="stock">gtk-dialog-authentication</property>
+                    <property name="events">button-press-mask|button-release-mask|pointer-motion-hint-mask|pointer-motion-mask</property>
+                    <property name="icon-name">dialog-password</property>
+                    <property name="visible">True</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
                   </packing>
                 </child>
               </object>
@@ -93,25 +91,17 @@
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
           </packing>
         </child>
         <child>
           <!-- n-columns=2 n-rows=1 -->
           <object class="GtkGrid" id="mako_options_box">
-            <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
+            <property name="visible">True</property>
           </object>
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
           </packing>
         </child>
       </object>
