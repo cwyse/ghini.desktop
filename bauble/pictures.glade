@@ -22,14 +22,10 @@
             <property name="visible">True</property>
             <child>
               <object class="GtkButton" id="button2">
-                <property name="can-focus">True</property>
+                <property name="label">gtk-cancel</property>                <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="visible">True</property>
-                <child>
-                  <object class="GtkImage" id="button2_image">
-                    <property name="icon-name">cancel</property>
-                  </object>
-                </child>
+                <property name="visible">True</property>        <property name="use-stock">True</property>
+
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -38,14 +34,9 @@
             </child>
             <child>
               <object class="GtkButton" id="button1">
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="visible">True</property>
-                <child>
-                  <object class="GtkImage" id="button1_image">
-                    <property name="icon-name">ok</property>
-                  </object>
-                </child>
+                <property name="label">gtk-ok</property> <property name="can-focus">True</property>
+                <property name="receives-default">True</property> <property name="use-action-appearance">False</property>
+                <property name="visible">True</property>   <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -193,21 +184,20 @@
             <property name="can-focus">False</property>
             <property name="visible">True</property>
             <child>
-              <object class="GtkButton" id="notes_add_button">
+              <object class="GtkButton" id="notes_add_button">         <property name="label">gtk-add</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="visible">True</property>
-                <child>
-                  <object class="GtkImage" id="notes_add_button_image">
-                    <property name="icon-name">add</property>
-                  </object>
-                </child>
+                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">False</property>
                 <property name="padding">5</property>
               </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>
@@ -243,7 +233,12 @@
                     <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <property name="visible">True</property>
-                  </object>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>                  </object>
                 </child>
               </object>
             </child>
@@ -396,7 +391,9 @@
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
                         <property name="visible">True</property>
-                      </object>
+                        <child>
+                          <placeholder/>
+                        </child>                      </object>
                       <packing>
                         <property name="expand">True</property>
                         <property name="fill">True</property>
@@ -430,9 +427,8 @@
                 <child>
                   <object class="GtkImage" id="image1">
                     <property name="can-focus">False</property>
-                    <property name="icon-name">list-remove</property>
-                    <property name="visible">True</property>
-                  </object>
+                     <property name="visible">True</property>
+ <property name="stock">gtk-remove</property>                 </object>
                 </child>
               </object>
               <packing>
