@@ -51,7 +51,6 @@ from sqlalchemy.orm import object_session
 from sqlalchemy import select
 
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -1508,10 +1507,7 @@ class GenericEditorPresenter:
         if attr is None:
             return
         if value is None:
-            start_iter = widget.get_start_iter()  # Get start of buffer
-            end_iter = widget.get_end_iter()  # Get end of buffer
-            value = widget.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
-            #value = widget.get_text()
+            value = widget.get_text()
             value = value or None
         if not value:
             self.add_problem(self.PROBLEM_EMPTY, widget)
@@ -1542,10 +1538,7 @@ class GenericEditorPresenter:
         attr = self.__get_widget_attr(widget)
         logger.debug("on_datetime_entry_changed({}, {})".format(widget, attr))
         if value is None:
-            start_iter = widget.get_start_iter()  # Get start of buffer
-            end_iter = widget.get_end_iter()  # Get end of buffer
-            value = widget.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
-            #value = widget.get_text()
+            value = widget.get_text()  
             value = value or None
         self.__set_model_attr(attr, value)
 
@@ -1860,10 +1853,9 @@ class GenericEditorPresenter:
                 self.set_model_attr(model_attr, value, validator)
 
             def entry_changed(entry, data=None):
-                start_iter = entry.get_start_iter()  # Get start of buffer
-                end_iter = entry.get_end_iter()  # Get end of buffer
-                value = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+                value = entry.get_text()
                 self.set_model_attr(model_attr, value, validator)
+
 
             self.view.connect(widget, "changed", combo_changed)
             if isinstance(widget, Gtk.ComboBox) and isinstance(
@@ -2191,7 +2183,7 @@ class NoteBox:
             label_widget.set_property("ellipsize", Pango.EllipsizeMode.END)
 
         # Setup model bindings
-        mapper = utils.object_mapper(self.model)
+        mapper = object_mapper(self.model)
         values = utils.get_distinct_values(mapper.c["category"], self.session)
         utils.setup_text_combobox(self.widgets.category_comboentry, values)
         utils.set_widget_value(self.widgets.category_comboentry, self.model.category or "")
@@ -2242,9 +2234,7 @@ class NoteBox:
     def on_date_entry_changed(self, entry, *args):
         """Validate and update the date entry."""
         PROBLEM = "BAD_DATE"
-        start_iter = entry.get_start_iter()  # Get start of buffer
-        end_iter = entry.get_end_iter()  # Get end of buffer
-        text = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+        text = entry.get_text()
         try:
             text = utils.DateValidator().to_python(text)
         except Exception as e:
@@ -2256,9 +2246,7 @@ class NoteBox:
 
     def on_user_entry_changed(self, entry, *args):
         """Update the user entry value."""
-        start_iter = entry.get_start_iter()  # Get start of buffer
-        end_iter = entry.get_end_iter()  # Get end of buffer
-        text = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+        text = entry.get_text() 
         value = text or None
         self.set_model_attr("user", value)
 
@@ -2271,9 +2259,7 @@ class NoteBox:
 
     def on_category_entry_changed(self, entry, *args):
         """Update the category value."""
-        start_iter = entry.get_start_iter()  # Get start of buffer
-        end_iter = entry.get_end_iter()  # Get end of buffer
-        text = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text
+        text = entry.get_text()  
         value = text or None
         self.set_model_attr("category", value)
 
@@ -2297,10 +2283,7 @@ class NoteBox:
             format = self.prefs.prefs[self.prefs.date_format_pref]
             date_str = utils.xml_safe(self.model.date.strftime(format))
         else:
-            start_iter = self.widgets.date_entry.get_start_iter()  # Get start of buffer
-            end_iter = self.widgets.date_entry.get_end_iter()  # Get end of buffer
-            date_str = self.widgets.date_entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text            
-            #date_str = self.widgets.date_entry.get_text()
+            date_str = self.widgets.date_entry.get_text()
 
         if self.model.user and date_str:
             label.append(_("%(user)s on %(date)s") % {"user": utils.xml_safe(self.model.user), "date": date_str})
@@ -2330,10 +2313,7 @@ class NoteBox:
         # Ensure date is set when modifying other attributes
         if attr != "date" and not self.model.date:
             entry = self.widgets.date_entry
-            start_iter = entry.get_start_iter()  # Get start of buffer
-            end_iter = entry.get_end_iter()  # Get end of buffer
-            tmp = entry.get_text(start_iter, end_iter, False)  # False -> don't include hidden text            
-            #tmp = entry.get_text()
+            tmp = entry.get_text()
             safe_set_props(entry, "text", "")
             safe_set_props(entry, "text", tmp)
             self.presenter.notes.append(self.model)
@@ -2474,6 +2454,7 @@ class NotesPresenter(GenericEditorPresenter):
 
     def __init__(self, presenter, notes_property, parent_container, prefs=None):
         super().__init__(model=presenter.model, view=None, prefs=prefs)
+        self.prefs = prefs
 
         # The glade file named in ContentBox is structured with two top
         # GtkWindow next to each other. Here, by not doing any lookup, we
@@ -2519,14 +2500,13 @@ class NotesPresenter(GenericEditorPresenter):
         box.set_expanded(True)
 
     def add_note(self, note=None):
-        """
-        Add a new note to the model.
-        """
-        expander = self.ContentBox(self, note)
-        self.box.pack_start(expander, False, False, 0)
-        self.box.reorder_child(expander, 0)
-        expander.show_all()
-        return expander
+        note_box = self.ContentBox(self, note, prefs=self.prefs)
+        widget = note_box.get_widget()
+        self.box.pack_start(widget, False, False, 0)
+        self.box.reorder_child(widget, 0)
+        widget.show_all()
+        return note_box
+
 
 
 class PicturesPresenter(NotesPresenter):
