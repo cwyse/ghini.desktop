@@ -47,7 +47,7 @@ from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
-from sqlalchemy import select
+from sqlalchemy import select,distinct
 #from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
@@ -1044,13 +1044,14 @@ class GeneralFamilyExpander(InfoExpander):
         if nsp == 0:
             self.widget_set_value("fam_nsp_data", 0)
         else:
-            ngen_in_sp = (
-                session.execute(select(get_species()).scalars().genus_id)
-                .join(genus_instance, get_species().genus_id == genus_instance.id)
-                .join(Family, genus_instance.family_id == Family.id)
-                .where(Family.id == row.id)
-                .distinct()
-                .count()
+            species = get_species()
+            ngen_in_sp = len(
+                session.execute(
+                    select(distinct(species.genus_id))
+                    .join(genus_instance, species.genus_id == genus_instance.id)
+                    .join(Family, genus_instance.family_id == Family.id)
+                    .where(Family.id == row.id)
+                ).scalars().all()
             )
             self.widget_set_value(
                 "fam_nsp_data", "%s in %s genera" % (nsp, ngen_in_sp)
@@ -1075,14 +1076,15 @@ class GeneralFamilyExpander(InfoExpander):
         if nacc == 0:
             self.widget_set_value("fam_nacc_data", nacc)
         else:
-            nsp_in_acc = (
-                session.execute(select(Accession.species_id)).scalars()
-                .join(get_species(), Accession.species_id == get_species().id)
-                .join(genus_instance, get_species().genus_id == genus_instance.id)
-                .join(Family, genus_instance.family_id == Family.id)
-                .where(Family.id == row.id)
-                .distinct()
-                .count()
+            species = get_species()
+            nsp_in_acc = len(
+                session.execute(
+                    select(distinct(Accession.species_id))
+                    .join(species, Accession.species_id == species.id)
+                    .join(genus_instance, species.genus_id == genus_instance.id)
+                    .join(Family, genus_instance.family_id == Family.id)
+                    .where(Family.id == row.id)
+                ).scalars().all()
             )
             self.widget_set_value(
                 "fam_nacc_data", "%s in %s species" % (nacc, nsp_in_acc)
@@ -1101,15 +1103,16 @@ class GeneralFamilyExpander(InfoExpander):
         if nplants == 0:
             self.widget_set_value("fam_nplants_data", nplants)
         else:
-            nacc_in_plants = (
-                session.execute(select(Plant.accession_id)).scalars()
-                .join(Accession, Plant.accession_id == Accession.id)
-                .join(get_species(), Accession.species_id == get_species().id)
-                .join(genus_instance, get_species().genus_id == genus_instance.id)
-                .join(Family, genus_instance.family_id == Family.id)
-                .where(Family.id == row.id)
-                .distinct()
-                .count()
+            species = get_species()
+            nacc_in_plants = len(
+                session.execute(
+                    select(distinct(Plant.accession_id))
+                    .join(Accession, Plant.accession_id == Accession.id)
+                    .join(species, Accession.species_id == species.id)
+                    .join(genus_instance, species.genus_id == genus_instance.id)
+                    .join(Family, genus_instance.family_id == Family.id)
+                    .where(Family.id == row.id)
+                ).scalars().all()
             )
             self.widget_set_value(
                 "fam_nplants_data",

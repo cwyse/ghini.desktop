@@ -1109,6 +1109,10 @@
                     <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <property name="visible">True</property>
+                    <child>
+                      <!-- Notes_editor_box added in code -->
+                      <placeholder/>
+                    </child>
                   </object>
                 </child>
                 <child type="tab">

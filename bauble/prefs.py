@@ -134,7 +134,21 @@ class _prefs(dict):
     def __init__(self, filename=default_prefs_file):
         self._filename = filename
         self.config = None
-        
+
+        # Populate attributes for module-level _pref constants
+        for name, value in globals().items():
+            if name.endswith("_pref") and isinstance(value, str):
+                if name == "date_format_pref":
+                    print(f"Date_format_pref = {date_format_pref}")
+                setattr(self, name, value)
+
+    def __getattr__(self, name):
+        """Allow attributes to refer to module-level constants (keys)."""
+        if name in globals():
+            return globals()[name]
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+
     def __deepcopy__(self, memo):
         """
         Custom deepcopy implementation for `_prefs`.
@@ -165,15 +179,6 @@ class _prefs(dict):
     def prefs(self):
         # Mimic the old behavior by returning self
         return self
-    
-    def __getattr__(self, name):
-        """
-        Allow accessing keys as attributes, e.g., prefs.parse_dayfirst_pref.
-        """
-        key = f"bauble.{name}"
-        if key in self:
-            return self[key]
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
     
     def __setattr__(self, name, value):
         """

@@ -51,7 +51,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy.orm.session import object_session
-from sqlalchemy import select
+from sqlalchemy import select, distinct
 
 
 logger = logging.getLogger(__name__)
@@ -436,13 +436,13 @@ class GeneralSpeciesExpander(InfoExpander):
         if nplants == 0:
             self.widget_set_value("sp_nplants_data", nplants)
         else:
-            nacc_in_plants = (
-                session.execute(select(Plant.accession_id)).scalars()
-                .join(Accession, Plant.accession_id == Accession.id)
-                .join(Species, Accession.species_id == Species.id)
-                .where(Species.id == row.id)
-                .distinct()
-                .count()
+            nacc_in_plants = len(
+                session.execute(
+                    select(distinct(Plant.accession_id))
+                    .join(Accession, Plant.accession_id == Accession.id)
+                    .join(Species, Accession.species_id == Species.id)
+                    .where(Species.id == row.id)
+                ).scalars().all()
             )
             self.widget_set_value(
                 "sp_nplants_data",

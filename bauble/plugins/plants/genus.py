@@ -53,7 +53,7 @@ from sqlalchemy import and_
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
-from sqlalchemy import select
+from sqlalchemy import select,distinct
 from sqlalchemy import String
 #from sqlalchemy import text
 from sqlalchemy import Unicode
@@ -1186,13 +1186,13 @@ class GeneralGenusExpander(InfoExpander):
         if nacc == 0:
             self.widget_set_value("gen_nacc_data", nacc)
         else:
-            nsp_in_acc = (
-                session.execute(select(Accession.species_id)).scalars()
-                .join(Species, Accession.species_id == Species.id)
-                .join(Genus, Species.genus_id == Genus.id)
-                .where(Genus.id == row.id)
-                .distinct()
-                .count()
+            nsp_in_acc = len(
+                session.execute(
+                    select(distinct(Accession.species_id))
+                    .join(Species, Accession.species_id == Species.id)
+                    .join(Genus, Species.genus_id == Genus.id)
+                    .where(Genus.id == row.id)
+                ).scalars().all()
             )
             self.widget_set_value(
                 "gen_nacc_data", "%s in %s species" % (nacc, nsp_in_acc)
@@ -1210,14 +1210,14 @@ class GeneralGenusExpander(InfoExpander):
         if nplants == 0:
             self.widget_set_value("gen_nplants_data", nplants)
         else:
-            nacc_in_plants = (
-                session.execute(select(Plant.accession_id)).scalars()
-                .join(Accession, Plant.accession_id == Accession.id)
-                .join(Species, Accession.species_id == Species.id)
-                .join(Genus, Species.genus_id == Genus.id)
-                .where(Genus.id == row.id)
-                .distinct()
-                .count()
+            nacc_in_plants = len(
+                session.execute(
+                    select(distinct(Plant.accession_id))
+                    .join(Accession, Plant.accession_id == Accession.id)
+                    .join(Species, Accession.species_id == Species.id)
+                    .join(Genus, Species.genus_id == Genus.id)
+                    .where(Genus.id == row.id)
+                ).scalars().all()
             )
             self.widget_set_value(
                 "gen_nplants_data",
