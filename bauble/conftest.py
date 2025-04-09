@@ -53,7 +53,7 @@ def init_bauble():
     pluginmgr.load()
     db.metadata.create_all(bind=db.engine)  # Ensure all tables exist
     pluginmgr.init(force=True)
-
+    
 @pytest.fixture(scope="function")
 def db_session(init_bauble):
     """
@@ -62,19 +62,20 @@ def db_session(init_bauble):
     """
     db.Session.remove()
     connection = db.engine.connect()
-    transaction = connection.begin()  # Start a transaction
+    transaction = connection.begin()
 
-    session = db.Session(bind=connection)  # Use this connection
-    db.metadata.create_all(bind=db.engine)  # Ensure schema exists
+    session = db.Session(bind=connection)
+    db.metadata.create_all(bind=db.engine)
 
-    yield session  # Run test
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
+        if transaction.is_active:
+            transaction.rollback()
+        connection.close()
 
-    session.rollback()  # Rollback to clean state
-    session.close()
-    if transaction.is_active:
-        transaction.rollback()
-    connection.close()  # Close connection
-    
 @pytest.fixture(autouse=True)
 def clean_db(db_session):
     """Drops and recreates all tables for a fully clean database before each test."""

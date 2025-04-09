@@ -1323,61 +1323,41 @@ def reset_sequence(column):
     """
     from sqlalchemy import schema
     from sqlalchemy.types import Integer
-
     import bauble.db as db
 
-    if not db.engine.name == "postgresql":
+    if db.engine.name != "postgresql":
         return
 
     sequence_name = None
-    if hasattr(column, "default") and isinstance(
-        column.default, schema.Sequence
-    ):
+    if hasattr(column, "default") and isinstance(column.default, schema.Sequence):
         sequence_name = column.default.name
     elif (
-        (isinstance(column.type, Integer) and column.autoincrement)
-        and (
-            column.default is None
-            or (
-                isinstance(column.default, schema.Sequence)
-                and column.default.optional
-            )
-        )
-        and len(column.foreign_keys) == 0
+        isinstance(column.type, Integer)
+        and column.autoincrement
+        and (column.default is None or (
+            isinstance(column.default, schema.Sequence) and column.default.optional
+        ))
+        and not column.foreign_keys
     ):
-        sequence_name = "{}_{}_seq".format(column.table.name, column.name)
+        sequence_name = f"{column.table.name}_{column.name}_seq"
     else:
         return
-    conn = db.engine.connect()
-    trans = conn.begin()
+
     try:
-        # the FOR UPDATE locks the table for the transaction
-        stmt = "SELECT {} from {} FOR UPDATE;".format(
-            column.name, column.table.name
-        )
-        result = conn.execute(stmt)
-        maxid = None
-        vals = list(result)
-        if vals:
-            maxid = max(vals, key=lambda x: x[0])[0]
-        result.close()
-        if maxid is None:
-            # set the sequence to nextval()
-            stmt = "SELECT nextval('%s');" % (sequence_name)
-        else:
-            stmt = "SELECT setval('%s', max(%s)+1) from %s;" % (
-                sequence_name,
-                column.name,
-                column.table.name,
-            )
-        conn.execute(stmt)
+        with db.engine.begin() as conn:
+            stmt = f"SELECT {column.name} FROM {column.table.name} FOR UPDATE"
+            result = conn.execute(stmt)
+            vals = list(result)
+            maxid = max(vals, key=lambda x: x[0])[0] if vals else None
+
+            if maxid is None:
+                stmt = f"SELECT nextval('{sequence_name}')"
+            else:
+                stmt = f"SELECT setval('{sequence_name}', max({column.name})+1) FROM {column.table.name}"
+            conn.execute(stmt)
     except Exception as e:
-        logger.warning("bauble.utils.reset_sequence(): %s" % utf8(e))
-        trans.rollback()
-    else:
-        trans.commit()
-    finally:
-        conn.close()
+        logger.warning("bauble.utils.reset_sequence(): %s", utf8(e))
+
 
 class WidgetStyler:
     def __init__(self):
