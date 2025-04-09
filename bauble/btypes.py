@@ -39,6 +39,58 @@ class BaseModelProtocol(Protocol):
     id: int
 
 # TODO: store all times as UTC or support timezones
+class FreezableList(list):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self._frozen = False
+
+    def freeze(self):
+        self._frozen = True
+
+    def _check_mutation(self):
+        if self._frozen:
+            raise AssertionError("Attempt to modify Enum.values after initialization")
+
+    # Mutation methods we override to check
+    def __setitem__(self, key, value):
+        self._check_mutation()
+        super().__setitem__(key, value)
+
+    def __delitem__(self, key):
+        self._check_mutation()
+        super().__delitem__(key)
+
+    def append(self, item):
+        self._check_mutation()
+        super().append(item)
+
+    def extend(self, iterable):
+        self._check_mutation()
+        super().extend(iterable)
+
+    def insert(self, index, item):
+        self._check_mutation()
+        super().insert(index, item)
+
+    def pop(self, index=-1):
+        self._check_mutation()
+        return super().pop(index)
+
+    def remove(self, item):
+        self._check_mutation()
+        super().remove(item)
+
+    def clear(self):
+        self._check_mutation()
+        super().clear()
+
+    def sort(self, *args, **kwargs):
+        self._check_mutation()
+        super().sort(*args, **kwargs)
+
+    def reverse(self):
+        self._check_mutation()
+        super().reverse()
 
 class EnumError(error.BaubleError):
     """Raised when a bad value is inserted or returned from the Enum type"""
@@ -88,7 +140,9 @@ class Enum(types.TypeDecorator):
             raise EnumError(_("You have configured empty_to_none=True, but None is not in the values list"))
 
         # Convert values to a **mutable list**
-        self.values = list(values)  # ✅ Now mutable
+        #self.values = list(values)  # ✅ Now mutable
+        self.values = FreezableList(values)
+        self.values.freeze()  # prevent later changes
         self.strict = strict
         self.empty_to_none = empty_to_none
         
