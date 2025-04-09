@@ -700,7 +700,8 @@ class CSVExporter:
 
             # Query the data
             stmt = select(table)
-            results = self.session.execute(stmt).fetchall()  # Use the session for execution
+            #results = self.session.execute(stmt).fetchall()  # Use the session for execution
+            results = self.session.execute(stmt).mappings().all()
 
             # create empty files with only the column names
             if len(results) == 0:
@@ -712,7 +713,8 @@ class CSVExporter:
             rows.append(list(table.c.keys()))  # append col names
             ctr = 0
             for row in results:
-                values = list(map(replace, list(row)))
+                #values = list(map(replace, list(row)))
+                values = list(map(replace, [row[col] for col in table.c.keys()]))
                 rows.append(values)
                 if ctr == update_every:
                     spinner_index = (spinner_index + 1) % len(spinner)
