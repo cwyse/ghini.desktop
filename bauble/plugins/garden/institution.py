@@ -476,7 +476,8 @@ class Institution:
                     )
 
                 session.execute(stmt)
-            session.commit()
+            if session.in_transaction():
+                session.commit()
 
 
 class InstitutionPresenter(editor.GenericEditorPresenter):
@@ -655,7 +656,8 @@ def start_institution_editor():
         inst_pres.commit_changes()
         result = True
     else:
-        inst_pres.session.rollback()
+        if inst_pres.session.in_transaction():
+            inst_pres.session.rollback()
         result = False
     inst_pres.session.close()
     return result

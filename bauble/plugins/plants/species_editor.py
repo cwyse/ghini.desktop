@@ -1458,7 +1458,8 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
             and utils.yes_no_dialog(not_ok_msg)
             or not self.presenter.is_dirty()
         ):
-            self.session.rollback()
+            if self.session.in_transaction():
+                self.session.rollback()
             self.view.close_boxes()
             return True
         else:

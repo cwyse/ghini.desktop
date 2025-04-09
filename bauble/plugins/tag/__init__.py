@@ -295,7 +295,8 @@ def edit_callback(tags):
     presenter = TagEditorPresenter(tag, view, refresh_view=True)
     error_state = presenter.start()
     if error_state:
-        presenter.session.rollback()
+        if presenter.session.in_transaction():
+            presenter.session.rollback()
     else:
         presenter.commit_changes()
         tags_menu_manager.reset()
@@ -316,7 +317,8 @@ def remove_callback(tags):
     try:
         obj = session.execute(select(Tag)).scalars().get(tag.id)
         session.delete(obj)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
         utils.message_details_dialog(
@@ -500,7 +502,8 @@ class TagItemGUI(editor.GenericEditorView):
             query = session.execute(select(Tag)).scalars()
             tag = query.where(tag=str(tag_name)).one()
             session.delete(tag)
-            session.commit()
+            if session.in_transaction():
+                session.commit()
             model.remove(row_iter)
             tags_menu_manager.reset()
             view = bauble.gui.get_view()
@@ -808,7 +811,8 @@ def create_named_empty_tag(name: str) -> None:
             logger.debug(f"Tag '{name}' not found, creating it.")
             tag = Tag(tag=name)
             session.add(tag)
-            session.commit()
+            if session.in_transaction():
+                session.commit()
         except Exception as e:
             logger.error(f"An error occurred while creating tag '{name}': {e}")
 
@@ -852,11 +856,14 @@ def untag_objects(name: str, objs: list) -> None:
             session.delete(tagged_obj)
 
     try:
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         logger.info(f"Successfully removed tag '{name}' from specified objects.")
     except Exception as e:
         logger.error(f"Failed to commit changes while untagging objects: {e}")
-        session.rollback()
+        if session.in_transaction():
+            if session.in_transaction():
+                session.rollback()
 
 
 # create the classname stored in the tagged_obj table
@@ -889,10 +896,13 @@ def tag_objects(name: str, objects: list) -> None:
 
     try:
         tag.tag_objects(objects)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
     except Exception as e:
         logger.error(f"An error occurred while tagging objects: {e}")
-        session.rollback()
+        if session.in_transaction():
+            if session.in_transaction():
+                session.rollback()
 
 
 

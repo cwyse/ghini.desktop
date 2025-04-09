@@ -82,7 +82,8 @@ def populate_test_data(session):
                             quantity=1,
                         )
                         session.add_all([loc, plant])
-    session.commit()
+    if session.in_transaction():
+        session.commit()
 
 
 @pytest.mark.usefixtures("populate_test_data")

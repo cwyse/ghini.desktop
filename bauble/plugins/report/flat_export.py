@@ -299,7 +299,9 @@ class FlatFileExporter(GenericEditorPresenter):
                     row.append(value)
                 spamwriter.writerow(row)
                 rows_count += 1
-            session.rollback()
+            if session.in_transaction():
+                if session.in_transaction():
+                    session.rollback()
         return {"count": rows_count, "filename": filename}
 
 

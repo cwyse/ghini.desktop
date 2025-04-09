@@ -93,12 +93,14 @@ def setup_test_data(session):
                             quantity=1,
                         )
                         session.add_all([loc, plant])
-    session.commit()
+    if session.in_transaction():
+        session.commit()
     yield
     # Cleanup after tests
     session.execute(select(Family)).scalars().delete()
     session.execute(select(Tag)).scalars().delete()
-    session.commit()
+    if session.in_transaction():
+        session.commit()
 
 
 def test_duplicate_ids():

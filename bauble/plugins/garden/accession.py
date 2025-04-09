@@ -243,7 +243,8 @@ def remove_callback(accessions):
         session = db.Session()
         obj = session.execute(select(Accession)).scalars().get(acc.id)
         session.delete(obj)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(str(e))
         utils.message_details_dialog(
@@ -2387,7 +2388,8 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                 values.append(value)
                 presenter.session.add(obj)
             self.populate_code_formats(values=values)
-            presenter.session.commit()
+            if presenter.session.in_transaction():
+                presenter.session.commit()
         presenter.session.close()
 
     def refresh_id_qual_rank_combo(self):
@@ -2760,7 +2762,8 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
             and utils.yes_no_dialog(not_ok_msg)
             or not self.presenter.is_dirty()
         ):
-            self.session.rollback()
+            if self.session.in_transaction():
+                self.session.rollback()
             return True
         else:
             return False

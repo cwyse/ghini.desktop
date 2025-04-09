@@ -1395,13 +1395,15 @@ class GenericEditorPresenter:
         """
         objs = list(self.session)
         try:
-            self.session.commit()
+            if self.session.in_transaction():
+                self.session.commit()
             try:
                 bauble.gui.get_view().update()
             except Exception:
                 pass
         except Exception:
-            self.session.rollback()
+            if self.session.in_transaction():
+                self.session.rollback()
             self.session.add_all(objs)
             raise
         finally:
@@ -2120,14 +2122,16 @@ class GenericModelViewPresenterEditor:
         """
         objs = list(self.session)
         try:
-            self.session.commit()
+            if self.session.in_transaction():
+                self.session.commit()
             try:
                 bauble.gui.get_view().update()
             except Exception as update_error:
                logger.warning(f"Failed to update the view: {update_error}")
         except Exception as e:
             logger.warning("can't commit changes: ({}) {}".format(type(e), e))
-            self.session.rollback()
+            if self.session.in_transaction():
+                self.session.rollback()
             self.session.add_all(objs)
             handle_db_error(e, context="committing changes")  # Centralized error handling
             raise
@@ -2136,7 +2140,8 @@ class GenericModelViewPresenterEditor:
     def __del__(self):
         if hasattr(self, "session"):
             # in case one of the check()'s fail in __init__
-            self.session.commit()
+            if self.session.in_transaction():
+                self.session.commit()
             self.session.close()
 
 class NoteBox:

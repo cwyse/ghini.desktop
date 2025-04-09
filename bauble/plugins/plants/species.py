@@ -103,7 +103,8 @@ def remove_callback(values):
     try:
         obj = session.execute(select(Species)).scalars().get(species.id)
         session.delete(obj)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
         utils.message_details_dialog(

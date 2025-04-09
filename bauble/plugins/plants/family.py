@@ -121,7 +121,8 @@ def remove_callback(families):
             # Use SQLAlchemy 2.0-style query for deletion
             obj = session.execute(select(Family).filter_by(id=family.id)).scalar_one()
             session.delete(obj)
-            session.commit()
+            if session.in_transaction():
+                session.commit()
         except Exception as e:
             msg = _('Could not delete.\n\n%s') % utils.xml_safe(str(e))
             utils.message_details_dialog(msg, traceback.format_exc(),
@@ -356,7 +357,8 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         session.execute(select(FamilySynonym)).scalars().where(
             FamilySynonym.synonym_id == self.id
         ).delete()
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         value.synonyms.append(self)
 
     def has_accessions(self):
@@ -905,7 +907,8 @@ class FamilyEditor(editor.GenericModelViewPresenterEditor):
 
             elif (self.presenter.dirty() and utils.yes_no_dialog(not_ok_msg)) or \
                     not self.presenter.dirty():
-                self.session.rollback()
+                if self.session.in_transaction():
+                    self.session.rollback()
                 return True
             else:
                 return False

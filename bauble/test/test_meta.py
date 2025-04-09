@@ -48,7 +48,8 @@ def test_get_default_with_creation(session_with_meta):
     name = "name"
     value = "value"
     meta.get_default(name, default=value, session=session_with_meta)
-    session_with_meta.commit()  # Ensure the object is saved to the database
+    if session_with_meta.in_transaction():
+        session_with_meta.commit()  # Ensure the object is saved to the database
     obj = session_with_meta.execute(
         select(meta.BaubleMeta).where(meta.BaubleMeta.name == name)
     ).scalars().one()
@@ -62,7 +63,8 @@ def test_get_default_no_override(session_with_meta):
     name = "name"
     value = "value"
     meta.get_default(name, default=value, session=session_with_meta)
-    session_with_meta.commit()  # Ensure the object is saved to the database
+    if session_with_meta.in_transaction():
+        session_with_meta.commit()  # Ensure the object is saved to the database
     
     value2 = "value2"
     obj = meta.get_default(name, default=value2, session=session_with_meta)

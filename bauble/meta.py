@@ -70,7 +70,8 @@ def get_default(name, default=None, session=None):
         meta = BaubleMeta(name=name, value=default)
         session.add(meta)
         if commit:
-            session.commit()
+            if session.in_transaction():
+                session.commit()
 
     if commit:
         # Ensure properties are loaded before closing the session

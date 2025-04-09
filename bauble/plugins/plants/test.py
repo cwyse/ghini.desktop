@@ -68,11 +68,13 @@ class TestFamily:
         family = Family(epithet="family")
         genus = Genus(family=family, epithet="genus")
         session.add_all([family, genus])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Test deleting a family deletes an orphaned genus
         session.delete(family)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         query = session.execute(select(Genus).where(Genus.family_id == family.id))
         with pytest.raises(NoResultFound):
             query.scalar_one()
@@ -82,7 +84,8 @@ class TestFamily:
         family2 = Family(epithet="family2")
         family.synonyms.append(family2)
         session.add_all([family, family2])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Check synonym relation
         retrieved_family = session.execute(
@@ -92,28 +95,36 @@ class TestFamily:
 
         # Remove synonym
         family.synonyms.remove(family2)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         assert family2 not in family.synonyms
 
         # Test duplicate synonym constraint
         family.synonyms.append(family2)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         family.synonyms.append(family2)
         with pytest.raises(IntegrityError):
-            session.commit()
-        session.rollback()
+            if session.in_transaction():
+                session.commit()
+        if session.in_transaction():
+            if session.in_transaction():
+                session.rollback()
 
         # Clear all synonyms
         family.synonyms.clear()
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         assert len(family.synonyms) == 0
         assert session.execute(select(FamilySynonym)).scalars().count() == 0
 
         # Delete a family with synonyms
         family.synonyms.append(family2)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         session.delete(family2)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         assert session.execute(select(FamilySynonym)).scalars().count() == 0
 
     def test_constraints(self, session):
@@ -125,14 +136,20 @@ class TestFamily:
             session.add(Family(**v))
             session.add(Family(**v))
             with pytest.raises(IntegrityError):
-                session.commit()
-            session.rollback()
+                if session.in_transaction():
+                    session.commit()
+            if session.in_transaction():
+                if session.in_transaction():
+                    session.rollback()
 
         # Family epithet cannot be null
         session.add(Family(epithet=None))
         with pytest.raises(IntegrityError):
-            session.commit()
-        session.rollback()
+            if session.in_transaction():
+                session.commit()
+        if session.in_transaction():
+            if session.in_transaction():
+                session.rollback()
 
     def test_str(self):
         f = Family()
@@ -155,14 +172,16 @@ class TestRemoveCallback:
     def test_remove_callback_no_genera_no_confirm(self, session):
         family = Family(epithet="Arecaceae")
         session.add(family)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         invoked = []
 
         utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=False)
         utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
 
         result = remove_callback([family])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert "message_details_dialog" not in [func for func, _ in invoked]
         assert (
@@ -174,14 +193,16 @@ class TestRemoveCallback:
     def test_remove_callback_no_genera_confirm(self, session):
         family = Family(epithet="Arecaceae")
         session.add(family)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         invoked = []
 
         utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=True)
         utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
 
         result = remove_callback([family])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert "message_details_dialog" not in [func for func, _ in invoked]
         assert (
@@ -194,7 +215,8 @@ class TestRemoveCallback:
         family = Family(epithet="Arecaceae")
         genus = Genus(family=family, epithet="Areca")
         session.add_all([family, genus])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         invoked = []
 
         utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=True)
@@ -202,7 +224,8 @@ class TestRemoveCallback:
         utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
 
         remove_callback([family])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert "message_details_dialog" not in [func for func, _ in invoked]
         assert (
@@ -222,7 +245,8 @@ class TestGenus:
         genus2 = Genus(family=family, epithet="genus2")
         genus.synonyms.append(genus2)
         session.add_all([genus, genus2])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Verify genus2 was added as a synonym
         retrieved_genus = session.execute(
@@ -236,28 +260,36 @@ class TestGenus:
 
         # Remove synonym and verify
         genus.synonyms.remove(genus2)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         assert genus2 not in genus.synonyms
 
         # Test duplicate synonym constraint
         genus.synonyms.append(genus2)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         genus.synonyms.append(genus2)
         with pytest.raises(IntegrityError):
-            session.commit()
-        session.rollback()
+            if session.in_transaction():
+                session.commit()
+        if session.in_transaction():
+            if session.in_transaction():
+                session.rollback()
 
         # Clear synonyms
         genus.synonyms.clear()
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         assert len(genus.synonyms) == 0
         assert session.execute(select(GenusSynonym)).scalars().count() == 0
 
         # Test deletion of genus as synonym
         genus.synonyms.append(genus2)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         session.delete(genus2)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         assert session.execute(select(GenusSynonym)).scalars().count() == 0
 
     def test_constraints(self, session):
@@ -275,14 +307,18 @@ class TestGenus:
             session.add(Genus(**value))
             session.add(Genus(**value))
             with pytest.raises(IntegrityError):
-                session.commit()
-            session.rollback()
+                if session.in_transaction():
+                    session.commit()
+            if session.in_transaction():
+                if session.in_transaction():
+                    session.rollback()
 
     def test_remove_callback_no_species_no_confirm(self, session):
         family = Family(epithet="Caricaceae")
         genus = Genus(epithet="Carica", family=family)
         session.add_all([family, genus])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         invoked = []
 
         # Mock confirmation dialogs
@@ -290,7 +326,8 @@ class TestGenus:
         utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
 
         result = remove_callback([genus])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert "message_details_dialog" not in [func for func, _ in invoked]
         assert (
@@ -304,7 +341,8 @@ class TestGenus:
         genus = Genus(epithet="Carica", family=family)
         species = Species(genus=genus, epithet="papaya")
         session.add_all([family, genus, species])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         invoked = []
 
         # Mock confirmation dialogs
@@ -312,7 +350,8 @@ class TestGenus:
         utils.message_dialog = partial(mockfunc, name="message_dialog", caller=invoked)
 
         remove_callback([genus])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert "message_details_dialog" not in [func for func, _ in invoked]
         assert (
@@ -332,7 +371,8 @@ class TestGenusSynonymy:
         synonym = Genus(family=family, epithet="Zygoglossum")
         genus.synonyms.append(synonym)
         session.add_all([family, genus, synonym])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert genus.synonyms == [synonym]
         assert synonym.synonyms == []
@@ -343,7 +383,8 @@ class TestGenusSynonymy:
         synonym = Genus(family=family, epithet="Zygoglossum")
         genus.synonyms.append(synonym)
         session.add_all([family, genus, synonym])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert synonym.accepted == genus
         assert genus.accepted is None
@@ -353,10 +394,12 @@ class TestGenusSynonymy:
         genus = Genus(family=family, epithet="Bulbophyllum")
         new_synonym = Genus(family=family, epithet="Henosis")
         session.add_all([family, genus, new_synonym])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         new_synonym.accepted = genus
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert new_synonym in genus.synonyms
         assert len(genus.synonyms) == 1
@@ -367,11 +410,13 @@ class TestGenusSynonymy:
         genus_alta = Genus(family=family, epithet="Altamiranoa", author="Rose")
         genus_alta.accepted = genus_villa
         session.add_all([family, genus_alta, genus_villa])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         genus_sedum = Genus(family=family, epithet="Sedum", author="L.")
         genus_alta.accepted = genus_sedum
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert genus_alta.accepted == genus_sedum
 
@@ -408,7 +453,8 @@ class TestSpecies:
         genus_2 = Genus(epithet="genus2", family=family)
         genus_2.synonyms.append(genus_1)
         session.add_all([family, genus_1, genus_2])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Step 3: Create a species and open it in the editor
         species = Species(genus=genus_1, epithet="sp")
@@ -561,17 +607,20 @@ class TestSpecies:
         genus = Genus(family=family, epithet="genus")
         sp = Species(genus=genus, epithet="sp")
         session.add_all([family, genus, sp])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Add a vernacular name
         vn = VernacularName(name="name")
         sp.vernacular_names.append(vn)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         assert vn in sp.vernacular_names
 
         # Remove vernacular name and verify orphan deletion
         sp.vernacular_names.remove(vn)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         with pytest.raises(NoResultFound):
             session.execute(
                 select(VernacularName).where(VernacularName.species_id == sp.id)
@@ -587,12 +636,14 @@ class TestSpecies:
         vn = VernacularName(name="name")
         sp.vernacular_names.append(vn)
         session.add_all([family, genus, sp, vn])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Step 2: Set the default vernacular name
         default = VernacularName(name="default")
         sp.default_vernacular_name = default
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Verify default vernacular name and relationship to species
         assert vn in sp.vernacular_names
@@ -601,7 +652,8 @@ class TestSpecies:
         # Step 3: Test `setattr` works for setting default vernacular name
         default_vn = VernacularName(name="default_vn")
         setattr(sp, "default_vernacular_name", default_vn)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Verify the updated default vernacular name
         assert vn in sp.vernacular_names
@@ -610,7 +662,8 @@ class TestSpecies:
         # Step 4: Verify automatic addition of `default_vernacular_name`
         new_default = VernacularName(name="new_default")
         sp.default_vernacular_name = new_default
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Verify `new_default` is added and set correctly
         assert new_default in sp.vernacular_names
@@ -619,7 +672,8 @@ class TestSpecies:
         # Step 5: Remove a vernacular name and check cascading effects
         dvid = sp._default_vernacular_name.id
         sp.vernacular_names.remove(new_default)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Verify the default vernacular name is unset and removed
         assert sp.default_vernacular_name is None
@@ -632,10 +686,12 @@ class TestSpecies:
         # Step 6: Reset `default_vernacular_name` and verify orphan handling
         sp.vernacular_names.append(vn)
         sp.default_vernacular_name = vn
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         dvid = sp._default_vernacular_name.id
         sp.default_vernacular_name = None
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Verify orphaned objects are properly removed
         q = session.execute(select(DefaultVernacularName)).scalars()
@@ -646,10 +702,12 @@ class TestSpecies:
 
         # Step 7: Use `__del__` to delete `default_vernacular_name`
         sp.default_vernacular_name = vn
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         dvid = sp._default_vernacular_name.id
         del sp.default_vernacular_name
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Verify the default vernacular name is unset and deleted
         assert sp.default_vernacular_name is None
@@ -664,7 +722,8 @@ class TestSpecies:
         vn2 = VernacularName(name="vn2")
         sp.default_vernacular_name = vn1
         sp.default_vernacular_name = vn2
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Verify the final default vernacular name
         assert sp.default_vernacular_name == vn2
@@ -728,7 +787,8 @@ class TestSpecies:
         sp1.synonyms.append(sp2)
         sp1.synonyms.remove(sp2)
         # self.session.flush()
-        self.session.commit()
+        if self.session.in_transaction():
+            self.session.commit()
         assert sp2 not in sp1.synonyms
 
         # add a species and immediately add the same species
@@ -737,13 +797,15 @@ class TestSpecies:
         sp1.synonyms.remove(sp2)
         sp1.synonyms.append(sp2)
         # self.session.flush() # shouldn't raise an error
-        self.session.commit()
+        if self.session.in_transaction():
+            self.session.commit()
         assert sp2 in sp1.synonyms
 
         # test that deleting a species removes it from the synonyms list
         assert sp2 in sp1.synonyms
         self.session.delete(sp2)
-        self.session.commit()
+        if self.session.in_transaction():
+            self.session.commit()
         assert sp2 not in sp1.synonyms
 
         self.session.expunge_all()
@@ -758,7 +820,8 @@ class TestSpecies:
         sp2 = create_tmp_sp(52)
         sp3 = create_tmp_sp(53)
         sp4 = create_tmp_sp(54)
-        self.session.commit()
+        if self.session.in_transaction():
+            self.session.commit()
         self.assertEqual(sp1.accepted, None)
         self.assertEqual(sp2.accepted, None)
         self.assertEqual(sp3.accepted, None)
@@ -950,7 +1013,8 @@ class TestGeographicArea:
             filename = "/mock/path/to/lib/plugins/plants/default/geographic_area.txt"
             importer = CSVImporter()
             importer.start([filename], force=True)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
     def test_get_species(self):
         """Test fetching species by geographic area."""
@@ -970,7 +1034,8 @@ class TestGeographicArea:
         sp3 = Species(genus=self.genus, epithet="sp3")
         sp3.distribution.append(SpeciesDistribution(geographic_area_id=western_canada_id))
 
-        self.session.commit()
+        if self.session.in_transaction():
+            self.session.commit()
 
         # Test Oaxaca
         oaxaca = self.session.execute(select(GeographicArea)).scalars().get(oaxaca_id)
@@ -1050,13 +1115,15 @@ class TestFromAndToDict:
             )
             assert fab not in db_families, "Family unexpectedly found in other session."
         finally:
-            nested_transaction.rollback()
+            if nested_transaction.in_transaction():
+                nested_transaction.rollback()
             other_session.close()
 
     def test_where_can_object_be_found_after_commit(self, db_session):
         """Test visibility of created objects in other sessions after commit."""
         fab = Family.retrieve_or_create(db_session, {"rank": "family", "epithet": "Fabaceae"})
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
 
         other_session = db.Session(bind=db.engine.connect())
         try:
@@ -1745,7 +1812,8 @@ class TestAttributesStoredInNotes:
         )
         note = SpeciesNote(category="<coords>", note="{1: 1, 2: 2}")
         note.species = obj
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         assert obj.coords == {"1": 1, "2": 2}
 
     def test_very_sloppy_json_dictionary(self, session):
@@ -1763,7 +1831,8 @@ class TestAttributesStoredInNotes:
         )
         note = SpeciesNote(category="<coords>", note="lat:8.3,lon:-80.1")
         note.species = obj
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         assert obj.coords == {"lat": 8.3, "lon": -80.1}
 
     def test_atomic_value_interpreted(self, session):

@@ -1174,7 +1174,8 @@ def setup_in_operator_search(db_session):
     g3 = Genus(family=family, genus="genus3", id=3)
     g4 = Genus(family=family, genus="genus4", id=4)
     db_session.add_all([family, g1, g2, g3, g4])
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return {"g1": g1, "g2": g2, "g3": g3, "g4": g4}
 
 class InOperatorSearch:
@@ -1263,7 +1264,8 @@ def setup_binomial_search(db_session):
     sp4 = Species(sp="coccinea", genus=g4)
 
     db_session.add_all([f1, f2, g1, g2, f3, g3, sp, sp2, sp3, g4, sp4])
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     return {"ixora": g3, "ic": sp, "pc": sp4}
 
@@ -1328,7 +1330,8 @@ class BinomialSearchTests:
             sp="coccinea", genus=setup_binomial_search["ixora"], infrasp1_rank="cv.", infrasp1="Nora Grant"
         )
         db_session.add(sp5)
-        db_session.rollback()
+        if db_session.in_transaction():
+            db_session.rollback()
 
         query = "Ixora coccinea"  # matches I.coccinea and Nora Grant
         results = mapper_search.search(query, db_session)
@@ -1716,7 +1719,8 @@ def setup_filter_then_match(db_session):
         GenusNote(category="test", note="verbum", genus=genus3),
     ]
     db_session.add_all([family, genus1, genus2, genus3, genus4] + notes)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return genus1, genus2, genus3, genus4
 
 class FilterThenMatchTests:
@@ -1870,7 +1874,8 @@ def setup_aggregating_functions(db_session):
     db_session.add_all(
         [f1, f2, f3, g1, g2, g3, g4, sp1, sp2, sp3, sp4, sp5, sp6]
     )
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     return db_session
 

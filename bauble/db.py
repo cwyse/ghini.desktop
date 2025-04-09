@@ -115,7 +115,9 @@ def get_or_create(session, model, defaults=None, **kwargs):
         return instance, True
     except IntegrityError:
         # Handle potential race conditions in a multi-threaded or concurrent environment
-        session.rollback()
+        if session.in_transaction():
+            if session.in_transaction():
+                session.rollback()
         instance = session.scalars(stmt).first()
         return instance, False
 
@@ -478,7 +480,8 @@ def create_triggers(connection):
                         END;
                     """))
 
-        connection.commit()
+        if connection.in_transaction():
+            connection.commit()
 
     elif connection.engine.name == "postgresql":
         logger.info("Adding PostgreSQL column constraints to prevent empty strings.")
@@ -495,7 +498,8 @@ def create_triggers(connection):
                         ALTER TABLE {table_name} ALTER COLUMN {col_name} SET DEFAULT NULL;
                     """))
 
-        connection.commit()
+        if connection.in_transaction():
+            connection.commit()
 
 
 def create(import_defaults=True):

@@ -175,7 +175,8 @@ class PocketServer(Thread):
                 for line in log_lines:
                     process_line(session, line, baseline)
                 db.current_user.override()
-                session.commit()
+                if session.in_transaction():
+                    session.commit()
                 if self.presenter.model.autorefresh:
                     self.presenter.on_new_snapshot_button_clicked()
                 return self.OK
@@ -342,7 +343,8 @@ class PocketServerPresenter(GenericEditorPresenter):
             row = meta.BaubleMeta(name="pocket-clients")
             self.session.add(row)
         row.value = str({i[1]: i[2] for i in self.clients_ls})
-        self.session.commit()
+        if self.session.in_transaction():
+            self.session.commit()
 
     def treeview_changed(self, widget, event, data=None):
         adj = widget.get_vadjustment()

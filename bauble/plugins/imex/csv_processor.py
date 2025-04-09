@@ -364,13 +364,15 @@ class CSVProcessor:
                 try:
                     # Execute insert with new session
                     thread_session.execute(self.insert_stmt.values(batch))
-                    thread_session.commit()  # Commit after insertion
+                    if thread_session.in_transaction():
+                        thread_session.commit()  # Commit after insertion
                     self.flush_count += 1
                     print(f"✅ Flushed batch #{self.flush_count} for {self.table.name}")
 
                 except Exception as e:
                     print(f"❌ Error inserting batch in {self.table.name}: {e}")
-                    thread_session.rollback()
+                    if thread_session.in_transaction():
+                        thread_session.rollback()
 
             self.batch_queue.task_done()
 

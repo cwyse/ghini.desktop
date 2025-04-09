@@ -74,7 +74,8 @@ def start_taxonomy_check():
     )
     error_state = presenter.start()
     if error_state:
-        presenter.session.rollback()
+        if presenter.session.in_transaction():
+            presenter.session.rollback()
     else:
         presenter.commit_changes()
         from bauble import gui

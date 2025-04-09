@@ -78,7 +78,8 @@ def clean_enum_table(db_session):
     """
 
     # Ensure SQLAlchemy ORM is fully aware of metadata changes
-    db_session.rollback()  # Clear pending transactions
+    if db_session.in_transaction():
+        db_session.rollback()  # Clear pending transactions
 
     # Drop the table if it exists
     _TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
@@ -89,17 +90,20 @@ def clean_enum_table(db_session):
         metadata.remove(metadata.tables["test_enum_type"])
 
     # Ensure the ORM is aware of the dropped table
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     # Recreate the table
     _TestEnum.__table__.create(bind=db_session.bind)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     yield _TestEnum  # Provide the table for the test
 
     # Drop the table after the test
     _TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
 
 
@@ -136,7 +140,8 @@ class TestEnumModel:
         db_session.expire_all()
 
         # Commit the transaction
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
 
         # Verify the row was inserted
         inserted_row = db_session.execute(
@@ -162,7 +167,8 @@ class TestEnumModel:
         with pytest.raises(StatementError):
             db_session.flush()
         # ✅ Ensure rollback after the test runs
-        db_session.rollback()   
+        if db_session.in_transaction():
+            db_session.rollback()   
 
     def function_creating_enum(self, name, values, **kwargs):
         """
@@ -207,7 +213,8 @@ class TestEnumModel:
         with pytest.raises(types.EnumError):
             self.function_creating_enum("six", ["1", "2"], empty_to_none=True)  # empty_to_none with empty string
         # ✅ Ensure rollback after the test runs
-        db_session.rollback() 
+        if db_session.in_transaction():
+            db_session.rollback() 
 
     def test_empty_to_none(self, db_session):
         """
@@ -310,7 +317,8 @@ class TestDateTypes:
         # Insert a new record
         m = meta.BaubleMeta(name="name", value="value")
         db_session.add(m)
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
 
         # Query the record back
         m = db_session.execute(
@@ -328,7 +336,8 @@ class TestDateTypes:
         # Sleep to ensure timestamp granularity and update the record
         time.sleep(1.1)
         m.value = "value2"
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
         db_session.expire(m)
 
         # Assert `_created` does not change but `_last_updated` does
@@ -365,7 +374,8 @@ class TestHistory:
     def test_history_tracking(self, db_session):
         f = Family(family="Family")
         db_session.add(f)
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
 
         # Insert operation
         history = db_session.execute(
@@ -376,7 +386,8 @@ class TestHistory:
 
         # Update operation
         f.family = "Family2"
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
         history = db_session.execute(
             select(db.History).order_by(db.History.timestamp.desc())
         ).scalars().first()
@@ -385,7 +396,8 @@ class TestHistory:
 
         # Delete operation
         db_session.delete(f)
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
         history = db_session.execute(
             select(db.History).order_by(db.History.timestamp.desc())
         ).scalars().first()

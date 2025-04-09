@@ -1299,7 +1299,8 @@ class PropagationEditor(editor.GenericModelViewPresenterEditor):
                 or not self.presenter.is_dirty()
             ):
                 # Rollback changes if the user confirms losing changes
-                self.session.rollback()
+                if self.session.in_transaction():
+                    self.session.rollback()
             else:
                 # User canceled the operation without confirming
                 return False
@@ -1313,7 +1314,8 @@ class PropagationEditor(editor.GenericModelViewPresenterEditor):
             utils.message_details_dialog(
                 msg, traceback.format_exc(), Gtk.MessageType.ERROR
             )
-            self.session.rollback()
+            if self.session.in_transaction():
+                self.session.rollback()
             return False
 
         return True
