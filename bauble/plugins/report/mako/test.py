@@ -77,7 +77,8 @@ def setup_database(session):
                             quantity=1,
                         )
                         session.add_all([loc, plant])
-    session.commit()
+    if session.in_transaction():
+        session.commit()
 
 
 @pytest.mark.parametrize("use_qr", [False, True])

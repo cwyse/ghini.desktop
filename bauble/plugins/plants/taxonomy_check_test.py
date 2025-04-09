@@ -31,7 +31,8 @@ def setup_data(db_session):
     genus1 = Genus(family=family1, epithet="Salsola")
     genus2 = Genus(family=family2, epithet="Trifolium")
     db_session.add_all([family1, family2, genus1, genus2])
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return db_session
 
 @pytest.fixture(autouse=True)
@@ -41,7 +42,8 @@ def clear_family_table(db_session):
     """
     db_session.execute(text("DELETE FROM genus"))
     db_session.execute(text("DELETE FROM family"))
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
 @pytest.mark.usefixtures("db_session", "setup_data")
 class TestTaxonomyCheck:

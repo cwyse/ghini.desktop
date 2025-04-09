@@ -115,7 +115,8 @@ def remove_callback(plants):
         obj = session.execute(select(Plant)).scalars().get(plant.id)
         session.delete(obj)
     try:
-        session.commit()
+        if session.in_transaction():
+            session.commit()
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
 
@@ -1267,7 +1268,8 @@ class PlantEditor(GenericModelViewPresenterEditor):
         elif (
             self.presenter.is_dirty() and utils.yes_no_dialog(not_ok_msg)
         ) or not self.presenter.is_dirty():
-            self.session.rollback()
+            if self.session.in_transaction():
+                self.session.rollback()
             return True
         else:
             return False

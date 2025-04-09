@@ -91,7 +91,8 @@ CREATE TABLE "plant" (
     cr = cn.cursor()
     for statement in create_sql:
         cr.execute(statement)
-    cn.commit()
+    if cn.in_transaction():
+        cn.commit()
 
 
 class ExportToPocketThread(threading.Thread):
@@ -227,7 +228,8 @@ class ExportToPocketThread(threading.Thread):
                 )
             if not self.keep_running:
                 break
-        cn.commit()
+        if cn.in_transaction():
+            cn.commit()
         session.close()
         if self.callback:
             GLib.idle_add(self.callback)

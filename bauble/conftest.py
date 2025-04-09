@@ -70,10 +70,13 @@ def db_session(init_bauble):
     try:
         yield session
     finally:
-        session.rollback()
+        if session.in_transaction():
+            if session.in_transaction():
+                session.rollback()
         session.close()
         if transaction.is_active:
-            transaction.rollback()
+            if transaction.in_transaction():
+                transaction.rollback()
         connection.close()
 
 @pytest.fixture(autouse=True)

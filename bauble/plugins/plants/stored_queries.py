@@ -43,7 +43,8 @@ class StoredQueriesModel:
 
         # Use a context manager to ensure session cleanup
         with db.Session() as session:
-            session.commit()  # Ensure session if fully initialized before querying
+            if session.in_transaction():
+                session.commit()  # Ensure session if fully initialized before querying
             query = select(meta.BaubleMeta).filter(meta.BaubleMeta.name.startswith("stqr_"))
             for item in session.scalars(query):
                 if str(item.name)[4] != "_":
@@ -85,7 +86,8 @@ class StoredQueriesModel:
                             obj.value = self[index]
 
                 # Commit the changes
-                session.commit()
+                if session.in_transaction():
+                    session.commit()
         except Exception as e:
             logger.error(f"Error during save: {e}")
             raise

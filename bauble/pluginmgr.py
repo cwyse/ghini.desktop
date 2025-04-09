@@ -395,7 +395,8 @@ class PluginRegistry(db.Base):
         )
         with db.Session() as session:
             session.add(p)
-            session.commit()
+            if session.in_transaction():
+                session.commit()
 
     @staticmethod
     def remove(plugin=None, name=None):
@@ -417,7 +418,8 @@ class PluginRegistry(db.Base):
             ).scalar_one_or_none()
             if p:
                 session.delete(p)
-                session.commit()
+                if session.in_transaction():
+                    session.commit()
 
     @staticmethod
     def all(session):

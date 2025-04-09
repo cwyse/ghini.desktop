@@ -237,7 +237,8 @@ class TestCSV:
         """
         species = Species(genus_id=1, epithet="sp")
         db_session.add(species)
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
 
         temp_path = mkdtemp()
         exporter = CSVExporter()
@@ -396,7 +397,8 @@ def populate_database(db_session):
             obj = klass(**entry)
             db_session.add(obj)
             objects.append(obj)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return objects
 
 
@@ -638,7 +640,8 @@ class TestJSONExport:
         note = SpeciesNote(category="<coords>", note="{1: 1, 2: 2}")
         note.species = selection[0]
         db_session.add(note)
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
 
         # Export
         exporter = JSONExporter(MockView())
@@ -686,7 +689,8 @@ class TestJSONExport:
         vernacular_name = VernacularName(language="it", name="orchidea")
         selection[0].vernacular_names.append(vernacular_name)
         db_session.add(vernacular_name)
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
 
         # Export
         exporter = JSONExporter(MockView())
@@ -731,7 +735,8 @@ class TestJSONExport:
         synonym_genus = Genus(family=family, epithet="Zygoglossum")
         accepted_genus.synonyms.append(synonym_genus)
         db_session.add_all([family, accepted_genus, synonym_genus])
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
 
         # Select synonym genus
         stmt = select(Genus).where(Genus.epithet == "Zygoglossum")
@@ -866,7 +871,8 @@ class TestJSONExport:
         arbo = Species(genus=brug, epithet="arborea")
         vern = VernacularName(species=arbo, language="es", name="Floripondio")
         db_session.add_all([sola, brug, arbo, vern])
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
 
         # Action
         exporter = JSONExporter(MockView())
@@ -911,7 +917,8 @@ class TestJSONExport:
         source.source_detail = contact
         accession.source = source
         db_session.add_all([source, contact])
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
 
         # Action
         exporter = JSONExporter(MockView())
@@ -1130,7 +1137,8 @@ def test_import_species_to_new_genus_and_family(temp_file, db_session):
     importer = JSONImporter(MockView())
     importer.filename = temp_file
     importer.on_btnok_clicked(None)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     sp = db_session.execute(
         select(Species).where(Species.epithet == "lawrenceae")
@@ -1165,7 +1173,8 @@ def test_import_with_synonym(temp_file, db_session):
     importer = JSONImporter(MockView())
     importer.filename = temp_file
     importer.on_btnok_clicked(None)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     synonym = db_session.execute(
         select(Genus).where(Genus.epithet == "Zygoglossum")
@@ -1186,7 +1195,8 @@ def test_use_author_to_break_ties(temp_file, db_session):
     claceae = Family(epithet="Crassulaceae")
     miller = Genus(family=claceae, epithet="Anacampseros", author="Mill.")
     db_session.add_all([claceae, ataceae, linnaeus, miller])
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     json_string = (
         '{"author": "Mill.", "epithet": "Anacampseros", '
@@ -1202,7 +1212,8 @@ def test_use_author_to_break_ties(temp_file, db_session):
     importer = JSONImporter(MockView())
     importer.filename = temp_file
     importer.on_btnok_clicked(None)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     accepted = Genus.retrieve_or_create(
         db_session, {"epithet": "Sedum"}, create=False
@@ -1216,7 +1227,8 @@ def test_import_create_update(temp_file, db_session):
     ataceae = Family(epithet="Anacampserotaceae")
     linnaeus = Genus(family=ataceae, epithet="Anacampseros")
     db_session.add_all([ataceae, linnaeus])
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     json_string = (
         '[{"author": "L.", "epithet": "Anacampseros", '
@@ -1234,7 +1246,8 @@ def test_import_create_update(temp_file, db_session):
     importer.create = True
     importer.update = True
     importer.on_btnok_clicked(None)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     sedum = Genus.retrieve_or_create(
         db_session, {"epithet": "Sedum"}, create=False
@@ -1261,7 +1274,8 @@ def test_import_no_create_update(temp_file, db_session):
     ataceae = Family(epithet="Anacampserotaceae")
     linnaeus = Genus(family=ataceae, epithet="Anacampseros")
     db_session.add_all([ataceae, linnaeus])
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     json_string = (
         '[{"author": "L.", "epithet": "Anacampseros", '
@@ -1279,7 +1293,8 @@ def test_import_no_create_update(temp_file, db_session):
     importer.create = False
     importer.update = True
     importer.on_btnok_clicked(None)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     # Assertions
     sedum = Genus.retrieve_or_create(
@@ -1300,7 +1315,8 @@ def test_import_create_no_update(temp_file, db_session):
     ataceae = Family(epithet="Anacampserotaceae")
     linnaeus = Genus(family=ataceae, epithet="Anacampseros")
     db_session.add_all([ataceae, linnaeus])
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     json_string = (
         '[{"author": "L.", "epithet": "Anacampseros", '
@@ -1318,7 +1334,8 @@ def test_import_create_no_update(temp_file, db_session):
     importer.create = True
     importer.update = False
     importer.on_btnok_clicked(None)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     # Assertions
     sedum = db_session.execute(
@@ -1357,7 +1374,8 @@ def test_import_contact(temp_file, db_session):
     importer.create = True
     importer.update = True
     importer.on_btnok_clicked(None)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     summit = db_session.execute(select(Contact)).scalars().first()
     assert summit is not None

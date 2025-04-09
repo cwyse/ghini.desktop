@@ -90,7 +90,8 @@ def remove_callback(locations):
         session = db.Session()
         obj = session.execute(select(Location)).scalars().get(loc.id)
         session.delete(obj)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
         utils.message_details_dialog(
@@ -502,7 +503,8 @@ class LocationEditor(GenericModelViewPresenterEditor):
                 utils.message_details_dialog(
                     msg, str(e), Gtk.MessageType.ERROR
                 )
-                self.session.rollback()
+                if self.session.in_transaction():
+                    self.session.rollback()
                 return False
             except Exception as e:
                 msg = _(
@@ -512,14 +514,16 @@ class LocationEditor(GenericModelViewPresenterEditor):
                 utils.message_details_dialog(
                     msg, traceback.format_exc(), Gtk.MessageType.ERROR
                 )
-                self.session.rollback()
+                if self.session.in_transaction():
+                    self.session.rollback()
                 return False
         elif (
             self.presenter.is_dirty()
             and utils.yes_no_dialog(not_ok_msg)
             or not self.presenter.is_dirty()
         ):
-            self.session.rollback()
+            if self.session.in_transaction():
+                self.session.rollback()
             return True
         else:
             return False

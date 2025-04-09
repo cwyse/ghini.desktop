@@ -164,7 +164,8 @@ def remove_callback(genera):
         # Delete the genus itself
         obj = session.execute(select(Genus)).scalars().get(genus.id)
         session.delete(obj)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
@@ -379,19 +380,23 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
 
             if existing_synonym:
                 session.delete(existing_synonym)
-                session.commit()  # Commit to remove previous synonym relationship
+                if session.in_transaction():
+                    session.commit()  # Commit to remove previous synonym relationship
 
             # ✅ Step 2: Insert the new synonym relationship
             new_synonym = GenusSynonym(genus=value, synonym=self)
             session.add(new_synonym)
-            session.commit()  # Finalize the new synonym addition
+            if session.in_transaction():
+                session.commit()  # Finalize the new synonym addition
 
             # ✅ Step 3: Preserve other synonyms while updating the accepted genus
             if self not in value.synonyms:
                 value.synonyms.append(self)  # Ensure self is added to synonyms list
 
         except Exception as e:
-            session.rollback()  # Rollback on failure
+            if session.in_transaction():
+                if session.in_transaction():
+                    session.rollback()  # Rollback on failure
             logger.error(f"Error setting accepted synonym: {e}")
 
     @staticmethod
@@ -1028,7 +1033,8 @@ class GenusEditor(editor.GenericModelViewPresenterEditor):
         elif (
             self.presenter.dirty() and utils.yes_no_dialog(not_ok_msg)
         ) or not self.presenter.dirty():
-            self.session.rollback()
+            if self.session.in_transaction():
+                self.session.rollback()
             return True
         else:
             # we should never really even get here since we would have

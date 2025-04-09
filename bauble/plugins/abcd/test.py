@@ -64,7 +64,8 @@ def setup_test_data(db_session):
     inst = Institution()
     inst.name = inst.code = inst.contact = inst.technical_contact = inst.email = "test"
     inst.write()
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
 
 def test_abcd_structure(abcd_schema, setup_test_data):

@@ -40,7 +40,8 @@ from bauble.editor import MockView
 def setup_tags(session):
     """Fixture to clear all tags before each test."""
     session.execute(select(Tag)).scalars().delete()
-    session.commit()
+    if session.in_transaction():
+        session.commit()
 
 
 def test_duplicate_ids():
@@ -69,7 +70,8 @@ class TestTagMenu:
         tag_name = "some_tag"
         tag = Tag(tag=tag_name, description="description")
         session.add(tag)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         menu = tags_menu_manager.build_menu()
         assert isinstance(menu, Gtk.Menu)
@@ -86,7 +88,8 @@ class TestTagMenu:
             for i in range(5)
         ]
         session.add_all(tags)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         menu = tags_menu_manager.build_menu()
         assert isinstance(menu, Gtk.Menu)
@@ -103,10 +106,12 @@ def setup_family_and_tags(session):
     """Fixture to add a default family and clear tags before each test."""
     family = Family(family="family")
     session.add(family)
-    session.commit()
+    if session.in_transaction():
+        session.commit()
     yield family
     session.execute(select(Tag)).scalars().delete()
-    session.commit()
+    if session.in_transaction():
+        session.commit()
 
 
 @pytest.mark.usefixtures("setup_family_and_tags")
@@ -136,7 +141,8 @@ class TestTag:
         """Test tagging nothing."""
         tag = Tag(tag="some_tag", description="description")
         session.add(tag)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         tag.tag_objects([])
         assert tag.objects == []
@@ -149,7 +155,8 @@ class TestTag:
         """Test tagging objects."""
         family2 = Family(family="family2")
         session.add(family2)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         tag_objects("test", [setup_family_and_tags, family2])
 
@@ -176,13 +183,15 @@ class TestTag:
         family2 = Family(family="family2")
         tag = Tag(tag="test1")
         session.add_all([family2, tag])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert not tag.is_tagging(family2)
         assert not tag.is_tagging(setup_family_and_tags)
 
         tag.tag_objects([setup_family_and_tags])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert not tag.is_tagging(family2)
         assert tag.is_tagging(setup_family_and_tags)
@@ -195,11 +204,13 @@ class TestTag:
         tag1 = Tag(tag="test1")
         tag2 = Tag(tag="test2")
         session.add_all([family2, tag1, tag2])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         tag1.tag_objects([setup_family_and_tags, family2])
         tag2.tag_objects([setup_family_and_tags])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert tag1.search_view_markup_pair() == (
             'test1 - <span weight="light">tagging 2 objects of type Family</span>',
@@ -212,7 +223,8 @@ class TestTag:
 
         # Add an additional tag to tag2
         tag2.tag_objects([tag1])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         assert tag2.search_view_markup_pair() == (
             'test2 - <span weight="light">tagging 2 objects of 2 different types: Family, Tag</span>',
@@ -223,14 +235,16 @@ class TestTag:
         """Test remove callback without confirmation."""
         tag = Tag(tag="Arecaceae")
         session.add(tag)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         invoked = []
         yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=False)
         message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
 
         result = remove_callback([tag])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Assertions
         assert "message_details_dialog" not in [func for func, _ in invoked]
@@ -247,7 +261,8 @@ class TestTag:
         """Test remove callback with confirmation."""
         tag = Tag(tag="Arecaceae")
         session.add(tag)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         invoked = []
         save_reset = tag_plugin.tags_menu_manager.reset
@@ -256,7 +271,8 @@ class TestTag:
 
         result = remove_callback([tag])
         tag_plugin.tags_menu_manager.reset = save_reset
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Assertions
         assert "_reset_tags_menu" in [func for func, _ in invoked]
@@ -280,19 +296,22 @@ class TestGetTagIds:
         self.fam3 = Family(family="Solanaceae")
         self.fam4 = Family(family="Caricaceae")
         session.add_all([self.fam1, self.fam2, self.fam3, self.fam4])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         tag_plugin.tag_objects("test1", [self.fam1, self.fam2])
         tag_plugin.tag_objects("test2", [self.fam1])
         tag_plugin.tag_objects("test3", [self.fam2, self.fam3])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         yield
 
         # Cleanup after tests
         session.execute(select(Family)).scalars().delete()
         session.execute(select(Tag)).scalars().delete()
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
     def test_get_tag_ids1(self, session):
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1, self.fam2])
@@ -329,12 +348,14 @@ class TestGetTagIds:
     def test_get_tag_ids7(self, session):
         # Cleanup existing tags and create new ones
         session.execute(select(Tag)).scalars().delete()
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         tag_plugin.tag_objects("test1", [self.fam1, self.fam4])
         tag_plugin.tag_objects("test2", [self.fam1])
         tag_plugin.tag_objects("test3", [self.fam2, self.fam4])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1, self.fam2, self.fam3, self.fam4])
         assert s_all == set()
@@ -388,7 +409,8 @@ class TestTagPresenter:
         # Prepare data in the database
         obj = Tag(tag="1234")
         session.add(obj)
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
         # Test with a new scratch object
         obj = Tag()
@@ -463,7 +485,8 @@ class TestAttachedTo:
         obj3 = Tag(tag="frutal")
         fam = Family(family="Solanaceae")
         session.add_all([obj1, obj2, obj3, fam])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
     def test_attached_tags_empty(self, session):
         fam = session.execute(select(Family)).scalars().one()
@@ -492,7 +515,8 @@ class TestAttachedTo:
         obj3 = Tag(tag="frutal")
         fam = Family(family="Solanaceae")
         session.add_all([obj1, obj2, obj3, fam])
-        session.commit()
+        if session.in_transaction():
+            session.commit()
 
     def test_attached_tags_empty(self, session):
         fam = session.execute(select(Family)).scalars().one()

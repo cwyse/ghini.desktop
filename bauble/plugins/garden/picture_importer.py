@@ -248,7 +248,8 @@ class PictureImporterPresenter(GenericEditorPresenter):
             self.running_thread.join()
             self.running_thread = None
         if self.model.visible_pane == 1:
-            self.session.rollback()  # clean up session
+            if self.session.in_transaction():
+                self.session.rollback()  # clean up session
 
     def load_pixbufs(self):
         # to be run in different thread - or you're blocking the gui
@@ -514,9 +515,12 @@ class PictureImporterPresenter(GenericEditorPresenter):
         self.view.widgets.button_ok.set_sensitive(self.keep_running is True)
         self.lock.acquire()
         if self.should_commit:
-            session.commit()
+            if session.in_transaction():
+                session.commit()
         else:
-            session.rollback()
+            if session.in_transaction():
+                if session.in_transaction():
+                    session.rollback()
         self.lock.release()
 
     def on_picture_importer_dialog_response(self, widget, response, **kwargs):

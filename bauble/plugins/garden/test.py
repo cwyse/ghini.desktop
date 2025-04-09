@@ -83,7 +83,8 @@ def test_data_setup(db_session):
         code="TestCode",
     )
     db_session.add(institution)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
 
 # Test for duplicate IDs in Glade files
@@ -119,7 +120,8 @@ def garden_data(db_session):
     species = Species(genus=genus, sp="grusonii")
     sp2 = Species(genus=genus, sp="texelensis")
     db_session.add_all([family, genus, species, sp2])
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return {"family": family, "genus": genus, "species": species, "sp2": sp2}
 
 
@@ -133,7 +135,8 @@ def plant_data(db_session, garden_data):
         accession=accession, location=location, code="1", quantity=1
     )
     db_session.add_all([accession, location, plant])
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return {"accession": accession, "location": location, "plant": plant}
 
 
@@ -149,8 +152,10 @@ def test_plant_constraints(db_session, plant_data):
     )
     db_session.add(duplicate_plant)
     with pytest.raises(IntegrityError):
-        db_session.commit()
-    db_session.rollback()
+        if db_session.in_transaction():
+            db_session.commit()
+    if db_session.in_transaction():
+        db_session.rollback()
 
 
 def test_plant_duplicate(db_session, plant_data):
@@ -169,13 +174,15 @@ def test_plant_duplicate(db_session, plant_data):
     )
     change.plant = new_plant
     db_session.add(new_plant)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     # Duplicate the plant
     duplicate = new_plant.duplicate(code="3")
     assert duplicate.notes
     assert duplicate.changes
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
 
 def test_search_view_markup_pair(db_session, plant_data):
@@ -214,7 +221,8 @@ def test_branch_callback(db_session, plant_data):
         accession=accession, code="1", location=location, quantity=5
     )
     db_session.add(plant)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     # Branch plant
     branch_callback([plant])
@@ -313,7 +321,8 @@ def setup_species(db_session):
     genus = db_session.add(Genus(epithet="Echinocactus"))
     species = db_session.add(Species(genus=genus, sp="grusonii"))
     sp2 = db_session.add(Species(genus=genus, sp="texelensis"))
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return {"species": species, "sp2": sp2, "genus": genus}
 
 
@@ -322,7 +331,8 @@ def setup_accession(db_session, setup_species):
     """Fixture to set up an accession and related data."""
     species = setup_species["species"]
     accession = db_session.add(Accession(species=species, code="1"))
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return {"accession": accession, "species": species}
 
 
@@ -336,7 +346,8 @@ def setup_plants(db_session, setup_accession):
         )
         for i in range(1, 4)
     ]
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return plants
 
 
@@ -352,7 +363,8 @@ def test_cutting_property(db_session, setup_plants):
     rooted.cutting = cutting
 
     db_session.add(rooted)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     # Verify rooted cutting is associated
     assert rooted in prop._cutting.rooted
@@ -361,7 +373,8 @@ def test_cutting_property(db_session, setup_plants):
     rooted_id = rooted.id
     cutting_id = cutting.id
     prop._cutting = None
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     assert not db_session.execute(select(PropCutting).filter_by(id=cutting_id)).scalars().first()
     assert not db_session.execute(select(PropCuttingRooted).filter_by(id=rooted_id)).scalars().first()
@@ -372,22 +385,26 @@ def test_voucher_management(db_session, setup_accession):
     accession = setup_accession["accession"]
     voucher = Voucher(herbarium="ABC", code="1234567", accession=accession)
     db_session.add(voucher)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     # Remove voucher and verify deletion
     voucher_id = voucher.id
     accession.vouchers.remove(voucher)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     assert not db_session.execute(select(Voucher).filter_by(id=voucher_id)).scalars().first()
 
     # Test voucher deletion when disassociated
     voucher = Voucher(herbarium="ABC", code="1234567", accession=accession)
     db_session.add(voucher)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     acc_id = voucher.accession.id
     voucher.accession = None
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     assert not db_session.execute(select(Voucher).filter_by(id=voucher_id)).scalars().first()
     assert db_session.execute(select(Accession).filter_by(id=acc_id)).scalars().first()
 
@@ -398,7 +415,8 @@ def test_propagation_get_summary_cutting(db_session, setup_plants):
     prop = Propagation(plant=plant, prop_type="UnrootedCutting")
     cutting = PropCutting(**default_cutting_values)
     cutting.propagation = prop
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     summary = prop.get_summary()
     expected = (
@@ -431,7 +449,8 @@ def setup_accession(db_session, setup_species):
     species = setup_species["species"]
     accession = Accession(species=species, code="1")
     db_session.add(accession)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return {"accession": accession, "species": species}
 
 
@@ -440,7 +459,8 @@ def setup_location(db_session):
     """Fixture to create a location."""
     location = Location(name="Some Site", code="STE")
     db_session.add(location)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return location
 
 
@@ -453,7 +473,8 @@ def test_source_propagation_cleanup(db_session, setup_accession):
     cutting = PropCutting(cutting_type="Nodal", propagation=propagation)
 
     db_session.add_all([source, propagation, seed, cutting])
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     # Validate initial data
     assert propagation.id is not None
@@ -462,7 +483,8 @@ def test_source_propagation_cleanup(db_session, setup_accession):
 
     # Remove propagation and validate cleanup
     source.propagation = None
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     assert db_session.execute(select(Propagation).filter_by(id=propagation.id)).first() is None
     assert db_session.execute(select(PropSeed).filter_by(id=seed.id)).first() is None
     assert db_session.execute(select(PropCutting).filter_by(id=cutting.id)).first() is None
@@ -488,7 +510,8 @@ def test_accession_delete_cascades(db_session, setup_accession, setup_location):
     location = setup_location
     plant = Plant(accession=accession, location=location, code="1", quantity=1)
     db_session.add(plant)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     # Ensure plant exists
     plant_id = plant.id
@@ -496,7 +519,8 @@ def test_accession_delete_cascades(db_session, setup_accession, setup_location):
 
     # Delete accession and ensure plant is also deleted
     db_session.delete(accession)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     assert db_session.execute(select(Plant).filter_by(id=plant_id)).first() is None
 
 
@@ -506,7 +530,8 @@ def test_accession_unique_constraint(db_session, setup_accession):
     accession = Accession(species=species, code="1")
     db_session.add(accession)
     with pytest.raises(IntegrityError):
-        db_session.commit()
+        if db_session.in_transaction():
+            db_session.commit()
 
 
 def test_voucher_management(db_session, setup_accession):
@@ -514,7 +539,8 @@ def test_voucher_management(db_session, setup_accession):
     accession = setup_accession["accession"]
     voucher = Voucher(herbarium="ABC", code="1234567", accession=accession)
     db_session.add(voucher)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     # Verify voucher exists
     assert voucher.id is not None
@@ -522,7 +548,8 @@ def test_voucher_management(db_session, setup_accession):
     # Remove voucher and verify deletion
     voucher_id = voucher.id
     accession.vouchers.remove(voucher)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     assert db_session.execute(select(Voucher).filter_by(id=voucher_id)).first() is None
 
 
@@ -571,7 +598,8 @@ def setup_accession(db_session, setup_species):
     species = setup_species["species"]
     accession = Accession(code="2001.0002", species=species, source=Source())
     db_session.add(accession)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return accession
 
 
@@ -580,7 +608,8 @@ def setup_collection(db_session, setup_accession):
     """Fixture to create a collection associated with an accession."""
     collection = Collection(locale="some location", source=setup_accession.source)
     db_session.add(collection)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return collection
 
 
@@ -623,7 +652,8 @@ def test_institution_initialization(db_session):
     """Test initialization of institution fields in metadata."""
     institution = Institution(name="Ghini")
     db_session.add(institution)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     fields = (
         db_session.execute(select(BaubleMeta))
@@ -638,7 +668,8 @@ def test_institution_write_none_stays_none(db_session):
     """Test that writing None values to an institution keeps them as None."""
     institution = Institution(name="Ghini", email="bauble@anche.no")
     db_session.add(institution)
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
 
     fields = (
         db_session.execute(select(BaubleMeta))
@@ -844,7 +875,8 @@ def setup_pocket_data(db_session, setup_species):
     plt1 = Plant(accession=acc, code="1", quantity=1, location=loc)
     plt2 = Plant(accession=acc, code="2", quantity=1, location=loc)
     db_session.add_all([acc, loc, plt1, plt2])
-    db_session.commit()
+    if db_session.in_transaction():
+        db_session.commit()
     return acc, loc, [plt1, plt2]
 
 

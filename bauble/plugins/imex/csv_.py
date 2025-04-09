@@ -491,13 +491,17 @@ class CSVImporter(Importer):
 
                         except IntegrityError as e:
                             logger.error(f"Constraint violation in table {table.name}: {e}")
-                            session.rollback()  # Rollback to prevent partial imports
+                            if session.in_transaction():
+                                if session.in_transaction():
+                                    session.rollback()  # Rollback to prevent partial imports
                             utils.message_dialog(_("Data import failed due to integrity constraints."), Gtk.MessageType.ERROR)
                             self.__error = True
                             return
                         except Exception as e:
                             logger.error(f"Error processing table {table.name}: {e}")
-                            session.rollback()
+                            if session.in_transaction():
+                                if session.in_transaction():
+                                    session.rollback()
                             raise
                        
                     # Update the GUI

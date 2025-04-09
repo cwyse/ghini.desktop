@@ -531,7 +531,8 @@ class PlantsPlugin(pluginmgr.Plugin):
         for i in q.all():
             default = i.name
             session.delete(i)
-            session.commit()
+            if session.in_transaction():
+                session.commit()
         init_marker = meta.get_default("stqv_initialized", default, session)
         if init_marker.value == "false":
             init_marker.value = "true"
@@ -549,7 +550,8 @@ class PlantsPlugin(pluginmgr.Plugin):
                     "{}:{}:{}".format(name, tooltip, query),
                     session,
                 )
-            session.commit()
+            if session.in_transaction():
+                session.commit()
         session.close()
 
     @classmethod

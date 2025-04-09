@@ -1001,7 +1001,8 @@ class SearchView(pluginmgr.View):
 
         # Ensure the session is properly handled
         try:
-            self.session.rollback()  # Rollback any pending transactions
+            if self.session.in_transaction():
+                self.session.rollback()  # Rollback any pending transactions
         except Exception as e:
             logger.warning("Failed to rollback session: %s", e)
             self.session = db.Session()  # Reinitialize session if rollback fails

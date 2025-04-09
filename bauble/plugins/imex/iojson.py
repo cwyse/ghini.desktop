@@ -488,16 +488,20 @@ class JSONImporter(editor.GenericEditorPresenter):
             try:
                 print(obj)
                 db.construct_from_dict(session, obj, self.create, self.update)
-                session.commit()
+                if session.in_transaction():
+                    session.commit()
             except Exception as e:
-                session.rollback()
+                if session.in_transaction():
+                    if session.in_transaction():
+                        session.rollback()
                 logger.warning(
                     "could not import %s (%s: %s)"
                     % (obj, type(e).__name__, e.args)
                 )
             pb_set_fraction(float(i) / n)
             yield
-        session.commit()
+        if session.in_transaction():
+            session.commit()
         try:
             from bauble import gui
 

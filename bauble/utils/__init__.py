@@ -1963,3 +1963,11 @@ def parse_date(value, dayfirst=True, yearfirst=False, **kwargs):
     return dateutil.parser.parse(
         value, dayfirst=dayfirst, yearfirst=yearfirst, **kwargs
     )
+
+def safe_rollback(session):
+    if session.in_transaction():
+        session.rollback()
+
+def safe_commit(session):
+    if session.in_transaction():
+        session.commit()
