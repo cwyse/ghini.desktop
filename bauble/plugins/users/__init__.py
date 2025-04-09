@@ -249,7 +249,7 @@ def get_members(group):
     """
     # get group id
     stmt = "select oid from pg_roles where rolname = '%s'" % group
-    gid = db.engine.execute(stmt).fetchone()[0]
+    gid = db.engine.execute(stmt).scalar_one_or_none()
     # get members with the gid
     stmt = "select member from pg_auth_members where roleid = '%s'" % gid
     [r[0] for r in db.engine.execute(stmt).all()]
@@ -363,7 +363,7 @@ def has_privileges(role, privilege):
                 bauble.db.engine.url.database,
                 priv,
             )
-            r = db.engine.execute(stmt).fetchone()[0]
+            r = db.engine.execute(stmt).scalar_one_or_none()
             if not r:
                 # debug('%s does not have %s on database %s' % \
                 #           (role, priv, bauble.db.engine.url.database))
@@ -383,7 +383,7 @@ def has_privileges(role, privilege):
                 priv,
             )
             try:
-                r = db.engine.execute(stmt).fetchone()[0]
+                r = db.engine.execute(stmt).scalar_one_or_none()
                 if not r:
                     # debug('%s does not have %s on %s table' % \
                     #           (role,priv,table.name))
