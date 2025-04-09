@@ -108,8 +108,7 @@ class GeographicAreaMenu:
                 geographic_area_table.c.name,
                 geographic_area_table.c.parent_id
             )
-        ).fetchall()
-
+        ).mappings().all()
         geos_hash = {}
         for geo_id, name, parent_id in geos:
             if parent_id not in geos_hash:

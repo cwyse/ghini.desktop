@@ -118,7 +118,7 @@ class TestEnumModel:
         else:
             query = text("SELECT table_name FROM information_schema.tables WHERE table_schema='public';")
 
-        table_names = db_session.execute(query).fetchall()
+        table_names = db_session.execute(query).all()
         print(f"Existing tables: {table_names}")
         # Debug: Ensure the row does not already exist
         existing_row = db_session.execute(

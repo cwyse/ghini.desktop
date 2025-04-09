@@ -857,7 +857,7 @@ class TestSearch:
         g3 = Genus(family=f3, genus="genus3")
         db_session.add_all([family2, f3, g2, g3])
         db_session.flush()
-        for row in db_session.execute(text("SELECT id, epithet, qualifier FROM family")).fetchall():
+        for row in db_session.execute(text("SELECT id, epithet, qualifier FROM family")).mappings().all():
             print(f"DB Check: id={row.id}, family={row.epithet}, qualifier={row.qualifier} ({type(row.qualifier)})")
 
         # Perform the query
@@ -1024,7 +1024,7 @@ class TestSearch:
 
         # Use the subquery in another query to validate it works as expected
         query_using_subquery = select(subquery.c.id, subquery.c.family)
-        results = db_session.execute(query_using_subquery).fetchall()
+        results = db_session.execute(query_using_subquery).mappings().all()
 
         # Assert that results are returned as expected
         assert len(results) > 0  # Adjust based on your test data
