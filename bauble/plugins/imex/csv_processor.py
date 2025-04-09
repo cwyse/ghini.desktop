@@ -400,7 +400,7 @@ class CSVProcessor:
 
         # Apply conversion to each row in the batch
         fixed_values = [
-            {key: convert_enum(value) for key, value in row.items()}
+            {key: convert_enum(value) for key, value in row._mapping.items()}
             for row in values_to_insert
         ]
 

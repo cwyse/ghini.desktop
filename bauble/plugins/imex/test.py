@@ -246,7 +246,8 @@ class TestCSV:
         with open(os.path.join(temp_path, "species.txt")) as f:
             reader = csv.DictReader(f)
             row = next(reader)
-            assert row["cv_group"] == ""
+            assert row._mapping["cv_group"] == ""
+
 
 
 
