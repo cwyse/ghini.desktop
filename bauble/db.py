@@ -728,13 +728,13 @@ def make_note_class(
 
             # Join and filter based on `name`
             if "name" in keys:
+                related_name = keys["name"].lower()
                 related_class = globals().get(keys["name"].lower())
                 if related_class:
                     fk_attr = getattr(cls, f"{related_name}_id", None)
                     assert fk_attr is not None, f"Expected attribute '{related_name}_id' not found on {cls.__name__}"
                     stmt = stmt.join(related_class, 
-                                     related_class.id == fk_attr)
-                               .where(related_class.code == keys[keys["name"].lower()]
+                                     related_class.id == fk_attr).where(related_class.code == keys[keys["name"].lower()]
                     )
 
             # Add filters for `date`
