@@ -734,7 +734,7 @@ class GUI:
         # Make the menu item visible
         item.show()
 
-    def add_to_tools_menu(self, menu, tool, on_activate_callback):
+    def add_to_tools_menu(self, menu, tool, on_activate_callback, base_dir=None):
         """
         Helper function to add a tool to a tools menu.
 
@@ -743,7 +743,10 @@ class GUI:
             tool (object): The tool object containing label, icon, and other metadata.
             on_activate_callback (function): The callback to execute when the tool is activated.
         """
-        item = create_menu_item_with_image(tool.label, tool.icon_name, paths.lib_dir())
+        base = None
+        if base_dir is not None:
+            base = os.path.join(paths.lib_dir(), base_dir)
+        item = create_menu_item_with_image(tool.label, tool.icon_name, base)
         item.connect("activate", on_activate_callback, tool)
         menu.append(item)
         if not tool.enabled:
@@ -780,7 +783,7 @@ class GUI:
         # Add tools with no category to the root menu
         root_tools = tools.pop(None, [])
         for tool in sorted(root_tools, key=lambda x: getattr(x, "item_position", 0)):
-            self.add_to_tools_menu(tools_menu, tool, self.on_tools_menu_item_activate)
+            self.add_to_tools_menu(tools_menu, tool, self.on_tools_menu_item_activate, tool.icon_dir)
         tools_menu.show_all()
 
         # Create submenus for categorized tools
@@ -795,9 +798,9 @@ class GUI:
 
             for tool in sorted(tools[category], key=lambda x: x.label):
                 try:
-                    self.add_to_tools_menu(submenu, tool, self.on_tools_menu_item_activate)
+                    self.add_to_tools_menu(submenu, tool, self.on_tools_menu_item_activate, tool.icon_dir)
                 except:
-                    self.add_to_tools_menu(submenu, tool, self.on_tools_menu_item_activate)
+                    self.add_to_tools_menu(submenu, tool, self.on_tools_menu_item_activate, tool.icon_dir)
             submenu_item.show_all()
 
         # Ensure all menu items are visible
