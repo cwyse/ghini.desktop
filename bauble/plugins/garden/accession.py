@@ -2373,7 +2373,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         if presenter.start() > 0:
             presenter.session.execute(select(meta.BaubleMeta)).scalars().where(
                 meta.BaubleMeta.name.like("acidf_%")
-            ).delete(synchronize_session=False)
+            ).delete(synchronize_session="fetch")
             i = 1
             iter = ls.get_iter_first()
             values = []
