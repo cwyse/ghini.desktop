@@ -147,7 +147,9 @@ class PluginMgrTests:
 
                 # Verify the expected record count
                 from bauble.plugins.plants import Family
-                count = db_session.query(Family).count()
+                from sqlalchemy import select, func
+                stmt = select(func.count()).select_from(Family)
+                count = db_session.execute(stmt).scalar_one()
                 assert count == 1387, f"Expected 1387 records in Family, found {count}"
 
         # Register and install the plugin

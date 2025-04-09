@@ -390,7 +390,11 @@ class ABCDExporter:
         if plants:
             nplants = len(plants)
         else:
-            nplants = db.Session().query(Plant).count()
+            from sqlalchemy import select, func
+
+            stmt = select(func.count()).select_from(Plant)
+            nplants = db.Session().execute(stmt).scalar_one()
+
 
         if nplants > 3000:
             msg = _(
@@ -415,7 +419,8 @@ class ABCDExporter:
         # TODO: do something about this, like list the number of plants
         # to be returned and make sure this is what the user wants
         if plants is None:
-            plants = db.Session().query(Plant).all()
+            stmt = select(Plant)
+            plants = db.Session().execute(stmt).scalars().all()
 
         data = plants_to_abcd(plants)
 
