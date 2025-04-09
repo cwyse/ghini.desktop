@@ -780,13 +780,11 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             return start
         digits = len(format) - len(start)
         format = start + "%%0%dd" % digits
-        q = session.execute(select(Accession.code)).scalars().where(
-            Accession.code.startswith(start)
-        )
+        q = session.execute(select(Accession.code).where(Accession.code.startswith(start))).scalars()
         next = None
         try:
             if q.count() > 0:
-                codes = [safe_int(row[0][len(start):]) for row in q]
+                codes = [safe_int(code[len(start):]) for code in q]
                 next = format % (max(codes) + 1)
             else:
                 next = format % 1

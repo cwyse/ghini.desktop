@@ -431,8 +431,8 @@ class PluginRegistry(db.Base):
         t = PluginRegistry.__table__
         stmt = select(t.c.name)
         with db.Session() as session:
-            results = session.execute(stmt)
-            names = [row[0] for row in results]
+            results = session.execute(stmt).scalars().all()
+            names = list(results)
         return names
 
     @staticmethod
