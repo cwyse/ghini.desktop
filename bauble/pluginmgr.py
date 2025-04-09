@@ -519,6 +519,7 @@ class Tool:
     category = None
     label = None
     enabled = True
+    icon_dir = None
 
     @classmethod
     def start(cls):
