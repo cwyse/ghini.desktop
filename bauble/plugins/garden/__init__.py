@@ -216,7 +216,7 @@ class GardenPlugin(pluginmgr.Plugin):
         )
         insert_menu.append(Gtk.SeparatorMenuItem())
         bauble.gui.add_to_insert_menu(
-            create_contact, _("Contact"), "contact.png", base
+            create_contact, _("Contact"), "user", base
         )
 
         # if the plant delimiter isn't in the bauble meta then add the default
