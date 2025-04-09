@@ -556,10 +556,13 @@ class IdentExpression(object):
             parent_inspect.persist_selectable.name
             if hasattr(parent_inspect, "persist_selectable") and parent_inspect.persist_selectable is not None
             else None
-)
+        )
+        from sqlalchemy import text
+
         if session and table_name:
             try:
-                query_result = session.execute(text(f"SELECT id, {column_name} FROM {table_name}")).fetchall()
+                stmt = text(f"SELECT id, {column_name} FROM {table_name}")
+                query_result = session.execute(stmt).mappings().all()  # ⬅️ Use .mappings()
                 for row in query_result:
                     print(f"🔍 DB Check: {column_name} = {row[column_name]} (Type: {type(row[column_name])})")
             except Exception as e:

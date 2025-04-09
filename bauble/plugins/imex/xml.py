@@ -164,7 +164,7 @@ class XMLExporter:
             stmt = select(table)
 
             try:
-                results = self.session.execute(stmt).fetchall()
+                results = self.session.execute(stmt).mappings().all()
                 columns = list(table.c.keys())
                 for row in results:
                     # Create a row element
