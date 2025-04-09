@@ -1036,26 +1036,38 @@ class TestFromAndToDict:
         assert fab in session_families, "Family not found in session after creation."
 
     @pytest.mark.skip(reason="Not Implemented")
-    def test_where_can_object_be_found_before_commit(self, session):
+    def test_where_can_object_be_found_before_commit(self, db_session):
         """Test visibility of created objects in other sessions before commit."""
-        fab = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Fabaceae"})
-        other_session = session.connection()._proxied.connection.begin_nested()
-        db_families = other_session.execute(select(Family)).scalars().all()
-        fab_in_other_session = Family.retrieve_or_create(
-            other_session, {"rank": "family", "epithet": "Fabaceae"}
-        )
-        assert fab not in db_families, "Family unexpectedly found in other session."
+        fab = Family.retrieve_or_create(db_session, {"rank": "family", "epithet": "Fabaceae"})
 
-    def test_where_can_object_be_found_after_commit(self, session):
+        # Use a new session bound to same connection with SAVEPOINT
+        nested_transaction = db_session.connection().begin_nested()
+        other_session = db.Session(bind=db_session.connection())
+        try:
+            db_families = other_session.execute(select(Family)).scalars().all()
+            fab_in_other_session = Family.retrieve_or_create(
+                other_session, {"rank": "family", "epithet": "Fabaceae"}
+            )
+            assert fab not in db_families, "Family unexpectedly found in other session."
+        finally:
+            nested_transaction.rollback()
+            other_session.close()
+
+    def test_where_can_object_be_found_after_commit(self, db_session):
         """Test visibility of created objects in other sessions after commit."""
-        fab = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Fabaceae"})
-        session.commit()
-        other_session = session.connection()._proxied.connection.begin_nested()
-        all_families = other_session.execute(select(Family)).scalars().all()
-        fab_in_other_session = Family.retrieve_or_create(
-            other_session, {"rank": "family", "epithet": "Fabaceae"}
-        )
-        assert fab in all_families, "Family not found in other session after commit."
+        fab = Family.retrieve_or_create(db_session, {"rank": "family", "epithet": "Fabaceae"})
+        db_session.commit()
+
+        other_session = db.Session(bind=db.engine.connect())
+        try:
+            all_families = other_session.execute(select(Family)).scalars().all()
+            fab_in_other_session = Family.retrieve_or_create(
+                other_session, {"rank": "family", "epithet": "Fabaceae"}
+            )
+            assert fab in all_families, "Family not found in other session after commit."
+        finally:
+            other_session.close()
+
 
     def test_grabbing_same_params_same_output_new(self, session):
         """Test that retrieving the same parameters returns the same new object."""
