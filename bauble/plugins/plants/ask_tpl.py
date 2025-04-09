@@ -240,21 +240,21 @@ class AskTPL(threading.Thread):
                 raise NoResult
             logger.debug("found this: %s", str(found))
             if found["Accepted ID"]:
-                accepted = found
-                # accepted = ask_wfo(found["FullName"])
-                # logger.debug("ask_tpl on the Accepted ID returns %s", accepted)
-                # if accepted:
-                #     accepted = accepted[0]
-                # else:
-                #     logger.debug(
-                #         "taxon %s %s (%s) is marked as synonym. "
-                #         "accepted form (%s) is at infraspecific rank.",
-                #         found["Genus"],
-                #         found["Species"],
-                #         found["ID"],
-                #         found["Accepted ID"],
-                #     )
-                # logger.debug("%s after second query", self.name)
+                #accepted = found
+                accepted = ask_wfo(found["FullName"])
+                logger.debug("ask_tpl on the Accepted ID returns %s", accepted)
+                if accepted:
+                    accepted = accepted[0]
+                else:
+                    logger.debug(
+                        "taxon %s %s (%s) is marked as synonym. "
+                        "accepted form (%s) is at infraspecific rank.",
+                        found["Genus"],
+                        found["Species"],
+                        found["ID"],
+                        found["Accepted ID"],
+                    )
+                logger.debug("%s after second query", self.name)
             if self.stopped():
                 raise ShouldStopNow("after second query")
         except ShouldStopNow:
