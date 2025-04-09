@@ -377,7 +377,9 @@ class TestSearch:
         """
         Test searching by values for family or genus
         """
-        persisted_families = db_session.query(Family).all()
+
+        stmt = select(Family)
+        persisted_families = db_session.execute(stmt).scalars().all()
         mapper_search = get_strategy("MapperSearch")
         # Register domains
         self.setup_test_domains(mapper_search)
@@ -518,8 +520,10 @@ class TestSearch:
         direct_results = db_session.execute(stmt).scalars().all()
 
         # ✅ Step 4: Ensure at least one known family exists
-        row = db_session.query(Family).filter(Family.family == "fam4").one_or_none()
-        for fam in db_session.query(Family).all():
+        stmt = select(Family).where(Family.family == "fam4")
+        row = db_session.execute(stmt).scalars().one_or_none()
+        stmt = select(Family)
+        for fam in db_session.execute(stmt).scalars():
             print("Family row in DB:", fam.id, fam.family)
         assert row is not None, "No row has family='fam4'!"
 

@@ -276,7 +276,10 @@ class MapperBase(DeclarativeMeta):
         """
         Return a query object for the class, applying the default order if specified.
         """
-        query = session.query(cls)
+        from sqlalchemy import select
+
+        stmt = select(cls)
+        query = session.execute(stmt).scalars()
         if hasattr(cls, "order_by") and cls.order_by:
             query = query.order_by(*cls.order_by)
         return query

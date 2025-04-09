@@ -546,11 +546,12 @@ class TestJSONExport:
         """
         Test exporting one family with full taxonomic information below family level.
         """
-        selection = (
-            db_session.query(Family)
-            .filter(Family.epithet == "Orchidaceae")
-            .all()
-        )
+
+        from sqlalchemy import select
+
+        stmt = select(Family).where(Family.epithet == "Orchidaceae")
+        selection = db_session.execute(stmt).scalars().all()
+
         exporter = JSONExporter(MockView())
         exporter.selection_based_on = "sbo_selection"
         exporter.include_private = False
@@ -570,11 +571,11 @@ class TestJSONExport:
         """
         Test exporting one genus with all species below genus level.
         """
-        selection = (
-            db_session.query(Genus)
-            .filter(Genus.epithet == "Calopogon")
-            .all()
-        )
+        from sqlalchemy import select
+
+        stmt = select(Genus).where(Genus.epithet == "Calopogon")
+        selection = db_session.execute(stmt).scalars().all()
+
         exporter = JSONExporter(MockView())
         exporter.view.selection = selection
         exporter.selection_based_on = "sbo_selection"
@@ -597,12 +598,13 @@ class TestJSONExport:
         """
         Test exporting one species and ensuring all species below genus level are exported.
         """
-        selection = (
-            db_session.query(Species)
+        from sqlalchemy import select
+        stmt = (
+            select(Species)
             .join(Genus)
-            .filter(Species.epithet == "tuberosus", Genus.epithet == "Calopogon")
-            .all()
+            .where(Species.epithet == "tuberosus", Genus.epithet == "Calopogon")
         )
+        selection = db_session.execute(stmt).scalars().all()
         exporter = JSONExporter(MockView())
         exporter.view.selection = selection
         exporter.selection_based_on = "sbo_selection"
@@ -625,12 +627,13 @@ class TestJSONExport:
         Test exporting a single species with associated notes.
         """
         # Select species and add a note
-        selection = (
-            db_session.query(Species)
+        from sqlalchemy import select
+        stmt = (
+            select(Species)
             .join(Genus)
-            .filter(Species.epithet == "tuberosus", Genus.epithet == "Calopogon")
-            .all()
+            .where(Species.epithet == "tuberosus", Genus.epithet == "Calopogon")
         )
+        selection = db_session.execute(stmt).scalars().all()
         note = SpeciesNote(category="<coords>", note="{1: 1, 2: 2}")
         note.species = selection[0]
         db_session.add(note)
@@ -672,12 +675,13 @@ class TestJSONExport:
         Test exporting a single species with a vernacular name.
         """
         # Select species and add a vernacular name
-        selection = (
-            db_session.query(Species)
+        from sqlalchemy import select
+        stmt = (
+            select(Species)
             .join(Genus)
-            .filter(Species.epithet == "tuberosus", Genus.epithet == "Calopogon")
-            .all()
+            .where(Species.epithet == "tuberosus", Genus.epithet == "Calopogon")
         )
+        selection = db_session.execute(stmt).scalars().all()
         vernacular_name = VernacularName(language="it", name="orchidea")
         selection[0].vernacular_names.append(vernacular_name)
         db_session.add(vernacular_name)
@@ -717,11 +721,11 @@ class TestJSONExport:
         Test exporting one genus that is a synonym with its accepted name.
         """
         # Create taxonomic structure
-        family = (
-            db_session.query(Family)
-            .filter(Family.epithet == "Orchidaceae")
-            .one()
-        )
+        from sqlalchemy import select
+
+        stmt = select(Family).where(Family.epithet == "Orchidaceae")
+        family = db_session.execute(stmt).scalars().one()
+
         accepted_genus = Genus(family=family, epithet="Bulbophyllum")
         synonym_genus = Genus(family=family, epithet="Zygoglossum")
         accepted_genus.synonyms.append(synonym_genus)
@@ -729,11 +733,8 @@ class TestJSONExport:
         db_session.commit()
 
         # Select synonym genus
-        selection = (
-            db_session.query(Genus)
-            .filter(Genus.epithet == "Zygoglossum")
-            .all()
-        )
+        stmt = select(Genus).where(Genus.epithet == "Zygoglossum")
+        selection = db_session.execute(stmt).scalars().all()
 
         # Export
         exporter = JSONExporter(MockView())
@@ -901,7 +902,9 @@ class TestJSONExport:
         Test exporting accessions with source details included.
         """
         # Precondition: Setup source and contact
-        accession = db_session.query(Accession).first()
+        from sqlalchemy import select
+        stmt = select(Accession)
+        accession = db_session.execute(stmt).scalars().first()
         source = Source()
         contact = Contact(name="Summit")
         source.source_detail = contact
