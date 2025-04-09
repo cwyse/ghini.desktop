@@ -859,7 +859,7 @@ def test_export_empty_database():
             cursor = cn.cursor()
             for table in ["species", "accession", "plant"]:
                 cursor.execute(f"SELECT * FROM {table}")
-                assert not cursor.fetchall()
+                assert not cursor.all()
 
         os.unlink(tmpfile.name)
 
@@ -875,10 +875,10 @@ def test_export_two_plants(setup_pocket_data):
         with sqlite3.connect(tmpfile.name) as cn:
             cursor = cn.cursor()
             cursor.execute('SELECT * FROM "species"')
-            assert len(cursor.fetchall()) == 1
+            assert len(cursor.all()) == 1
             cursor.execute('SELECT * FROM "accession"')
-            assert len(cursor.fetchall()) == 1
+            assert len(cursor.all()) == 1
             cursor.execute('SELECT * FROM "plant"')
-            assert len(cursor.fetchall()) == 2
+            assert len(cursor.all()) == 2
 
         os.unlink(tmpfile.name)

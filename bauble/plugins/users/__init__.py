@@ -252,12 +252,12 @@ def get_members(group):
     gid = db.engine.execute(stmt).fetchone()[0]
     # get members with the gid
     stmt = "select member from pg_auth_members where roleid = '%s'" % gid
-    [r[0] for r in db.engine.execute(stmt).fetchall()]
+    [r[0] for r in db.engine.execute(stmt).all()]
     stmt = (
         "select rolname from pg_roles where oid in (select member "
         "from pg_auth_members where roleid = %s)" % gid
     )
-    return [r[0] for r in db.engine.execute(stmt).fetchall()]
+    return [r[0] for r in db.engine.execute(stmt).all()]
 
 
 def delete(role, revoke=False):

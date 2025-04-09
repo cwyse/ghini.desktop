@@ -97,7 +97,7 @@ class LabelUpdater(Thread):
         try:
             with db.Session() as session:  # Use a context manager for the session
                 # Wrap the raw SQL string in text()
-                result = session.execute(text(self.query)).first()
+                result = session.execute(text(self.query)).fetchone()
                 (value,) = result if result else (None,)
                 GLib.idle_add(
                     utils.none,
