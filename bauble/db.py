@@ -38,7 +38,7 @@ from sqlalchemy import inspect
 from sqlalchemy import select
 #from sqlalchemy import text
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy.orm import DeclarativeMeta
 from sqlalchemy.orm import class_mapper
 from sqlalchemy import insert
 #from sqlalchemy.orm import Query
@@ -316,7 +316,7 @@ Base = declarative_base(cls=TypedBaseMixin, metaclass=MapperBase)
 All tables/mappers in Ghini which use the SQLAlchemy declarative
 plugin for declaring tables and mappers should derive from this class.
 
-An instance of :class:`sqlalchemy.ext.declarative.Base`
+An instance of :class:`sqlalchemy.orm.Base`
 """
 
 
