@@ -341,13 +341,11 @@ class CSVProcessor:
                 return value  # Keep as string for DB insertion
 
             elif isinstance(column_type, Enum):  # Custom Enum
-                if isinstance(value, Enum):
-                    return value  # Already an Enum instance
-                try:
-                    return Enum(value)  # Convert string to Enum
-                except ValueError:
+                if value not in column_type.values:
                     raise InvalidDataError(f"Invalid value for column '{column}': {value}. "
-                                        f"Expected one of: {[e.value for e in Enum]}")
+                                           f"Expected one of: {column_type.values}")
+                return value
+                
         except ValueError:
             raise InvalidDataError(f"Invalid value for column '{column}': {value}")
 
