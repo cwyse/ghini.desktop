@@ -179,7 +179,7 @@ class JSONExporter(editor.GenericEditorPresenter):
             plant_query = (
                 self.session.execute(select(Plant)).scalars()
                 .order_by(Plant.code)
-                .join(Accession)
+                .join(Plant.accession)
                 .order_by(Accession.code)
             )
 
