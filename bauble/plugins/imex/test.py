@@ -272,15 +272,15 @@ class TestCSV2:
 
         if db.engine.name == "postgresql":
             stmt = "SELECT currval('family_id_seq');"
-            currval = conn.execute(stmt).fetchone()[0]
+            currval = conn.execute(stmt).scalar_one_or_none()
             assert currval == 0
         elif db.engine.name == "sqlite":
             stmt = "SELECT max(id) from family;"
-            nextval = conn.execute(stmt).fetchone()[0] + 1
+            nextval = conn.execute(stmt).scalar_one_or_none() + 1
         else:
             pytest.fail(f"Unsupported engine type: {db.engine.name}")
 
-        maxid = conn.execute("SELECT max(id) FROM family").fetchone()[0]
+        maxid = conn.execute("SELECT max(id) FROM family").scalar_one_or_none()
         assert (
             nextval > highest_id
         ), f"Bad sequence: highest_id({highest_id}) > nextval({nextval}) -- {maxid}"

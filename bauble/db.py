@@ -1131,21 +1131,23 @@ class current_user_functor:
     def __call__(self):
         """
         Retrieve the current user name from the database or system.
-        
+
         :return: The current user name.
         """
         if self.override_value:
             return self.override_value
 
         try:
+            stmt = None
             if engine.name.startswith("postgresql"):
-                result = engine.execute(sa.text("SELECT current_user")).fetchone()
-                return result[0] if result else None
+                stmt = sa.text("SELECT current_user")
             elif engine.name.startswith("mysql"):
-                result = engine.execute(sa.text("SELECT current_user()")).fetchone()
-                return result[0] if result else None
+                stmt = sa.text("SELECT current_user()")
             else:
                 raise TypeError("Unsupported database engine for user retrieval.")
+
+            with engine.connect() as conn:
+                return conn.execute(stmt).scalar_one_or_none()
         except Exception:
             logger.debug("Falling back to system environment for user name retrieval.")
             return (
@@ -1154,6 +1156,7 @@ class current_user_functor:
                 or os.getenv("LOGNAME")
                 or os.getenv("LNAME")
             )
+
 
 
 # Instantiate the current_user function
