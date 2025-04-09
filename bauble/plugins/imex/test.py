@@ -267,7 +267,7 @@ class TestCSV2:
 
         # Check sequence handling
         highest_id = len(open(filename).readlines()) - 1
-        conn = db.engine.contextual_connect()
+        conn = db.engine.connect()
 
         if db.engine.name == "postgresql":
             stmt = "SELECT currval('family_id_seq');"
