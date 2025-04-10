@@ -37,6 +37,9 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 from gi.repository import Gtk
 
+import warnings
+from sqlalchemy.exc import SAWarning
+warnings.simplefilter("always", SAWarning)
 
 
 version_tuple = tuple(version.split("."))
