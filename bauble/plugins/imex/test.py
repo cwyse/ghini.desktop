@@ -262,6 +262,7 @@ class TestCSV2:
         """
         Test that sequences are correctly updated after imports.
         """
+        from sqlalchemy import text
         # Import family data
         filename = os.path.join("bauble", "plugins", "plants", "default", "family.txt")
         importer = CSVImporter()
@@ -272,16 +273,17 @@ class TestCSV2:
         conn = db.engine.connect()
 
         if db.engine.name == "postgresql":
-            stmt = "SELECT currval('family_id_seq');"
+            stmt = text("SELECT currval('family_id_seq');")
             currval = conn.execute(stmt).scalar_one_or_none()
             assert currval == 0
         elif db.engine.name == "sqlite":
-            stmt = "SELECT max(id) from family;"
+            stmt = text("SELECT max(id) from family;")
             nextval = conn.execute(stmt).scalar_one_or_none() + 1
         else:
             pytest.fail(f"Unsupported engine type: {db.engine.name}")
 
-        maxid = conn.execute("SELECT max(id) FROM family").scalar_one_or_none()
+        from sqlalchemy import text
+        maxid = conn.execute(text("SELECT max(id) FROM family")).scalar_one_or_none()
         assert (
             nextval > highest_id
         ), f"Bad sequence: highest_id({highest_id}) > nextval({nextval}) -- {maxid}"
@@ -307,7 +309,9 @@ class TestCSV2:
         Test importing and handling Unicode strings.
         """
         geo_data = {"name": "Galápagos"}
-        GeographicArea.__table__.insert().execute(geo_data)
+        stmt = GeographicArea.__table__.insert().values(geo_data)
+        db_session.execute(stmt)
+        db_session.commit()
 
         # Query and validate the Unicode handling
         query = db_session.execute(select(GeographicArea)).scalars()
