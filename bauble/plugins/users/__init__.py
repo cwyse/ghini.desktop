@@ -202,23 +202,27 @@ def remove_member(name, groups=None):
         logger.error("users.remove_member(): %s %s", type(e), utils.utf8(e))
 
 
-def get_members(group):
-    """Return members of group
+from sqlalchemy import text
 
-    Arguments:
-    - `group`:
-    """
-    # get group id
-    stmt = "select oid from pg_roles where rolname = '%s'" % group
-    gid = db.engine.execute(stmt).scalar_one_or_none()
-    # get members with the gid
-    stmt = "select member from pg_auth_members where roleid = '%s'" % gid
-    [r[0] for r in db.engine.execute(stmt).all()]
-    stmt = (
-        "select rolname from pg_roles where oid in (select member "
-        "from pg_auth_members where roleid = %s)" % gid
-    )
-    return [r[0] for r in db.engine.execute(stmt).all()]
+def get_members(group):
+    """Return members of group."""
+    with db.engine.connect() as conn:
+        # Get group OID
+        stmt = text("SELECT oid FROM pg_roles WHERE rolname = :group")
+        gid = conn.execute(stmt, {"group": group}).scalar_one_or_none()
+        if gid is None:
+            return []
+
+        # Get members' role names
+        stmt = text("""
+            SELECT rolname FROM pg_roles
+            WHERE oid IN (
+                SELECT member FROM pg_auth_members WHERE roleid = :gid
+            )
+        """)
+        result = conn.execute(stmt, {"gid": gid})
+        return [r[0] for r in result.all()]
+
 
 
 def delete(role, revoke=False):
@@ -298,22 +302,19 @@ def has_privileges(role, privilege):
     - `role`:
     - `privileges`:
     """
+    from sqlalchemy import text
+
     # if the user has all on database with grant privileges and he has
     # the grant privilege on the database then he has admin and he can
     # create roles
     if privilege == "admin":
         # test admin privileges on the database
         for priv in _database_privs:
-            stmt = "select has_database_privilege('%s', '%s', '%s')" % (
-                role,
-                bauble.db.engine.url.database,
-                priv,
-            )
-            r = db.engine.execute(stmt).scalar_one_or_none()
-            if not r:
-                # debug('%s does not have %s on database %s' % \
-                #           (role, priv, bauble.db.engine.url.database))
-                return False
+            stmt = text("select has_database_privilege(:role, :db, :priv)")
+            with db.engine.connect() as conn:
+                r = conn.execute(stmt, {"role": role, "db": bauble.db.engine.url.database, "priv": priv}).scalar_one_or_none()
+                if not r:
+                    return False
         privs = set(_table_privs).intersection(_privileges["write"])
     else:
         privs = set(_table_privs).intersection(_privileges[privilege])
@@ -323,17 +324,16 @@ def has_privileges(role, privilege):
     # test the privileges on the tables and sequences
     for table in db.metadata.sorted_tables:
         for priv in privs:
-            stmt = "select has_table_privilege('%s', '%s', '%s')" % (
-                role,
-                table.name,
-                priv,
-            )
+            stmt = text("select has_table_privilege(:role, :table, :priv)")
             try:
-                r = db.engine.execute(stmt).scalar_one_or_none()
-                if not r:
-                    # debug('%s does not have %s on %s table' % \
-                    #           (role,priv,table.name))
-                    return False
+                with db.engine.connect() as conn:
+                    r = conn.execute(stmt, {
+                        "role": role,
+                        "table": table.name,
+                        "priv": priv
+                    }).scalar_one_or_none()
+                    if not r:
+                        return False
             except ProgrammingError:
                 # we get here if the table doesn't exists, if it
                 # doesn't exist we don't care if we have permissions
