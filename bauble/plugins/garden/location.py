@@ -88,7 +88,7 @@ def remove_callback(locations):
         return
     try:
         session = db.Session()
-        obj = session.execute(select(Location)).scalars().get(loc.id)
+        obj = session.get(Location, loc.id)
         session.delete(obj)
         if session.in_transaction():
             session.commit()

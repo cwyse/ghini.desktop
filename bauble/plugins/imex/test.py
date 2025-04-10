@@ -185,13 +185,13 @@ class TestCSV:
         importer = TestImporter()
         importer.start([filename], force=True)
 
-        t = db_session.execute(select(BoolTest)).scalars().get(1)
+        t = db_session.get(BoolTest, 1)
         assert t.col1 is True
 
-        t = db_session.execute(select(BoolTest)).scalars().get(2)
+        t = db_session.get(BoolTest, 2)
         assert t.col1 is False
 
-        t = db_session.execute(select(BoolTest)).scalars().get(3)
+        t = db_session.get(BoolTest, 3)
         assert t.col1 is False
 
         BoolTest.__table__.drop(bind=db.engine)

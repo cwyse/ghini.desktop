@@ -158,11 +158,11 @@ def remove_callback(genera):
         # If 'Yes, remove genus and synonyms' was selected, delete the synonyms
         if response == utils.DialogResponse.YES:
             for unused_var in genus.synonyms:
-                synonym_obj = session.execute(select(Genus)).scalars().get(synonym.id)
+                synonym_obj = session.get(Genus, synonym.id)
                 session.delete(synonym_obj)
 
         # Delete the genus itself
-        obj = session.execute(select(Genus)).scalars().get(genus.id)
+        obj = session.get(Genus, genus.id)
         session.delete(obj)
         if session.in_transaction():
             session.commit()

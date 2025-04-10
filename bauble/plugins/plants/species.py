@@ -101,7 +101,7 @@ def remove_callback(values):
     if not utils.yes_no_dialog(msg):
         return
     try:
-        obj = session.execute(select(Species)).scalars().get(species.id)
+        obj = session.get(Species, species.id)
         session.delete(obj)
         if session.in_transaction():
             session.commit()
