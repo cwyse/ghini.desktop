@@ -623,7 +623,6 @@ class Tag(db.Base, db.WithNotes):
                     session.execute(select(db.History.timestamp)).scalars()
                     .order_by(db.History.timestamp.desc())
                     .limit(1)
-                    .scalar()
                 )
                 if last_history and last_history > self.__my_own_timestamp:
                     # Invalidate the cache if the database has changed
