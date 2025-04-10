@@ -162,9 +162,10 @@ def create_user(name, password=None, admin=False, groups=None):
 
     try:
         with db.engine.begin() as conn:
+            from sqlalchemy import text
             for group in groups:
-                conn.execute(f"grant {group} to {name}")
-            conn.execute(f"grant connect on database {bauble.db.engine.url.database} to {name}")
+                conn.execute(text(f"grant {group} to {name}"))
+            conn.execute(text(f"grant connect on database {bauble.db.engine.url.database} to {name}"))
     except Exception as e:
         logger.error("users.create_user(): %s %s", type(e), utils.utf8(e))
         raise
@@ -182,8 +183,9 @@ def add_member(name, groups=None):
         groups = []
     try:
         with db.engine.begin() as conn:
+            from sqlalchemy import text
             for group in groups:
-                conn.execute(f'grant "{group}" to {name}')
+                conn.execute(text(f'grant "{group}" to {name}'))
     except Exception as e:
         logger.error("users.add_member(): %s %s", type(e), utils.utf8(e))
 
@@ -193,8 +195,9 @@ def remove_member(name, groups=None):
         groups = []
     try:
         with db.engine.begin() as conn:
+            from sqlalchemy import text
             for group in groups:
-                conn.execute(f"revoke {group} from {name}")
+                conn.execute(text(f"revoke {group} from {name}"))
     except Exception as e:
         logger.error("users.remove_member(): %s %s", type(e), utils.utf8(e))
 
@@ -229,7 +232,9 @@ def drop(role, revoke=False):
         with db.engine.begin() as conn:
             if revoke:
                 set_privilege(role, None)
-            conn.execute(f"drop role {role};")
+            from sqlalchemy import text
+            
+            conn.execute(text(f"drop role {role};"))
     except Exception as e:
         logger.error("users.drop(): %s %s", type(e), utils.utf8(e))
         raise
@@ -376,16 +381,17 @@ def set_privilege(role, privilege):
         privs = _privileges[privilege]
 
     try:
+        from sqlalchemy import text
         with db.engine.begin() as conn:
             # revoke everything first
             for table in db.metadata.sorted_tables:
-                conn.execute(f"revoke all on table {table.name} from {role};")
+                conn.execute(text(f"revoke all on table {table.name} from {role};"))
                 for col in table.c:
                     if hasattr(col, "sequence"):
-                        conn.execute(f"revoke all on sequence {col.sequence.name} from {role};")
+                        conn.execute(text(f"revoke all on sequence {col.sequence.name} from {role};"))
 
-            conn.execute(f"revoke all on database {bauble.db.engine.url.database} from {role}")
-            conn.execute(f"alter role {role} with nocreaterole")
+            conn.execute(text(f"revoke all on database {bauble.db.engine.url.database} from {role}"))
+            conn.execute(text(f"alter role {role} with nocreaterole"))
 
             if not privilege:
                 return
@@ -394,7 +400,7 @@ def set_privilege(role, privilege):
             if privilege == "admin":
                 stmt = f"grant all on database {bauble.db.engine.url.database} to {role} with grant option"
                 conn.execute(stmt)
-                conn.execute(f"alter role {role} with createuser")
+                conn.execute(text(f"alter role {role} with createuser"))
 
             # Grant on tables and sequences
             for table in bauble.db.metadata.sorted_tables:
