@@ -448,7 +448,7 @@ class CollectionPresenter(editor.ChildPresenter):
         self._dirty = False
 
     def set_region(self, menu_item, geo_id):
-        geographic_area = self.session.execute(select(GeographicArea)).scalars().get(geo_id)
+        geographic_area = self.session.get(GeographicArea, geo_id)
         self.set_model_attr("region", geographic_area)
         self.set_model_attr("geographic_area_id", geo_id)
         self.view.widgets.add_region_button.set_label(str(geographic_area))
@@ -909,7 +909,7 @@ def source_detail_remove_callback(details):
         return
     try:
         session = db.Session()
-        obj = session.execute(select(Contact)).scalars().get(detail.id)
+        obj = session.get(Contact, detail.id)
         session.delete(obj)
         if session.in_transaction():
             session.commit()

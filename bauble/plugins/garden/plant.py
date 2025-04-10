@@ -112,7 +112,7 @@ def remove_callback(plants):
 
     session = db.Session()
     for plant in plants:
-        obj = session.execute(select(Plant)).scalars().get(plant.id)
+        obj = session.get(Plant, plant.id)
         session.delete(obj)
     try:
         if session.in_transaction():

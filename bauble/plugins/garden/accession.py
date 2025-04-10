@@ -241,7 +241,7 @@ def remove_callback(accessions):
         return
     try:
         session = db.Session()
-        obj = session.execute(select(Accession)).scalars().get(acc.id)
+        obj = session.get(Accession, acc.id)
         session.delete(obj)
         if session.in_transaction():
             session.commit()

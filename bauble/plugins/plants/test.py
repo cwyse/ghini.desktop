@@ -478,11 +478,11 @@ class TestSpecies:
 
         def get_species_string(species_id, **kwargs):
             """Helper function to fetch the string representation of a Species."""
-            species = session.execute(select(Species)).scalars().get(species_id)
+            species = session.get(Species, species_id)
             return species.str(**kwargs)
 
         for species_id, expected_string in species_str_map.items():
-            species = session.execute(select(Species)).scalars().get(species_id)
+            species = session.get(Species, species_id)
 
             # Verify basic string output
             printable_name = remove_zws(str(species))
@@ -503,7 +503,7 @@ class TestSpecies:
 
         def get_species_string(species_id, **kwargs):
             """Helper function to fetch the string representation of a Species."""
-            species = session.execute(select(Species)).scalars().get(species_id)
+            species = session.get(Species, species_id)
             return species.str(**kwargs)
 
         for species_id, expected_string in species_str_authors_map.items():
@@ -519,7 +519,7 @@ class TestSpecies:
 
         def get_species_string(species_id, **kwargs):
             """Helper function to fetch the string representation of a Species."""
-            species = session.execute(select(Species)).scalars().get(species_id)
+            species = session.get(Species, species_id)
             return species.str(**kwargs)
 
         for species_id, expected_string in species_markup_map.items():
@@ -535,7 +535,7 @@ class TestSpecies:
 
         def get_species_string(species_id, **kwargs):
             """Helper function to fetch the string representation of a Species."""
-            species = session.execute(select(Species)).scalars().get(species_id)
+            species = session.get(Species, species_id)
             return species.str(**kwargs)
 
         for species_id, expected_string in species_markup_authors_map.items():
@@ -595,7 +595,7 @@ class TestSpecies:
 
     #     # Step 4: Refresh and reload the species from the database
     #     session.refresh(sp)
-    #     sp = session.execute(select(Species)).scalars().get(sp.id)
+    #     sp = session.get(Species, sp.id)
 
     #     # Step 5: Verify that the string representation has changed
     #     assert sp.str() != str1, "String cache was not invalidated after modification."
@@ -737,7 +737,7 @@ class TestSpecies:
         """
 
         def load_sp(id):
-            return self.session.execute(select(Species)).scalars().get(id)
+            return self.session.get(Species, id)
 
         def syn_str(id1, id2, isit="not"):
             sp1 = load_sp(id1)
@@ -1038,19 +1038,17 @@ class TestGeographicArea:
             self.session.commit()
 
         # Test Oaxaca
-        oaxaca = self.session.execute(select(GeographicArea)).scalars().get(oaxaca_id)
+        oaxaca = self.session.get(GeographicArea, oaxaca_id)
         species = get_species_in_geographic_area(oaxaca)
         assert [s.id for s in species] == [sp2.id], "Oaxaca species mismatch"
 
         # Test Mexico
-        mexico = self.session.execute(select(GeographicArea)).scalars().get(mexico_id)
+        mexico = self.session.get(GeographicArea, mexico_id)
         species = get_species_in_geographic_area(mexico)
         assert [s.id for s in species] == [sp1.id, sp2.id], "Mexico species mismatch"
 
         # Test North America
-        north_america = self.session.execute(select(GeographicArea)).scalars().get(
-            northern_america_id
-        )
+        north_america = self.session.get(GeographicArea, northern_america_id)
         species = get_species_in_geographic_area(north_america)
         assert [s.id for s in species] == [sp1.id, sp2.id, sp3.id], "North America species mismatch"
 

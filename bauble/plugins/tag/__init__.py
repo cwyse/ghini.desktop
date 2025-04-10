@@ -315,7 +315,7 @@ def remove_callback(tags):
         return
     session = object_session(tag)
     try:
-        obj = session.execute(select(Tag)).scalars().get(tag.id)
+        obj = session.get(Tag, tag.id)
         session.delete(obj)
         if session.in_transaction():
             session.commit()
