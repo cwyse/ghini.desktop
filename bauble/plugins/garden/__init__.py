@@ -154,7 +154,7 @@ class GardenPlugin(pluginmgr.Plugin):
                 session.execute(select(Accession)).scalars()
                 .join(Source)
                 .join(Contact)
-                .options(selectinload("species"))
+                .options(selectinload(Species.species))
                 .where(Contact.id == detail.id)
                 .all()
             )
