@@ -361,7 +361,7 @@ class PlantChange(db.Base):
 
     reason = Column(
         types.Enum(
-            values=list(change_reasons.keys()), translations=change_reasons
+            values=list(change_reasons.keys()), translations=change_reasons, omit_aliases=False
         )
     )
 
@@ -472,7 +472,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     acc_type = Column(
         types.Enum(
-            values=list(acc_type_values.keys()), translations=acc_type_values
+            values=list(acc_type_values.keys()), translations=acc_type_values, omit_aliases=False
         ),
         default=None,
     )

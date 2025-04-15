@@ -388,7 +388,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     author = Column(Unicode(128))
     hybrid = Column(Boolean, default=False)
     sp_qual = Column(
-        types.Enum(values=["agg.", "s. lat.", "s. str.", None]), default=None
+        types.Enum(values=["agg.", "s. lat.", "s. str.", None]), default=None, omit_aliases=False
     )
     cv_group = Column(Unicode(50))
     trade_name = Column(Unicode(64))
@@ -397,7 +397,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     infrasp1_rank = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
-            translations=infrasp_rank_values,
+            translations=infrasp_rank_values, omit_aliases=False
         )
     )
     infrasp1_author = Column(Unicode(64))
@@ -406,7 +406,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     infrasp2_rank = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
-            translations=infrasp_rank_values,
+            translations=infrasp_rank_values, omit_aliases=False
         )
     )
     infrasp2_author = Column(Unicode(64))
@@ -415,7 +415,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     infrasp3_rank = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
-            translations=infrasp_rank_values,
+            translations=infrasp_rank_values, omit_aliases=False
         )
     )
     infrasp3_author = Column(Unicode(64))
@@ -424,7 +424,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     infrasp4_rank = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
-            translations=infrasp_rank_values,
+            translations=infrasp_rank_values, omit_aliases=False
         )
     )
     infrasp4_author = Column(Unicode(64))

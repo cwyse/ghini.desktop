@@ -658,6 +658,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         types.Enum(
             values=[i[0] for i in prov_type_values],
             translations=dict(prov_type_values),
+            omit_aliases=False,
         ),
         default=None,
     )
@@ -666,6 +667,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         types.Enum(
             values=[i[0] for i in wild_prov_status_values],
             translations=dict(wild_prov_status_values),
+            omit_aliases=False,
         ),
         default=None,
     )
@@ -677,6 +679,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         types.Enum(
             values=list(recvd_type_values.keys()),
             translations=recvd_type_values,
+            omit_aliases=False,
         ),
         default=None,
     )
@@ -689,7 +692,8 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     # ITF2 - C25 - Identification Qualifier - Transfer code: idql
     id_qual = Column(
         types.Enum(
-            values=["aff.", "cf.", "incorrect", "forsan", "near", "?", ""]
+            values=["aff.", "cf.", "incorrect", "forsan", "near", "?", ""], 
+            omit_aliases=False,
         ),
         nullable=False,
         default="",

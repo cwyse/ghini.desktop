@@ -289,7 +289,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     # contraints will work properly,
     qualifier = Column(
         types.Enum(values=["s. lat.", "s. str.", ""]),
-        default=""
+        default="", omit_aliases=False
     )
     order_by = [asc(epithet), asc(qualifier)]
  

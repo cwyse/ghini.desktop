@@ -69,7 +69,7 @@ prefs.testing = True
 class _TestEnum(db.Base):
     __tablename__ = "test_enum_type"
     id = Column(Integer, primary_key=True)
-    value = Column(types.Enum(values=["1", "2", ""]), default="")
+    value = Column(types.Enum(values=["1", "2", ""], omit_aliases=False), default="")
 
 @pytest.fixture
 def clean_enum_table(db_session):
@@ -180,7 +180,7 @@ class TestEnumModel:
             {
                 "__tablename__": f"test_enum_type_{name}",
                 "id": Column(Integer, primary_key=True),
-                "value": Column(types.Enum(values=values, **kwargs), default=""),
+                "value": Column(types.Enum(values=values, omit_aliases=False, **kwargs), default=""),
             },
         )
         table_class.__table__.create(bind=db.engine, checkfirst=True)
