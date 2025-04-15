@@ -99,9 +99,10 @@ def remove_callback(families):
         family = session.merge(family)  # Ensure the family is in the session
         
         # Use SQLAlchemy 2.0-style query
+        from sqlalchemy import func
         ngen = session.execute(
-            select(Genus).filter_by(family_id=family.id)
-        ).scalars().count()
+            select(func.count()).select_from(Genus).filter_by(family_id=family.id)
+        )
         
         safe_str = utils.xml_safe(str(family))
         if ngen > 0:
@@ -1034,7 +1035,8 @@ class GeneralFamilyExpander(InfoExpander):
         )
         session = object_session(row)
         # get the number of genera
-        ngen = session.execute(select(genus_instance)).scalars().where(family_id=row.id).count()
+        from sqlalchemy import func
+        ngen = session.execute(select(func.count()).select_from(genus_instance).where(family_id=row.id))
         self.widget_set_value("fam_ngen_data", ngen)
 
         # get the number of species

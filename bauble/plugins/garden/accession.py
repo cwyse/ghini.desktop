@@ -2788,8 +2788,9 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
 
     def start(self):
         from bauble.plugins.plants.species_model import Species
+        from sqlalchemy import func
 
-        if self.session.execute(select(Species)).scalars().count() == 0:
+        if self.session.execute(select(func.count()).select_from(Species)) == 0:
             msg = _(
                 "You must first add or import at least one species into "
                 "the database before you can add accessions."
@@ -2974,7 +2975,8 @@ class GeneralAccessionExpander(InfoExpander):
             s = "0"
         self.widget_set_value("living_plants_data", s)
 
-        nplants = session.execute(select(Plant)).scalars().where(accession_id=row.id).count()
+        from sqlalchemy import func
+        nplants = session.execute(select(func.count())).select_from(Plant).where(accession_id=row.id)
         self.widget_set_value("nplants_data", nplants)
         self.set_labeled_value("date_recvd", row.date_recvd)
         self.set_labeled_value("date_accd", row.date_accd)

@@ -590,7 +590,8 @@ class GeneralLocationExpander(InfoExpander):
             markup=True,
         )
         session = object_session(row)
-        nplants = session.execute(select(Plant)).scalars().where(location_id=row.id).count()
+        from sqlalchemy import func
+        nplants = session.execute(select(func.count())).select_from(Plant).where(location_id=row.id)
         self.widget_set_value("loc_nplants_data", nplants)
 
 

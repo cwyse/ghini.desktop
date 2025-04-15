@@ -606,7 +606,8 @@ class Tag(db.Base, db.WithNotes):
                     TaggedObj.obj_id == obj.id,
                     TaggedObj.tag_id == self.id,
                 )
-                ntagged = session.execute(select(TaggedObj)).scalars().where(cls).count()
+                from sqlalchemy import func
+                ntagged = session.execute(select(func.count()).select_from(TaggedObj).where(cls))
                 if ntagged == 0:
                     tagged_obj = TaggedObj(
                         obj_class=type(obj).__name__, obj_id=obj.id, tag=self
