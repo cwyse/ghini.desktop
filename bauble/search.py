@@ -1269,17 +1269,18 @@ class DomainExpressionAction(object):
         if self.values == "*":
             return set(session.execute(stmt).scalars().all())
 
-        #mapper = class_mapper(cls)
+        allowed_fallback_ops = {"!=", "<", "<=", ">", ">="}  # exclude "=" since it's handled separately
 
-        # ✅ Preserve exact condition logic
         if self.cond in ("like", "ilike"):
             condition = lambda col_name: lambda val: utils.ilike(getattr(cls, col_name), f"{val}")
         elif self.cond in ("contains", "icontains", "has", "ihas"):
             condition = lambda col_name: lambda val: utils.ilike(getattr(cls, col_name), f"%{val}%")
         elif self.cond == "=":
             condition = lambda col_name: lambda val: getattr(cls, col_name) == val
-        else:
+        elif self.cond in allowed_fallback_ops:
             condition = lambda col_name: lambda val: getattr(cls, col_name).op(self.cond)(val)
+        else:
+            raise ValueError(f"Unsupported or unsafe operator: {self.cond}")
 
         result = set()
 
