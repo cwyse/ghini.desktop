@@ -451,59 +451,60 @@ class CSVImporter(Importer):
                 yield  # allow progress bar update
 
                 with db.Session() as session:
-                    with session.begin():
-                        try:
-                            # Prepare the table and file
-                            if not self._prepare_table(table, filename, filesizes, created_tables, depends, session, force):
-                                continue
+                    try:
+                    
+                        # Prepare the table and file
+                        if not self._prepare_table(table, filename, filesizes, created_tables, depends, session, force):
+                            continue
 
-                            # precompute the defaults...this assumes that the
-                            # default function doesn't depend on state after each
-                            # row...it shouldn't anyways since we do an insert
-                            # many instead of each row at a time
-                            # Precompute the defaults for the table
-                            defaults = self._precompute_defaults(table)
+                        # precompute the defaults...this assumes that the
+                        # default function doesn't depend on state after each
+                        # row...it shouldn't anyways since we do an insert
+                        # many instead of each row at a time
+                        # Precompute the defaults for the table
+                        defaults = self._precompute_defaults(table)
 
-                            # update_every determines how many rows we will insert at
-                            # a time and consequently how often we update the gui
-                            processor = CSVProcessor(table, filename, defaults, update_every=127, flush_count=self.flush_count, steps_so_far=self.steps_so_far)
-                            # Prepare the file for import and get column keys
-                            processor.prepare_file()
+                        # update_every determines how many rows we will insert at
+                        # a time and consequently how often we update the gui
+                        processor = CSVProcessor(table, filename, defaults, update_every=127, flush_count=self.flush_count, steps_so_far=self.steps_so_far)
+                        # Prepare the file for import and get column keys
+                        processor.prepare_file()
 
-                            for steps in processor.process_rows():
-                                self.steps_so_far += steps
-                                yield        
-                                                    
-                            # Count rows in the table
-                            #row_count = session.execute(sa.select(func.count()).select_from(table)).scalar_one()
-                            #logger.debug(f"{table.name}: {row_count}")
+                        for steps in processor.process_rows():
+                            self.steps_so_far += steps
+                            yield        
+                                                
+                        # Count rows in the table
+                        #row_count = session.execute(sa.select(func.count()).select_from(table)).scalar_one()
+                        #logger.debug(f"{table.name}: {row_count}")
+                    
+                        # we have commit after create after each table is imported
+                        # or Postgres will complain if two tables that are
+                        # being imported have a foreign key relationship.
+                        # The commit/rollback is handled automatically when we leave the
+                        # 'with' block.
+
+                        logger.info(f"Successfully imported table: {table.name}")
                         
-                            # we have commit after create after each table is imported
-                            # or Postgres will complain if two tables that are
-                            # being imported have a foreign key relationship.
-                            # The commit/rollback is handled automatically when we leave the
-                            # 'with' block.
+                        # Important: Cleanup after processing each table
+                        processor.cleanup()
+                        session.commit()
 
-                            logger.info(f"Successfully imported table: {table.name}")
-                            
-                            # Important: Cleanup after processing each table
-                            processor.cleanup()
-
-                        except IntegrityError as e:
-                            logger.error(f"Constraint violation in table {table.name}: {e}")
+                    except IntegrityError as e:
+                        logger.error(f"Constraint violation in table {table.name}: {e}")
+                        if session.in_transaction():
                             if session.in_transaction():
-                                if session.in_transaction():
-                                    session.rollback()  # Rollback to prevent partial imports
-                            utils.message_dialog(_("Data import failed due to integrity constraints."), Gtk.MessageType.ERROR)
-                            self.__error = True
-                            return
-                        except Exception as e:
-                            logger.error(f"Error processing table {table.name}: {e}")
+                                session.rollback()  # Rollback to prevent partial imports
+                        utils.message_dialog(_("Data import failed due to integrity constraints."), Gtk.MessageType.ERROR)
+                        self.__error = True
+                        return
+                    except Exception as e:
+                        logger.error(f"Error processing table {table.name}: {e}")
+                        if session.in_transaction():
                             if session.in_transaction():
-                                if session.in_transaction():
-                                    session.rollback()
-                            raise
-                       
+                                session.rollback()
+                        raise
+                    
                     # Update the GUI
                     self._update_gui()
                         

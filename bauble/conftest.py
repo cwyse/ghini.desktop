@@ -57,27 +57,26 @@ def init_bauble():
 @pytest.fixture(scope="function")
 def db_session(init_bauble):
     """
-    Provides a database session for each test.
-    Uses SAVEPOINT transactions for test isolation.
+    Manages test-level transaction savepoint and cleanup.
     """
     db.Session.remove()
     connection = db.engine.connect()
     transaction = connection.begin()
+    nested = connection.begin_nested()  # Savepoint
 
-    session = db.Session(bind=connection)
-    db.metadata.create_all(bind=db.engine)
+    @sa.event.listens_for(db.Session(), "after_transaction_end")
+    def restart_savepoint(sess, trans):
+        if trans.nested and not trans._parent.nested:
+            sess.begin_nested()
 
     try:
-        yield session
+        yield  # Let the test use db.Session()
     finally:
-        if session.in_transaction():
-            if session.in_transaction():
-                session.rollback()
-        session.close()
-        if transaction.is_active:
-            if transaction.in_transaction():
-                transaction.rollback()
+        db.Session.remove()
+        nested.rollback()
+        transaction.rollback()
         connection.close()
+
 
 @pytest.fixture(autouse=True)
 def clean_db(db_session):
