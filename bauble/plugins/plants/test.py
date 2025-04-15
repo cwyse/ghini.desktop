@@ -116,7 +116,8 @@ class TestFamily:
         if session.in_transaction():
             session.commit()
         assert len(family.synonyms) == 0
-        assert session.execute(select(FamilySynonym)).scalars().count() == 0
+        from sqlalchemy import func
+        assert session.execute(select(func.count()).select_from(FamilySynonym)).scalar_one() == 0
 
         # Delete a family with synonyms
         family.synonyms.append(family2)
@@ -125,7 +126,7 @@ class TestFamily:
         session.delete(family2)
         if session.in_transaction():
             session.commit()
-        assert session.execute(select(FamilySynonym)).scalars().count() == 0
+        assert session.execute(select(func.count()).select_from(FamilySynonym)).scalar_one() == 0
 
     def test_constraints(self, session):
         values = [

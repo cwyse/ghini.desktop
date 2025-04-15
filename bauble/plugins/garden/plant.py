@@ -1310,7 +1310,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
 
                 sub_editor = AccessionEditor()
                 self._commited = sub_editor.start()
-        if self.session.execute(select(Location)).scalars().count() == 0:
+        if self.session.execute(select(func.count()).select_from(Location)) == 0:
             msg = (
                 "You must first add or import at least one Location into "
                 "the database before you can add plants.\n\nWould you "
