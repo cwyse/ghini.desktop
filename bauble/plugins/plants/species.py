@@ -84,7 +84,8 @@ def remove_callback(values):
     session = object_session(species)
     if isinstance(species, VernacularName):
         species = species.species
-    nacc = session.execute(select(Accession)).scalars().where(species_id=species.id).count()
+    from sqlalchemy import func
+    nacc = session.execute(select(func.count()).select_from(Accession).where(species_id=species.id))
     safe_str = utils.xml_safe(species)
     if nacc > 0:
         msg = _("The species <i>%(1)s</i> has %(2)s accessions." "\n\n") % {

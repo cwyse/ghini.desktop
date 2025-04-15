@@ -112,7 +112,8 @@ def remove_callback(genera):
     from bauble.plugins.plants.species_model import Species
 
     session = object_session(genus)
-    nsp = session.execute(select(Species)).scalars().where(genus_id=genus.id).count()
+    from sqlalchemy import func
+    nsp = session.execute(select(func.count()).select_from(Species).where(genus_id=genus.id))
     safe_str = utils.xml_safe(str(genus))
     if nsp > 0:
         msg = _("The genus <i>%(1)s</i> has %(2)s species." "\n\n") % {

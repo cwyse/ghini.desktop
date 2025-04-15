@@ -1296,7 +1296,8 @@ class PlantEditor(GenericModelViewPresenterEditor):
         from bauble.plugins.garden.accession import Accession
 
         sub_editor = None
-        if self.session.execute(select(Accession)).scalars().count() == 0:
+        from sqlalchemy import func
+        if self.session.execute(select(func.count())).select_from(Accession) == 0:
             msg = (
                 "You must first add or import at least one Accession into "
                 "the database before you can add plants.\n\nWould you like "

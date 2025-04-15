@@ -104,7 +104,8 @@ def test_abcd_export(db_session, setup_test_data):
     """
     Test the ABCDExporter functionality.
     """
-    plants_count = db_session.execute(select(Plant)).scalars().count()
+    from sqlalchemy import func
+    plants_count = db_session.execute(select(func.count())).select_from(Plant)
     assert plants_count > 0, "No plants available for export."
 
     accession = db_session.execute(select(Accession)).scalars().first()
