@@ -2500,11 +2500,11 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
     def on_acc_code_entry_changed(self, entry, data=None):
         text = entry.get_text()
-        query = self.session.execute(select(Accession)).scalars()
-        if (
-            text != self._original_code
-            and query.where(code=str(text)).count() > 0
-        ):
+        from sqlalchemy import func
+        stmt = select(func.count()).select_from(Accession).where(Accession.code == str(text))
+        count = self.session.execute(stmt).scalar_one()
+        if (text != self._original_code
+            and count > 0):
             self.add_problem(
                 self.PROBLEM_DUPLICATE_ACCESSION,
                 self.view.widgets.acc_code_entry,
