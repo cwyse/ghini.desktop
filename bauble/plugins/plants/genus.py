@@ -320,7 +320,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         return value.strip()
 
     qualifier = Column(
-        types.Enum(values=["s. lat.", "s. str", ""]), default=""
+        types.Enum(values=["s. lat.", "s. str", ""]), default="", omit_aliases=False
     )
 
     family_id = Column(Integer, ForeignKey("family.id"), nullable=False)

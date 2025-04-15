@@ -107,7 +107,7 @@ class Propagation(db.Base, db.WithNotes):
     id = Column(Integer, primary_key=True, autoincrement=True)
     prop_type = Column(
         types.Enum(
-            values=list(prop_type_values.keys()), translations=prop_type_values
+            values=list(prop_type_values.keys()), translations=prop_type_values, omit_aliases=False
         ),
         nullable=False,
     )
@@ -367,16 +367,17 @@ class PropCutting(db.Base):
     cutting_type = Column(
         types.Enum(
             values=list(cutting_type_values.keys()),
-            translations=cutting_type_values,
+            translations=cutting_type_values, 
+            omit_aliases=False,
         ),
         default="Other",
     )
     tip = Column(
-        types.Enum(values=list(tip_values.keys()), translations=tip_values)
+        types.Enum(values=list(tip_values.keys()), translations=tip_values, omit_aliases=False)
     )
     leaves = Column(
         types.Enum(
-            values=list(leaves_values.keys()), translations=leaves_values
+            values=list(leaves_values.keys()), translations=leaves_values, omit_aliases=False
         )
     )
     leaves_reduced_pct = Column(Integer, autoincrement=False)
@@ -384,20 +385,20 @@ class PropCutting(db.Base):
     length_unit = Column(
         types.Enum(
             values=list(length_unit_values.keys()),
-            translations=length_unit_values,
+            translations=length_unit_values, omit_aliases=False
         )
     )
 
     # single/double/slice
     wound = Column(
-        types.Enum(values=list(wound_values.keys()), translations=wound_values)
+        types.Enum(values=list(wound_values.keys()), translations=wound_values, omit_aliases=False)
     )
 
     # removed/None
     flower_buds = Column(
         types.Enum(
             values=list(flower_buds_values.keys()),
-            translations=flower_buds_values,
+            translations=flower_buds_values, omit_aliases=False
         )
     )
 
@@ -419,7 +420,7 @@ class PropCutting(db.Base):
     bottom_heat_unit = Column(
         types.Enum(
             values=list(bottom_heat_unit_values.keys()),
-            translations=bottom_heat_unit_values,
+            translations=bottom_heat_unit_values, omit_aliases=False
         ),
         nullable=True,
     )

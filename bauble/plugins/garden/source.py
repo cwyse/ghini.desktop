@@ -970,7 +970,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     source_type = Column(
         types.Enum(
             values=[i[0] for i in source_type_values],
-            translations=dict(source_type_values),
+            translations=dict(source_type_values), omit_aliases=False
         ),
         default=None,
     )
