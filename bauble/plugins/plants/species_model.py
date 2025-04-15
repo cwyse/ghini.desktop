@@ -447,7 +447,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus
     # get deleted if this genus gets deleted
-    _syn = relationship(
+    _synonyms_synonym = relationship(
         "SpeciesSynonym",
         primaryjoin="Species.id==SpeciesSynonym.synonym_id",
         cascade="all, delete-orphan",
@@ -686,82 +686,32 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     @property
     def accepted(self):
-        """
-        Name that should be used if the name of self should be rejected.
-        
-        :return: The accepted Species instance if found, otherwise None.
-        """
-        from sqlalchemy.orm.session import object_session
-
-        session = object_session(self)
-        if not session:
-            logger.warning("species:accepted - object not in session")
-            return None
-
-        try:
-            # Query the SpeciesSynonym table for the synonym relationship
-            stmt = select(SpeciesSynonym).where(SpeciesSynonym.synonym_id == self.id)
-            synonym = session.execute(stmt).scalars().first()
-
-            # Return the associated species if found
-            return synonym.species if synonym else None
-
-        except Exception as e:
-            logger.error(f"Error retrieving accepted species for id {self.id}: {e}")
-            return None
-
-
-
+        """Return the accepted name for this species (if it is a synonym)."""
+        if self._synonyms_synonym:
+            return self._synonyms_synonym[0].species
+        return None
 
     @accepted.setter
     def accepted(self, value):
-        """
-        Name that should be used if the name of self should be rejected.
-        
-        :param value: The Species instance to set as the accepted name.
-        """
-        from sqlalchemy.orm import object_session
-        
-        logger.debug(f"Accepted taxon: {type(value)} {value}")
-        assert isinstance(value, self.__class__), "Value must be an instance of the same class"
+        """Assign this species as a synonym of another species."""
+        assert isinstance(value, Species)
+        if self == value or self in value.synonyms:
+            return  # Prevent cycles or redundant assignment
 
-        if self in value.synonyms:
-            # Avoid circular synonym relationships
-            return
-
-        session = object_session(self)
+        session = db.object_session(self)
         if not session:
             logger.warning("species:accepted.setter - object not in session")
             return
 
-        try:
-            # Remove any previous `accepted` link
-            stmt = select(SpeciesSynonym).where(SpeciesSynonym.synonym_id == self.id)
-            previous_synonymy_link = session.execute(stmt).scalars().first()
-
-            if previous_synonymy_link:
-                # Retrieve the previously accepted species
-                previous_accepted_species_stmt = select(Species).where(
-                    Species.id == previous_synonymy_link.species_id
-                )
-                previous_accepted_species = session.execute(previous_accepted_species_stmt).scalars().one()
-                
-                # Remove the current species from its synonyms
-                previous_accepted_species.synonyms.remove(self)
-
-            # Flush the session to ensure changes are applied
+        # Remove existing synonym relationship, if any
+        existing = next(iter(self._synonyms_synonym), None)
+        if existing:
+            session.delete(existing)
             session.flush()
 
-            # Create the new synonym relationship if `value` is not `self`
-            if value != self:
-                value.synonyms.append(self)
-
-            # Flush changes to persist the updates
-            session.flush()
-
-        except Exception as e:
-            logger.error(f"Error updating accepted species for {self}: {e}")
-
+        # Create new synonym relationship
+        if value != self:
+            value.synonyms.append(self)
 
     def has_accessions(self):
         """true if species is linked to at least one accession"""
@@ -928,15 +878,17 @@ class SpeciesSynonym(db.Base):
     # Relationship to the main Species entity
     species = relationship(
             "Species",
-            primaryjoin="SpeciesSynonym.species_id == Species.id",
             uselist=False, # One-to-one relationship
+            back_populates="_synonyms",
+            foreign_keys=[species_id]
     )
 
     # relations
     synonym = relationship(
-        "Species", primaryjoin="SpeciesSynonym.synonym_id==Species.id",
+        "Species", 
+        back_populates="_synonyms_synonym",
         uselist=False, # One-to-one relationship
-        overlaps="_syn"
+        foreign_keys=[synonym_id]
     )
 
     def __init__(self, synonym=None, **kwargs):
