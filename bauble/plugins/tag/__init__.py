@@ -578,6 +578,7 @@ class Tag(db.Base, db.WithNotes):
         cascade="all, delete-orphan",
         back_populates="tag",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     __my_own_timestamp = None
@@ -724,6 +725,7 @@ Tag.notes = relationship(
     back_populates="tag",
     cascade="all,delete-orphan",
     single_parent=True,
+    cascade_backrefs=True
 )
 
 
@@ -752,6 +754,7 @@ class TaggedObj(db.Base):
         cascade="all, delete-orphan",
         back_populates="_objects",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     def __str__(self):

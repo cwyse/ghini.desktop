@@ -125,6 +125,7 @@ class SourceBase:
             cascade="all, delete-orphan",
             single_parent=True,
             foreign_keys=[cls.propagation_id],
+            cascade_backrefs=True
         )
 
 class Source(db.Base):
@@ -145,7 +146,7 @@ class Source(db.Base):
     id = Column(Integer, primary_key=True)
 
     accession_id = Column(Integer, ForeignKey("accession.id"), unique=True)
-    accession = relationship("Accession", back_populates="source")
+    accession = relationship("Accession", back_populates="source", cascade_backrefs=True)
 
     source_detail_id = Column(Integer, ForeignKey("contact.id"))
     source_detail = relationship(
@@ -154,6 +155,7 @@ class Source(db.Base):
         back_populates="sources",
         cascade="all, delete-orphan",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     collection = relationship(
@@ -161,7 +163,7 @@ class Source(db.Base):
         uselist=False,
         back_populates="source",
         single_parent=True,
-    )
+        cascade_backrefs=True    )
 
     # This propagation relationship links a Source to a specific 
     # Propagation that is not tied to a Plant. It likely represents 
@@ -175,6 +177,7 @@ class Source(db.Base):
         cascade="all, delete-orphan",
         single_parent=True,
         foreign_keys=[propagation_id],
+        cascade_backrefs=True
     )
 
     plant_propagation_id = Column(Integer, ForeignKey("propagation.id"))
@@ -184,6 +187,7 @@ class Source(db.Base):
         back_populates="used_source",
         uselist=True,
         foreign_keys=[plant_propagation_id],
+        cascade_backrefs=True
     )
     
     # an Accession of known Source (what we are describing here) may be in
@@ -198,6 +202,7 @@ class Source(db.Base):
             back_populates="used_source",
             uselist=True,
             foreign_keys=[plant_propagation_id],
+            cascade_backrefs=True
         )
 
 source_type_values = [
@@ -312,7 +317,7 @@ class Collection(db.Base):
     region = relationship(GeographicArea, uselist=False)
 
     source_id = Column(Integer, ForeignKey("source.id"), unique=True)
-    source = relationship("Source", back_populates="collection")
+    source = relationship("Source", back_populates="collection", cascade_backrefs=True)
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
@@ -982,6 +987,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
         back_populates="source_detail",
         cascade="all, delete-orphan",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     def __str__(self):
@@ -1008,6 +1014,7 @@ Contact.notes = relationship(
     back_populates="contact",
     cascade="all, delete-orphan",
     single_parent=True,
+    cascade_backrefs=True
 )
 
 

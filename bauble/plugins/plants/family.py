@@ -201,6 +201,7 @@ class FamilySynonym(db.Base):
         "Family",
         back_populates="_synonyms",
         primaryjoin="FamilySynonym.family_id==Family.id",
+        cascade_backrefs=True
     )
 
     def __init__(self, synonym=None, **kwargs):
@@ -303,6 +304,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         uselist=True,
         back_populates="family",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     # this is a dummy relation, it is only here to make cascading work
@@ -461,6 +463,7 @@ Family.notes = relationship(
     cascade="all, delete-orphan",
     single_parent=True,
     uselist=True,
+    cascade_backrefs=True
 )
 
 # Use lazy import where Genus is needed
@@ -491,6 +494,7 @@ Family.genera = (
         cascade="all, delete-orphan",
         single_parent=True,
         uselist=True,
+        cascade_backrefs=True
     )
     or []
 )
