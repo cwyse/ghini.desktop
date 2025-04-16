@@ -344,7 +344,7 @@ class Verification(db.Base):
     date = Column(types.Date, nullable=False)
     reference = Column(UnicodeText)
     accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession = relationship("Accession", back_populates="verifications", uselist=False, cascade_backrefs=True)
+    accession = relationship("Accession", back_populates="verifications", uselist=False, cascade_backrefs=True, active_history=True)
     order_by = [asc(date)]
 
     # the level of assurance of this verification
@@ -363,6 +363,7 @@ class Verification(db.Base):
         foreign_keys=[species_id],
         uselist=False,
         overlaps="previous_verifications",
+        active_history=True
     )
     prev_species = relationship(
         "Species",
@@ -370,6 +371,7 @@ class Verification(db.Base):
         foreign_keys=[prev_species_id],
         uselist=False,
         overlaps="verifications",
+        active_history=True
     )
     notes = Column(UnicodeText)
 
@@ -424,7 +426,7 @@ class Voucher(db.Base):
     code = Column(Unicode(32), nullable=False)
     parent_material = Column(Boolean, default=False)
     accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession = relationship("Accession", back_populates="vouchers", uselist=False, cascade_backrefs=True)
+    accession = relationship("Accession", back_populates="vouchers", uselist=False, cascade_backrefs=True, active_history=True)
 
 
 # ITF2 - E.1; Provenance Type Flag; Transfer code: prot
@@ -714,7 +716,8 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         cascade="all, delete-orphan",
         back_populates="accession",
         single_parent=True,
-        cascade_backrefs=True
+        cascade_backrefs=True, 
+        active_history=True
     )
 
     # relations
@@ -724,7 +727,8 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         back_populates="accessions",
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True
+        cascade_backrefs=True, 
+        active_history=True
     )
 
     # use Plant.code for the order_by to avoid ambiguous column names

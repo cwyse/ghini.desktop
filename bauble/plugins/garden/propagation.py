@@ -129,7 +129,8 @@ class Propagation(db.Base, db.WithNotes):
         uselist=False,
         single_parent=True,
         back_populates="propagation",
-        cascade_backrefs=True
+        cascade_backrefs=True, 
+        active_history=True
     )
     _seed = relationship(
         "PropSeed",
@@ -138,7 +139,8 @@ class Propagation(db.Base, db.WithNotes):
         uselist=False,
         single_parent=True,
         back_populates="propagation",
-        cascade_backrefs=True
+        cascade_backrefs=True, 
+        active_history=True
     )
 
     # One-to-one relationship with Source for propagation
@@ -148,7 +150,8 @@ class Propagation(db.Base, db.WithNotes):
         back_populates="propagation",
         cascade="all, delete-orphan",
         foreign_keys="Source.propagation_id",
-        cascade_backrefs=True
+        cascade_backrefs=True, 
+        active_history=True
     )
 
     # One-to-many relationship with Source for plant_propagation
@@ -445,7 +448,7 @@ class PropCutting(db.Base):
     )
 
     propagation = relationship(
-        "Propagation", back_populates="_cutting", uselist=False, cascade_backrefs=True
+        "Propagation", back_populates="_cutting", uselist=False, cascade_backrefs=True, active_history=True
     )
 
 
@@ -483,7 +486,7 @@ class PropSeed(db.Base):
     )
 
     propagation = relationship(
-        "Propagation", back_populates="_seed", uselist=False, cascade_backrefs=True
+        "Propagation", back_populates="_seed", uselist=False, cascade_backrefs=True, active_history=True
     )
 
     def __str__(self):

@@ -125,7 +125,8 @@ class SourceBase:
             cascade="all, delete-orphan",
             single_parent=True,
             foreign_keys=[cls.propagation_id],
-            cascade_backrefs=True
+            cascade_backrefs=True, 
+            active_history=True
         )
 
 class Source(db.Base):
@@ -155,7 +156,8 @@ class Source(db.Base):
         back_populates="sources",
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True
+        cascade_backrefs=True, 
+        active_history=True
     )
 
     collection = relationship(
@@ -163,7 +165,8 @@ class Source(db.Base):
         uselist=False,
         back_populates="source",
         single_parent=True,
-        cascade_backrefs=True    )
+        cascade_backrefs=True, 
+        active_history=True    )
 
     # This propagation relationship links a Source to a specific 
     # Propagation that is not tied to a Plant. It likely represents 
@@ -177,7 +180,8 @@ class Source(db.Base):
         cascade="all, delete-orphan",
         single_parent=True,
         foreign_keys=[propagation_id],
-        cascade_backrefs=True
+        cascade_backrefs=True, 
+        active_history=True
     )
 
     plant_propagation_id = Column(Integer, ForeignKey("propagation.id"))
@@ -314,7 +318,7 @@ class Collection(db.Base):
     notes = Column(UnicodeText)
 
     geographic_area_id = Column(Integer, ForeignKey("geographic_area.id"))
-    region = relationship(GeographicArea, uselist=False)
+    region = relationship(GeographicArea, uselist=False, active_history=True)
 
     source_id = Column(Integer, ForeignKey("source.id"), unique=True)
     source = relationship("Source", back_populates="collection", cascade_backrefs=True)
@@ -987,7 +991,8 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
         back_populates="source_detail",
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True
+        cascade_backrefs=True, 
+        active_history=True
     )
 
     def __str__(self):
