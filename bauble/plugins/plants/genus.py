@@ -247,7 +247,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     rank = "genus"
     link_keys = ["accepted"]
 
-    family = relationship("Family", back_populates="genera", lazy="joined", uselist=False)
+    family = relationship("Family", back_populates="genera", lazy="joined", uselist=False, cascade_backrefs=True)
 
     def __init__(self, **kwargs):
         self.species_editor = get_species_editor()
@@ -334,6 +334,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         uselist=True,
         cascade="all, delete-orphan",
         back_populates="genus",
+        cascade_backrefs=True
     )
 
     # New relationship for synonyms via synonym_id
@@ -343,6 +344,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         cascade="all, delete-orphan",
         uselist=True,
         back_populates="synonym",
+        cascade_backrefs=True
     )
 
     @property
@@ -532,6 +534,7 @@ Genus.notes = relationship(
     cascade="all, delete-orphan",
     uselist=True,
     single_parent=True,
+    cascade_backrefs=True
 )
 
 
@@ -553,12 +556,12 @@ class GenusSynonym(db.Base):
 
     # Primary relationship to Genus via genus_id
     genus = relationship(
-        "Genus", back_populates="_synonyms", foreign_keys=[genus_id]
+        "Genus", back_populates="_synonyms", foreign_keys=[genus_id], cascade_backrefs=True
     )
 
     # Secondary relationship to Genus via synonym_id (if applicable)
     synonym = relationship(
-        "Genus", uselist=False, back_populates="_synonyms_synonym", primaryjoin='GenusSynonym.synonym_id==Genus.id'
+        "Genus", uselist=False, back_populates="_synonyms_synonym", primaryjoin='GenusSynonym.synonym_id==Genus.id', cascade_backrefs=True
     )
 
     #    synonym = relationship('Genus', uselist=False,
@@ -587,6 +590,7 @@ Genus.species = relationship(
     back_populates="genus",
     uselist=True,  # one-to-many relationship
     single_parent=True,
+    cascade_backrefs=True
 )
 
 

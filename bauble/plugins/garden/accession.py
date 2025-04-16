@@ -344,7 +344,7 @@ class Verification(db.Base):
     date = Column(types.Date, nullable=False)
     reference = Column(UnicodeText)
     accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession = relationship("Accession", back_populates="verifications", uselist=False)
+    accession = relationship("Accession", back_populates="verifications", uselist=False, cascade_backrefs=True)
     order_by = [asc(date)]
 
     # the level of assurance of this verification
@@ -424,7 +424,7 @@ class Voucher(db.Base):
     code = Column(Unicode(32), nullable=False)
     parent_material = Column(Boolean, default=False)
     accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession = relationship("Accession", back_populates="vouchers", uselist=False)
+    accession = relationship("Accession", back_populates="vouchers", uselist=False, cascade_backrefs=True)
 
 
 # ITF2 - E.1; Provenance Type Flag; Transfer code: prot
@@ -714,6 +714,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         cascade="all, delete-orphan",
         back_populates="accession",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     # relations
@@ -723,6 +724,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         back_populates="accessions",
         cascade="all, delete-orphan",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     # use Plant.code for the order_by to avoid ambiguous column names
@@ -733,6 +735,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         back_populates="accession",
         uselist=True,
         single_parent=True,
+        cascade_backrefs=True
     )
     verifications = (
         relationship(
@@ -741,6 +744,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             back_populates="accession",
             single_parent=True,
             uselist=True,  # An Accession can have multiple Vouchers
+            cascade_backrefs=True
         )
         or []
     )
@@ -750,6 +754,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         back_populates="accession",
         uselist=True,
         single_parent=True,
+        cascade_backrefs=True
     )
     intended_location = relationship(
         "Location", primaryjoin="Accession.intended_location_id==Location.id"
@@ -1001,6 +1006,7 @@ Accession.notes = relationship(
     cascade="all, delete-orphan",
     single_parent=True,
     uselist=True,
+    cascade_backrefs=True
 )
 
 

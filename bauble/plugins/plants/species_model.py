@@ -198,8 +198,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
 
     # Define relationship to Genus
-    genus = relationship("Genus", back_populates="species", lazy="joined", uselist=False)
-    accessions = relationship("Accession", back_populates="species", uselist=True)
+    genus = relationship("Genus", back_populates="species", lazy="joined", uselist=False, cascade_backrefs=True)
+    accessions = relationship("Accession", back_populates="species", uselist=True, cascade_backrefs=True)
 
     rank = "species"
     link_keys = ["accepted"]
@@ -442,6 +442,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         cascade="all, delete-orphan",
         uselist=True,
         back_populates="species",
+        cascade_backrefs=True
     )
 
     # this is a dummy relation, it is only here to make cascading work
@@ -462,6 +463,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             back_populates="species",
             uselist=True,
             single_parent=False,
+            cascade_backrefs=True
         )
 
     _default_vernacular_name = relationship(
@@ -470,6 +472,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         single_parent=False,
         cascade="all, delete-orphan",
         back_populates="species",
+        cascade_backrefs=True
     )
     distribution = (
         relationship(
@@ -478,16 +481,17 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             back_populates="species",
             single_parent=False,
             uselist=False,
+            cascade_backrefs=True
         )
         or []
     )
 
     habit_id = Column(Integer, ForeignKey("habit.id"), default=None)
-    habit = relationship("Habit", uselist=False, back_populates="species")
+    habit = relationship("Habit", uselist=False, back_populates="species", cascade_backrefs=True)
 
     flower_color_id = Column(Integer, ForeignKey("color.id"), default=None)
     flower_color = relationship(
-        "Color", uselist=False, back_populates="species"
+        "Color", uselist=False, back_populates="species", cascade_backrefs=True
     )
 
     # Relationships
@@ -498,6 +502,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         cascade="save-update, merge",  # Less aggressive cascade
         uselist=True,
         overlaps="prev_species",
+        cascade_backrefs=True
     )
     previous_verifications = relationship(
         "Verification",
@@ -506,6 +511,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         cascade="save-update, merge",  # Less aggressive cascade
         uselist=True,
         overlaps="species",
+        cascade_backrefs=True
     )
     # hardiness_zone = Column(Unicode(4))
 
@@ -858,6 +864,7 @@ Species.notes = relationship(
     cascade="all, delete-orphan",
     uselist=True,
     single_parent=True,
+    cascade_backrefs=True
 )
 
 
@@ -880,7 +887,8 @@ class SpeciesSynonym(db.Base):
             "Species",
             uselist=False, # One-to-one relationship
             back_populates="_synonyms",
-            foreign_keys=[species_id]
+            foreign_keys=[species_id],
+            cascade_backrefs=True
     )
 
     # relations
@@ -888,7 +896,8 @@ class SpeciesSynonym(db.Base):
         "Species", 
         back_populates="_synonyms_synonym",
         uselist=False, # One-to-one relationship
-        foreign_keys=[synonym_id]
+        foreign_keys=[synonym_id],
+        cascade_backrefs=True
     )
 
     def __init__(self, synonym=None, **kwargs):
@@ -935,6 +944,7 @@ class VernacularName(db.Base, db.Serializable):
         back_populates="vernacular_names",
         uselist=False,
         single_parent=False,
+        cascade_backrefs=True
     )
 
     def search_view_markup_pair(self):
@@ -1040,6 +1050,7 @@ class DefaultVernacularName(db.Base):
         uselist=False,
         back_populates="_default_vernacular_name",
         single_parent=False,
+        cascade_backrefs=True
     )
 
     def __str__(self):
@@ -1068,6 +1079,7 @@ class SpeciesDistribution(db.Base):
     species = relationship("Species", back_populates="distribution",
             single_parent=False,
             uselist=False,
+            cascade_backrefs=True
         )
     def __str__(self):
         return str(self.geographic_area)
@@ -1091,6 +1103,7 @@ class Habit(db.Base):
         "Species",
         back_populates="habit",
         uselist=True,
+        cascade_backrefs=True
     )
 
     def __str__(self):
@@ -1110,6 +1123,7 @@ class Color(db.Base):
         "Species",
         back_populates="flower_color",
         uselist=True,
+        cascade_backrefs=True
     )
 
     def __str__(self):

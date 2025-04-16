@@ -377,6 +377,7 @@ class PlantChange(db.Base):
         uselist=True,
         cascade="all, delete-orphan",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     parent_plant = relationship(
@@ -387,6 +388,7 @@ class PlantChange(db.Base):
         uselist=False,
         cascade="delete, delete-orphan",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     from_location = relationship(
@@ -484,7 +486,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     order_by = [asc(accession_id), asc(code)]
 
     # Relationships
-    accession = relationship("Accession", back_populates="plants", uselist=False, cascade="save-update")
+    accession = relationship("Accession", back_populates="plants", uselist=False, cascade="save-update", cascade_backrefs=True)
 
     propagations = relationship(
         "Propagation",
@@ -492,6 +494,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         back_populates="plants",
         cascade="all, delete-orphan",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     changes = relationship(
@@ -500,6 +503,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         primaryjoin="PlantChange.plant_id == Plant.id",
         cascade="all, delete-orphan",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     branches = relationship(
@@ -509,6 +513,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         foreign_keys="PlantChange.parent_plant_id",
         cascade="delete, delete-orphan",
         single_parent=True,
+        cascade_backrefs=True
     )
 
     location = relationship(
@@ -516,6 +521,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         back_populates="plants",
         uselist=False,  # A Plant belongs to one Location
         cascade="save-update",
+        cascade_backrefs=True
     )
     _delimiter = None
 
@@ -681,6 +687,7 @@ Plant.notes = relationship(
     back_populates="plant",
     cascade="all, delete-orphan",
     single_parent=True,
+    cascade_backrefs=True
 )
 
 
