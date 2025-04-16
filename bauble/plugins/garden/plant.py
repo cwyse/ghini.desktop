@@ -390,18 +390,21 @@ class PlantChange(db.Base):
         cascade="delete, delete-orphan",
         single_parent=True,
         cascade_backrefs=True,
-        overlaps="branches"
+        overlaps="branches", 
+        active_history=True
     )
 
     from_location = relationship(
         "Location", 
         primaryjoin="PlantChange.from_location_id == Location.id",
         uselist=False,  # One-to-one relationship with Location
+        active_history=True
     )
     to_location = relationship(
         "Location", 
         primaryjoin="PlantChange.to_location_id == Location.id",
         uselist=False,  # One-to-one relationship with Location
+        active_history=True
     )
 
 
@@ -488,7 +491,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     order_by = [asc(accession_id), asc(code)]
 
     # Relationships
-    accession = relationship("Accession", back_populates="plants", uselist=False, cascade="save-update", cascade_backrefs=True)
+    accession = relationship("Accession", back_populates="plants", uselist=False, cascade="save-update", cascade_backrefs=True, active_history=True)
 
     propagations = relationship(
         "Propagation",
@@ -525,7 +528,8 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         back_populates="plants",
         uselist=False,  # A Plant belongs to one Location
         cascade="save-update",
-        cascade_backrefs=True
+        cascade_backrefs=True, 
+        active_history=True
     )
     _delimiter = None
 

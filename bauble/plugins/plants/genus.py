@@ -247,7 +247,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     rank = "genus"
     link_keys = ["accepted"]
 
-    family = relationship("Family", back_populates="genera", lazy="joined", uselist=False, cascade_backrefs=True)
+    family = relationship("Family", back_populates="genera", lazy="joined", uselist=False, cascade_backrefs=True, active_history=True, active_history=True)
 
     def __init__(self, **kwargs):
         self.species_editor = get_species_editor()
@@ -561,7 +561,7 @@ class GenusSynonym(db.Base):
 
     # Secondary relationship to Genus via synonym_id (if applicable)
     synonym = relationship(
-        "Genus", uselist=False, back_populates="_synonyms_synonym", primaryjoin='GenusSynonym.synonym_id==Genus.id', cascade_backrefs=True
+        "Genus", uselist=False, back_populates="_synonyms_synonym", primaryjoin='GenusSynonym.synonym_id==Genus.id', cascade_backrefs=True, active_history=True
     )
 
     #    synonym = relationship('Genus', uselist=False,
