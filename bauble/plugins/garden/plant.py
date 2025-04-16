@@ -377,7 +377,8 @@ class PlantChange(db.Base):
         uselist=True,
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True
+        cascade_backrefs=True,
+        overlaps="changes"
     )
 
     parent_plant = relationship(
@@ -388,7 +389,8 @@ class PlantChange(db.Base):
         uselist=False,
         cascade="delete, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True
+        cascade_backrefs=True,
+        overlaps="branches"
     )
 
     from_location = relationship(
@@ -503,7 +505,8 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         primaryjoin="PlantChange.plant_id == Plant.id",
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True
+        cascade_backrefs=True,
+        overlaps="plant"
     )
 
     branches = relationship(
@@ -513,7 +516,8 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         foreign_keys="PlantChange.parent_plant_id",
         cascade="delete, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True
+        cascade_backrefs=True,
+        overlaps="parent_plant"
     )
 
     location = relationship(
