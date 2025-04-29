@@ -877,7 +877,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
         logger.debug("on_activate_add_menu_item {} {}".format(widget, geoid))
         from bauble.plugins.plants.geography import GeographicArea
 
-        geo = self.session.execute(select(GeographicArea)).scalars().where(id=geoid).one()
+        geo = self.session.execute(select(GeographicArea).where(id=geoid)).scalars().one()
         # check that this geography isn't already in the distributions
         if geo in [d.geographic_area for d in self.model.distribution]:
             logger.debug("{} already in {}".format(geo, self.model))
@@ -1116,12 +1116,12 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
 
         def sp_get_completions(text):
             query = (
-                self.session.execute(select(Species)).scalars()
+                self.session.execute(select(Species)
                 .join(Genus, Species.genus_id == Genus.id)
                 .where(utils.ilike(Genus.genus, f"{text}%"))
                 .where(Species.id != self.model.id)
                 .order_by(Genus.genus, Species.epithet)
-            )
+            )).scalars()
             return query
 
         def on_select(value):

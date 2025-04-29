@@ -409,7 +409,7 @@ class TagEditorPresenter(GenericEditorPresenter):
                     self.session.add(note)
             else:
                 # retrieve and update existing note
-                note = self.session.execute(select(TagNote)).scalars().where(id=note_id).one()
+                note = self.session.execute(select(TagNote).where(id=note_id)).scalars().one()
                 if keep is False:
                     self.session.delete(note)
                 else:
@@ -499,8 +499,9 @@ class TagItemGUI(editor.GenericEditorView):
             return
         session = db.Session()
         try:
-            query = session.execute(select(Tag)).scalars()
-            tag = query.where(tag=str(tag_name)).one()
+            tag = session.scalars(
+                select(Tag).where(Tag.tag == str(tag_name))
+            ).one()
             session.delete(tag)
             if session.in_transaction():
                 session.commit()
@@ -622,10 +623,10 @@ class Tag(db.Base, db.WithNotes):
         if self.__my_own_timestamp is not None:
             with db.Session() as session:
                 last_history = (
-                    session.execute(select(db.History.timestamp)).scalars()
+                    session.execute(select(db.History.timestamp)
                     .order_by(db.History.timestamp.desc())
                     .limit(1)
-                )
+                )).scalars()
                 if last_history and last_history > self.__my_own_timestamp:
                     # Invalidate the cache if the database has changed
                     self.__last_objects = None
@@ -663,7 +664,7 @@ class Tag(db.Base, db.WithNotes):
 
         # Query objects for each mapper in a single query
         for mapper, ids in mapper_to_ids.items():
-            objects = session.execute(select(mapper)).scalars().where(mapper.id.in_(ids)).all()
+            objects = session.execute(select(mapper).where(mapper.id.in_(ids))).scalars().all()
             results.extend(objects)
 
         # Filter out None references (orphans)
@@ -674,10 +675,10 @@ class Tag(db.Base, db.WithNotes):
     def attached_to(cls, obj: "BaseModelProtocol") -> list:
         """Return the list of tags attached to the given object."""
         with db.Session() as session:
-            qto = session.execute(select(TaggedObj)).scalars().where(
+            qto = session.execute(select(TaggedObj).where(
                 TaggedObj.obj_class == type(obj).__name__,
                 TaggedObj.obj_id == obj.id,
-            )
+            )).scalars()
             return [i.tag for i in qto.all()]
 
     def search_view_markup_pair(self):
@@ -808,7 +809,7 @@ def create_named_empty_tag(name: str) -> None:
     with db.Session() as session:
         try:
             # Check if the tag already exists
-            tag = session.execute(select(Tag)).scalars().where(tag=name).one()
+            tag = session.execute(select(Tag).where(tag=name)).scalars().one()
         except orm_exc.NoResultFound:
             # Create the tag if it doesn't exist
             logger.debug(f"Tag '{name}' not found, creating it.")
@@ -842,7 +843,7 @@ def untag_objects(name: str, objs: list) -> None:
 
     try:
         # Retrieve the tag
-        tag = session.execute(select(Tag)).scalars().where(tag=name).one()
+        tag = session.execute(select(Tag).where(tag=name)).scalars().one()
     except orm_exc.NoResultFound:
         logger.info(f"Tag '{name}' does not exist. Nothing to remove.")
         return
@@ -888,7 +889,7 @@ def tag_objects(name: str, objects: list) -> None:
     name = utils.utf8(name)
     session = object_session(objects[0])
     try:
-        tag = session.execute(select(Tag)).scalars().where(tag=name).one()
+        tag = session.execute(select(Tag).where(tag=name)).scalars().one()
     except orm_exc.NoResultFound:
         logger.debug(f"Tag '{name}' not found, creating it.")
         tag = Tag(tag=name)
@@ -928,7 +929,8 @@ def get_tag_ids(objs):
         raise ValueError("Cannot retrieve session from the provided objects.")
 
     # Fetch all tag IDs at once
-    all_tag_ids = {tag_id for tag_id, in session.execute(select(Tag.id)).scalars()}
+    all_tag_ids = set(session.scalars(select(Tag.id)))
+
 
     # Initialize sets for tags
     s_all = None

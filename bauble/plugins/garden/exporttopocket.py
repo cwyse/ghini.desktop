@@ -110,33 +110,34 @@ class ExportToPocketThread(threading.Thread):
         from bauble.plugins.plants import Species
 
         session = db.Session()
-        plant_query = (
-            session.execute(select(Plant)).scalars()
-            .order_by(Plant.code)
+        stmt = (
+            select(Plant)
             .join(Accession)
-            .order_by(Plant.id)
+            .order_by(Plant.code, Plant.id)
         )
+
         if self.include_private is False:
             # no private accessions: add a filter to only keep non-private
-            plant_query = plant_query.where(
-                Accession.private == False
-            )  # `is` does not work
+            stmt = stmt.where(Accession.private == False)  # `is` does not work
+
+        plant_query = session.execute(stmt).scalars()
         plants = plant_query.all()
+
         accessions = (
-            session.execute(select(Accession)).scalars()
+            session.execute(select(Accession)
             .where(
                 Accession.id.in_(bindparam("accession_ids", expanding=True))
             )
             .params(accession_ids=[j.accession_id for j in plants])
             .order_by(Accession.id)
-            .all()
+            ).scalars().all()
         )
         species = (
-            session.execute(select(Species)).scalars()
+            session.execute(select(Species)
             .where(Species.id.in_(bindparam("species_ids", expanding=True)))
             .params(species_ids=[j.species_id for j in accessions])
             .order_by(Species.id)
-            .all()
+            ).scalars().all()
         )
         import sqlite3
 

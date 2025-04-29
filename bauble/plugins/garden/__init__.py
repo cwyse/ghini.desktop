@@ -151,12 +151,12 @@ class GardenPlugin(pluginmgr.Plugin):
             if session is None:
                 raise ValueError("The provided detail object is not associated with a session.")
             results = (
-                session.execute(select(Accession)).scalars()
+                session.execute(select(Accession)
                 .join(Source)
                 .join(Contact)
                 .options(selectinload(Species.species))
                 .where(Contact.id == detail.id)
-                .all()
+                ).scalars().all()
             )
             return results
 
@@ -323,12 +323,12 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
             code, name = match.groups()
         else:
             code = name = text
-        codes = presenter.session.execute(select(Location)).scalars().where(
+        codes = presenter.session.execute(select(Location).where(
             utils.ilike(Location.code, "%s" % utils.utf8(code))
-        )
-        names = presenter.session.execute(select(Location)).scalars().where(
+        )).scalars()
+        names = presenter.session.execute(select(Location).where(
             utils.ilike(Location.name, "%s" % utils.utf8(name))
-        )
+        )).scalars()
         if codes.count() == 1:
             logger.debug("location matches code")
             location = codes.first()

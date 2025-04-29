@@ -678,11 +678,15 @@ class TestSpecies:
 
         # Verify the default vernacular name is unset and removed
         assert sp.default_vernacular_name is None
-        q = session.execute(select(DefaultVernacularName)).scalars()
         with pytest.raises(NoResultFound):
-            q.where(DefaultVernacularName.species_id == sp.id).one()
+            session.execute(
+                select(DefaultVernacularName).where(DefaultVernacularName.species_id == sp.id)
+            ).scalars().one()
         with pytest.raises(NoResultFound):
-            q.where(DefaultVernacularName.id == dvid).one()
+            session.execute(
+                select(DefaultVernacularName).where(DefaultVernacularName.id == dvid)
+            ).scalars().one()
+
 
         # Step 6: Reset `default_vernacular_name` and verify orphan handling
         sp.vernacular_names.append(vn)
@@ -695,11 +699,15 @@ class TestSpecies:
             session.commit()
 
         # Verify orphaned objects are properly removed
-        q = session.execute(select(DefaultVernacularName)).scalars()
         with pytest.raises(NoResultFound):
-            q.where(DefaultVernacularName.species_id == sp.id).one()
+            session.execute(
+                select(DefaultVernacularName).where(DefaultVernacularName.species_id == sp.id)
+            ).scalars().one()
         with pytest.raises(NoResultFound):
-            q.where(DefaultVernacularName.id == dvid).one()
+            session.execute(
+                select(DefaultVernacularName).where(DefaultVernacularName.id == dvid)
+            ).scalars().one()
+
 
         # Step 7: Use `__del__` to delete `default_vernacular_name`
         sp.default_vernacular_name = vn
@@ -709,14 +717,17 @@ class TestSpecies:
         del sp.default_vernacular_name
         if session.in_transaction():
             session.commit()
-
         # Verify the default vernacular name is unset and deleted
         assert sp.default_vernacular_name is None
-        q = session.execute(select(DefaultVernacularName)).scalars()
         with pytest.raises(NoResultFound):
-            q.where(DefaultVernacularName.species_id == sp.id).one()
+            session.execute(
+                select(DefaultVernacularName).where(DefaultVernacularName.species_id == sp.id)
+            ).scalars().one()
         with pytest.raises(NoResultFound):
-            q.where(DefaultVernacularName.id == dvid).one()
+            session.execute(
+                select(DefaultVernacularName).where(DefaultVernacularName.id == dvid)
+            ).scalars().one()
+
 
         # Step 8: Test for regression in Launchpad Bug #123286
         vn1 = VernacularName(name="vn1")
@@ -897,7 +908,7 @@ class TestSpecies:
             in self.invoked
         )
         self.assertEqual(result, None)
-        q = self.session.execute(select(Species)).scalars().where(genus=f5, sp="papaya")
+        q = self.session.execute(select(Species).where(genus=f5, sp="papaya")).scalars()
         matching = q.all()
         self.assertEqual(matching, [sp])
 
@@ -936,7 +947,7 @@ class TestSpecies:
         )
 
         self.assertEqual(result, True)
-        q = self.session.execute(select(Species)).scalars().where(sp="Carica")
+        q = self.session.execute(select(Species).where(sp="Carica")).scalars()
         matching = q.all()
         self.assertEqual(matching, [])
 
@@ -979,10 +990,10 @@ class TestSpecies:
             )
             in self.invoked
         )
-        q = self.session.execute(select(Species)).scalars().where(genus=f5, sp="papaya")
+        q = self.session.execute(select(Species).where(genus=f5, sp="papaya")).scalars()
         matching = q.all()
         self.assertEqual(matching, [sp])
-        q = self.session.execute(select(Accession)).scalars().where(species=sp)
+        q = self.session.execute(select(Accession).where(species=sp)).scalars()
         matching = q.all()
         self.assertEqual(matching, [acc])
 
@@ -1145,7 +1156,7 @@ class TestFromAndToDict:
         """Test retrieving existing genera under a specific family."""
         orc = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Orchidaceae"})
         all_genera_orc = (
-            session.execute(select(Genus)).scalars().where(Genus.family == orc).all()
+            session.execute(select(Genus).where(Genus.family == orc)).scalars().all()
         )
         mxl = Genus.retrieve_or_create(
             session,
@@ -1307,12 +1318,12 @@ class TestFromAndToDictCreateUpdate:
 
     def test_vernacular_name_as_dict(self, session):
         """Ensure VernacularName objects can be serialized to dictionaries."""
-        bra = session.execute(select(Species)).scalars().where(Species.id == 21).first()
+        bra = session.execute(select(Species).where(Species.id == 21)).scalars().first()
         vn_bra = (
-            session.execute(select(VernacularName))
-            .scalars()
+            session.execute(select(VernacularName)
             .where(VernacularName.language == "agr", VernacularName.species == bra)
-            .all()
+            )
+            .scalars().all()
         )
         assert vn_bra[0].as_dict() == {
             "object": "vernacular_name",
@@ -1322,10 +1333,10 @@ class TestFromAndToDictCreateUpdate:
         }
 
         vn_bra = (
-            session.execute(select(VernacularName))
-            .scalars()
+            session.execute(select(VernacularName)
             .where(VernacularName.language == "es", VernacularName.species == bra)
-            .all()
+            )
+            .scalars().all()
         )
         assert vn_bra[0].as_dict() == {
             "object": "vernacular_name",
@@ -2001,17 +2012,17 @@ class TestGlobalFunctions:
         assert second == "Orchidaceae"
 
     def test_vername_markup_func(self, session):
-        vName = session.execute(select(VernacularName)).scalars().where(id=1).one()
+        vName = session.execute(select(VernacularName).where(id=1)).scalars().one()
         first, second = vName.search_view_markup_pair()
         assert remove_zws(second) == "<i>Maxillaria</i> <i>variabilis</i>"
         assert first == "SomeName"
 
     def test_species_get_kids(self, session):
-        mVa = session.execute(select(Species)).scalars().where(id=1).one()
+        mVa = session.execute(select(Species).where(id=1)).scalars().one()
         assert partial(db.natsort, "accessions")(mVa) == []
 
     def test_vernname_get_kids(self, session):
-        vName = session.execute(select(VernacularName)).scalars().where(id=1).one()
+        vName = session.execute(select(VernacularName).where(id=1)).scalars().one()
         assert partial(db.natsort, "species.accessions")(vName) == []
 
 @pytest.mark.usefixtures("setup_bauble_data")

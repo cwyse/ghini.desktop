@@ -32,7 +32,7 @@ import bauble.utils as utils
 import gi
 from bauble.error import check
 from bauble.plugins.garden.plant import Plant
-
+from sqlalchemy import select
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 

@@ -70,6 +70,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import or_
 from sqlalchemy import select
+from sqlalchemy import delete
 #from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
@@ -976,7 +977,8 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.execute(select(cls)).scalars().where(cls.code == keys["code"]).one()
+            return session.execute(select(cls).where(cls.code == keys["code"])).scalars().one()
+
         except:
             return None
 
@@ -1453,11 +1455,16 @@ class VerificationBox:
         """Set up the species-related entries with auto-completion."""
         def sp_get_completions(text):
             query = (self.presenter()
-                     .session.execute(select(Species)).scalars()
-                     .join(Species.genus)
-                     .where(ilike(Genus.genus, f"{text}%"))
-                     .where(Species.id != self.model.id)
-                     .order_by(Species.sp))
+                    .session.execute(
+                        select(Species)
+                        .join(Genus, Species.genus_id == Genus.id)
+                        .where(ilike(Genus.genus, f"{text}%"))
+                        .where(Species.id != self.model.id)
+                        .order_by(Species.sp)
+                    )
+                    .scalars()
+                )
+
             return query
 
         def sp_cell_data_func(col, cell, model, treeiter, data=None):
@@ -2110,15 +2117,18 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
             genus_name = text.split(" ")[0] if " " in text else text
             query = (
-                self.session.execute(select(Species)).scalars()
-                .join(Species.genus)
-                .where(
-                    or_(
-                        ilike(Genus.genus, f"{text}%"),
-                        ilike(Genus.genus, f"{genus_name}%"),
+                self.session.execute(
+                    select(Species)
+                    .join(Genus, Species.genus_id == Genus.id)
+                    .where(
+                        or_(
+                            ilike(Genus.genus, f"{text}%"),
+                            ilike(Genus.genus, f"{genus_name}%"),
+                        )
                     )
+                    .order_by(Species.sp)
                 )
-                .order_by(Species.sp)
+                .scalars()
             )
             return query
 
@@ -2181,11 +2191,10 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             if not value:
                 return
 
-            syn = (
-                self.session.execute(select(SpeciesSynonym)).scalars()
-                .where(SpeciesSynonym.synonym_id == value.id)
-                .first()
-            )
+            stmt = select(SpeciesSynonym).where(SpeciesSynonym.synonym_id == value.id)
+            syn = self.session.execute(stmt).scalars().first()
+
+
             if not syn:
                 set_model(value)
                 return
@@ -2337,11 +2346,13 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         ls.clear()
         ls.append([entry_one])
         if values is None:
-            query = (
-                self.session.execute(select(meta.BaubleMeta)).scalars()
+            stmt = (
+                select(meta.BaubleMeta)
                 .where(meta.BaubleMeta.name.like("acidf_%"))
                 .order_by(meta.BaubleMeta.name)
             )
+            query = self.session.execute(stmt).scalars()
+
             if query.count():
                 Accession.code_format = query.first().value
             values = [r.value for r in query]
@@ -2362,11 +2373,13 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         )
         ls = view.widgets.acc_codes_liststore
         ls.clear()
-        query = (
-            self.session.execute(select(meta.BaubleMeta)).scalars()
+        stmt = (
+            select(meta.BaubleMeta)
             .where(meta.BaubleMeta.name.like("acidf_%"))
             .order_by(meta.BaubleMeta.name)
         )
+        query = self.session.execute(stmt).scalars()
+
         for i, row in enumerate(query):
             ls.append([i + 1, row.value])
         ls.append([len(ls) + 1, ""])
@@ -2386,9 +2399,13 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
         presenter = Presenter(ls, view, session=db.Session())
         if presenter.start() > 0:
-            presenter.session.execute(select(meta.BaubleMeta)).scalars().where(
-                meta.BaubleMeta.name.like("acidf_%")
-            ).delete(synchronize_session="fetch")
+            stmt = (
+                delete(meta.BaubleMeta)
+                .where(meta.BaubleMeta.name.like("acidf_%"))
+            )
+            presenter.session.execute(stmt)
+            presenter.session.commit()
+
             i = 1
             iter = ls.get_iter_first()
             values = []

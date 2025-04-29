@@ -84,7 +84,7 @@ def get_species_in_geographic_area(geo):
     from sqlalchemy import bindparam
 
     q = (
-        session.execute(select(Species)).scalars()
+        session.execute(select(Species)
         .join(SpeciesDistribution)
         .where(
             SpeciesDistribution.geographic_area_id.in_(
@@ -92,7 +92,7 @@ def get_species_in_geographic_area(geo):
             )
         )
         .params(master_ids=master_ids)
-    )
+    )).scalars()
     return list(q)
 
 class GeographicAreaMenu:

@@ -844,14 +844,14 @@ def retrieve(session, keys):
     genus, epithet = keys["species"].split(" ", 1)
     try:
         return (
-            session.execute(select(Species))
-            .scalars()
+            session.execute(select(Species)
             .where(Species.category == keys["category"])
             .join(Species.genus)
             .where(Species.epithet == epithet)
             .join(Genus)
             .where(Genus.epithet == genus)
-            .one()
+            )
+            .scalars().one()
         )
     except Exception as e:
         logger.error(f"Error retrieving species with keys {keys}: {e}")
@@ -990,17 +990,17 @@ class VernacularName(db.Base, db.Serializable):
 
         g_epithet, s_epithet = keys["species"].split(" ", 1)
         sp = (
-            session.execute(select(Species)).scalars()
+            session.execute(select(Species)
             .where(Species.epithet == s_epithet)
             .join(Genus)
             .where(Genus.epithet == g_epithet)
-            .first()
+            ).scalars().first()
         )
         try:
             return (
-                session.execute(select(cls)).scalars()
+                session.execute(select(cls)
                 .where(cls.species == sp, cls.language == keys["language"])
-                .one()
+                ).scalars().one()
             )
         except:
             return None

@@ -790,12 +790,12 @@ class PropagationChooserPresenter(editor.ChildPresenter):
             from bauble.plugins.garden.plant import Plant
 
             query = (
-                self.session.execute(select(Plant)).scalars()
+                self.session.execute(select(Plant)
                 .where(Plant.propagations.any())
                 .join(Accession, Plant.accession_id == Accession.id)
                 .where(Accession.id != self.model.accession.id)
                 .order_by(Accession.code, Plant.code)
-            )
+            )).scalars()
             result = self.view.widgets.source_prop_plant_liststore
             for plant in query:
                 has_accessible = False
@@ -824,9 +824,9 @@ class PropagationChooserPresenter(editor.ChildPresenter):
             from bauble.plugins.garden.plant import Plant
 
             plant = (
-                self.session.execute(select(Plant)).scalars()
+                self.session.execute(select(Plant)
                 .where(Plant.id == model[matches[0]][1])
-                .one()
+                ).scalars().one()
             )
             # populate the propagation browser
             treeview = self.view.widgets.source_prop_treeview
@@ -1006,7 +1006,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.execute(select(cls)).scalars().where(cls.name == keys["name"]).one()
+            return session.execute(select(cls).where(cls.name == keys["name"])).scalars().one()
         except:
             return None
 

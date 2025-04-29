@@ -262,22 +262,22 @@ def get_species_query(obj, session):
             _("Can't get species from a %s") % type(obj).__name__
         )
 
-
 def get_location_query(obj, session):
     """ """
-    q = session.execute(select(Location)).scalars()
+    stmt = select(Location)
+
     if isinstance(obj, Location):
-        return q.where(Location.id == obj.id)
+        stmt = stmt.where(Location.id == obj.id)
 
     elif isinstance(obj, Plant):
-        return q.where(Plant.id == obj.id)
+        stmt = stmt.join(Plant.accession).where(Plant.id == obj.id)
 
     elif isinstance(obj, Accession):
-        return q.join(Plant.accession).where(Accession.id == obj.id)
+        stmt = stmt.join(Plant.accession).where(Accession.id == obj.id)
 
     elif isinstance(obj, Family):
-        return (
-            q.join(Plant.accession)
+        stmt = (
+            stmt.join(Plant.accession)
             .join(Accession.species)
             .join(Species.genus)
             .join(Genus.family)
@@ -285,31 +285,31 @@ def get_location_query(obj, session):
         )
 
     elif isinstance(obj, Genus):
-        return (
-            q.join(Plant.accession)
+        stmt = (
+            stmt.join(Plant.accession)
             .join(Accession.species)
             .join(Species.genus)
             .where(Genus.id == obj.id)
         )
 
     elif isinstance(obj, Species):
-        return (
-            q.join(Plant.accession)
+        stmt = (
+            stmt.join(Plant.accession)
             .join(Accession.species)
             .where(Species.id == obj.id)
         )
 
     elif isinstance(obj, VernacularName):
-        return (
-            q.join(Plant.accession)
+        stmt = (
+            stmt.join(Plant.accession)
             .join(Accession.species)
             .join(Species.vernacular_names)
             .where(VernacularName.id == obj.id)
         )
 
     elif isinstance(obj, Contact):
-        return (
-            q.join(Plant.accession)
+        stmt = (
+            stmt.join(Plant.accession)
             .join(Accession.source)
             .join(Source.source_detail)
             .where(Contact.id == obj.id)
@@ -319,7 +319,7 @@ def get_location_query(obj, session):
         locs = get_pertinent_objects(Location, obj.objects)
         from sqlalchemy import bindparam
 
-        return q.where(
+        stmt = stmt.where(
             Location.id.in_(bindparam("location_ids", expanding=True))
         ).params(location_ids=[l.id for l in locs])
 
@@ -327,6 +327,11 @@ def get_location_query(obj, session):
         raise BaubleError(
             _("Can't get Location from a %s") % type(obj).__name__
         )
+
+    # Now execute and scalars at the end
+    return session.execute(stmt).scalars()
+
+
 
 
 def get_pertinent_objects(cls, objs):
@@ -350,7 +355,8 @@ def get_pertinent_objects(cls, objs):
 
     queries = [get_query_func(o, session) for o in objs]
     unions = union(*[q.statement for q in queries])
-    return session.execute(select(cls)).scalars().from_statement(unions)
+    return session.execute(select(cls).from_statement(unions)).scalars()
+
 
 class SettingsBox:
     """

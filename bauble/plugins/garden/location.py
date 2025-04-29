@@ -188,7 +188,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.execute(select(cls)).scalars().where(cls.code == keys["code"]).one()
+            return session.execute(select(cls).where(cls.code == keys["code"])).scalars().one()
         except:
             return None
 
@@ -384,21 +384,21 @@ class LocationEditorPresenter(GenericEditorPresenter):
         from bauble.plugins.garden.plant import Plant, PlantChange
 
         for p in (
-            self.session.execute(select(Plant)).scalars()
+            self.session.execute(select(Plant)
             .where(Plant.location == self.merger_candidate)
-            .all()
+            ).scalars().all()
         ):
             p.location = self.model
         for p in (
-            self.session.execute(select(PlantChange)).scalars()
+            self.session.execute(select(PlantChange)
             .where(PlantChange.from_location == self.merger_candidate)
-            .all()
+            ).scalars().all()
         ):
             p.from_location = self.model
         for p in (
-            self.session.execute(select(PlantChange)).scalars()
+            self.session.execute(select(PlantChange)
             .where(PlantChange.to_location == self.merger_candidate)
-            .all()
+            ).scalars().all()
         ):
             p.to_location = self.model
 

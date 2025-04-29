@@ -35,11 +35,12 @@ from bauble.editor import GenericEditorView
 from bauble.plugins.tag import TagEditorPresenter
 import bauble.utils as utils
 from bauble.editor import MockView
+from sqlalchemy import delete
 
 @pytest.fixture
 def setup_tags(session):
     """Fixture to clear all tags before each test."""
-    session.execute(select(Tag)).scalars().delete()
+    session.execute(delete(Tag))
     if session.in_transaction():
         session.commit()
 
@@ -109,9 +110,10 @@ def setup_family_and_tags(session):
     if session.in_transaction():
         session.commit()
     yield family
-    session.execute(select(Tag)).scalars().delete()
+    session.execute(delete(Tag))  # <-- direct delete
     if session.in_transaction():
         session.commit()
+
 
 
 @pytest.mark.usefixtures("setup_family_and_tags")
@@ -308,8 +310,9 @@ class TestGetTagIds:
         yield
 
         # Cleanup after tests
-        session.execute(select(Family)).scalars().delete()
-        session.execute(select(Tag)).scalars().delete()
+        session.execute(delete(Family))
+        session.execute(delete(Tag))
+
         if session.in_transaction():
             session.commit()
 
@@ -347,7 +350,8 @@ class TestGetTagIds:
 
     def test_get_tag_ids7(self, session):
         # Cleanup existing tags and create new ones
-        session.execute(select(Tag)).scalars().delete()
+        session.execute(delete(Tag))
+
         if session.in_transaction():
             session.commit()
 
@@ -494,7 +498,7 @@ class TestAttachedTo:
 
     def test_attached_tags_singleton(self, session):
         fam = session.execute(select(Family)).scalars().one()
-        obj2 = session.execute(select(Tag)).scalars().where(Tag.tag == "maderable").one()
+        obj2 = session.execute(select(Tag).where(Tag.tag == "maderable")).scalars().one()
         tag_plugin.tag_objects(obj2, [fam])
         assert Tag.attached_to(fam) == [obj2]
 
@@ -524,7 +528,7 @@ class TestAttachedTo:
 
     def test_attached_tags_singleton(self, session):
         fam = session.execute(select(Family)).scalars().one()
-        obj2 = session.execute(select(Tag)).scalars().where(Tag.tag == "maderable").one()
+        obj2 = session.execute(select(Tag).where(Tag.tag == "maderable")).scalars().one()
         tag_plugin.tag_objects(obj2, [fam])
         assert Tag.attached_to(fam) == [obj2]
 
