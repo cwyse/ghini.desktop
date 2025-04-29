@@ -58,7 +58,7 @@ def get_genus(session, keys):
     except:
         keys["gn_epit"], keys["sp_epit"] = ("Zzz", "sp")
 
-    genus = session.execute(select(Genus)).scalars().where(Genus.epithet == keys["gn_epit"]).one()
+    genus = session.execute(select(Genus).where(Genus.epithet == keys["gn_epit"])).scalars().one()
     return genus
 
 
@@ -72,10 +72,10 @@ def get_species(session, keys):
         try:
             genus = get_genus(session, keys)
             species = (
-                session.execute(select(Species)).scalars()
+                session.execute(select(Species)
                 .where(Species.genus == genus)
                 .where(Species.infrasp1 == "sp")
-                .one()
+                ).scalars().one()
             )
             if species != zzz:  # no hace falta mencionarlo
                 sys.stdout.write("+")  # encontramos
@@ -87,10 +87,10 @@ def get_species(session, keys):
     else:
         try:
             species = (
-                session.execute(select(Species)).scalars()
+                session.execute(select(Species)
                 .where(Species.genus == genus)
                 .where(Species.epithet == keys["sp_epit"])
-                .one()
+                ).scalars().one()
             )
             sys.stdout.write("+")  # encontramos
         except:
@@ -104,9 +104,9 @@ def get_species(session, keys):
 def get_location(session, keys):
     try:
         loc = (
-            session.execute(select(Location)).scalars()
+            session.execute(select(Location)
             .where(bauble.utils.ilike(Location.code, str(keys["location"])))
-            .one()
+            ).scalars().one()
         )
     except:
         loc = Location(code=keys["location"].upper())
@@ -178,9 +178,9 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
     if item["location"]:
         # case insensitive match on location code (use bauble.utils.ilike).
         db_loc = (
-            session.execute(select(Location)).scalars()
+            session.execute(select(Location)
             .where(bauble.utils.ilike(Location.code, str(item["location"])))
-            .first()
+            ).scalars().first()
         )
         if db_loc:
             plant["location"] = db_loc.code
@@ -210,9 +210,9 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
     # ignore species=Zzz sp for already existing accessions.
     need_species = False
     db_accession = (
-        session.execute(select(Accession)).scalars()
+        session.execute(select(Accession)
         .where(Accession.code == str(accession["code"]))
-        .first()
+        ).scalars().first()
     )
 
     if db_accession is None:  # this is a new accession
@@ -234,16 +234,16 @@ for item in sorted(items, key=lambda x: x["acc_no_scan"] or x["acc_no_typed"]):
 
     if item["species"]:
         db_genus = (
-            session.execute(select(Genus)).scalars().where(Genus.epithet == genus_epithet).first()
+            session.execute(select(Genus).where(Genus.epithet == genus_epithet)).scalars().first()
         )
         if db_genus is None:
             logger.debug("com'è possibile? %s" % item["species"])
         else:
             db_species = (
-                session.execute(select(Species)).scalars()
+                session.execute(select(Species)
                 .where(Species.genus_id == db_genus.id)
                 .where(Species.epithet == species_epithet)
-                .first()
+                ).scalars().first()
             )
             if db_species is None:
                 species = {

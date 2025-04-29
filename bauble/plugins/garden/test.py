@@ -226,7 +226,7 @@ def test_branch_callback(db_session, plant_data):
 
     # Branch plant
     branch_callback([plant])
-    branched_plant = db_session.execute(select(Plant)).scalars().where(Plant.code != "1").first()
+    branched_plant = db_session.execute(select(Plant).where(Plant.code != "1")).scalars().first()
 
     db_session.refresh(plant)
     assert plant.quantity == 5 - branched_plant.quantity
@@ -656,10 +656,10 @@ def test_institution_initialization(db_session):
         db_session.commit()
 
     fields = (
-        db_session.execute(select(BaubleMeta))
-        .scalars()
+        db_session.execute(select(BaubleMeta)
         .where(ilike(BaubleMeta.name, "inst_%"))
-        .all()
+        )
+        .scalars().all()
     )
     assert len(fields) == 13  # 13 properties define the institution
 
@@ -672,10 +672,10 @@ def test_institution_write_none_stays_none(db_session):
         db_session.commit()
 
     fields = (
-        db_session.execute(select(BaubleMeta))
-        .scalars()
+        db_session.execute(select(BaubleMeta)
         .where(ilike(BaubleMeta.name, "inst_%"))
-        .all()
+        )
+        .scalars().all()
     )
     field_values = {f.name[5:]: f.value for f in fields if f.value is not None}
     assert field_values["name"] == "Ghini"

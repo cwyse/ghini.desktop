@@ -363,7 +363,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         if self.model.location is None:
             self.model.location = "imported"
         location = (
-            session.execute(select(Location)).scalars().where(code=self.model.location).first()
+            session.execute(select(Location).where(code=self.model.location)).scalars().first()
         )
         if location is not None:
             logger.log(11, "location {} already in database".format(location))
@@ -387,11 +387,11 @@ class PictureImporterPresenter(GenericEditorPresenter):
             )
 
             # create or retrieve genus and species
-            genus = session.execute(select(Genus)).scalars().where(epithet=epgn).one()
+            genus = session.execute(select(Genus).where(epithet=epgn)).scalars().one()
             species = (
-                session.execute(select(Species)).scalars()
+                session.execute(select(Species)
                 .where(genus=genus, epithet=epsp)
-                .first()
+                ).scalars().first()
             )
             if species is not None:
                 logger.log(
@@ -412,7 +412,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
 
             # create or retrieve accession (needs species)
             accession = (
-                session.execute(select(Accession)).scalars().where(code=accession_code).first()
+                session.execute(select(Accession).where(code=accession_code)).scalars().first()
             )
             if accession is not None:
                 logger.log(
@@ -440,9 +440,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
 
             # create or retrieve plant (needs: accession, location)
             plant = (
-                session.execute(select(Plant)).scalars()
+                session.execute(select(Plant)
                 .where(accession=accession, code=plant_code)
-                .first()
+                ).scalars().first()
             )
             if plant is not None:
                 logger.log(
@@ -471,9 +471,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
 
             # add picture note
             note = (
-                session.execute(select(PlantNote)).scalars()
+                session.execute(select(PlantNote)
                 .where(plant=plant, note=filename, category="<picture>")
-                .first()
+                ).scalars().first()
             )
             if note is not None:
                 logger.log(

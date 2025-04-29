@@ -47,7 +47,7 @@ from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
-from sqlalchemy import select,distinct
+from sqlalchemy import select,distinct, delete
 #from sqlalchemy import text
 from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
@@ -339,9 +339,9 @@ class Family(db.Base, db.Serializable, db.WithNotes):
             logger.warning("family:accepted - object not in session")
             return None
         syn = (
-            session.execute(select(FamilySynonym)).scalars()
+            session.execute(select(FamilySynonym)
             .where(FamilySynonym.synonym_id == self.id)
-            .first()
+            ).scalars().first()
         )
         accepted = syn and syn.family
         return accepted
@@ -357,9 +357,9 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         if not session:
             logger.warning("family:accepted.setter - object not in session")
             return
-        session.execute(select(FamilySynonym)).scalars().where(
-            FamilySynonym.synonym_id == self.id
-        ).delete()
+        session.execute(
+            delete(FamilySynonym).where(FamilySynonym.synonym_id == self.id)
+        )
         if session.in_transaction():
             session.commit()
         value.synonyms.append(self)
@@ -384,7 +384,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     def retrieve(cls, session, keys):
         try:
             return (
-                session.execute(select(cls)).scalars().where(cls.epithet == keys["epithet"]).one()
+                session.execute(select(cls).where(cls.epithet == keys["epithet"])).scalars().one()
             )
         except:
             return None
@@ -611,9 +611,9 @@ class FamilyEditorPresenter(editor.GenericEditorPresenter):
         # Check if the entered family name exists in the database
         family_name = widget.get_text().strip()
         family = (
-            self.session.execute(select(Family)).scalars()
+            self.session.execute(select(Family)
             .where(Family.epithet == family_name)
-            .first()
+            ).scalars().first()
         )
 
         if family_name:
@@ -687,13 +687,14 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self.synonyms_to_add = []
 
         def fam_get_completions(text):
-            query = self.session.execute(select(Family)).scalars()
-            return query.where(
+            query = self.session.execute(select(Family)
+                .where(
                 and_(
                     Family.epithet.like("%s%%" % text),
                     Family.id != self.model.id,
                 )
-            ).order_by(Family.epithet)
+            ).order_by(Family.epithet)).scalars()
+            return query
 
         # Populate initial synonym list in the view
         self.refresh_view()
@@ -1045,11 +1046,15 @@ class GeneralFamilyExpander(InfoExpander):
 
         # get the number of species
         nsp = (
-            session.execute(select(get_species()).scalars())
-            .join(genus_instance, get_species().genus_id == genus_instance.id)
-            .where(genus_instance.family_id == row.id)
+            session.execute(
+                select(get_species())
+                .join(genus_instance, get_species().genus_id == genus_instance.id)
+                .where(genus_instance.family_id == row.id)
+            )
+            .scalars()
             .count()
         )
+
         if nsp == 0:
             self.widget_set_value("fam_nsp_data", 0)
         else:
@@ -1075,12 +1080,12 @@ class GeneralFamilyExpander(InfoExpander):
         from bauble.plugins.garden.plant import Plant
 
         nacc = (
-            session.execute(select(Accession)).scalars()
+            session.execute(select(Accession)
             .join(get_species(), Accession.species_id == get_species().id)
             .join(genus_instance, get_species().genus_id == genus_instance.id)
             .join(Family, genus_instance.family_id == Family.id)
             .where(Family.id == row.id)
-            .count()
+            ).scalars().count()
         )
         if nacc == 0:
             self.widget_set_value("fam_nacc_data", nacc)
@@ -1101,13 +1106,13 @@ class GeneralFamilyExpander(InfoExpander):
 
         # get the number of plants in the family
         nplants = (
-            session.execute(select(Plant)).scalars()
+            session.execute(select(Plant)
             .join(Accession, Plant.accession_id == Accession.id)
             .join(get_species(), Accession.species_id == get_species().id)
             .join(genus_instance, get_species().genus_id == genus_instance.id)
             .join(Family, genus_instance.family_id == Family.id)
             .where(Family.id == row.id)
-            .count()
+            ).scalars().count()
         )
         if nplants == 0:
             self.widget_set_value("fam_nplants_data", nplants)

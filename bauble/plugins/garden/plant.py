@@ -171,10 +171,10 @@ def get_next_code(acc):
     from bauble.plugins.garden import Accession
 
     codes = (
-        session.execute(select(Plant.code)).scalars()
+        session.execute(select(Plant.code)
         .join(Accession, Plant.accession_id == Accession.id)
         .where(Accession.id == acc.id)
-        .all()
+        ).scalars().all()
     )
     next = 1
     if codes:
@@ -209,7 +209,7 @@ def is_code_unique(plant, code):
     from bauble.plugins.garden import Accession
 
     count = (
-        session.execute(select(Plant)).scalars()
+        session.execute(select(Plant)
         .join(Accession, Plant.accession_id == Accession.id)
         .where(
             and_(
@@ -217,7 +217,7 @@ def is_code_unique(plant, code):
                 Plant.code.in_(bindparam("codes", expanding=True)),
             )
         )
-        .count()
+        ).scalars().count()
     )
     session.close()
     return count == 0
@@ -251,14 +251,14 @@ class PlantSearch(SearchStrategy):
             from bauble.plugins.garden import Accession
 
             query = (
-                session.execute(select(Plant)).scalars()
+                session.execute(select(Plant)
                 .join(Accession, Plant.accession_id == Accession.id)
                 .where(
                     Plant.code == str(plant_code),
                     utils.ilike(Accession.code, f"%{acc_code}%"),
                 )
-            )
-            return query.all()
+            ))
+            return query.scalars().all()
         except Exception as e:
             logger.debug("{} {}".format(e.__class__.__name__, e))
             return []
@@ -274,23 +274,26 @@ def as_dict(self):
 
 def retrieve(cls, session, keys):
     from bauble.plugins.garden.accession import Accession
-    q = session.execute(select(cls)).scalars()
+    stmt = select(cls)
+
     if "plant" in keys:
         acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
-        q = (
-            q.join(Plant)
+        stmt = (
+            stmt.join(Plant)
             .where(Plant.code == str(plant_code))
             .join(Accession)
             .where(Accession.code == str(acc_code))
         )
     if "date" in keys:
-        q = q.where(cls.date == keys["date"])
+        stmt = stmt.where(cls.date == keys["date"])
     if "category" in keys:
-        q = q.where(cls.category == keys["category"])
+        stmt = stmt.where(cls.category == keys["category"])
+
     try:
-        return q.one()
+        return session.execute(stmt).scalars().one()
     except:
         return None
+
 
 
 def compute_serializable_fields(cls, session, keys):
@@ -301,12 +304,12 @@ def compute_serializable_fields(cls, session, keys):
     acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
     logger.debug("acc-plant: {}-{}".format(acc_code, plant_code))
     q = (
-        session.execute(select(Plant)).scalars()
+        session.execute(select(Plant)
         .where(Plant.code == str(plant_code))
         .join(Accession)
-        .where(Accession.code == str(acc_code))
+        .where(Accession.code == str(acc_code)))
     )
-    plant = q.one()
+    plant = q.scalars().one()
 
     result["plant"] = plant
 
@@ -662,13 +665,13 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         from bauble.plugins.garden.accession import Accession
         try:
             return (
-                session.execute(select(cls)).scalars()
+                session.execute(select(cls)
                 .join(Accession, cls.accession_id == Accession.id)
                 .where(
                     cls.code == keys["code"],
                     Accession.code == keys["accession"],
                 )
-                .one()
+                ).scalars().one()
             )
         except:
             return None
@@ -876,10 +879,10 @@ class PlantEditorPresenter(GenericEditorPresenter):
         # been filled in
         def acc_get_completions(text):
             from bauble.plugins.garden.accession import Accession
-            query = self.session.execute(select(Accession)).scalars()
-            return query.where(
-                Accession.code.like(str("%s%%" % text))
-            ).order_by(Accession.code)
+            query = self.session.execute(select(Accession)
+                                            .where(Accession.code.like(str("%s%%" % text))
+                                            ).order_by(Accession.code)).scalars()
+            return query
 
         def on_select(value):
             self.set_model_attr("accession", value)

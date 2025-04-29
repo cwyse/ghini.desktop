@@ -36,7 +36,7 @@ from bauble.plugins.plants import Genus
 from bauble.plugins.plants import Species
 from dateutil.parser import parse
 from sqlalchemy import select
-
+from sqlalchemy import delete
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def get_genus(session, keys):
     except:
         keys["gn_epit"], keys["sp_epit"] = ("Zzz", "sp")
 
-    genus = session.execute(select(Genus)).scalars().where(Genus.epithet == keys["gn_epit"]).one()
+    genus = session.execute(select(Genus).where(Genus.epithet == keys["gn_epit"])).scalars().one()
     return genus
 
 
@@ -62,10 +62,10 @@ def get_species(session, keys, genus):
     if keys["sp_epit"] == "":
         try:
             species = (
-                session.execute(select(Species)).scalars()
+                session.execute(select(Species)
                 .where(Species.genus == genus)
                 .where(Species.infrasp1 == "sp")
-                .first()
+                ).scalars().first()
             )
             if species != zzz:  # no hace falta mencionarlo
                 sys.stdout.write("+")  # encontramos fictive species
@@ -77,11 +77,11 @@ def get_species(session, keys, genus):
     else:
         try:
             species = (
-                session.execute(select(Species)).scalars()
+                session.execute(select(Species)
                 .where(Species.genus == genus)
                 .where(Species.infrasp1 == "")
                 .where(Species.epithet == keys["sp_epit"])
-                .one()
+                ).scalars().one()
             )
             sys.stdout.write("+")  # encontramos Species
         except:
@@ -93,7 +93,7 @@ def get_species(session, keys, genus):
 
 
 def lookup(session, klass, **kwargs):
-    obj = session.execute(select(klass)).scalars().where(**kwargs).first()
+    obj = session.execute(select(klass).where(**kwargs)).scalars().first()
     if obj is None:
         obj = klass(**kwargs)
         session.add(obj)
@@ -123,12 +123,16 @@ def process_inventory_line(session, baseline, timestamp, parameters):
 
     # if plant is in place, edit it, otherwise, create it.
     plant = (
-        session.execute(select(Plant)).scalars()
-        .where(code=plant_code)
-        .join(Accession)
-        .where(code=accession_code)
+        session.execute(
+            select(Plant)
+            .join(Accession)
+            .where(Plant.code == plant_code)
+            .where(Accession.code == accession_code)
+        )
+        .scalars()
         .first()
     )
+
     if plant is not None:
         # no location_code means just asserting existence, on existing plant, so no effect.
         if location_code:
@@ -136,7 +140,7 @@ def process_inventory_line(session, baseline, timestamp, parameters):
     else:
         # if not even accession is in place, let's create a default one
         accession = (
-            session.execute(select(Accession)).scalars().where(code=accession_code).first()
+            session.execute(select(Accession).where(code=accession_code)).scalars().first()
         )
         if accession is None:
             fictive_family = lookup(session, Family, epithet="Zz-Plantae")
@@ -213,13 +217,13 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
 
     # does this plant already exist?
     plant = (
-        session.execute(select(Plant)).scalars()
+        session.execute(select(Plant)
         .where(code=plant_code)
         .join(Accession)
         .where(code=accession_code)
-        .first()
+        ).scalars().first()
     )
-    accession = session.execute(select(Accession)).scalars().where(code=accession_code).first()
+    accession = session.execute(select(Accession).where(code=accession_code)).scalars().first()
     if plant is None:
         # if it does not, we have work to do …
         location = lookup(session, Location, code="default")
@@ -258,9 +262,13 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
 
     if coordinates != "(@;@)":
         # remove any previous such note
-        session.execute(select(PlantNote)).scalars().where(
-            plant=plant, category="<coords>"
-        ).delete()
+        session.execute(
+            delete(PlantNote).where(
+                PlantNote.plant == plant,
+                PlantNote.category == "<coords>"
+            )
+        )
+
         # add new one
         lat, lon = (float(i) for i in coordinates[1:-1].split(";"))
         value = "{{lat:{:0.6f},lon:{:0.6f}}}".format(lat, lon)

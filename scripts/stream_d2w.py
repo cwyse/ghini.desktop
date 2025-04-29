@@ -78,7 +78,7 @@ def get_genus(session, keys):
     except:
         keys["gn_epit"], keys["sp_epit"] = ("Zzz", "sp")
 
-    genus = session.execute(select(Genus)).scalars().where(Genus.epithet == keys["gn_epit"]).one()
+    genus = session.execute(select(Genus).where(Genus.epithet == keys["gn_epit"])).scalars().one()
     return genus
 
 
@@ -92,9 +92,10 @@ def get_species(session, keys):
         try:
             genus = get_genus(session, keys)
             species = (
-                session.execute(select(Species)).scalars()
-                .where(Species.genus == genus)
-                .where(Species.infrasp1 == "sp")
+                session.execute(select(Species)
+                    .where(Species.genus == genus)
+                    .where(Species.infrasp1 == "sp")
+                ).scalars()
                 .one()
             )
             if species != zzz:  # no hace falta mencionarlo
@@ -107,10 +108,10 @@ def get_species(session, keys):
     else:
         try:
             species = (
-                session.execute(select(Species)).scalars()
+                session.execute(select(Species)
                 .where(Species.genus == genus)
                 .where(Species.epithet == keys["sp_epit"])
-                .one()
+                ).scalars().one()
             )
             sys.stdout.write("+")  # encontramos
         except:
@@ -124,9 +125,9 @@ def get_species(session, keys):
 def get_location(session, keys):
     try:
         loc = (
-            session.execute(select(Location)).scalars()
+            session.execute(select(Location)
             .where(bauble.utils.ilike(Location.code, str(keys["location"])))
-            .one()
+            ).scalars().one()
         )
     except:
         loc = Location(code=keys["location"].upper())

@@ -117,52 +117,52 @@ class JSONExporter(editor.GenericEditorPresenter):
             species = [j.id for j in result if isinstance(j, Species)]
             if species:
                 vernacular = (
-                    self.session.execute(select(VernacularName)).scalars()
+                    self.session.execute(select(VernacularName)
                     .where(
                         VernacularName.species_id.in_(
                             bindparam("species_ids", expanding=True)
                         )
                     )
                     .params(species_ids=species)
-                    .all()
+                    ).scalars().all()
                 )
                 speciesnotes = (
-                    self.session.execute(select(SpeciesNote)).scalars()
+                    self.session.execute(select(SpeciesNote)
                     .where(
                         SpeciesNote.species_id.in_(
                             bindparam("species_ids", expanding=True)
                         )
                     )
                     .params(species_ids=species)
-                    .all()
+                    ).scalars().all()
                 )
 
             # Handle plants
             plants = [j.id for j in result if isinstance(j, Plant)]
             if plants:
                 plantnotes = (
-                    self.session.execute(select(PlantNote)).scalars()
+                    self.session.execute(select(PlantNote)
                     .where(
                         PlantNote.plant_id.in_(
                             bindparam("plant_ids", expanding=True)
                         )
                     )
                     .params(plant_ids=plants)
-                    .all()
+                    ).scalars().all()
                 )
 
             # Handle accessions
             accessions = [j.id for j in result if isinstance(j, Accession)]
             if accessions:
                 accessionnotes = (
-                    self.session.execute(select(AccessionNote)).scalars()
+                    self.session.execute(select(AccessionNote)
                     .where(
                         AccessionNote.accession_id.in_(
                             bindparam("accession_ids", expanding=True)
                         )
                     )
                     .params(accession_ids=accessions)
-                    .all()
+                    ).scalars().all()
                 )
 
             return (
@@ -177,11 +177,11 @@ class JSONExporter(editor.GenericEditorPresenter):
         result = []
         if self.selection_based_on == "sbo_plants":
             plant_query = (
-                self.session.execute(select(Plant)).scalars()
+                self.session.execute(select(Plant)
                 .order_by(Plant.code)
                 .join(Plant.accession)
                 .order_by(Accession.code)
-            )
+            )).scalars()
 
             if self.include_private is False:
                 plant_query = plant_query.where(
@@ -192,29 +192,29 @@ class JSONExporter(editor.GenericEditorPresenter):
 
             # Plant notes with bindparam for dynamic expansion
             plantnotes = (
-                self.session.execute(select(PlantNote)).scalars()
+                self.session.execute(select(PlantNote)
                 .where(
                     PlantNote.plant_id.in_(
                         bindparam("plant_ids", expanding=True)
                     )
                 )
                 .params(plant_ids=[j.id for j in plants])
-                .all()
+                ).scalars().all()
             )
 
             # Locations with bindparam for dynamic expansion
             locations = (
-                self.session.execute(select(Location)).scalars()
+                self.session.execute(select(Location)
                 .where(
                     Location.id.in_(bindparam("location_ids", expanding=True))
                 )
                 .params(location_ids=[j.location_id for j in plants])
-                .all()
+                ).scalars().all()
             )
 
             # Accessions with bindparam for dynamic expansion
             accessions = (
-                self.session.execute(select(Accession)).scalars()
+                self.session.execute(select(Accession)
                 .where(
                     Accession.id.in_(
                         bindparam("accession_ids", expanding=True)
@@ -222,19 +222,19 @@ class JSONExporter(editor.GenericEditorPresenter):
                 )
                 .params(accession_ids=[j.accession_id for j in plants])
                 .order_by(Accession.code)
-                .all()
+                ).scalars().all()
             )
 
             # Accession notes with bindparam for dynamic expansion
             accessionnotes = (
-                self.session.execute(select(AccessionNote)).scalars()
+                self.session.execute(select(AccessionNote)
                 .where(
                     AccessionNote.accession_id.in_(
                         bindparam("acc_note_ids", expanding=True)
                     )
                 )
                 .params(acc_note_ids=[j.id for j in accessions])
-                .all()
+                ).scalars().all()
             )
 
             # All unique contacts, no bindparam needed as it's a set operation
@@ -249,7 +249,7 @@ class JSONExporter(editor.GenericEditorPresenter):
 
         elif self.selection_based_on == "sbo_accessions":
             accessions = (
-                self.session.execute(select(Accession)).scalars().order_by(Accession.code).all()
+                self.session.execute(select(Accession).order_by(Accession.code)).scalars().all()
             )
 
             if self.include_private is False:
@@ -257,14 +257,14 @@ class JSONExporter(editor.GenericEditorPresenter):
 
             # Accession notes with bindparam for dynamic expansion
             accessionnotes = (
-                self.session.execute(select(AccessionNote)).scalars()
+                self.session.execute(select(AccessionNote)
                 .where(
                     AccessionNote.accession_id.in_(
                         bindparam("acc_note_ids", expanding=True)
                     )
                 )
                 .params(acc_note_ids=[j.id for j in accessions])
-                .all()
+                ).scalars().all()
             )
 
             # Unique contacts without repetition
@@ -276,62 +276,62 @@ class JSONExporter(editor.GenericEditorPresenter):
 
         # now the taxonomy, based either on all species or on the ones used
         if self.selection_based_on == "sbo_taxa":
-            species = self.session.execute(select(Species)).scalars().order_by(Species.sp).all()
+            species = self.session.execute(select(Species).order_by(Species.sp)).scalars().all()
         else:
             # Prepend results with accession data
             result = accessions + accessionnotes + result
 
             # Species query with dynamic expansion for the list of species IDs
             species = (
-                self.session.execute(select(Species)).scalars()
+                self.session.execute(select(Species)
                 .where(
                     Species.id.in_(bindparam("species_ids", expanding=True))
                 )
                 .params(species_ids=[j.species_id for j in accessions])
                 .order_by(Species.sp)
-                .all()
+                ).scalars().all()
             )
 
         # Vernacular names with dynamic list expansion
         vernacular = (
-            self.session.execute(select(VernacularName)).scalars()
+            self.session.execute(select(VernacularName)
             .where(
                 VernacularName.species_id.in_(
                     bindparam("vernacular_species_ids", expanding=True)
                 )
             )
             .params(vernacular_species_ids=[j.id for j in species])
-            .all()
+            ).scalars().all()
         )
 
         # All used genera with dynamic list expansion
         genera = (
-            self.session.execute(select(Genus)).scalars()
+            self.session.execute(select(Genus)
             .where(Genus.id.in_(bindparam("genus_ids", expanding=True)))
             .params(genus_ids=[j.genus_id for j in species])
             .order_by(Genus.genus)
-            .all()
+            ).scalars().all()
         )
 
         # Families with dynamic list expansion
         families = (
-            self.session.execute(select(Familia)).scalars()
+            self.session.execute(select(Familia)
             .where(Familia.id.in_(bindparam("family_ids", expanding=True)))
             .params(family_ids=[j.family_id for j in genera])
             .order_by(Familia.family)
-            .all()
+            ).scalars().all()
         )
 
         # Species notes with dynamic list expansion
         speciesnotes = (
-            self.session.execute(select(SpeciesNote)).scalars()
+            self.session.execute(select(SpeciesNote)
             .where(
                 SpeciesNote.species_id.in_(
                     bindparam("species_note_ids", expanding=True)
                 )
             )
             .params(species_note_ids=[j.id for j in species])
-            .all()
+            ).scalars().all()
         )
 
         # prepend the result with the taxonomic information

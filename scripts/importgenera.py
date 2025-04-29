@@ -45,13 +45,13 @@ from bauble.plugins.plants import Genus, Species
 bauble.db.open(dburi, True, True)
 session = bauble.db.Session()
 
-q = session.execute(select(Species)).scalars().where(Species.infrasp1 == "sp")
-q = q.join(Genus).where(Genus.epithet == "Zzz")
-zzz = q.one()
+q = session.execute(select(Species).where(Species.infrasp1 == "sp")
+                    .join(Genus).where(Genus.epithet == "Zzz"))
+zzz = q.scalars().one()
 
-q = session.execute(select(Species)).scalars().where(Species.epithet == "sp")
-q = q.join(Genus).where(Genus.epithet == "Zzz")
-zzzsp = q.one()
+q = session.execute(select(Species).where(Species.epithet == "sp")
+                    .join(Genus).where(Genus.epithet == "Zzz"))
+zzzsp = q.scalars().one()
 
 import sys
 
@@ -76,11 +76,15 @@ for line in fileinput.input():
         genus = session.execute(select(Genus)).scalars().where(Genus.epithet == genus_name).one()
         try:
             species = (
-                session.execute(select(Species)).scalars()
-                .where(Species.genus == genus)
-                .where(Species.infrasp1 == "sp")
+                session.execute(
+                    select(Species)
+                    .where(Species.genus == genus)
+                    .where(Species.infrasp1 == "sp")
+                )
+                .scalars()
                 .first()
             )
+
             if species is None:
                 raise Exception
             sys.stdout.write("+")
@@ -95,7 +99,7 @@ for line in fileinput.input():
 
     try:
         accession = (
-            session.execute(select(Accession)).scalars().where(Accession.code == text).one()
+            session.execute(select(Accession).where(Accession.code == text)).scalars().one()
         )
     except:
         unknown.append(text)

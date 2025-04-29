@@ -726,10 +726,10 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
             if not value:
                 return
             syn = (
-                self.session.execute(select(FamilySynonym)).scalars()
+                self.session.execute(select(FamilySynonym)
                 .where(FamilySynonym.synonym_id == value.id)
                 .first()
-            )
+            )).scalars()
             if not syn:
                 self.set_model_attr("family", value)
                 return
@@ -841,13 +841,18 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self.init_treeview()
 
         def gen_get_completions(text_val):
-            query = self.session.execute(select(Genus)).scalars()
-            return query.where(
-                and_(
-                    Genus.epithet.like("%s%%" % text_val),
-                    Genus.id != self.model.id,
+            stmt = (
+                select(Genus)
+                .where(
+                    and_(
+                        Genus.epithet.like("%s%%" % text_val),
+                        Genus.id != self.model.id,
+                    )
                 )
-            ).order_by(Genus.epithet)
+                .order_by(Genus.epithet)
+            )
+            query = self.session.execute(stmt).scalars()
+            return query
 
         self._selected = None
 
@@ -1172,10 +1177,10 @@ class GeneralGenusExpander(InfoExpander):
 
         # get the number of species
         nsp = (
-            session.execute(select(Species)).scalars()
+            session.execute(select(Species)
             .join(Genus, Species.genus_id == Genus.id)
             .where(Genus.id == row.id)
-            .count()
+            ).scalars().count()
         )
         self.widget_set_value("gen_nsp_data", nsp)
 
@@ -1188,11 +1193,11 @@ class GeneralGenusExpander(InfoExpander):
 
         # get number of accessions
         nacc = (
-            session.execute(select(Accession)).scalars()
+            session.execute(select(Accession)
             .join(Species, Accession.species_id == Species.id)
             .join(Genus, Species.genus_id == Genus.id)
             .where(Genus.id == row.id)
-            .count()
+            ).scalars().count()
         )
         if nacc == 0:
             self.widget_set_value("gen_nacc_data", nacc)
@@ -1211,12 +1216,12 @@ class GeneralGenusExpander(InfoExpander):
 
         # get the number of plants in the genus
         nplants = (
-            session.execute(select(Plant)).scalars()
+            session.execute(select(Plant)
             .join(Accession, Plant.accession_id == Accession.id)
             .join(Species, Accession.species_id == Species.id)
             .join(Genus, Species.genus_id == Genus.id)
             .where(Genus.id == row.id)
-            .count()
+            ).scalars().count()
         )
         if nplants == 0:
             self.widget_set_value("gen_nplants_data", nplants)

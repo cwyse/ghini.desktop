@@ -421,19 +421,19 @@ class GeneralSpeciesExpander(InfoExpander):
         from bauble.plugins.garden.plant import Plant
 
         nacc = (
-            session.execute(select(Accession)).scalars()
+            session.execute(select(Accession)
             .join(Species, Accession.species_id == Species.id)
             .where(Species.id == row.id)
-            .count()
+            ).scalars().count()
         )
         self.widget_set_value("sp_nacc_data", nacc)
 
         nplants = (
-            session.execute(select(Plant)).scalars()
+            session.execute(select(Plant)
             .join(Accession, Plant.accession_id == Accession.id)
             .join(Species, Accession.species_id == Species.id)
             .where(Species.id == row.id)
-            .count()
+            ).scalars().count()
         )
         if nplants == 0:
             self.widget_set_value("sp_nplants_data", nplants)
@@ -453,11 +453,11 @@ class GeneralSpeciesExpander(InfoExpander):
 
         living_plants = sum(
             i.quantity
-            for i in session.execute(select(Plant)).scalars()
+            for i in session.execute(select(Plant)
             .join(Accession, Plant.accession_id == Accession.id)
             .join(Species, Accession.species_id == Species.id)
             .where(Species.id == row.id)
-            .all()
+            ).scalars().all()
         )
         self.widget_set_value("living_plants_count", living_plants)
 
