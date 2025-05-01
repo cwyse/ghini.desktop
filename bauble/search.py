@@ -1247,6 +1247,7 @@ class DomainExpressionAction(object):
     #     return result_set
 
     def invoke(self, search_strategy):
+        import operator
         logger.debug("DomainExpressionAction:invoke")
 
         # ✅ Validate session
@@ -1269,7 +1270,13 @@ class DomainExpressionAction(object):
         if self.values == "*":
             return set(session.execute(stmt).scalars().all())
 
-        allowed_fallback_ops = {"!=", "<", "<=", ">", ">="}  # exclude "=" since it's handled separately
+        op_map = {
+            "!=": operator.ne,
+            "<": operator.lt,
+            "<=": operator.le,
+            ">": operator.gt,
+            ">=": operator.ge,
+        } # exclude "=" since it's handled separately
 
         if self.cond in ("like", "ilike"):
             condition = lambda col_name: lambda val: utils.ilike(getattr(cls, col_name), f"{val}")
@@ -1277,8 +1284,8 @@ class DomainExpressionAction(object):
             condition = lambda col_name: lambda val: utils.ilike(getattr(cls, col_name), f"%{val}%")
         elif self.cond == "=":
             condition = lambda col_name: lambda val: getattr(cls, col_name) == val
-        elif self.cond in allowed_fallback_ops:
-            condition = lambda col_name: lambda val: getattr(cls, col_name).op(self.cond)(val)
+        elif self.cond in op_map:
+            condition = lambda col_name: lambda val: op_map[self.cond](getattr(cls, col_name), val)
         else:
             raise ValueError(f"Unsupported or unsafe operator: {self.cond}")
 
