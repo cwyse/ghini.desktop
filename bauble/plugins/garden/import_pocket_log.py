@@ -93,7 +93,8 @@ def get_species(session, keys, genus):
 
 
 def lookup(session, klass, **kwargs):
-    obj = session.execute(select(klass).where(**kwargs)).scalars().first()
+    result = list(session.execute(select(klass).where(**kwargs)).scalars())
+    obj = result[0] if result else None
     if obj is None:
         obj = klass(**kwargs)
         session.add(obj)

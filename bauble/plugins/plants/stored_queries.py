@@ -74,7 +74,7 @@ class StoredQueriesModel:
                     # If the label is empty, remove the corresponding record
                     if self._label[index] == "":
                         stmt = select(meta.BaubleMeta).filter_by(name=query_name)
-                        obj = session.scalars(stmt).first()  # Retrieve the model instance
+                        obj = session.execute(stmt).scalars().first()  # Retrieve the model instance
                         if obj:
                             session.delete(obj)
                     else:

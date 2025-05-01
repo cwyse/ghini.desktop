@@ -1164,6 +1164,7 @@ class GeneralGenusExpander(InfoExpander):
 
         :param row: the row to get the values from
         """
+        from sqlalchemy import func
         session = object_session(row)
         self.current_obj = row
         self.widget_set_value(
@@ -1176,12 +1177,12 @@ class GeneralGenusExpander(InfoExpander):
         )
 
         # get the number of species
-        nsp = (
-            session.execute(select(Species)
+        nsp = session.execute(
+            select(func.count())
+            .select_from(Species)
             .join(Genus, Species.genus_id == Genus.id)
             .where(Genus.id == row.id)
-            ).scalars().count()
-        )
+        ).scalar_one()
         self.widget_set_value("gen_nsp_data", nsp)
 
         # stop here if no GardenPlugin
@@ -1192,13 +1193,14 @@ class GeneralGenusExpander(InfoExpander):
         from bauble.plugins.garden.plant import Plant
 
         # get number of accessions
-        nacc = (
-            session.execute(select(Accession)
+        nacc = session.execute(
+            select(func.count())
+            .select_from(Accession)
             .join(Species, Accession.species_id == Species.id)
             .join(Genus, Species.genus_id == Genus.id)
             .where(Genus.id == row.id)
-            ).scalars().count()
-        )
+        ).scalar_one()
+
         if nacc == 0:
             self.widget_set_value("gen_nacc_data", nacc)
         else:
@@ -1215,14 +1217,15 @@ class GeneralGenusExpander(InfoExpander):
             )
 
         # get the number of plants in the genus
-        nplants = (
-            session.execute(select(Plant)
+        nplants = session.execute(
+            select(func.count())
+            .select_from(Plant)
             .join(Accession, Plant.accession_id == Accession.id)
             .join(Species, Accession.species_id == Species.id)
             .join(Genus, Species.genus_id == Genus.id)
             .where(Genus.id == row.id)
-            ).scalars().count()
-        )
+        ).scalar_one()
+
         if nplants == 0:
             self.widget_set_value("gen_nplants_data", nplants)
         else:

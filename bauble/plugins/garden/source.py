@@ -783,27 +783,28 @@ class PropagationChooserPresenter(editor.ChildPresenter):
         )
 
         def get_accessible_plants():
-            logger.debug(
-                "in PropagationChooserPresenter:plant_get_completions"
-            )
+            logger.debug("in PropagationChooserPresenter:plant_get_completions")
+
             from bauble.plugins.garden.accession import Accession
             from bauble.plugins.garden.plant import Plant
 
-            query = (
-                self.session.execute(select(Plant)
-                .where(Plant.propagations.any())
+            # Query plants with propagations and a different accession
+            stmt = (
+                select(Plant)
                 .join(Accession, Plant.accession_id == Accession.id)
+                .where(Plant.propagations.any())
                 .where(Accession.id != self.model.accession.id)
                 .order_by(Accession.code, Plant.code)
-            )).scalars()
-            result = self.view.widgets.source_prop_plant_liststore
-            for plant in query:
-                has_accessible = False
-                for propagation in plant.propagations:
-                    if propagation.accessible_quantity > 0:
-                        has_accessible = True
-                if has_accessible:
-                    result.append([str(plant), plant.id])
+            )
+
+            plants = self.session.execute(stmt).scalars()
+            result_store = self.view.widgets.source_prop_plant_liststore
+            result_store.clear()
+
+            for plant in plants:
+                if any(p.accessible_quantity > 0 for p in plant.propagations):
+                    result_store.append([str(plant), plant.id])
+
 
         get_accessible_plants()
 

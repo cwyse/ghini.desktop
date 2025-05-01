@@ -916,11 +916,14 @@ class TestJSONExport:
         from sqlalchemy import select
         stmt = select(Accession)
         accession = db_session.execute(stmt).scalars().first()
+        # Ensure test is meaningful
+        assert accession is not None, "Test requires at least one accession in the database."
+
         source = Source()
         contact = Contact(name="Summit")
         source.source_detail = contact
         accession.source = source
-        db_session.add_all([source, contact])
+        db_session.add_all([source, contact, accession])
         if db_session.in_transaction():
             db_session.commit()
 
@@ -936,10 +939,10 @@ class TestJSONExport:
         with open(temp_file, "r") as f:
             result = json.load(f)
 
-        contacts_from_json = [item for item in result if item["object"] == "contact"]
-        accessions_from_json = [item for item in result if item["object"] == "accession"]
+        contacts_from_json = [item for item in result if item.get("object") == "contact"]
+        accessions_from_json = [item for item in result if item.get("object") == "accession"]
         accessions_with_contact = [
-            item for item in result if item["object"] == "accession" and "contact" in item
+            item for item in result if item.get("object") == "accession" and "contact" in item
         ]
 
         assert len(contacts_from_json) == 1
@@ -966,13 +969,14 @@ def test_import_new_inserts(temp_file, db_session):
     with open(temp_file, "w") as f:
         f.write(json_string)
 
-    assert db_session.execute(select(Genus).where(Genus.epithet == "Neogyna")).first() is None
+    stmt = select(Genus).where(Genus.epithet == "Neogyna")
+    assert db_session.execute(stmt).scalars().first() is None
 
     importer = JSONImporter(MockView())
     importer.filename = temp_file
     importer.on_btnok_clicked(None)
 
-    assert db_session.execute(select(Genus).where(Genus.epithet == "Neogyna")).first() is not None
+    assert db_session.execute(stmt).scalars().first() is not None
 
 
 def test_import_new_inserts_lowercase(temp_file, db_session):
@@ -984,13 +988,14 @@ def test_import_new_inserts_lowercase(temp_file, db_session):
     with open(temp_file, "w") as f:
         f.write(json_string)
 
-    assert db_session.execute(select(Genus).where(Genus.epithet == "Neogyna")).first() is None
+    stmt = select(Genus).where(Genus.epithet == "Neogyna")
+    assert db_session.execute(stmt).scalars().first() is None
 
     importer = JSONImporter(MockView())
     importer.filename = temp_file
     importer.on_btnok_clicked(None)
 
-    assert db_session.execute(select(Genus).where(Genus.epithet == "Neogyna")).first() is not None
+    assert db_session.execute(stmt).scalars().first() is not None
 
 
 def test_import_new_with_non_timestamped_note(temp_file, db_session):
@@ -1381,7 +1386,8 @@ def test_import_contact(temp_file, db_session):
     if db_session.in_transaction():
         db_session.commit()
 
-    summit = db_session.execute(select(Contact)).scalars().first()
+    stmt = select(Contact).where(Contact.name == "Summit")
+    summit = db_session.execute(stmt).scalars().first()
     assert summit is not None
 
 
