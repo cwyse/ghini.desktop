@@ -36,14 +36,12 @@ import glob
 import os
 import sys
 
-spawn = setuptools.distutils.spawn
-dir_util = setuptools.distutils.dir_util
-file_util = setuptools.distutils.file_util
-from distutils.command.build import build as _build
+from setuptools.command.build_py import build_py as _build
+from setuptools.command.install import install as _install
+from setuptools._distutils import dir_util, file_util, spawn  # ✅ still required for now, until upstream fully replaces
 
 # from setuptools.command.build_py import build_py as _build
 from setuptools import Command
-from setuptools.command.install import install as _install
 
 #from bauble import version
 
@@ -112,7 +110,11 @@ data_files = []
 
 # setup py2exe and nsis installer
 if sys.platform == "win32" and sys.argv[1] in ("nsis", "py2exe"):
-    from distutils.command.py2exe import py2exe as _py2exe_cmd
+    try:
+        from distutils.command.py2exe import py2exe as _py2exe_cmd
+    except ImportError:
+        _py2exe_cmd = None
+
 
     import py2exe
 
@@ -199,7 +201,7 @@ if sys.platform == "win32" and sys.argv[1] in ("nsis", "py2exe"):
         def run(self):
             # TODO: make sure we have everything installed that we need to
             # bundle e.g. sqlite, psycopg2, others...
-            _py2exe_cmd.run(self)
+            super().run()
             # install locale files
             locales = os.path.dirname(locale_path)
             build_base = self.get_finalized_command("build").build_base
