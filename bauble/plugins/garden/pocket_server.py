@@ -323,10 +323,10 @@ class PocketServerPresenter(GenericEditorPresenter):
 
     def read_clients_list(self):
         self.clients_ls.clear()
-        query = self.session.execute(select(meta.BaubleMeta).where(
-            name="pocket-clients"
-        ))
-        row = query.scalars().first()
+        row = next(
+            iter(self.session.execute(select(meta.BaubleMeta).where(name="pocket-clients")).scalars()),
+            None
+        )
         if row:
             elems = eval(row.value)
         else:
@@ -335,10 +335,12 @@ class PocketServerPresenter(GenericEditorPresenter):
             self.clients_ls.append((i, key, elems[key]))
 
     def commit_changes(self):
-        query = self.session.execute(select(meta.BaubleMeta).where(
-            name="pocket-clients"
-        ))
-        row = query.scalars().first()
+        result = list(
+            self.session.execute(
+                select(meta.BaubleMeta).where(name="pocket-clients")
+            ).scalars()
+        )
+        row = result[0] if result else None
         if row is None:
             row = meta.BaubleMeta(name="pocket-clients")
             self.session.add(row)

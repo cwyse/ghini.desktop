@@ -282,7 +282,11 @@ class TestGenus:
         if session.in_transaction():
             session.commit()
         assert len(genus.synonyms) == 0
-        assert session.execute(select(GenusSynonym)).scalars().count() == 0
+        from sqlalchemy import func
+
+        count_stmt = select(func.count()).select_from(GenusSynonym)
+        count = session.execute(count_stmt).scalar_one()
+        assert count == 0, f"Expected 0 synonyms, got {count}"
 
         # Test deletion of genus as synonym
         genus.synonyms.append(genus2)
@@ -291,7 +295,8 @@ class TestGenus:
         session.delete(genus2)
         if session.in_transaction():
             session.commit()
-        assert session.execute(select(GenusSynonym)).scalars().count() == 0
+        count = session.execute(count_stmt).scalar_one()
+        assert count == 0, f"Expected 0 synonyms, got {count}"
 
     def test_constraints(self, session):
         family = Family(epithet="family")
@@ -1184,6 +1189,8 @@ from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species import Species
 from bauble.plugins.plants.vernacular_name import VernacularName
+def get_first_or_none(session, stmt):
+    return session.execute(stmt).scalars().first()
 
 
 @pytest.mark.usefixtures("setup_plant_data")
@@ -1318,7 +1325,8 @@ class TestFromAndToDictCreateUpdate:
 
     def test_vernacular_name_as_dict(self, session):
         """Ensure VernacularName objects can be serialized to dictionaries."""
-        bra = session.execute(select(Species).where(Species.id == 21)).scalars().first()
+        bra = get_first_or_none(session, select(Species).where(Species.id == 21))
+        assert bra is not None
         vn_bra = (
             session.execute(select(VernacularName)
             .where(VernacularName.language == "agr", VernacularName.species == bra)

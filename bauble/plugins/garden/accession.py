@@ -2351,10 +2351,10 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                 .where(meta.BaubleMeta.name.like("acidf_%"))
                 .order_by(meta.BaubleMeta.name)
             )
-            query = self.session.execute(stmt).scalars()
+            query = list(self.session.execute(stmt).scalars())
 
-            if query.count():
-                Accession.code_format = query.first().value
+            if query:
+                Accession.code_format = query[0].value
             values = [r.value for r in query]
         for v in values:
             ls.append([v])

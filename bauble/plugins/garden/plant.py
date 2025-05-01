@@ -185,43 +185,42 @@ def get_next_code(acc):
             return None
     return utils.utf8(next)
 
+from sqlalchemy import bindparam, select, and_, func
+from bauble.plugins.garden import Accession, Plant
+import utils
+import db
 
 def is_code_unique(plant, code):
     """
     Return True/False if the code is a unique Plant code for accession.
 
     This method will also take range values for code that can be passed
-    to utils.range_builder()
+    to utils.range_builder().
     """
-    # if the range builder only creates one number then we assume the
-    # code is not a range and so we test against the string version of
-    # code
-    codes = list(map(utils.utf8, utils.range_builder(code)))  # test if a range
+    codes = list(map(utils.utf8, utils.range_builder(code)))
     if len(codes) == 1:
         codes = [utils.utf8(code)]
 
-    # reference accesssion.id instead of accession_id since
-    # setting the accession on the model doesn't set the
-    # accession_id until the session is flushed
     session = db.Session()
-    from sqlalchemy import bindparam
 
-    from bauble.plugins.garden import Accession
-
-    count = (
-        session.execute(select(Plant)
-        .join(Accession, Plant.accession_id == Accession.id)
-        .where(
-            and_(
-                Accession.id == plant.accession.id,
-                Plant.code.in_(bindparam("codes", expanding=True)),
+    stmt = (
+        select(func.count())
+        .select_from(
+            select(Plant)
+            .join(Accession, Plant.accession_id == Accession.id)
+            .where(
+                and_(
+                    Accession.id == plant.accession.id,
+                    Plant.code.in_(bindparam("codes", expanding=True)),
+                )
             )
+            .subquery()
         )
-        ).scalars().count()
     )
+
+    count = session.execute(stmt, {"codes": codes}).scalar_one()
     session.close()
     return count == 0
-
 
 class PlantSearch(SearchStrategy):
 

@@ -177,6 +177,11 @@ class PictureImporterPresenter(GenericEditorPresenter):
 
 from gi.repository import Gio, Gtk
 
+def get_first_or_none(session, stmt):
+    """Return the first result from a scalars() query, or None if no results."""
+    results = list(session.execute(stmt).scalars())
+    return results[0] if results else None
+
 class PictureImporterPresenter(GenericEditorPresenter):
     widget_to_field_map = {
         "accno_entry": "accno_format",
@@ -362,10 +367,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
         # make sure selected location exists
         if self.model.location is None:
             self.model.location = "imported"
-        location = (
-            session.execute(select(Location).where(code=self.model.location)).scalars().first()
-        )
-        if location is not None:
+        location_stmt = select(Location).where(Location.code == self.model.location)
+        location = get_first_or_none(session, location_stmt)
+        if location:
             logger.log(11, "location {} already in database".format(location))
         else:
             location = Location(code=self.model.location)
@@ -387,16 +391,15 @@ class PictureImporterPresenter(GenericEditorPresenter):
             )
 
             # create or retrieve genus and species
-            genus = session.execute(select(Genus).where(epithet=epgn)).scalars().one()
-            species = (
-                session.execute(select(Species)
-                .where(genus=genus, epithet=epsp)
-                ).scalars().first()
-            )
-            if species is not None:
-                logger.log(
-                    11, "species {} {} already in database".format(epgn, epsp)
-                )
+            genus_stmt = select(Genus).where(Genus.epithet == epgn)
+            genus = get_first_or_none(session, genus_stmt)
+            if not genus:
+                raise ValueError(f"Genus {epgn} not found in database")
+
+            species_stmt = select(Species).where(Species.genus == genus, Species.epithet == epsp)
+            species = get_first_or_none(session, species_stmt)
+            if species:
+                logger.log(11, f"species {epgn} {epsp} already in database")
             else:
                 species = query_session_new(
                     session, Species, genus=genus, epithet=epsp
@@ -411,13 +414,10 @@ class PictureImporterPresenter(GenericEditorPresenter):
                     )
 
             # create or retrieve accession (needs species)
-            accession = (
-                session.execute(select(Accession).where(code=accession_code)).scalars().first()
-            )
-            if accession is not None:
-                logger.log(
-                    11, "accession %s already in database" % (accession_code)
-                )
+            accession_stmt = select(Accession).where(Accession.code == accession_code)
+            accession = get_first_or_none(session, accession_stmt)
+            if accession:
+                logger.log(11, f"accession {accession_code} already in database")
             else:
                 accession = query_session_new(
                     session, Accession, code=accession_code
@@ -439,15 +439,14 @@ class PictureImporterPresenter(GenericEditorPresenter):
                     )
 
             # create or retrieve plant (needs: accession, location)
-            plant = (
-                session.execute(select(Plant)
-                .where(accession=accession, code=plant_code)
-                ).scalars().first()
+            plant = get_first_or_none(session,
+                select(Plant)
+                .where(Plant.accession == accession)
+                .where(Plant.code == plant_code)
             )
-            if plant is not None:
-                logger.log(
-                    11, "plant %s already in database" % (complete_plant_code)
-                )
+
+            if plant:
+                logger.log(11, f"plant {complete_plant_code} already in database")
             else:
                 plant = query_session_new(
                     session, Plant, accession=accession, code=plant_code
@@ -470,18 +469,15 @@ class PictureImporterPresenter(GenericEditorPresenter):
             utils.copy_picture_with_thumbnail(self.model.filepath, filename)
 
             # add picture note
-            note = (
-                session.execute(select(PlantNote)
-                .where(plant=plant, note=filename, category="<picture>")
-                ).scalars().first()
+            note = get_first_or_none(session,
+                select(PlantNote)
+                .where(PlantNote.plant == plant)
+                .where(PlantNote.note == filename)
+                .where(PlantNote.category == "<picture>")
             )
-            if note is not None:
-                logger.log(
-                    11,
-                    "picture {} already in plant {}".format(
-                        filename, complete_plant_code
-                    ),
-                )
+
+            if note:
+                logger.log(11, f"picture {filename} already in plant {complete_plant_code}")
             else:
                 note = query_session_new(
                     session,

@@ -323,20 +323,20 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
             code, name = match.groups()
         else:
             code = name = text
-        codes = presenter.session.execute(select(Location).where(
+        codes = list(presenter.session.execute(select(Location).where(
             utils.ilike(Location.code, "%s" % utils.utf8(code))
-        )).scalars()
-        names = presenter.session.execute(select(Location).where(
+        )).scalars())
+        names = (presenter.session.execute(select(Location).where(
             utils.ilike(Location.name, "%s" % utils.utf8(name))
-        )).scalars()
-        if codes.count() == 1:
+        )).scalars())
+        if len(codes) == 1:
             logger.debug("location matches code")
-            location = codes.first()
+            location = codes[0]
             presenter.remove_problem(PROBLEM, entry)
             on_select(location)
-        elif names.count() == 1:
+        elif len(names) == 1:
             logger.debug("location matches name")
-            location = names.first()
+            location = names[0]
             presenter.remove_problem(PROBLEM, entry)
             on_select(location)
         else:

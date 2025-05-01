@@ -1041,19 +1041,18 @@ class GeneralFamilyExpander(InfoExpander):
         session = object_session(row)
         # get the number of genera
         from sqlalchemy import func
-        ngen = session.execute(select(func.count()).select_from(genus_instance).where(family_id=row.id))
+        ngen = session.execute(
+            select(func.count()).select_from(genus_instance).where(genus_instance.family_id == row.id)
+        ).scalar_one()
         self.widget_set_value("fam_ngen_data", ngen)
 
         # get the number of species
-        nsp = (
-            session.execute(
-                select(get_species())
-                .join(genus_instance, get_species().genus_id == genus_instance.id)
-                .where(genus_instance.family_id == row.id)
-            )
-            .scalars()
-            .count()
-        )
+        nsp = session.execute(
+            select(func.count())
+            .select_from(species)
+            .join(genus_instance, species.genus_id == genus_instance.id)
+            .where(genus_instance.family_id == row.id)
+        ).scalar_one()
 
         if nsp == 0:
             self.widget_set_value("fam_nsp_data", 0)
@@ -1079,14 +1078,14 @@ class GeneralFamilyExpander(InfoExpander):
         from bauble.plugins.garden.accession import Accession
         from bauble.plugins.garden.plant import Plant
 
-        nacc = (
-            session.execute(select(Accession)
-            .join(get_species(), Accession.species_id == get_species().id)
-            .join(genus_instance, get_species().genus_id == genus_instance.id)
+        nacc = session.execute(
+            select(func.count())
+            .select_from(Accession)
+            .join(species, Accession.species_id == species.id)
+            .join(genus_instance, species.genus_id == genus_instance.id)
             .join(Family, genus_instance.family_id == Family.id)
             .where(Family.id == row.id)
-            ).scalars().count()
-        )
+        ).scalar_one()
         if nacc == 0:
             self.widget_set_value("fam_nacc_data", nacc)
         else:
@@ -1105,15 +1104,15 @@ class GeneralFamilyExpander(InfoExpander):
             )
 
         # get the number of plants in the family
-        nplants = (
-            session.execute(select(Plant)
+        nplants = session.execute(
+            select(func.count())
+            .select_from(Plant)
             .join(Accession, Plant.accession_id == Accession.id)
-            .join(get_species(), Accession.species_id == get_species().id)
-            .join(genus_instance, get_species().genus_id == genus_instance.id)
+            .join(species, Accession.species_id == species.id)
+            .join(genus_instance, species.genus_id == genus_instance.id)
             .join(Family, genus_instance.family_id == Family.id)
             .where(Family.id == row.id)
-            ).scalars().count()
-        )
+        ).scalar_one()
         if nplants == 0:
             self.widget_set_value("fam_nplants_data", nplants)
         else:
