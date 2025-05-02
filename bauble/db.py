@@ -790,7 +790,6 @@ def make_note_class(
             back_populates="notes",
             cascade="all, delete-orphan",
             single_parent=True,
-            cascade_backrefs=True, 
             active_history=True
         ),
         "retrieve": classmethod(retrieve),

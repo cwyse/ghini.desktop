@@ -197,11 +197,18 @@ def is_code_unique(plant, code):
     This method will also take range values for code that can be passed
     to utils.range_builder().
     """
-    codes = list(map(utils.utf8, utils.range_builder(code)))
+    # if the range builder only creates one number then we assume the
+    # code is not a range and so we test against the string version of
+    # code
+    codes = list(map(utils.utf8, utils.range_builder(code)))  # test if a range
     if len(codes) == 1:
         codes = [utils.utf8(code)]
 
+    # reference accesssion.id instead of accession_id since
+    # setting the accession on the model doesn't set the
+    # accession_id until the session is flushed
     session = db.Session()
+    from sqlalchemy import bindparam
 
     stmt = (
         select(func.count())
@@ -221,6 +228,7 @@ def is_code_unique(plant, code):
     count = session.execute(stmt, {"codes": codes}).scalar_one()
     session.close()
     return count == 0
+
 
 class PlantSearch(SearchStrategy):
 
@@ -274,7 +282,6 @@ def as_dict(self):
 def retrieve(cls, session, keys):
     from bauble.plugins.garden.accession import Accession
     stmt = select(cls)
-
     if "plant" in keys:
         acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
         stmt = (
@@ -287,12 +294,10 @@ def retrieve(cls, session, keys):
         stmt = stmt.where(cls.date == keys["date"])
     if "category" in keys:
         stmt = stmt.where(cls.category == keys["category"])
-
     try:
         return session.execute(stmt).scalars().one()
     except:
         return None
-
 
 
 def compute_serializable_fields(cls, session, keys):
@@ -379,7 +384,6 @@ class PlantChange(db.Base):
         uselist=True,
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True,
         overlaps="changes"
     )
 
@@ -391,7 +395,6 @@ class PlantChange(db.Base):
         uselist=False,
         cascade="delete, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True,
         overlaps="branches", 
         active_history=True
     )
@@ -493,7 +496,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     order_by = [asc(accession_id), asc(code)]
 
     # Relationships
-    accession = relationship("Accession", back_populates="plants", uselist=False, cascade="save-update", cascade_backrefs=True, active_history=True)
+    accession = relationship("Accession", back_populates="plants", uselist=False, cascade="save-update", active_history=True)
 
     propagations = relationship(
         "Propagation",
@@ -501,7 +504,6 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         back_populates="plants",
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True
     )
 
     changes = relationship(
@@ -510,7 +512,6 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         primaryjoin="PlantChange.plant_id == Plant.id",
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True,
         overlaps="plant"
     )
 
@@ -521,7 +522,6 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         foreign_keys="PlantChange.parent_plant_id",
         cascade="delete, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True,
         overlaps="parent_plant"
     )
 
@@ -530,7 +530,6 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         back_populates="plants",
         uselist=False,  # A Plant belongs to one Location
         cascade="save-update",
-        cascade_backrefs=True, 
         active_history=True
     )
     _delimiter = None
@@ -697,7 +696,6 @@ Plant.notes = relationship(
     back_populates="plant",
     cascade="all, delete-orphan",
     single_parent=True,
-    cascade_backrefs=True
 )
 
 
