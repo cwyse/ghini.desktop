@@ -125,7 +125,6 @@ class SourceBase:
             cascade="all, delete-orphan",
             single_parent=True,
             foreign_keys=[cls.propagation_id],
-            cascade_backrefs=True, 
             active_history=True
         )
 
@@ -147,7 +146,7 @@ class Source(db.Base):
     id = Column(Integer, primary_key=True)
 
     accession_id = Column(Integer, ForeignKey("accession.id"), unique=True)
-    accession = relationship("Accession", back_populates="source", cascade_backrefs=True)
+    accession = relationship("Accession", back_populates="source")
 
     source_detail_id = Column(Integer, ForeignKey("contact.id"))
     source_detail = relationship(
@@ -156,7 +155,6 @@ class Source(db.Base):
         back_populates="sources",
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True, 
         active_history=True
     )
 
@@ -165,8 +163,8 @@ class Source(db.Base):
         uselist=False,
         back_populates="source",
         single_parent=True,
-        cascade_backrefs=True, 
-        active_history=True    )
+        active_history=True
+    )
 
     # This propagation relationship links a Source to a specific 
     # Propagation that is not tied to a Plant. It likely represents 
@@ -180,7 +178,6 @@ class Source(db.Base):
         cascade="all, delete-orphan",
         single_parent=True,
         foreign_keys=[propagation_id],
-        cascade_backrefs=True, 
         active_history=True
     )
 
@@ -191,7 +188,6 @@ class Source(db.Base):
         back_populates="used_source",
         uselist=True,
         foreign_keys=[plant_propagation_id],
-        cascade_backrefs=True
     )
     
     # an Accession of known Source (what we are describing here) may be in
@@ -206,7 +202,6 @@ class Source(db.Base):
             back_populates="used_source",
             uselist=True,
             foreign_keys=[plant_propagation_id],
-            cascade_backrefs=True
         )
 
 source_type_values = [
@@ -321,7 +316,7 @@ class Collection(db.Base):
     region = relationship(GeographicArea, uselist=False, active_history=True)
 
     source_id = Column(Integer, ForeignKey("source.id"), unique=True)
-    source = relationship("Source", back_populates="collection", cascade_backrefs=True)
+    source = relationship("Source", back_populates="collection")
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
@@ -784,11 +779,9 @@ class PropagationChooserPresenter(editor.ChildPresenter):
 
         def get_accessible_plants():
             logger.debug("in PropagationChooserPresenter:plant_get_completions")
-
             from bauble.plugins.garden.accession import Accession
             from bauble.plugins.garden.plant import Plant
 
-            # Query plants with propagations and a different accession
             stmt = (
                 select(Plant)
                 .join(Accession, Plant.accession_id == Accession.id)
@@ -796,7 +789,6 @@ class PropagationChooserPresenter(editor.ChildPresenter):
                 .where(Accession.id != self.model.accession.id)
                 .order_by(Accession.code, Plant.code)
             )
-
             plants = self.session.execute(stmt).scalars()
             result_store = self.view.widgets.source_prop_plant_liststore
             result_store.clear()
@@ -804,7 +796,6 @@ class PropagationChooserPresenter(editor.ChildPresenter):
             for plant in plants:
                 if any(p.accessible_quantity > 0 for p in plant.propagations):
                     result_store.append([str(plant), plant.id])
-
 
         get_accessible_plants()
 
@@ -992,7 +983,6 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
         back_populates="source_detail",
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True, 
         active_history=True
     )
 
@@ -1020,7 +1010,6 @@ Contact.notes = relationship(
     back_populates="contact",
     cascade="all, delete-orphan",
     single_parent=True,
-    cascade_backrefs=True
 )
 
 

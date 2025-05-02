@@ -345,7 +345,7 @@ class Verification(db.Base):
     date = Column(types.Date, nullable=False)
     reference = Column(UnicodeText)
     accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession = relationship("Accession", back_populates="verifications", uselist=False, cascade_backrefs=True, active_history=True)
+    accession = relationship("Accession", back_populates="verifications", uselist=False, active_history=True)
     order_by = [asc(date)]
 
     # the level of assurance of this verification
@@ -427,7 +427,7 @@ class Voucher(db.Base):
     code = Column(Unicode(32), nullable=False)
     parent_material = Column(Boolean, default=False)
     accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession = relationship("Accession", back_populates="vouchers", uselist=False, cascade_backrefs=True, active_history=True)
+    accession = relationship("Accession", back_populates="vouchers", uselist=False, active_history=True)
 
 
 # ITF2 - E.1; Provenance Type Flag; Transfer code: prot
@@ -717,7 +717,6 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         cascade="all, delete-orphan",
         back_populates="accession",
         single_parent=True,
-        cascade_backrefs=True, 
         active_history=True
     )
 
@@ -728,7 +727,6 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         back_populates="accessions",
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True, 
         active_history=True
     )
 
@@ -740,7 +738,6 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         back_populates="accession",
         uselist=True,
         single_parent=True,
-        cascade_backrefs=True
     )
     verifications = (
         relationship(
@@ -749,7 +746,6 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             back_populates="accession",
             single_parent=True,
             uselist=True,  # An Accession can have multiple Vouchers
-            cascade_backrefs=True
         )
         or []
     )
@@ -759,7 +755,6 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         back_populates="accession",
         uselist=True,
         single_parent=True,
-        cascade_backrefs=True
     )
     intended_location = relationship(
         "Location", primaryjoin="Accession.intended_location_id==Location.id"
@@ -978,7 +973,6 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     def retrieve(cls, session, keys):
         try:
             return session.execute(select(cls).where(cls.code == keys["code"])).scalars().one()
-
         except:
             return None
 
@@ -1012,7 +1006,6 @@ Accession.notes = relationship(
     cascade="all, delete-orphan",
     single_parent=True,
     uselist=True,
-    cascade_backrefs=True
 )
 
 
@@ -1458,13 +1451,12 @@ class VerificationBox:
                     .session.execute(
                         select(Species)
                         .join(Genus, Species.genus_id == Genus.id)
-                        .where(ilike(Genus.genus, f"{text}%"))
-                        .where(Species.id != self.model.id)
+                     .where(ilike(Genus.genus, f"{text}%"))
+                     .where(Species.id != self.model.id)
                         .order_by(Species.sp)
                     )
                     .scalars()
                 )
-
             return query
 
         def sp_cell_data_func(col, cell, model, treeiter, data=None):
@@ -2120,13 +2112,13 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                 self.session.execute(
                     select(Species)
                     .join(Genus, Species.genus_id == Genus.id)
-                    .where(
-                        or_(
-                            ilike(Genus.genus, f"{text}%"),
-                            ilike(Genus.genus, f"{genus_name}%"),
-                        )
+                .where(
+                    or_(
+                        ilike(Genus.genus, f"{text}%"),
+                        ilike(Genus.genus, f"{genus_name}%"),
                     )
-                    .order_by(Species.sp)
+                )
+                .order_by(Species.sp)
                 )
                 .scalars()
             )
@@ -2193,8 +2185,6 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
             stmt = select(SpeciesSynonym).where(SpeciesSynonym.synonym_id == value.id)
             syn = self.session.execute(stmt).scalars().first()
-
-
             if not syn:
                 set_model(value)
                 return
@@ -2379,7 +2369,6 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             .order_by(meta.BaubleMeta.name)
         )
         query = self.session.execute(stmt).scalars()
-
         for i, row in enumerate(query):
             ls.append([i + 1, row.value])
         ls.append([len(ls) + 1, ""])
@@ -2405,7 +2394,6 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             )
             presenter.session.execute(stmt)
             presenter.session.commit()
-
             i = 1
             iter = ls.get_iter_first()
             values = []

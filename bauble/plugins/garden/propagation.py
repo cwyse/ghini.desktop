@@ -119,7 +119,6 @@ class Propagation(db.Base, db.WithNotes):
         back_populates="propagations",
         cascade="all, delete-orphan",
         single_parent=True,
-        cascade_backrefs=True
     )
 
     _cutting = relationship(
@@ -129,7 +128,6 @@ class Propagation(db.Base, db.WithNotes):
         uselist=False,
         single_parent=True,
         back_populates="propagation",
-        cascade_backrefs=True, 
         active_history=True
     )
     _seed = relationship(
@@ -139,7 +137,6 @@ class Propagation(db.Base, db.WithNotes):
         uselist=False,
         single_parent=True,
         back_populates="propagation",
-        cascade_backrefs=True, 
         active_history=True
     )
 
@@ -150,7 +147,6 @@ class Propagation(db.Base, db.WithNotes):
         back_populates="propagation",
         cascade="all, delete-orphan",
         foreign_keys="Source.propagation_id",
-        cascade_backrefs=True, 
         active_history=True
     )
 
@@ -159,7 +155,6 @@ class Propagation(db.Base, db.WithNotes):
         "Source",
         back_populates="plant_propagation",
         foreign_keys="Source.plant_propagation_id",
-        cascade_backrefs=True
     )
 
     # Lazy import for Source
@@ -345,7 +340,6 @@ Propagation.notes = relationship(
     back_populates="propagation",
     cascade="all,delete-orphan",
     single_parent=True,
-    cascade_backrefs=True
 )
 
 
@@ -363,7 +357,7 @@ class PropCuttingRooted(db.Base):
     order_by = [asc(date)]
 
     # Add the missing relationship
-    cutting = relationship("PropCutting", back_populates="rooted", cascade_backrefs=True)
+    cutting = relationship("PropCutting", back_populates="rooted")
 
 
 class PropCutting(db.Base):
@@ -444,11 +438,10 @@ class PropCutting(db.Base):
         cascade="all, delete-orphan",
         primaryjoin="PropCutting.id == PropCuttingRooted.cutting_id",
         back_populates="cutting",
-        cascade_backrefs=True
     )
 
     propagation = relationship(
-        "Propagation", back_populates="_cutting", uselist=False, cascade_backrefs=True, active_history=True
+        "Propagation", back_populates="_cutting", uselist=False, active_history=True
     )
 
 
@@ -486,7 +479,7 @@ class PropSeed(db.Base):
     )
 
     propagation = relationship(
-        "Propagation", back_populates="_seed", uselist=False, cascade_backrefs=True, active_history=True
+        "Propagation", back_populates="_seed", uselist=False, active_history=True
     )
 
     def __str__(self):
