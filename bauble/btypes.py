@@ -126,6 +126,9 @@ class Enum(types.TypeDecorator):
         :param translations: A dictionary of value -> translation mappings.
         """
         logger.debug("Enum::init %s %s %s", type(self).__name__, values, empty_to_none)
+        # Remove omit_aliases if present
+        kwargs.pop("omit_aliases", None)        
+        
         super().__init__()
         # Validate values
         if not values or not isinstance(values, (list, set, tuple)):

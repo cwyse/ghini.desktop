@@ -388,7 +388,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     author = Column(Unicode(128))
     hybrid = Column(Boolean, default=False)
     sp_qual = Column(
-        types.Enum(values=["agg.", "s. lat.", "s. str.", None]), default=None, omit_aliases=False
+        types.Enum(values=["agg.", "s. lat.", "s. str.", None], omit_aliases=False), default=None
     )
     cv_group = Column(Unicode(50))
     trade_name = Column(Unicode(64))

@@ -288,8 +288,8 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     # we use the blank string here instead of None so that the
     # contraints will work properly,
     qualifier = Column(
-        types.Enum(values=["s. lat.", "s. str.", ""]),
-        default="", omit_aliases=False
+        types.Enum(values=["s. lat.", "s. str.", ""], omit_aliases=False),
+        default=""
     )
     order_by = [asc(epithet), asc(qualifier)]
  
