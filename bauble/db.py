@@ -42,7 +42,7 @@ from sqlalchemy.orm import DeclarativeMeta
 from sqlalchemy.orm import class_mapper
 from sqlalchemy import insert
 #from sqlalchemy.orm import Query
-
+from bauble import version, version_tuple
 
 
 

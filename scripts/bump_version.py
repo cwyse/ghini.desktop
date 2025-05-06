@@ -61,7 +61,7 @@ if version in ["+", "++", "+++"]:
 
     matches = [
         rx.match(l).groups()
-        for l in open(os.path.join(root_of_clone(), "bauble/version.py"))
+        for l in open(os.path.join(root_of_clone(), "bauble/_version.py"))
         if rx.match(l)
     ]
     if matches:
@@ -136,7 +136,7 @@ def bump_nsi_file(filename, varname="VERSION"):
 
 
 # bump and grind
-bump_py_file(os.path.join(root_of_clone(), "bauble/version.py"))
+bump_py_file(os.path.join(root_of_clone(), "bauble/_version.py"))
 bump_py_file(os.path.join(root_of_clone(), "doc/conf.py"), "release")
 bump_desktop_file(os.path.join(root_of_clone(), "data/ghini.desktop"))
 bump_nsi_file(os.path.join(root_of_clone(), "scripts/build-multiuser.nsi"))
@@ -153,7 +153,7 @@ bump_file(os.path.join(root_of_clone(), ".appveyor.yml"), rx)
 # TODO: commit the changes
 print()
 print(
-    'git commit -m "bumping_to_%s" bauble/version.py doc/conf.py'
+    'git commit -m "bumping_to_%s" bauble/_version.py doc/conf.py'
     " data/ghini.desktop packages/builddeb.sh .appveyor.yml"
     " scripts/installer.cfg scripts/build-multiuser.nsi" % version
 )

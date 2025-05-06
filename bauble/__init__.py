@@ -32,7 +32,7 @@ import bauble.i18n
 import bauble.paths as paths
 import debugpy
 import gi
-from bauble.version import version
+
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 from gi.repository import Gtk
@@ -41,11 +41,17 @@ import warnings
 from sqlalchemy.exc import SAWarning
 warnings.simplefilter("always", SAWarning)
 
+from bauble import _version
 
-version_tuple = tuple(version.split("."))
-release_date = None
-release_version = None
-installation_date = "1970-01-01T00:00:00Z"
+version = _version.__version__
+version_tuple = tuple(int(part) if part.isdigit() else part for part in version.split('.'))
+
+# extract release date (assuming setuptools_scm local_scheme='node-and-date')
+import re
+match = re.search(r'\+g[0-9a-f]+\.d(\d{8})', version)
+release_date = match.group(1) if match else None
+installation_date = os.environ.get("BUILD_DATE", "1970-01-01T00:00:00Z")
+
 
 from bauble.connmgr import start_connection_manager
 
