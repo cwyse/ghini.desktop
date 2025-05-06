@@ -103,8 +103,6 @@ what-icon-at-menuitem.org
 travis-log.txt
 travis-log1.txt
 
-pyproject.toml
-
 !.vscode/
 !.vscode/settings.json
 !.vscode/tasks.json

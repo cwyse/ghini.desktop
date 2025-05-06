@@ -39,7 +39,7 @@ import sys
 
 import bauble.gettext_windows
 import bauble.paths as paths
-from bauble.version import version
+from bauble._version import __version__
 
 # the following has effect on Windows: to set the environment variables as
 # on an operating system. operating systems don't need it.
@@ -48,7 +48,7 @@ bauble.gettext_windows.setup_env()
 
 __all__ = ["_"]
 
-version_tuple = tuple(version.split("."))
+version_tuple = tuple(__version__.split("."))
 TEXT_DOMAIN = "ghini-%s" % ".".join(version_tuple[0:2])
 
 #

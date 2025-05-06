@@ -35,6 +35,8 @@ from bauble import paths
 from bauble import prefs
 from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorView
+from bauble import version, version_tuple
+
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GdkPixbuf

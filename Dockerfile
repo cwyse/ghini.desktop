@@ -108,17 +108,26 @@ RUN mkdir -p $HOME/.ssh && chmod 700 $HOME/.ssh \
 # Working directory for the application
 WORKDIR /app
 
+# Copy project files including .git for setuptools_scm to retrieve version
 COPY . /app
+COPY .git /app/.git
 
-# Create virtual environment and configure Python path
+RUN ls -la /app/.git || echo "/app/.git not found"
+
+# Set up Python virtual environment and install setuptools_scm to retrieve version
 RUN python3 -m venv $VIRTUAL_ENV \
     && . $VIRTUAL_ENV/bin/activate \
-    && pip install --upgrade pip wheel 'setuptools<58.0.0' importlib-metadata debugpy toml \
-    && python generate_pyproject.py \   
-    && test -f pyproject.toml || (echo "Error: pyproject.toml not found!" && exit 1) \ 
-    && pip install PyGObject==3.50.0 --no-cache-dir \
-    && python setup.py sdist bdist_wheel \
-    && pip install dist/*.whl --no-cache-dir
+    && pip install --upgrade pip wheel setuptools debugpy setuptools_scm
+
+# Retrieve version from repo and store in a file
+RUN . $VIRTUAL_ENV/bin/activate \
+    && VERSION=$(python3 -c 'import setuptools_scm; print(setuptools_scm.get_version())') \
+    && echo "$VERSION" > /VERSION
+
+# Set up Python virtual environment and install the package
+RUN . $VIRTUAL_ENV/bin/activate \
+    && pip install .[dev,docs] --no-cache-dir
+
 
 # Initialize Alembic with a preconfigured database URL
 RUN . $VIRTUAL_ENV/bin/activate \
@@ -198,6 +207,15 @@ RUN groupadd --gid $GROUP_ID ghini && \
 COPY --from=build --chown=ghini:ghini $VIRTUAL_ENV $VIRTUAL_ENV
 COPY --from=build --chown=ghini:ghini /app /app
 
+# Copy VERSION file from build stage and use it as an ENV variable
+#COPY --from=build /VERSION /VERSION
+#RUN export VERSION=$(cat /VERSION)
+#ENV VERSION=${VERSION}
+COPY --from=build /VERSION /VERSION
+ENV VERSION_FILE=/VERSION
+RUN VERSION=$(cat $VERSION_FILE) && echo "VERSION=$VERSION" && echo "VERSION=$VERSION" > /VERSION_ENV
+ENV VERSION="`cat /VERSION_ENV | cut -d= -f2`"
+
 # Expose debug port for debugpy
 EXPOSE 5678
 
@@ -253,14 +271,7 @@ ghini.txt
 
 RUN chmod +x /usr/local/bin/ghini
 
-# Retrieve the version from pyproject.toml and assign to VERSION
-ARG VERSION
-RUN . $VIRTUAL_ENV/bin/activate \
-    && VERSION=$(grep -Po '(?<=^version = ")[^"]*' /app/pyproject.toml) \
-    && echo "VERSION=$VERSION"
-
-# Set VERSION as an environment variable
-ENV VERSION=$VERSION
+ENV PYTHONVERBOSE=1
 
 COPY --chown=ghini:ghini <<ghini.desktop /usr/local/share/applications/ghini.desktop
 #!/bin/bash
@@ -282,6 +293,7 @@ ghini.desktop
 # Set build arguments for dynamic metadata
 ARG COMMIT
 ARG BUILD_DATE
+ENV BUILD_DATE=${BUILD_DATE}
 
 # OCI-compliant labels
 LABEL org.opencontainers.image.title="Ghini Desktop Application" \
@@ -302,8 +314,13 @@ WORKDIR /app
 ENV DEBUG=true
 
 # CMD to run debugpy if DEBUG=true, else launch ghini
-CMD if [ "$DEBUG" = "true" ]; then \
-        python3 -m debugpy --log-to debugpy.log --listen 0.0.0.0:5678 --wait-for-client /app/scripts/ghini; \
-    else \
-        /app/scripts/ghini; \
-    fi
+#CMD if [ "$DEBUG" = "true" ]; then \
+#        python3 -m debugpy --wait-for-client --log-to debugpy.log --listen 0.0.0.0:5678 /app/scripts/ghini; \
+#    else \
+#        /app/scripts/ghini; \
+#    fi
+
+COPY --chown=ghini:ghini entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+

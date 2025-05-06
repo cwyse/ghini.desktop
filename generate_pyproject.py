@@ -1,4 +1,5 @@
 import toml
+import os
 
 version_data = {}
 with open("bauble/version.py") as f:
@@ -9,13 +10,23 @@ bauble_version = version_data.get("version")
 def create_pyproject():
     pyproject_data = {
         "build-system": {
-            "requires": ["setuptools>=40.8.0", "wheel", "toml"],
+            "requires": ["setuptools>=65.5.0", "wheel", "toml"],
             "build-backend": "setuptools.build_meta",
         },
-        "project_urls": {
-            "homepage": "http://ghini.github.io/",
-            "repository": "https://github.com/ghini/ghini.desktop",
-            "documentation": "http://ghini.github.io/docs",
+        "tool": {
+            "setuptools": {
+                "include-package-data": True,
+                "packages": {
+                    "find": {
+                        "where": ["."],
+                        "include": ["bauble", "bauble.*"],
+                        "exclude": ["test", "bauble.*.test", "ghini.*.test"],
+                    }
+                },
+            },
+            "ghini": {
+                "platforms": ["Linux", "Windows", "macOS"],
+            },
         },
         "project": {
             "name": "ghini-desktop",
@@ -33,10 +44,12 @@ def create_pyproject():
                 "herbarium",
                 "arboretum",
             ],
-            "license": {"text": "GPLv2+"},
+            "license": "GPL-2.0-or-later",
             "authors": [
+                {"name": "Brett Adams", "email": "brett@belizebotanic.org"},
                 {"name": "Mario Frasca", "email": "mario@anche.no"},
-                {"name": "Chris Wyse", "email": "chris.wyse@wysechoice.net"},
+                {"name": "Ross Demuth", "email": "rossdemuth123@gmail.com"},
+                {"name": "Chris Wyse", "email": "chris.wyse@wysechoice.net"},  
             ],
             "dependencies": [
                 # Main requirements from requirements.txt and constraints.txt
@@ -83,57 +96,11 @@ def create_pyproject():
                 ],
             },
         },
-    }
-
-    # Dynamically create `tool.poetry.dependencies` and `tool.poetry.extras`
-    poetry_dependencies = {}
-    poetry_extras = {}
-
-    # Extract regular dependencies
-    for dep in pyproject_data["project"]["dependencies"]:
-        name, version = dep.split("==")
-        poetry_dependencies[name] = version
-
-    # Extract optional dependencies for extras
-    optional_deps = pyproject_data["project"].get("optional-dependencies", {})
-    for group, deps in optional_deps.items():
-        extras_list = []
-        for dep in deps:
-            name, version = dep.split("==")
-            poetry_dependencies[name] = version  # Ensure it's added to dependencies
-            extras_list.append(name)
-        poetry_extras[group] = extras_list
-
-    # Add Python version
-    poetry_dependencies["python"] = pyproject_data["project"]["requires-python"]
-
-    # Add Bauble path
-    poetry_dependencies["bauble"] = { "path": "./bauble" }
-    
-    # Add Poetry-specific sections
-    pyproject_data["tool"] = {
-        "poetry": {
-            "name": pyproject_data["project"]["name"],
-            "version": pyproject_data["project"]["version"],
-            "description": pyproject_data["project"]["description"],
-            "authors": [
-                f"{author['name']} <{author['email']}>"
-                for author in pyproject_data["project"]["authors"]
-            ],
-            "license": pyproject_data["project"]["license"]["text"],
-            "homepage": pyproject_data["project_urls"]["homepage"],
-            "repository": pyproject_data["project_urls"]["repository"],
-            "documentation": pyproject_data["project_urls"]["documentation"],
-            "keywords": pyproject_data["project"]["keywords"],
-            "readme": pyproject_data["project"]["readme"]["file"],
-            "dependencies": poetry_dependencies,
-            "extras": poetry_extras,
-        }
-    }
-
-    # Supported ghini platforms
-    pyproject_data["tool"]["ghini"] = {
-        "platforms": ["Linux", "Windows", "macOS"]
+        "project_urls": {
+            "homepage": "http://ghini.github.io/",
+            "repository": "https://github.com/ghini/ghini.desktop",
+            "documentation": "http://ghini.github.io/docs",
+        },
     }
 
     print("pyproject.toml generation started.")
@@ -142,6 +109,8 @@ def create_pyproject():
         toml.dump(pyproject_data, file)
     print("pyproject.toml has been generated successfully.")
 
+import os
+print("Contents of /app:", os.listdir('.'))
 
 if __name__ == "__main__":
     create_pyproject()
