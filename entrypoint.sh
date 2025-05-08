@@ -1,5 +1,7 @@
 #!/bin/sh
 set -e
+# entrypoint.sh  (top of the file)
+[ -f /VERSION_ENV ] && export $(cat /VERSION_ENV)
 
 echo "💡 Entry point: DEBUG=$DEBUG"
 

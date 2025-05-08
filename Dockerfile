@@ -219,21 +219,23 @@ ENV VERSION="`cat /VERSION_ENV | cut -d= -f2`"
 # Expose debug port for debugpy
 EXPOSE 5678
 
-RUN <<EOF
-cat > $VIRTUAL_ENV/bin/ghini <<EOL
-#!/bin/bash
+RUN cat <<'EOS' > "$VIRTUAL_ENV/bin/ghini"   \
+ && chown ghini:ghini "$VIRTUAL_ENV/bin/ghini" \
+ && chmod +x "$VIRTUAL_ENV/bin/ghini"
+#!/usr/bin/env bash
+VENV="${VIRTUAL_ENV:-/opt/venv/migrate_to_1.3}"
 GITHOME=/app
-source $VIRTUAL_ENV/bin/activate
+source "$VENV/bin/activate"
 
-while getopts us:mp f
+while getopts "u s: m p" f
 do
 case $f in
- u)  cd $GITHOME
+ u)  cd "$GITHOME"
      BUILD=1
      END=1
      ;;
- s)  cd $GITHOME
-     git checkout ghini-$OPTARG || exit 1
+ s)  cd "$GITHOME"
+     git checkout ghini-${OPTARG} || exit 1
      BUILD=1
      END=1
      ;;
@@ -246,39 +248,33 @@ case $f in
 esac
 done
 
-if [ ! -z \"$BUILD\" ]
+if [[ -n "$BUILD" ]]
 then
- git pull
+ git -C "$GITHOME" pull
  python setup.py build
  python setup.py install
 fi
 
-if [ ! -z \"$END\" ]
-then
- exit 1
-fi
+[[ -n "$END" ]] && exit 0
 
-ghini
-EOL
-chmod +x $VIRTUAL_ENV/bin/ghini
-chown ghini:ghini $VIRTUAL_ENV/bin/ghini
-EOF
+exec ghini "$@"
+EOS
 
-RUN <<EOF
-cat > /usr/local/bin/ghini <<EOL
-#!/bin/bash
-source $VIRTUAL_ENV/bin/activate
-exec $VIRTUAL_ENV/bin/ghini \"\$@\"
-EOL
-chmod +x /usr/local/bin/ghini
-chown ghini:ghini /usr/local/bin/ghini
-EOF
+RUN cat <<'EOS' > /usr/local/bin/ghini  \
+ && chmod +x /usr/local/bin/ghini
+#!/usr/bin/env bash
+VENV="${VIRTUAL_ENV:-/opt/venv/migrate_to_1.3}"
+source "$VENV/bin/activate"
+exec "$VENV/bin/ghini" "$@"
+EOS
 
 ENV PYTHONVERBOSE=1
 
-RUN <<EOF
-mkdir -p /usr/local/share/applications
-cat > /usr/local/share/applications/ghini.desktop <<EOL
+# make sure the directory exists
+RUN install -d /usr/local/share/applications
+
+RUN cat <<'EOS' > /usr/local/share/applications/ghini.desktop \
+ && chown ghini:ghini /usr/local/share/applications/ghini.desktop
 [Desktop Entry]
 Type=Application
 Name=Ghini Desktop
@@ -291,9 +287,7 @@ Terminal=false
 StartupNotify=false
 Categories=Qt;Education;Science;Geography;
 Keywords=botany;botanic;
-EOL
-chown ghini:ghini /usr/local/share/applications/ghini.desktop
-EOF
+EOS
 
 # Set build arguments for dynamic metadata
 ARG COMMIT
