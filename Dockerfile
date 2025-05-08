@@ -219,8 +219,8 @@ ENV VERSION="`cat /VERSION_ENV | cut -d= -f2`"
 # Expose debug port for debugpy
 EXPOSE 5678
 
-# Create the ghini script in /usr/local/bin
-COPY --chown=ghini:ghini <<EOF $VIRTUAL_ENV/bin/ghini
+RUN <<EOF
+cat > $VIRTUAL_ENV/bin/ghini <<EOL
 #!/bin/bash
 GITHOME=/app
 source $VIRTUAL_ENV/bin/activate
@@ -246,35 +246,39 @@ case $f in
 esac
 done
 
-if [ ! -z "$BUILD" ]
+if [ ! -z \"$BUILD\" ]
 then
  git pull
  python setup.py build
  python setup.py install
 fi
 
-if [ ! -z "$END" ]
+if [ ! -z \"$END\" ]
 then
  exit 1
 fi
 
 ghini
+EOL
+chmod +x $VIRTUAL_ENV/bin/ghini
+chown ghini:ghini $VIRTUAL_ENV/bin/ghini
 EOF
 
-RUN chmod +x $VIRTUAL_ENV/bin/ghini
-
-COPY --chown=ghini:ghini <<ghini.txt /usr/local/bin/ghini 
+RUN <<EOF
+cat > /usr/local/bin/ghini <<EOL
 #!/bin/bash
 source $VIRTUAL_ENV/bin/activate
-$VIRTUAL_ENV/bin/ghini
-ghini.txt
-
-RUN chmod +x /usr/local/bin/ghini
+exec $VIRTUAL_ENV/bin/ghini \"\$@\"
+EOL
+chmod +x /usr/local/bin/ghini
+chown ghini:ghini /usr/local/bin/ghini
+EOF
 
 ENV PYTHONVERBOSE=1
 
-COPY --chown=ghini:ghini <<ghini.desktop /usr/local/share/applications/ghini.desktop
-#!/bin/bash
+RUN <<EOF
+mkdir -p /usr/local/share/applications
+cat > /usr/local/share/applications/ghini.desktop <<EOL
 [Desktop Entry]
 Type=Application
 Name=Ghini Desktop
@@ -287,8 +291,9 @@ Terminal=false
 StartupNotify=false
 Categories=Qt;Education;Science;Geography;
 Keywords=botany;botanic;
-ghini.desktop
-
+EOL
+chown ghini:ghini /usr/local/share/applications/ghini.desktop
+EOF
 
 # Set build arguments for dynamic metadata
 ARG COMMIT
@@ -322,5 +327,9 @@ ENV DEBUG=true
 
 COPY --chown=ghini:ghini entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Switch to the non-root user
+USER ghini
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 

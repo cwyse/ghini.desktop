@@ -30,7 +30,7 @@ from gettext import gettext as _
 import bauble.error as err
 import bauble.i18n
 import bauble.paths as paths
-import debugpy
+#import debugpy
 import gi
 
 gi.require_version("Gtk", "3.0")
