@@ -4,7 +4,7 @@
         {
             "label": "Build Docker Image",
             "type": "shell",
-            "command": "docker buildx build --no-cache --ssh default --progress=plain --build-arg COMMIT=$(git rev-parse HEAD) --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --load -t ghini-desktop:latest .",
+            "command": "docker buildx build --ssh default --progress=plain --build-arg COMMIT=$(git rev-parse HEAD) --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --load -t ghini-desktop:latest .",
             "options": {
                 "cwd": "/home/chris/debug/ghini.desktop"
             },
@@ -61,7 +61,7 @@
             "command": "bash",
             "args": [
               "-c",
-              "if docker container inspect ghini_debug &>/dev/null; then docker start ghini_debug; else docker run -d -t -p 5678:5678 -e DEBUG=true -e USER=ghini -e DISPLAY=$DISPLAY -e DB_HOST=postgres.wysechoice.net -e DB_PORT=5432 -e GTK_DEBUG=interactive -e DB_NAME=ghini_test3 -e DB_USER=ghini -e DB_SSLMODE=prefer -e KRB5_CONFIG=/krb5/krb5.conf -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab -e NO_AT_BRIDGE=1 -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/krb5:/krb5:ro v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1 -v /usr/lib/dri:/usr/lib/dri -v $HOME/debug/ghini.desktop:/app --device /dev/dri:/dev/dri --user $(id -u):$(id -g) --name ghini_debug ghini-desktop:latest; fi"
+              "if docker container inspect ghini_debug &>/dev/null; then docker start ghini_debug; else docker run -d -t -p 5678:5678 -e DEBUG=true -e USER=ghini -e DISPLAY=$DISPLAY -e DB_HOST=postgres.wysechoice.net -e DB_PORT=5432 -e GTK_DEBUG=interactive -e DB_NAME=ghini_test3 -e DB_USER=ghini -e DB_SSLMODE=prefer -e KRB5_CONFIG=/krb5/krb5.conf -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab -e NO_AT_BRIDGE=1 -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/krb5:/krb5:ro -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1 -v /usr/lib/dri:/usr/lib/dri -v $HOME/debug/ghini.desktop:/app --device /dev/dri:/dev/dri --user $(id -u):$(id -g) --name ghini_debug ghini-desktop:latest; fi"
             ],
             "options": {
               "env": {
@@ -72,7 +72,7 @@
               "Stop Docker Container"
             ],
             "problemMatcher": []
-          }
+          },
           
         {
             "label": "Run Docker Test Container",

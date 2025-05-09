@@ -123,7 +123,7 @@ RUN python3 -m venv $VIRTUAL_ENV \
 RUN . $VIRTUAL_ENV/bin/activate \
     && VERSION=$(python3 -c 'import setuptools_scm; print(setuptools_scm.get_version())') \
     && echo "$VERSION" > /VERSION
-
+    
 # Set up Python virtual environment and install the package
 RUN . $VIRTUAL_ENV/bin/activate \
     && pip install .[dev,docs] --no-cache-dir
@@ -214,7 +214,7 @@ COPY --from=build --chown=ghini:ghini /app /app
 COPY --from=build /VERSION /VERSION
 ENV VERSION_FILE=/VERSION
 RUN VERSION=$(cat $VERSION_FILE) && echo "VERSION=$VERSION" && echo "VERSION=$VERSION" > /VERSION_ENV
-ENV VERSION="`cat /VERSION_ENV | cut -d= -f2`"
+ENV VERSION="$(cat /VERSION_ENV | cut -d= -f2)"
 
 # Expose debug port for debugpy
 EXPOSE 5678
@@ -223,30 +223,32 @@ RUN cat <<'EOS' > "$VIRTUAL_ENV/bin/ghini"   \
  && chown ghini:ghini "$VIRTUAL_ENV/bin/ghini" \
  && chmod +x "$VIRTUAL_ENV/bin/ghini"
 #!/usr/bin/env bash
+set -euo pipefail
+
 VENV="${VIRTUAL_ENV:-/opt/venv/migrate_to_1.3}"
+REAL="${VENV}/bin/ghini-real"
 GITHOME=/app
+
+usage() {
+  echo "Usage: ghini [-u] [-s <branch>] [-m] [-p] [-- ghini‑args]" >&2
+  exit 1
+}
+
 source "$VENV/bin/activate"
 
-while getopts "u s: m p" f
-do
-case $f in
- u)  cd "$GITHOME"
-     BUILD=1
-     END=1
-     ;;
- s)  cd "$GITHOME"
-     git checkout ghini-${OPTARG} || exit 1
-     BUILD=1
-     END=1
-     ;;
- m)  pip install mysqlclient
-     END=1
-     ;;
- p)  pip install psycopg2
-     END=1
-     ;;
-esac
+# utility flags
+BUILD= END=
+while getopts ":us:mp" opt; do
+  case "$opt" in
+    u) cd "$GITHOME"; BUILD=1; END=1 ;;
+    s) cd "$GITHOME"; git checkout "ghini-${OPTARG}" || exit 1
+       BUILD=1; END=1 ;;
+    m) pip install mysqlclient; END=1 ;;
+    p) pip install psycopg2;    END=1 ;;
+    \?) usage ;;
+  esac
 done
+shift $((OPTIND-1))
 
 if [[ -n "$BUILD" ]]
 then
@@ -257,30 +259,29 @@ fi
 
 [[ -n "$END" ]] && exit 0
 
-exec ghini "$@"
+exec "$REAL" "$@"
 EOS
+
+RUN mv "$VIRTUAL_ENV/bin/ghini" "$VIRTUAL_ENV/bin/ghini-real"
 
 RUN cat <<'EOS' > /usr/local/bin/ghini  \
  && chmod +x /usr/local/bin/ghini
 #!/usr/bin/env bash
 VENV="${VIRTUAL_ENV:-/opt/venv/migrate_to_1.3}"
 source "$VENV/bin/activate"
-exec "$VENV/bin/ghini" "$@"
+exec "${VENV}/bin/ghini-real" "$@"
 EOS
 
-ENV PYTHONVERBOSE=1
+#ENV PYTHONVERBOSE=1
 
-# make sure the directory exists
-RUN install -d /usr/local/share/applications
-
-RUN cat <<'EOS' > /usr/local/share/applications/ghini.desktop \
- && chown ghini:ghini /usr/local/share/applications/ghini.desktop
+RUN install -d /usr/local/share/applications && \
+    cat <<EOS > /usr/local/share/applications/ghini.desktop
 [Desktop Entry]
 Type=Application
 Name=Ghini Desktop
-Version=$VERSION
+Version=${VERSION}
 GenericName=Biodiversity Manager
-Icon=$VIRTUAL_ENV/share/icons/hicolor/scalable/apps/ghini.svg
+Icon=${VIRTUAL_ENV}/share/icons/hicolor/scalable/apps/ghini.svg
 TryExec=/usr/local/bin/ghini
 Exec=/usr/local/bin/ghini
 Terminal=false
@@ -288,6 +289,8 @@ StartupNotify=false
 Categories=Qt;Education;Science;Geography;
 Keywords=botany;botanic;
 EOS
+# give ownership to the runtime user
+RUN chown -R ghini:ghini /usr/local/share/applications/ghini.desktop
 
 # Set build arguments for dynamic metadata
 ARG COMMIT
