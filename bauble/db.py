@@ -23,7 +23,7 @@ import json
 import logging
 import os
 import re
-from gettext import gettext as _
+from gettext import gettext as __
 from sqlalchemy import asc
 import bauble.btypes as types
 import bauble.error as error
@@ -55,7 +55,7 @@ try:
 
     parts = tuple(int(i) for i in sa.__version__.split(".")[:2])
     if parts < (0, 6):
-        msg = _(
+        msg = __(
             "This version of Ghini requires SQLAlchemy 0.6 or greater. "
             "You are using version %s. "
             "Please download and install a newer version of SQLAlchemy "
@@ -64,7 +64,7 @@ try:
         ) % ".".join(parts)
         raise error.SQLAlchemyVersionError(msg)
 except ImportError:
-    msg = _(
+    msg = __(
         "SQLAlchemy not installed. Please install SQLAlchemy from "
         "http://www.sqlalchemy.org"
     )
@@ -584,13 +584,23 @@ def verify_connection(engine, show_error_dialogs=False):
     import bauble
     import bauble.meta as meta
 
-    def handle_error(error_cls, message):
+    def handle_error(error_cls, message, *args, **kwargs):
         """
-        Handle database connection errors, optionally showing error dialogs.
+        Raise an exception with message and additional arguments.
+        Only show a dialog if enabled.
         """
         if show_error_dialogs:
             utils.message_dialog(message, Gtk.MessageType.ERROR)
-        raise error_cls(message)
+
+        # Build exception, passing message first if accepted
+        try:
+            exc = error_cls(message, *args, **kwargs)
+        except TypeError:
+            # Fall back if message is not accepted in constructor
+            exc = error_cls(*args, **kwargs)
+
+        raise exc
+
 
     try:
         inspector = inspect(engine)
@@ -598,13 +608,13 @@ def verify_connection(engine, show_error_dialogs=False):
 
         # Check if the database has any tables
         if not table_names:
-            handle_error(error.EmptyDatabaseError, _("The database is empty."))
+            handle_error(error.EmptyDatabaseError, __("The database is empty."))
 
         # Check for the presence of the bauble meta table
         if meta.BaubleMeta.__tablename__ not in table_names:
             handle_error(
                 error.MetaTableError,
-                _(
+                __(
                     "The database does not have the bauble meta table. "
                     "This may indicate a corrupt database or one created "
                     "with an incompatible version of Ghini."
@@ -621,7 +631,7 @@ def verify_connection(engine, show_error_dialogs=False):
             if not session.execute(created_stmt).scalar_one_or_none():
                 handle_error(
                     error.TimestampError,
-                    _("The database lacks a 'created' timestamp in the bauble meta table."
+                    __("The database lacks a 'created' timestamp in the bauble meta table."
                     "This usually means that there was a problem when you created the "
                     "database or the database you connected to wasn't created with Ghini."),
                 )
@@ -632,28 +642,30 @@ def verify_connection(engine, show_error_dialogs=False):
 
             if not version_row:
                 handle_error(
-                    error.VersionError(None),
-                    _("The database lacks a 'version' key in the bauble meta table."),
+                    error.VersionError,
+                    __("The database lacks a 'version' key in the bauble meta table."), 
+                    None
                 )
 
             try:
                 major, minor, _ = map(int, version_row.value.split("."))
                 if (str(major), str(minor)) != bauble.version_tuple[:2]:
                     handle_error(
-                        error.VersionError(version_row.value),
-                        _(
+                        error.VersionError,
+                        __(
                             "You are using Ghini version %(version)s while the "
                             "database you have connected to was created with "
                             "version %(db_version)s\n\nSome things might not work as "
                             "or some of your data may become unexpectedly "
                             "corrupted."                            
-                        )
-                        % {"version": bauble.version, "db_version": version_row.value},
+                        ) % {"version": bauble.version, "db_version": version_row.value},
+                        version_row.value
                     )
             except ValueError:
                 handle_error(
-                    error.VersionError(version_row.value),
-                    _("Invalid version format in the bauble meta table."),
+                    error.VersionError,
+                    __("Invalid version format in the bauble meta table."),
+                    version_row.value
                 )
 
         logger.info("Database connection successfully verified.")
