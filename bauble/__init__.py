@@ -31,7 +31,7 @@ import bauble.error as err
 import bauble.i18n
 import bauble.paths as paths
 
-#import debugpy
+# import debugpy
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -46,12 +46,14 @@ warnings.simplefilter("always", SAWarning)
 from bauble import _version
 
 version = _version.__version__
-version_tuple = tuple(int(part) if part.isdigit() else part for part in version.split('.'))
+version_tuple = tuple(
+    int(part) if part.isdigit() else part for part in version.split(".")
+)
 
 # extract release date (assuming setuptools_scm local_scheme='node-and-date')
 import re
 
-match = re.search(r'\+g[0-9a-f]+\.d(\d{8})', version)
+match = re.search(r"\+g[0-9a-f]+\.d(\d{8})", version)
 release_date = match.group(1) if match else None
 installation_date = os.environ.get("BUILD_DATE", "1970-01-01T00:00:00Z")
 
@@ -69,7 +71,7 @@ except ImportError as e:
     sys.exit(1)
 
 
-#debugpy.breakpoint()
+# debugpy.breakpoint()
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -82,7 +84,6 @@ try:
     faulthandler.enable()
 except:
     pass
-
 
 
 def pb_set_fraction(fraction):
@@ -181,7 +182,7 @@ def quit():
     """
     Stop all tasks and quit Ghini.
     """
-    #from gi.repository import Gtk
+    # from gi.repository import Gtk
 
     import bauble.utils as utils
 
@@ -212,7 +213,7 @@ def command_handler(cmd, arg):
     :type arg: list
     """
     logger.debug("entering ui.command_handler {} {}".format(cmd, arg))
-    #from gi.repository import Gtk
+    # from gi.repository import Gtk
 
     import bauble.pluginmgr as pluginmgr
     import bauble.utils as utils
@@ -246,9 +247,7 @@ def command_handler(cmd, arg):
     except Exception as e:
         msg = utils.xml_safe(e)
         logger.error("bauble.command_handler(): %s" % msg)
-        utils.message_details_dialog(
-            msg, traceback.format_exc(), Gtk.MessageType.ERROR
-        )
+        utils.message_details_dialog(msg, traceback.format_exc(), Gtk.MessageType.ERROR)
 
 
 conn_default_pref = "conn.default"
@@ -270,8 +269,9 @@ class GhiniApp:
         self.open_exc = None
         self.conn_name = None
         self.uri = None
-        self.gtk_app = Gtk.Application(application_id="com.ghini.app",
-                                       flags=Gio.ApplicationFlags.FLAGS_NONE)
+        self.gtk_app = Gtk.Application(
+            application_id="com.ghini.app", flags=Gio.ApplicationFlags.FLAGS_NONE
+        )
 
         # Connect signals for lifecycle events
         self.gtk_app.connect("startup", self.on_startup)
@@ -291,7 +291,7 @@ class GhiniApp:
         """Runs initialization tasks before the UI is shown."""
         self.setup_logging()
         prefs.init()
-        
+
         # Optional: configure Sentry
         self.setup_sentry()
 
@@ -306,21 +306,22 @@ class GhiniApp:
         self.gui.show()
         self.handle_open_errors()
 
-
     def setup_logging(self):
         """Configures application logging."""
         filename = os.path.join(paths.appdata_dir(), "bauble.log")
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(thread)d - %(message)s')
-        
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(thread)d - %(message)s"
+        )
+
         fileHandler = logging.FileHandler(filename, "w+")
         consoleHandler = logging.StreamHandler()
-        
+
         logging.getLogger().addHandler(fileHandler)
         logging.getLogger().addHandler(consoleHandler)
-        
+
         fileHandler.setFormatter(formatter)
         consoleHandler.setFormatter(formatter)
-        
+
         fileHandler.setLevel(logging.INFO)
         consoleHandler.setLevel(logging.WARNING)
 
@@ -332,9 +333,11 @@ class GhiniApp:
 
             if prefs[use_sentry_client_pref]:
                 logger.debug("Registering Sentry client")
-                sentry_client = Client("https://59105d22a4ad49158796088c26bf8e4c:"
-                                       "00268114ed47460b94ce2b1b0b2a4a20@"
-                                       "app.getsentry.com/45704")
+                sentry_client = Client(
+                    "https://59105d22a4ad49158796088c26bf8e4c:"
+                    "00268114ed47460b94ce2b1b0b2a4a20@"
+                    "app.getsentry.com/45704"
+                )
                 handler = SentryHandler(sentry_client)
                 logging.getLogger().addHandler(handler)
                 handler.setLevel(logging.WARNING)
@@ -348,7 +351,11 @@ class GhiniApp:
         open_exc = None
 
         while True:
-            conn_name, uri = start_connection_manager() if not self.uri else (self.conn_name, self.uri)
+            conn_name, uri = (
+                start_connection_manager()
+                if not self.uri
+                else (self.conn_name, self.uri)
+            )
             if conn_name is None:
                 quit()
 
@@ -359,7 +366,7 @@ class GhiniApp:
                     prefs["conn_default_pref"] = conn_name
                     break
                 else:
-                    uri = conn_name = None     
+                    uri = conn_name = None
             except err.VersionError as e:
                 logger.warning("{}({})".format(type(e), e))
                 db.open(uri, False)
@@ -392,7 +399,7 @@ class GhiniApp:
                 msg = _("Could not open connection.\n\n%s") % e
                 utils.message_details_dialog(
                     msg, traceback.format_exc(), Gtk.MessageType.ERROR
-                )                
+                )
             uri = None
 
         return uri, open_exc
@@ -400,21 +407,23 @@ class GhiniApp:
     def create_gui(self):
         """Creates and returns the GUI object."""
         import bauble.ui as ui
+
         gui = ui.GUI()
         import bauble
+
         bauble.gui = gui
         gui.window.set_application(self.gtk_app)
         return gui
-        
-
 
     def handle_open_errors(self):
         """Handles any errors encountered when opening the database."""
         if self.open_exc:
-            msg = _("Would you like to create a new Ghini database at "
-                    "the current connection?\n\n<i>Warning: If there is "
-                    "already a database at this connection, any existing "
-                    "data will be destroyed!</i>")
+            msg = _(
+                "Would you like to create a new Ghini database at "
+                "the current connection?\n\n<i>Warning: If there is "
+                "already a database at this connection, any existing "
+                "data will be destroyed!</i>"
+            )
             d = utils.create_yes_no_dialog(msg, buttons=Gtk.ButtonsType.NONE)
             d.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
             d.add_button(_("Create"), 24)
@@ -437,8 +446,11 @@ class GhiniApp:
                     pluginmgr.init()
                     prefs["conn_default_pref"] = self.conn_name
                 except Exception as e:
-                    utils.message_details_dialog(_("Error creating database: %s") % e,
-                                                 traceback.format_exc(), Gtk.MessageType.ERROR)
+                    utils.message_details_dialog(
+                        _("Error creating database: %s") % e,
+                        traceback.format_exc(),
+                        Gtk.MessageType.ERROR,
+                    )
                     logger.error("Database creation failed: %s", e)
         else:
             pluginmgr.init()
@@ -451,7 +463,10 @@ class GhiniApp:
             "This version installed at: %s; "
             "Latest published version: %s; "
             "Publication date: %s",
-            bauble.installation_date, __file__, bauble.release_version, bauble.release_date
+            bauble.installation_date,
+            __file__,
+            bauble.release_version,
+            bauble.release_date,
         )
 
     def create_user_directory(self):
@@ -470,12 +485,13 @@ class GhiniApp:
             sys.stderr = open(_stderr, "w")
             logger.info("Redirecting stdout and stderr to logs in frozen environment")
 
+
 # Define app as a global variable
 app = GhiniApp()  # 🔹 Now accessible globally
 gtk_app = app.gtk_app  # Shortcut to access Gtk.Application if needed
+
 
 def main():
     """Entry point for the application."""
     global app
     return app.run(sys.argv)
-

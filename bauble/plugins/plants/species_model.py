@@ -38,10 +38,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.associationproxy import association_proxy
 
-#from sqlalchemy.ext.declarative import declared_attr
+# from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
 
-#from sqlalchemy.orm import foreign
+# from sqlalchemy.orm import foreign
 from sqlalchemy.orm import relationship, synonym
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
@@ -122,10 +122,13 @@ def compare_rank(rank1, rank2):
 
     return rank_level(rank1).__cmp__(rank_level(rank2))
 
+
 # Defer import of Genus
 def get_genus():
     from bauble.plugins.plants.genus import Genus
+
     return Genus
+
 
 class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     """
@@ -198,9 +201,14 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     )
     order_by = [text("species.epithet"), text("species.author")]
 
-
     # Define relationship to Genus
-    genus = relationship("Genus", back_populates="species", lazy="joined", uselist=False, active_history=True)
+    genus = relationship(
+        "Genus",
+        back_populates="species",
+        lazy="joined",
+        uselist=False,
+        active_history=True,
+    )
     accessions = relationship("Accession", back_populates="species", uselist=True)
 
     rank = "species"
@@ -220,7 +228,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     def retrieve(cls, session, keys):
         """
         Retrieve a single Species instance based on the provided keys.
-        
+
         :param session: SQLAlchemy session.
         :param keys: Dictionary of filtering criteria (e.g., {"epithet": ..., "ht-epithet": ...}).
         :return: The Species instance if found, otherwise None.
@@ -256,7 +264,6 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             logger.error(f"Error retrieving Species with criteria {keys}: {e}")
             return None
 
-       
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
         try:
@@ -296,9 +303,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         """
 
         cites_notes = [
-            i.note
-            for i in self.notes
-            if i.category and i.category.upper() == "CITES"
+            i.note for i in self.notes if i.category and i.category.upper() == "CITES"
         ]
         if not cites_notes:
             return self.genus.cites
@@ -326,9 +331,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         }
 
         notes = [
-            i.note
-            for i in self.notes
-            if i.category and i.category.upper() == "IUCN"
+            i.note for i in self.notes if i.category and i.category.upper() == "IUCN"
         ]
         return (notes + ["DD"])[0]
 
@@ -342,9 +345,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         # one of, but not forcibly so:
         [_("endemic"), _("indigenous"), _("native"), _("introduced")]
 
-        notes = [
-            i.note for i in self.notes if i.category.lower() == "condition"
-        ]
+        notes = [i.note for i in self.notes if i.category.lower() == "condition"]
         return (notes + [None])[0]
 
     def __lowest_infraspecific(self):
@@ -390,7 +391,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     author = Column(Unicode(128))
     hybrid = Column(Boolean, default=False)
     sp_qual = Column(
-        types.Enum(values=["agg.", "s. lat.", "s. str.", None], omit_aliases=False), default=None
+        types.Enum(values=["agg.", "s. lat.", "s. str.", None], omit_aliases=False),
+        default=None,
     )
     cv_group = Column(Unicode(50))
     trade_name = Column(Unicode(64))
@@ -399,7 +401,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     infrasp1_rank = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
-            translations=infrasp_rank_values, omit_aliases=False
+            translations=infrasp_rank_values,
+            omit_aliases=False,
         )
     )
     infrasp1_author = Column(Unicode(64))
@@ -408,7 +411,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     infrasp2_rank = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
-            translations=infrasp_rank_values, omit_aliases=False
+            translations=infrasp_rank_values,
+            omit_aliases=False,
         )
     )
     infrasp2_author = Column(Unicode(64))
@@ -417,7 +421,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     infrasp3_rank = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
-            translations=infrasp_rank_values, omit_aliases=False
+            translations=infrasp_rank_values,
+            omit_aliases=False,
         )
     )
     infrasp3_author = Column(Unicode(64))
@@ -426,7 +431,8 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     infrasp4_rank = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
-            translations=infrasp_rank_values, omit_aliases=False
+            translations=infrasp_rank_values,
+            omit_aliases=False,
         )
     )
     infrasp4_author = Column(Unicode(64))
@@ -458,13 +464,13 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     # VernacularName.species gets defined here too.
     vernacular_names = relationship(
-            "VernacularName",
-            cascade="all, delete-orphan",
-            collection_class=VNList,
-            back_populates="species",
-            uselist=True,
-            single_parent=False,
-        )
+        "VernacularName",
+        cascade="all, delete-orphan",
+        collection_class=VNList,
+        back_populates="species",
+        uselist=True,
+        single_parent=False,
+    )
 
     _default_vernacular_name = relationship(
         "DefaultVernacularName",
@@ -472,7 +478,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         single_parent=False,
         cascade="all, delete-orphan",
         back_populates="species",
-        active_history=True
+        active_history=True,
     )
     distribution = (
         relationship(
@@ -481,13 +487,15 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             back_populates="species",
             single_parent=False,
             uselist=False,
-            active_history=True
+            active_history=True,
         )
         or []
     )
 
     habit_id = Column(Integer, ForeignKey("habit.id"), default=None)
-    habit = relationship("Habit", uselist=False, back_populates="species", active_history=True)
+    habit = relationship(
+        "Habit", uselist=False, back_populates="species", active_history=True
+    )
 
     flower_color_id = Column(Integer, ForeignKey("color.id"), default=None)
     flower_color = relationship(
@@ -602,9 +610,9 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             escape = utils.xml_safe
 
             def italicize(s):
-                return (  # all but the multiplication signs
-                    "<i>%s</i>" % escape(s).replace("×", "</i>×<i>")
-                )
+                return "<i>%s</i>" % escape(  # all but the multiplication signs
+                    s
+                ).replace("×", "</i>×<i>")
 
             genus = italicize(genus)
             if epithet is not None:
@@ -646,9 +654,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             if authors and iauthor:
                 infrasp_parts.append(escape(iauthor))
         if self.cv_group and not group_added:
-            infrasp_parts.append(
-                _("%(group)s Group") % dict(group=self.cv_group)
-            )
+            infrasp_parts.append(_("%(group)s Group") % dict(group=self.cv_group))
 
         # create the binomial part
         binomial = [genus, self.hybrid and self.hybrid_char, epithet, author]
@@ -829,10 +835,9 @@ def compute_serializable_fields(cls, session, keys):
     result = {}
     genus_name, epithet = keys["species"].split(" ", 1)
     sp_dict = {"ht-epithet": genus_name, "epithet": epithet}
-    result["species"] = Species.retrieve_or_create(
-        session, sp_dict, create=False
-    )
+    result["species"] = Species.retrieve_or_create(session, sp_dict, create=False)
     return result
+
 
 def retrieve(session, keys):
     from .genus import Genus
@@ -840,18 +845,21 @@ def retrieve(session, keys):
     genus, epithet = keys["species"].split(" ", 1)
     try:
         return (
-            session.execute(select(Species)
-            .where(Species.category == keys["category"])
-            .join(Species.genus)
-            .where(Species.epithet == epithet)
-            .join(Genus)
-            .where(Genus.epithet == genus)
+            session.execute(
+                select(Species)
+                .where(Species.category == keys["category"])
+                .join(Species.genus)
+                .where(Species.epithet == epithet)
+                .join(Genus)
+                .where(Genus.epithet == genus)
             )
-            .scalars().one()
+            .scalars()
+            .one()
         )
     except Exception as e:
         logger.error(f"Error retrieving species with keys {keys}: {e}")
         return None
+
 
 SpeciesNote = db.make_note_class(
     "Species", Species, compute_serializable_fields, as_dict, retrieve
@@ -875,26 +883,24 @@ class SpeciesSynonym(db.Base):
     # columns
     id = Column(Integer, primary_key=True, nullable=False)
     species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
-    synonym_id = Column(
-        Integer, ForeignKey("species.id"), nullable=False, unique=True
-    )
+    synonym_id = Column(Integer, ForeignKey("species.id"), nullable=False, unique=True)
 
     # Relationship to the main Species entity
     species = relationship(
-            "Species",
-            uselist=False, # One-to-one relationship
-            back_populates="_synonyms",
-            foreign_keys=[species_id],
-            active_history=True
+        "Species",
+        uselist=False,  # One-to-one relationship
+        back_populates="_synonyms",
+        foreign_keys=[species_id],
+        active_history=True,
     )
 
     # relations
     synonym = relationship(
-        "Species", 
+        "Species",
         back_populates="_synonyms_synonym",
-        uselist=False, # One-to-one relationship
+        uselist=False,  # One-to-one relationship
         foreign_keys=[synonym_id],
-        active_history=True
+        active_history=True,
     )
 
     def __init__(self, synonym=None, **kwargs):
@@ -941,7 +947,7 @@ class VernacularName(db.Base, db.Serializable):
         back_populates="vernacular_names",
         uselist=False,
         single_parent=False,
-        active_history=True
+        active_history=True,
     )
 
     def search_view_markup_pair(self):
@@ -982,17 +988,24 @@ class VernacularName(db.Base, db.Serializable):
 
         g_epithet, s_epithet = keys["species"].split(" ", 1)
         sp = (
-            session.execute(select(Species)
-            .where(Species.epithet == s_epithet)
-            .join(Genus)
-            .where(Genus.epithet == g_epithet)
-            ).scalars().first()
+            session.execute(
+                select(Species)
+                .where(Species.epithet == s_epithet)
+                .join(Genus)
+                .where(Genus.epithet == g_epithet)
+            )
+            .scalars()
+            .first()
         )
         try:
             return (
-                session.execute(select(cls)
-                .where(cls.species == sp, cls.language == keys["language"])
-                ).scalars().one()
+                session.execute(
+                    select(cls).where(
+                        cls.species == sp, cls.language == keys["language"]
+                    )
+                )
+                .scalars()
+                .one()
             )
         except:
             return None
@@ -1027,9 +1040,7 @@ class DefaultVernacularName(db.Base):
 
     __tablename__ = "default_vernacular_name"
     __table_args__ = (
-        UniqueConstraint(
-            "species_id", "vernacular_name_id", name="default_vn_index"
-        ),
+        UniqueConstraint("species_id", "vernacular_name_id", name="default_vn_index"),
         {},
     )
 
@@ -1047,7 +1058,7 @@ class DefaultVernacularName(db.Base):
         uselist=False,
         back_populates="_default_vernacular_name",
         single_parent=False,
-        active_history=True
+        active_history=True,
     )
 
     def __str__(self):
@@ -1073,11 +1084,14 @@ class SpeciesDistribution(db.Base):
         Integer, ForeignKey("geographic_area.id"), nullable=False
     )
     species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
-    species = relationship("Species", back_populates="distribution",
-            single_parent=False,
-            uselist=False,
-            active_history=True
-        )
+    species = relationship(
+        "Species",
+        back_populates="distribution",
+        single_parent=False,
+        uselist=False,
+        active_history=True,
+    )
+
     def __str__(self):
         return str(self.geographic_area)
 

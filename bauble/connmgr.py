@@ -103,9 +103,7 @@ def newer_version_on_github(input_stream, force=False):
 
     try:
         version_lines = input_stream.read().decode().split("\n")
-        valid_lines = [
-            i for i in version_lines if not i.startswith("#") and i.strip()
-        ]
+        valid_lines = [i for i in version_lines if not i.startswith("#") and i.strip()]
         if len(valid_lines) == 1:
             try:
                 github_version = eval('"' + valid_lines[0].split('"')[1] + '"')
@@ -132,9 +130,7 @@ def retrieve_latest_release_date():
     # bauble.release_date text.
 
     response = {
-        "commit": {
-            "commit": {"committer": {"date": _("not available when offline")}}
-        }
+        "commit": {"commit": {"committer": {"date": _("not available when offline")}}}
     }
     version_on_github = (
         "https://raw.githubusercontent.com/Ghini/ghini.desktop"
@@ -159,9 +155,7 @@ def retrieve_latest_release_date():
         bauble.release_date = response["commit"]["commit"]["committer"]["date"]
 
         # from github retrieve the version number
-        github_version_stream = urllib.request.urlopen(
-            version_on_github, timeout=5
-        )
+        github_version_stream = urllib.request.urlopen(version_on_github, timeout=5)
         bauble.release_version = newer_version_on_github(
             github_version_stream, force=True
         )
@@ -173,9 +167,9 @@ def retrieve_latest_release_date():
         last_modified_seconds = os.stat(main_init_path).st_mtime
         import datetime
 
-        last_modified_date = datetime.datetime(
-            1970, 1, 1
-        ) + datetime.timedelta(0, int(last_modified_seconds))
+        last_modified_date = datetime.datetime(1970, 1, 1) + datetime.timedelta(
+            0, int(last_modified_seconds)
+        )
         bauble.installation_date = last_modified_date.isoformat() + "Z"
     except urllib.error.URLError:
         logger.info("connection is slow or down")
@@ -202,9 +196,7 @@ def check_and_notify_new_version(view):
         import urllib.parse
         import urllib.request
 
-        github_version_stream = urllib.request.urlopen(
-            version_on_github, timeout=5
-        )
+        github_version_stream = urllib.request.urlopen(version_on_github, timeout=5)
         remote = newer_version_on_github(github_version_stream)
         if remote:
 
@@ -235,8 +227,7 @@ def check_and_notify_new_version(view):
         logger.info("HTTPError while checking for newer version")
     except Exception as e:
         logger.warning(
-            "unhandled %s(%s) while checking for newer version"
-            % (type(e).__name__, e)
+            "unhandled %s(%s) while checking for newer version" % (type(e).__name__, e)
         )
 
 
@@ -291,7 +282,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             self.connections = prefs.prefs[bauble.conn_list_pref]
         else:
             self.connections = {}
-            
+
         for ith_connection_name in sorted(self.connections):
             view.combobox_append_text("name_combo", ith_connection_name)
             self.connection_names.append(ith_connection_name)
@@ -334,16 +325,14 @@ class ConnMgrPresenter(GenericEditorPresenter):
         last_folder, bn = os.path.split(previously)
         # Use the window from self.view
         parent_window = self.view.get_window()
-        
+
         self.view.run_file_chooser_dialog(
             _("Choose a file…"),
             parent=parent_window,
             action=Gtk.FileChooserAction.SAVE,
-            buttons=[ 
-                (_("OK"),
-                Gtk.ResponseType.ACCEPT),
-                (_("Cancel"),
-                Gtk.ResponseType.CANCEL),
+            buttons=[
+                (_("OK"), Gtk.ResponseType.ACCEPT),
+                (_("Cancel"), Gtk.ResponseType.CANCEL),
             ],
             last_folder=last_folder,
             target="file_entry",
@@ -353,7 +342,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
     def on_pictureroot_btnbrowse_clicked(self, *args):
         previously = self.view.widget_get_value("pictureroot_entry")
         last_folder, bn = os.path.split(previously)
-        
+
         # Use the window from self.view
         parent_window = self.view.get_window()
 
@@ -362,10 +351,8 @@ class ConnMgrPresenter(GenericEditorPresenter):
             parent=parent_window,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
             buttons=[
-                (_("OK"),
-                Gtk.ResponseType.ACCEPT),
-                (_("Cancel"),
-                Gtk.ResponseType.CANCEL),
+                (_("OK"), Gtk.ResponseType.ACCEPT),
+                (_("Cancel"), Gtk.ResponseType.CANCEL),
             ],
             last_folder=last_folder,
             target="pictureroot_entry",
@@ -375,19 +362,17 @@ class ConnMgrPresenter(GenericEditorPresenter):
     def on_pictureroot2_btnbrowse_clicked(self, *args):
         previously = self.view.widget_get_value("pictureroot2_entry")
         last_folder, bn = os.path.split(previously)
-        
+
         # Use the window from self.view
         parent_window = self.view.get_window()
-        
+
         self.view.run_file_chooser_dialog(
             _("Choose a file…"),
             parent=parent_window,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
             buttons=[
-                (_("OK"),
-                Gtk.ResponseType.ACCEPT),
-                (_("Cancel"),
-                Gtk.ResponseType.CANCEL),
+                (_("OK"), Gtk.ResponseType.ACCEPT),
+                (_("Cancel"), Gtk.ResponseType.CANCEL),
             ],
             last_folder=last_folder,
             target="pictureroot2_entry",
@@ -617,7 +602,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             title=title,
             parent=self.view.get_window(),
             modal=True,
-            destroy_with_parent=True,            
+            destroy_with_parent=True,
             buttons=[(_("OK"), Gtk.ResponseType.ACCEPT)],
             visible=False,
         )
@@ -796,9 +781,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
 def start_connection_manager(default_conn=None):
     """activate connection manager and return connection name and uri"""
     glade_path = os.path.join(paths.lib_dir(), "connmgr.glade")
-    view = GenericEditorView(
-        glade_path, parent=None, root_widget_name="main_dialog"
-    )
+    view = GenericEditorView(glade_path, parent=None, root_widget_name="main_dialog")
 
     cm = ConnMgrPresenter(view, prefs)
     result = cm.start()

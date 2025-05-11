@@ -23,7 +23,7 @@ from gettext import gettext as _
 import bauble.utils as utils
 import gi
 
-#from bauble.db import get_orm_entity_by_name
+# from bauble.db import get_orm_entity_by_name
 from bauble.error import check
 from sqlalchemy import Unicode, UnicodeText
 
@@ -59,7 +59,7 @@ from pyparsing import (
     stringEnd,
 )
 
-#from sqlalchemy import not_
+# from sqlalchemy import not_
 # from pyparsing import alphanums
 # from pyparsing import alphas
 # from pyparsing import alphas8bit
@@ -85,8 +85,8 @@ from pyparsing import (
 from sqlalchemy import and_, except_, or_, select, union_all
 from sqlalchemy.exc import NoInspectionAvailable, NoResultFound
 
-#from sqlalchemy import Unicode
-#from sqlalchemy import UnicodeText
+# from sqlalchemy import Unicode
+# from sqlalchemy import UnicodeText
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Session  # ✅ Add this import
 from sqlalchemy.orm import aliased
@@ -119,32 +119,43 @@ def resolve_relationships(cls, steps, env):
     """
     if not steps:
         raise ValueError("No relationship steps provided to resolve.")
-        
+
     stmt = select(cls)  # Start with the base class
     current_cls = cls
 
     for step in steps:
         # Ensure we are inspecting the mapper of current_cls
-        mapper = inspect(current_cls).mapper if isinstance(current_cls, AliasedClass) else inspect(current_cls)
+        mapper = (
+            inspect(current_cls).mapper
+            if isinstance(current_cls, AliasedClass)
+            else inspect(current_cls)
+        )
 
         # Retrieve the relationship property
         if step not in mapper.relationships:
-            raise ValueError(f"Relationship '{step}' not found on '{current_cls.__name__}'. Available: {list(mapper.relationships.keys())}")
+            raise ValueError(
+                f"Relationship '{step}' not found on '{current_cls.__name__}'. Available: {list(mapper.relationships.keys())}"
+            )
 
         relationship_property = mapper.relationships[step]
         if not relationship_property:
-            raise ValueError(f"Relationship '{step}' not found on '{current_cls.__name__}'.")
+            raise ValueError(
+                f"Relationship '{step}' not found on '{current_cls.__name__}'."
+            )
 
         # Resolve target class and alias it
         target_cls = relationship_property.mapper.class_
         if not target_cls:
-            raise ValueError(f"Unable to resolve target class for relationship '{step}'.")
+            raise ValueError(
+                f"Unable to resolve target class for relationship '{step}'."
+            )
 
         aliased_entity = aliased(target_cls)
         stmt = stmt.join(aliased_entity, getattr(current_cls, step))
         current_cls = aliased_entity  # Update for next steps
 
     return stmt, current_cls
+
 
 def search(text, session=None):
     results = set()
@@ -273,6 +284,7 @@ class TypedValueToken(ValueABC):
     def __repr__(self):
         return "%s" % (self.value)
 
+
 from sqlalchemy import select
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import aliased
@@ -295,7 +307,9 @@ class IdentifierAction(object):
         # Handle both dictionary and object-style `env`
         domain_class = getattr(env, "domain", None) or env.get("domain", None)
         session = getattr(env, "session", None) or env.get("session", None)
-        search_strategy = getattr(env, "search_strategy", None) or env.get("search_strategy", None)
+        search_strategy = getattr(env, "search_strategy", None) or env.get(
+            "search_strategy", None
+        )
 
         if not domain_class:
             raise ValueError("Invalid or missing domain class in env")
@@ -304,11 +318,15 @@ class IdentifierAction(object):
         if isinstance(domain_class, str) and search_strategy:
             domain_class = search_strategy._domains.get(domain_class, [None])[0]
             if not domain_class:
-                raise ValueError(f"Unknown domain: '{domain_class}' not found in registered domains.")
+                raise ValueError(
+                    f"Unknown domain: '{domain_class}' not found in registered domains."
+                )
 
         # Ensure domain_class is an ORM-mapped class
         if not inspect(domain_class, raiseerr=False):
-            raise TypeError(f"Expected ORM class, got {type(domain_class)} instead: {domain_class}")
+            raise TypeError(
+                f"Expected ORM class, got {type(domain_class)} instead: {domain_class}"
+            )
 
         # Construct SQL query using ORM class
         stmt = select(domain_class)
@@ -318,7 +336,9 @@ class IdentifierAction(object):
         if self.steps:
             for step in self.steps:
                 if not hasattr(current_cls, step):
-                    raise ValueError(f"Relationship '{step}' not found in '{current_cls.__name__}'")
+                    raise ValueError(
+                        f"Relationship '{step}' not found in '{current_cls.__name__}'"
+                    )
                 rel_attr = getattr(current_cls, step)
                 related_cls = rel_attr.property.mapper.class_
 
@@ -330,12 +350,15 @@ class IdentifierAction(object):
         try:
             attr = getattr(current_cls, self.leaf)
         except AttributeError:
-            raise ValueError(f"Attribute '{self.leaf}' not found on class '{current_cls.__name__}'")
+            raise ValueError(
+                f"Attribute '{self.leaf}' not found on class '{current_cls.__name__}'"
+            )
 
         return stmt, attr
 
     def needs_join(self, env):
         return self.steps or []
+
 
 # class IdentifierAction(object):
 #     def __init__(self, t):
@@ -394,7 +417,7 @@ class IdentifierAction(object):
 #         # ✅ Check if class is actually mapped by SQLAlchemy
 #         if domain_class not in mapper_registry.mappers:
 #             raise TypeError(f"Class {domain_class} is not mapped with SQLAlchemy.")
-        
+
 #         # ✅ Construct SQL query using ORM class
 #         if not self.steps:
 #             stmt = select(domain_class)
@@ -470,7 +493,9 @@ class FilteredIdentifierAction(object):
 
         # Verify that the class has the filter column
         if not hasattr(current_cls, self.filter_attr):
-            raise ValueError(f"Attribute '{self.filter_attr}' not found on '{current_cls}'")
+            raise ValueError(
+                f"Attribute '{self.filter_attr}' not found on '{current_cls}'"
+            )
         attr = getattr(current_cls, self.filter_attr)
 
         clause = lambda x: self.operation(attr, x)
@@ -479,7 +504,9 @@ class FilteredIdentifierAction(object):
         # Resolve the final leaf attribute
         leaf_attr = getattr(current_cls, self.leaf, None)
         if not leaf_attr:
-            raise ValueError(f"Leaf attribute '{self.leaf}' not found on '{current_cls}'")
+            raise ValueError(
+                f"Leaf attribute '{self.leaf}' not found on '{current_cls}'"
+            )
 
         return stmt, leaf_attr
 
@@ -498,7 +525,7 @@ class IdentExpression(object):
             "=": lambda x, y: x == y,
             "==": lambda x, y: x == y,
             "is": lambda x, y: x == y,
-            "is not": lambda x,y: x != y,
+            "is not": lambda x, y: x != y,
             "!=": lambda x, y: x != y,
             "<>": lambda x, y: x != y,
             "not": lambda x, y: x != y,
@@ -534,11 +561,15 @@ class IdentExpression(object):
         # Debugging step
         print(f"🔍 Evaluating Column: {column_name} in table {attr.parent}")
 
-
         session = getattr(env, "session", None) or env.get("session", None)
 
         if session and session.bind:
-            print("IdentExpression stmt:", stmt.compile(dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}))
+            print(
+                "IdentExpression stmt:",
+                stmt.compile(
+                    dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}
+                ),
+            )
 
         # Ensure self.operands[1] contains a valid value
         comparison_value = self.operands[1].express()
@@ -548,20 +579,28 @@ class IdentExpression(object):
             comparison_value = comparison_value[0]
 
         # ✅ Normalize None and empty strings (for cross-database compatibility)
-        #if isinstance(comparison_value, str) and comparison_value.lower().strip() in {"", "none"}:
+        # if isinstance(comparison_value, str) and comparison_value.lower().strip() in {"", "none"}:
         #    print(f"🔍 Normalizing '{comparison_value}' to None (Cross-DB Compatibility)")
         #    comparison_value = None  # Convert empty strings and "none" to None
         if isinstance(comparison_value, str) and comparison_value.strip() == "":
-            print(f"🔍 Normalizing '{comparison_value}' to both '' and None (Cross-DB Compatibility)")
-            is_null_check = True  # Mark that we need to check both NULL and empty string
+            print(
+                f"🔍 Normalizing '{comparison_value}' to both '' and None (Cross-DB Compatibility)"
+            )
+            is_null_check = (
+                True  # Mark that we need to check both NULL and empty string
+            )
             comparison_value = None
         else:
             is_null_check = False
 
-        if not isinstance(comparison_value, (str, int, float, bool, type(None), datetime, date)):
+        if not isinstance(
+            comparison_value, (str, int, float, bool, type(None), datetime, date)
+        ):
             raise ValueError(f"Invalid comparison value: {comparison_value}")
 
-        print(f"\n🔍 Evaluating: {attr} {self.op} {comparison_value} ({type(comparison_value)})")
+        print(
+            f"\n🔍 Evaluating: {attr} {self.op} {comparison_value} ({type(comparison_value)})"
+        )
 
         # Debug: Fetch & Print Database Column Values Before Filtering
         print("\n🔍 Fetching Current Column Values Before Filtering:")
@@ -571,7 +610,8 @@ class IdentExpression(object):
         parent_inspect = inspect(parent_cls)
         table_name = (
             parent_inspect.persist_selectable.name
-            if hasattr(parent_inspect, "persist_selectable") and parent_inspect.persist_selectable is not None
+            if hasattr(parent_inspect, "persist_selectable")
+            and parent_inspect.persist_selectable is not None
             else None
         )
         from sqlalchemy import text
@@ -579,24 +619,32 @@ class IdentExpression(object):
         if session and table_name:
             try:
                 stmt = text(f"SELECT id, {column_name} FROM {table_name}")
-                query_result = session.execute(stmt).mappings().all()  # ⬅️ Use .mappings()
+                query_result = (
+                    session.execute(stmt).mappings().all()
+                )  # ⬅️ Use .mappings()
                 for row in query_result:
-                    print(f"🔍 DB Check: {column_name} = {row[column_name]} (Type: {type(row[column_name])})")
+                    print(
+                        f"🔍 DB Check: {column_name} = {row[column_name]} (Type: {type(row[column_name])})"
+                    )
             except Exception as e:
                 print(f"⚠️ Error fetching column data for debugging: {e}")
 
         # Check if the attribute is a relationship (i.e., a foreign key relationship)
         if isinstance(attr.property, RelationshipProperty):
             if comparison_value is None or comparison_value == "":
-                if self.op in ('is', '=', '=='):
-                    return stmt.filter(or_(attr.is_(None), attr == ""))  # ✅ WHERE author IS NULL
-                elif self.op in ('is not', 'not', '<>', '!='):
-                    return stmt.filter(and_(attr.is_not(None), attr != ""))  # ✅ WHERE author IS NOT NULL
+                if self.op in ("is", "=", "=="):
+                    return stmt.filter(
+                        or_(attr.is_(None), attr == "")
+                    )  # ✅ WHERE author IS NULL
+                elif self.op in ("is not", "not", "<>", "!="):
+                    return stmt.filter(
+                        and_(attr.is_not(None), attr != "")
+                    )  # ✅ WHERE author IS NOT NULL
 
             elif self.operands[1].express() == set():
-                if self.op in ('is', '=', '=='):
+                if self.op in ("is", "=", "=="):
                     return stmt.filter(~attr.any()), attr  # No matching values
-                elif self.op in ('is not', 'not', '<>', '!='):
+                elif self.op in ("is not", "not", "<>", "!="):
                     return stmt.filter(attr.any()), attr  # At least one matching value
 
         # # ✅ Fix: Ensure `None` is correctly handled
@@ -608,32 +656,45 @@ class IdentExpression(object):
         # else:
         #     clause = lambda x: self.operation(attr, x)
 
-
-        #     stmt = stmt.filter(clause(comparison_value))  
+        #     stmt = stmt.filter(clause(comparison_value))
 
         # ✅ Fix: Ensure `None` and `""` are correctly handled
         if is_null_check:
             # Special case: If filtering for an empty string, check for both NULL and ""
-            if self.op in ('is', '=', '=='):
+            if self.op in ("is", "=", "=="):
                 stmt = stmt.filter(or_(attr.is_(None), attr == ""))
-            elif self.op in ('is not', 'not', '<>', '!='):
+            elif self.op in ("is not", "not", "<>", "!="):
                 stmt = stmt.filter(and_(attr.is_not(None), attr != ""))
-        elif comparison_value is None or comparison_value == "None" or comparison_value == "":
-            if self.op in ('is', '=', '=='):
-                stmt = stmt.filter(or_(attr.is_(None), attr == ""))  # ✅ Convert to SQL NULL
-            elif self.op in ('is not', 'not', '<>', '!='):
-                stmt = stmt.filter(and_(attr.is_not(None), attr != ""))  # ✅ Convert to SQL NULL check
+        elif (
+            comparison_value is None
+            or comparison_value == "None"
+            or comparison_value == ""
+        ):
+            if self.op in ("is", "=", "=="):
+                stmt = stmt.filter(
+                    or_(attr.is_(None), attr == "")
+                )  # ✅ Convert to SQL NULL
+            elif self.op in ("is not", "not", "<>", "!="):
+                stmt = stmt.filter(
+                    and_(attr.is_not(None), attr != "")
+                )  # ✅ Convert to SQL NULL check
         else:
             clause = lambda x: self.operation(attr, x)
-            stmt = stmt.filter(clause(comparison_value))      
-        print("Updated IdentExpression stmt:", stmt.compile(dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}))
+            stmt = stmt.filter(clause(comparison_value))
+        print(
+            "Updated IdentExpression stmt:",
+            stmt.compile(
+                dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}
+            ),
+        )
         return stmt, attr
 
     def needs_join(self, env):
         """
         Collect join steps from operands, ensuring a flat list.
         """
-        return [self.operands[0].needs_join(env)]        
+        return [self.operands[0].needs_join(env)]
+
 
 class ElementSetExpression(IdentExpression):
     # currently only implements `in`
@@ -648,7 +709,6 @@ class ElementSetExpression(IdentExpression):
 
     #     stmt = select(q).where(a.in_(self.operands[1].express()))
     #     return env.session.scalars(stmt)
-        
 
     def evaluate(self, env):
         """
@@ -677,7 +737,8 @@ class ElementSetExpression(IdentExpression):
             stmt = select(stmt).where(attr.in_(comparison_value))
 
         return stmt, attr
-    
+
+
 class AggregatedExpression(IdentExpression):
     """select on value of aggregated function
 
@@ -696,8 +757,8 @@ class AggregatedExpression(IdentExpression):
         """
         # Get the query and attribute
         stmt, attr = self.operands[0].identifier.evaluate(env)
-        
-        #if not isinstance(stmt, AliasedClass):
+
+        # if not isinstance(stmt, AliasedClass):
         #    stmt = stmt.subquery()
 
         # Resolve the aggregate function
@@ -741,13 +802,15 @@ class BetweenExpressionAction(object):
         if low_value is None or high_value is None:
             raise ValueError("Operands[1] or Operands[2] returned None for express().")
 
-        logger.debug(f"Applying BETWEEN filter on {attr} with range {low_value} to {high_value}")
+        logger.debug(
+            f"Applying BETWEEN filter on {attr} with range {low_value} to {high_value}"
+        )
 
         # Apply the BETWEEN filter
         stmt = stmt.filter(attr.between(low_value, high_value))
 
         return stmt, attr
-    
+
     def needs_join(self, env):
         return [self.operands[0].needs_join(env)]
 
@@ -782,13 +845,14 @@ class BinaryLogical(object):
         return "(%s %s %s)" % (self.operands[0], self.name, self.operands[1])
 
     def needs_join(self, env):
-#        left = self.operands[0].needs_join(env) or []
-#        right = self.operands[1].needs_join(env) or []
+        #        left = self.operands[0].needs_join(env) or []
+        #        right = self.operands[1].needs_join(env) or []
         left = self.operands[0].needs_join(env)
         right = self.operands[1].needs_join(env)
         # ✅ Flatten the list and remove unnecessary nesting
         combined = left + right
         return [item for item in combined if item] if combined else [[]]
+
 
 class SearchAndAction(BinaryLogical):
     name = "AND"
@@ -796,30 +860,32 @@ class SearchAndAction(BinaryLogical):
     def evaluate(self, env):
         result, attr = self.operands[0].evaluate(env)
         for operand in self.operands[1:]:
-            tmp_result,attr = operand.evaluate(env)
+            tmp_result, attr = operand.evaluate(env)
             result = result.intersect(tmp_result)
         return result, attr
+
+
 #    def evaluate(self, env):
 #        """Evaluates AND condition using SQLAlchemy expressions."""
 #        stmt, attr = self.operands[0].evaluate(env)
 #        conditions = [operand.evaluate(env)[0] for operand in self.operands[1:]]
 
 #        return stmt.where(and_(*[c.scalar_subquery() if isinstance(c, Select) else c for c in conditions]))
-        #return stmt.where(and_(*conditions)), attr
+# return stmt.where(and_(*conditions)), attr
 
 
-#class SearchOrAction(BinaryLogical):
+# class SearchOrAction(BinaryLogical):
 #    name = 'OR'
 
-    # def evaluate(self, env):
-    #     result = self.operands[0].evaluate(env)
-    #     for operand in self.operands[1:]:
-    #         first_stmt = self.operands[0].evaluate(env)
-    #         print("First operand stmt:", first_stmt.compile(dialect=env.session.bind.dialect, compile_kwargs={"literal_binds": True}))
-    #         result = result.union(operand.evaluate(env))
-    #         union_stmt = result  # after union
-    #         print("After union, SQL:", select(env.domain).select_from(union_stmt).compile(dialect=env.session.bind.dialect, compile_kwargs={"literal_binds": True}))
-    #     return result
+# def evaluate(self, env):
+#     result = self.operands[0].evaluate(env)
+#     for operand in self.operands[1:]:
+#         first_stmt = self.operands[0].evaluate(env)
+#         print("First operand stmt:", first_stmt.compile(dialect=env.session.bind.dialect, compile_kwargs={"literal_binds": True}))
+#         result = result.union(operand.evaluate(env))
+#         union_stmt = result  # after union
+#         print("After union, SQL:", select(env.domain).select_from(union_stmt).compile(dialect=env.session.bind.dialect, compile_kwargs={"literal_binds": True}))
+#     return result
 
 #    def evaluate(self, env):
 #        """Evaluates OR condition using SQLAlchemy expressions."""
@@ -836,7 +902,7 @@ class SearchAndAction(BinaryLogical):
 
 
 class SearchOrAction(BinaryLogical):
-    name = 'OR'
+    name = "OR"
 
     def evaluate(self, env):
         """Evaluates OR condition using SQLAlchemy expressions."""
@@ -853,9 +919,9 @@ class SearchOrAction(BinaryLogical):
         # ✅ Ensure return type is (stmt, attr)
         return combined_stmt, attr
 
-    
+
 class SearchNotAction(UnaryLogical):
-    name = 'NOT'
+    name = "NOT"
 
     def evaluate(self, env):
         """
@@ -864,7 +930,7 @@ class SearchNotAction(UnaryLogical):
         """
 
         # Ensure domain resolution
-        domain = env['domain']
+        domain = env["domain"]
 
         # Select only the primary key
         primary_key_column = inspect(domain).primary_key[0]
@@ -876,12 +942,10 @@ class SearchNotAction(UnaryLogical):
         # Ensure operand_stmt also selects only the primary key
         operand_stmt = operand_stmt.with_only_columns(primary_key_column)
 
-        
         # Apply the EXCEPT clause to exclude results
         stmt = stmt.except_(operand_stmt)
 
         return stmt, attr
-
 
 
 class ParenthesisedQuery(object):
@@ -896,7 +960,8 @@ class ParenthesisedQuery(object):
 
     def needs_join(self, env):
         return self.content.needs_join(env)
-    
+
+
 class QueryAction(object):
     """
     Represents a structured database query action that interacts with a search strategy.
@@ -930,6 +995,7 @@ class QueryAction(object):
             Executes the query using the given search strategy and returns results.
 
     """
+
     def __init__(self, t):
         """
         QueryAction represents a structured database query.
@@ -941,12 +1007,14 @@ class QueryAction(object):
 
     def __repr__(self):
         return f"SELECT * FROM {self.domain} WHERE {self.filter}"
-            
+
     def invoke(self, search_strategy):
         """
         Executes the parsed query using the given search strategy.
         """
-        logger.debug(f'QueryAction:invoke - {type(self.domain)}({self.domain}) {type(self.filter)}({self.filter})')
+        logger.debug(
+            f"QueryAction:invoke - {type(self.domain)}({self.domain}) {type(self.filter)}({self.filter})"
+        )
 
         # Ensure domain resolution
         domain = self.domain
@@ -966,7 +1034,7 @@ class QueryAction(object):
         env = {
             "domain": domain_class,
             "session": session,
-            "search_strategy": search_strategy  # Ensure `search_strategy` is available
+            "search_strategy": search_strategy,  # Ensure `search_strategy` is available
         }
 
         # Ensure `needs_join` is called before passing to evaluate
@@ -976,12 +1044,16 @@ class QueryAction(object):
         stmt, attr = self.filter.evaluate(env)
 
         # Debugging: Print the compiled SQL query
-        compiled_sql = stmt.compile(dialect=session.bind.dialect, compile_kwargs={"literal_binds": True})
+        compiled_sql = stmt.compile(
+            dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}
+        )
         print(f"DEBUG: Compiled SQL Query:\n{compiled_sql}")
 
         # ✅ Ensure only primary key (`id`) is selected
-        primary_key_column = inspect(domain_class).primary_key[0]  # Get the primary key column
-        #stmt = select(primary_key_column).where(stmt.whereclause)  # Modify query to select only the primary key
+        primary_key_column = inspect(domain_class).primary_key[
+            0
+        ]  # Get the primary key column
+        # stmt = select(primary_key_column).where(stmt.whereclause)  # Modify query to select only the primary key
 
         # if isinstance(stmt, CompoundSelect):
         #     # Handle union queries by selecting only primary key from each subquery
@@ -1004,6 +1076,7 @@ class QueryAction(object):
             result.discard(None)
 
         return result
+
 
 class StatementAction(object):
     """
@@ -1034,7 +1107,7 @@ class StatementAction(object):
         Initializes the StatementAction object with parsed content.
 
         Args:
-            t (list): A list-like structure where the first element (t[0]) 
+            t (list): A list-like structure where the first element (t[0])
                       is expected to be the parsed statement object.
 
         Raises:
@@ -1128,8 +1201,10 @@ class BinomialNameAction(object):
                       - t[1] is the species epithet.
         """
         if len(t) < 2:
-            raise ValueError("BinomialNameAction requires both genus and species epithet.")
-        
+            raise ValueError(
+                "BinomialNameAction requires both genus and species epithet."
+            )
+
         self.genus_epithet = t[0]
         self.species_epithet = t[1]
 
@@ -1139,19 +1214,22 @@ class BinomialNameAction(object):
     def invoke(self, search_strategy):
         from bauble.plugins.plants.genus import Genus
         from bauble.plugins.plants.species import Species
-        logger.debug('BinomialNameAction:invoke')
+
+        logger.debug("BinomialNameAction:invoke")
 
         # ✅ Ensure a valid session is available
         session = search_strategy._session
         if not isinstance(session, Session):
-            raise ValueError("Invalid session provided. Expected an instance of sqlalchemy.orm.Session.")
+            raise ValueError(
+                "Invalid session provided. Expected an instance of sqlalchemy.orm.Session."
+            )
 
         stmt = (
             select(Species)
             .where(
                 or_(
                     Species.sp.startswith(self.species_epithet),
-                    and_(self.species_epithet == 'sp', Species.infrasp1 == 'sp')
+                    and_(self.species_epithet == "sp", Species.infrasp1 == "sp"),
                 )
             )
             .join(Genus)
@@ -1160,7 +1238,7 @@ class BinomialNameAction(object):
 
         result = set(search_strategy._session.scalars(stmt).all())
         if None in result:
-            logger.warning('removing None from result set')
+            logger.warning("removing None from result set")
             result = {i for i in result if i is not None}
         return result
 
@@ -1177,7 +1255,9 @@ class DomainExpressionAction(object):
 
     def __init__(self, t):
         if not t or len(t) < 3:
-            raise ValueError("Invalid domain expression: requires domain, condition, and values.")
+            raise ValueError(
+                "Invalid domain expression: requires domain, condition, and values."
+            )
         self.domain = t[0]
         self.cond = t[1]
         self.values = t[2]
@@ -1205,7 +1285,7 @@ class DomainExpressionAction(object):
     #         logger.debug(f"Wildcard search on {cls.__name__}, retrieving all records.")
     #         self.stmt = stmt
     #         return set(search_strategy._session.execute(stmt).scalars().all())
-    
+
     #     # Step 4: Build the filtering logic
     #     try:
     #         mapper = inspect(cls).mapper  # Use inspect to get mapper
@@ -1240,7 +1320,7 @@ class DomainExpressionAction(object):
     #         raise ValueError("No valid filters could be constructed.")
     #     stmt = stmt.filter(or_(*filters))
     #     self.stmt = stmt
-    
+
     #     # Step 6: Execute query and return results
     #     results = search_strategy._session.execute(stmt).scalars().all()
     #     result_set = {item for item in results if item is not None}
@@ -1249,12 +1329,15 @@ class DomainExpressionAction(object):
 
     def invoke(self, search_strategy):
         import operator
+
         logger.debug("DomainExpressionAction:invoke")
 
         # ✅ Validate session
         session = search_strategy._session
         if not isinstance(session, Session):
-            raise ValueError("Invalid session provided. Expected an instance of sqlalchemy.orm.Session.")
+            raise ValueError(
+                "Invalid session provided. Expected an instance of sqlalchemy.orm.Session."
+            )
 
         # ✅ Resolve domain name to ORM class
         try:
@@ -1277,16 +1360,22 @@ class DomainExpressionAction(object):
             "<=": operator.le,
             ">": operator.gt,
             ">=": operator.ge,
-        } # exclude "=" since it's handled separately
+        }  # exclude "=" since it's handled separately
 
         if self.cond in ("like", "ilike"):
-            condition = lambda col_name: lambda val: utils.ilike(getattr(cls, col_name), f"{val}")
+            condition = lambda col_name: lambda val: utils.ilike(
+                getattr(cls, col_name), f"{val}"
+            )
         elif self.cond in ("contains", "icontains", "has", "ihas"):
-            condition = lambda col_name: lambda val: utils.ilike(getattr(cls, col_name), f"%{val}%")
+            condition = lambda col_name: lambda val: utils.ilike(
+                getattr(cls, col_name), f"%{val}%"
+            )
         elif self.cond == "=":
             condition = lambda col_name: lambda val: getattr(cls, col_name) == val
         elif self.cond in op_map:
-            condition = lambda col_name: lambda val: op_map[self.cond](getattr(cls, col_name), val)
+            condition = lambda col_name: lambda val: op_map[self.cond](
+                getattr(cls, col_name), val
+            )
         else:
             raise ValueError(f"Unsupported or unsafe operator: {self.cond}")
 
@@ -1295,10 +1384,12 @@ class DomainExpressionAction(object):
         filters = []
         for col_name in properties:
             if not hasattr(cls, col_name):
-                logger.warning(f"Column '{col_name}' not found on class '{cls}', skipping.")
+                logger.warning(
+                    f"Column '{col_name}' not found on class '{cls}', skipping."
+                )
                 continue
 
-#            col = getattr(cls, col_name)
+            #            col = getattr(cls, col_name)
             filters.extend([condition(col_name)(val) for val in self.values.express()])
 
         # Step 7: Apply OR conditions correctly
@@ -1312,6 +1403,7 @@ class DomainExpressionAction(object):
         logger.debug(f"DomainExpressionAction Results: {result_set}")
         return result_set
 
+
 class AggregatingAction(object):
 
     def __init__(self, t):
@@ -1321,7 +1413,7 @@ class AggregatingAction(object):
 
     def __repr__(self):
         return "(%s %s)" % (self.function, self.identifier)
-    
+
     def needs_join(self, env):
         return [self.identifier.needs_join(env)]
 
@@ -1363,7 +1455,8 @@ class ValueListAction(object):
         add_meta().
         """
 
-        logger.debug('ValueListAction:invoke')
+        logger.debug("ValueListAction:invoke")
+
         # make searches case-insensitive, in postgres use ilike,
         # in other use upper()
         def ilike_filter(cls, column, value):
@@ -1371,10 +1464,11 @@ class ValueListAction(object):
             # Ensure the value is a string if the column is Unicode.
             mapped = inspect(cls)
             col_obj = mapped.c[column]
-            if hasattr(col_obj.type, 'python_type') and issubclass(col_obj.type.python_type, str):
+            if hasattr(col_obj.type, "python_type") and issubclass(
+                col_obj.type.python_type, str
+            ):
                 value = str(value)
             return func.lower(getattr(cls, column)).like(f"%{value.lower()}%")
-
 
         # ✅ Ensure a valid SQLAlchemy session
         session = search_strategy._session
@@ -1403,16 +1497,17 @@ class ValueListAction(object):
         def replace(item):
             try:
                 replacement = item.replacement()
-                logger.debug('Replacing %s with %s in result set', item, replacement)
+                logger.debug("Replacing %s with %s in result set", item, replacement)
                 return replacement
             except Exception as e:
-                logger.debug('No replacement for %s due to: %s', item, e)
+                logger.debug("No replacement for %s due to: %s", item, e)
                 return item
 
         result = {replace(item) for item in result if item is not None}
 
         logger.debug("Result is now %s", result)
         return result
+
 
 wordStart, wordEnd = WordStart(), WordEnd()
 
@@ -1422,60 +1517,79 @@ class SearchParser:
 
     def debug_parse_action(name):
         """Returns a parse action that prints the parsed tokens with a label."""
+
         def action(tokens):
-            print(f"🔍 {name} parsed:", tokens.dump())  # Print structured result with a label
+            print(
+                f"🔍 {name} parsed:", tokens.dump()
+            )  # Print structured result with a label
             return tokens  # Ensure the original tokens are returned
+
         return action
 
-    numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?").set_parse_action(
-        NumericToken
-    )("number")
+    numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?").set_parse_action(NumericToken)(
+        "number"
+    )
     unquoted_string = Word(alphanums + alphas8bit + "%.-_*;:")
     string_value = (
-        quotedString.set_parse_action(removeQuotes) | unquoted_string
-    ).set_parse_action(debug_parse_action("string_value")).set_parse_action(StringToken)("string")
+        (quotedString.set_parse_action(removeQuotes) | unquoted_string)
+        .set_parse_action(debug_parse_action("string_value"))
+        .set_parse_action(StringToken)("string")
+    )
 
-    none_token = Literal("None").set_parse_action(debug_parse_action("none_token")).set_parse_action(NoneToken)
-    empty_token = Literal("Empty").set_parse_action(debug_parse_action("empty_token")).set_parse_action(EmptyToken)
+    none_token = (
+        Literal("None")
+        .set_parse_action(debug_parse_action("none_token"))
+        .set_parse_action(NoneToken)
+    )
+    empty_token = (
+        Literal("Empty")
+        .set_parse_action(debug_parse_action("empty_token"))
+        .set_parse_action(EmptyToken)
+    )
 
     value_list = Forward()
     typed_value = (
-        Literal("|")
-        + unquoted_string
-        + Literal("|")
-        + value_list
-        + Literal("|")
-    ).set_parse_action(debug_parse_action("typed_value")).set_parse_action(TypedValueToken)
-
+        (Literal("|") + unquoted_string + Literal("|") + value_list + Literal("|"))
+        .set_parse_action(debug_parse_action("typed_value"))
+        .set_parse_action(TypedValueToken)
+    )
 
     AND_ = wordStart + (CaselessLiteral("AND") | Literal("&&")) + wordEnd
     OR_ = wordStart + (CaselessLiteral("OR") | Literal("||")) + wordEnd
-    NOT_ = wordStart + (CaselessLiteral("NOT") | Literal('!')) + wordEnd
+    NOT_ = wordStart + (CaselessLiteral("NOT") | Literal("!")) + wordEnd
     BETWEEN_ = wordStart + CaselessLiteral("BETWEEN") + wordEnd
 
     value = (
-        typed_value
-        | WordStart("0123456789.-e") + numeric_value + WordEnd("0123456789.-e")
-        | none_token 
-        | empty_token
-        | string_value
-    ).set_parse_action(debug_parse_action("value")).set_parse_action(ValueToken)("value")
-    value_list <<= Group(
-        OneOrMore(value) ^ DelimitedList(value)
-    ).set_parse_action(debug_parse_action("value_list")).set_parse_action(ValueListAction)("value_list")
+        (
+            typed_value
+            | WordStart("0123456789.-e") + numeric_value + WordEnd("0123456789.-e")
+            | none_token
+            | empty_token
+            | string_value
+        )
+        .set_parse_action(debug_parse_action("value"))
+        .set_parse_action(ValueToken)("value")
+    )
+    value_list <<= (
+        Group(OneOrMore(value) ^ DelimitedList(value))
+        .set_parse_action(debug_parse_action("value_list"))
+        .set_parse_action(ValueListAction)("value_list")
+    )
 
     domain = Word(alphas, alphanums)
 
-    #binop = MatchFirst([Literal("is not"), Literal("="), Literal("=="), Literal("!="), Literal("<>"), Literal("<"), Literal("<="), Literal(">="), Literal("not"), Literal("like"), Literal("contains"), Literal("has"), Literal("ilike"), Literal("icontains"), Literal("ihas"), Literal("is")])
+    # binop = MatchFirst([Literal("is not"), Literal("="), Literal("=="), Literal("!="), Literal("<>"), Literal("<"), Literal("<="), Literal(">="), Literal("not"), Literal("like"), Literal("contains"), Literal("has"), Literal("ilike"), Literal("icontains"), Literal("ihas"), Literal("is")])
     binop = one_of(
         "= == != <> < <= > >= not like contains has ilike icontains ihas is"
     ).set_parse_action(debug_parse_action("binop"))
-    binop = MatchFirst([
-        CaselessKeyword("is not"),
-        one_of(
-        "= == != <> < <= > >= not like contains has ilike icontains ihas is"
-        )
-    ])  
+    binop = MatchFirst(
+        [
+            CaselessKeyword("is not"),
+            one_of(
+                "= == != <> < <= > >= not like contains has ilike icontains ihas is"
+            ),
+        ]
+    )
     binop_set = one_of("in")
     equals = Literal("=")
     star_value = Literal("*")
@@ -1498,9 +1612,20 @@ class SearchParser:
     query_expression = Forward()("filter")
 
     atomic_identifier = Word(alphas + "_", alphanums + "_")
-    identifier = (
-        Group(atomic_identifier + ZeroOrMore('.' + atomic_identifier) + '[' + atomic_identifier + binop + value + ']' + '.' + atomic_identifier).setParseAction(FilteredIdentifierAction)
-        | Group(atomic_identifier + ZeroOrMore('.' + atomic_identifier)).setParseAction(IdentifierAction)
+    identifier = Group(
+        atomic_identifier
+        + ZeroOrMore("." + atomic_identifier)
+        + "["
+        + atomic_identifier
+        + binop
+        + value
+        + "]"
+        + "."
+        + atomic_identifier
+    ).setParseAction(FilteredIdentifierAction) | Group(
+        atomic_identifier + ZeroOrMore("." + atomic_identifier)
+    ).setParseAction(
+        IdentifierAction
     )
     aggregated = (
         aggregating_func + Literal("(") + identifier + Literal(")")
@@ -1510,9 +1635,7 @@ class SearchParser:
         | Group(identifier + binop_set + value_list).set_parse_action(
             ElementSetExpression
         )
-        | Group(aggregated + binop + value).set_parse_action(
-            AggregatedExpression
-        )
+        | Group(aggregated + binop + value).set_parse_action(AggregatedExpression)
         | (Literal("(") + query_expression + Literal(")")).set_parse_action(
             ParenthesisedQuery
         )
@@ -1520,20 +1643,28 @@ class SearchParser:
     between_expression = Group(
         identifier + BETWEEN_ + value + AND_ + value
     ).set_parse_action(BetweenExpressionAction)
-    query_expression <<= infix_notation(
-        (ident_expression | between_expression),
-        [
-            (NOT_, 1, OpAssoc.RIGHT, SearchNotAction),
-            (AND_, 2, OpAssoc.LEFT, SearchAndAction),
-            (OR_, 2, OpAssoc.LEFT, SearchOrAction),
-        ],
-    ).set_debug(True,False).set_parse_action(debug_parse_action("query_expression"))
+    query_expression <<= (
+        infix_notation(
+            (ident_expression | between_expression),
+            [
+                (NOT_, 1, OpAssoc.RIGHT, SearchNotAction),
+                (AND_, 2, OpAssoc.LEFT, SearchAndAction),
+                (OR_, 2, OpAssoc.LEFT, SearchOrAction),
+            ],
+        )
+        .set_debug(True, False)
+        .set_parse_action(debug_parse_action("query_expression"))
+    )
     query = (
-        domain
-        + Keyword("where", caseless=True).suppress()
-        + Group(query_expression)
-        + stringEnd
-    ).set_parse_action(debug_parse_action("query")).set_parse_action(QueryAction)
+        (
+            domain
+            + Keyword("where", caseless=True).suppress()
+            + Group(query_expression)
+            + stringEnd
+        )
+        .set_parse_action(debug_parse_action("query"))
+        .set_parse_action(QueryAction)
+    )
 
     statement = (
         query("query")
@@ -1551,9 +1682,9 @@ class SearchParser:
         """
 
         result = self.statement.parse_string(text)
-        
+
         # ✅ Debugging Step: Print the raw parse result
-        print("🔍 PARSE RESULT:", result.dump())  
+        print("🔍 PARSE RESULT:", result.dump())
         return result
 
 
@@ -1570,9 +1701,7 @@ class SearchStrategy(object):
         Return an iterator that iterates over mapped classes retrieved
         from the search.
         """
-        logger.debug(
-            'SearchStrategy "{}"({})'.format(text, self.__class__.__name__)
-        )
+        logger.debug('SearchStrategy "{}"({})'.format(text, self.__class__.__name__))
 
 
 class MapperSearch(SearchStrategy):
@@ -1611,23 +1740,15 @@ class MapperSearch(SearchStrategy):
                            search by default
         """
 
-        logger.debug(
-            "%s.add_meta(%s, %s, %s)" % (self, domain, cls, properties)
-        )
+        logger.debug("%s.add_meta(%s, %s, %s)" % (self, domain, cls, properties))
 
         check(
             isinstance(properties, list),
-            _(
-                "MapperSearch.add_meta(): "
-                "default_columns argument must be list"
-            ),
+            _("MapperSearch.add_meta(): " "default_columns argument must be list"),
         )
         check(
             len(properties) > 0,
-            _(
-                "MapperSearch.add_meta(): "
-                "default_columns argument cannot be empty"
-            ),
+            _("MapperSearch.add_meta(): " "default_columns argument cannot be empty"),
         )
         if isinstance(domain, (list, tuple)):
             self._domains[domain[0]] = (cls, properties)
@@ -1635,7 +1756,7 @@ class MapperSearch(SearchStrategy):
                 self._shorthand[d] = domain[0]
         else:
             # Extract the first word for single-word domain strings
-            #domain_key = domain.split(" ")[0]
+            # domain_key = domain.split(" ")[0]
             self._domains[domain] = (cls, properties)
         self._properties[cls] = properties
 
@@ -1645,11 +1766,11 @@ class MapperSearch(SearchStrategy):
         for domain, item in cls._domains.items():
             d.setdefault(domain, item[0])
         return d
-    
+
     def search(self, text, session=None):
         """
         Perform a text-based search on the database using the MapperSearch strategy.
-        
+
         Args:
             text (str): The query string specifying the search criteria.
                         This should be a valid expression that can be parsed by the internal parser.
@@ -1658,10 +1779,10 @@ class MapperSearch(SearchStrategy):
                         - "plant where accession.species.genus.family.family='Orchidaceae' AND accession.species.genus.family.qualifier=''"
             session (Session, optional): The SQLAlchemy session object to use for the query.
                                          If None, a session should be explicitly closed after use to prevent database deadlocks.
-        
+
         Returns:
             set: A set of ORM objects matching the search criteria. If no matches are found, an empty set is returned.
-        
+
         Raises:
             Exception: If the query parsing fails or if there are issues executing the SQL queries.
         """
@@ -1673,38 +1794,48 @@ class MapperSearch(SearchStrategy):
         self._session = session  # ✅ Store session properly for queries
 
         super().search(text, session)
-        #self._session = session  # Store the session for use in querying
-        
+        # self._session = session  # Store the session for use in querying
+
         # Clear any previous search results
         self._results.clear()
-        
+
         # Step 1: Parse the input search string
-        parse_result = self.parser.parse_string(text)  # Convert search text into an actionable statement
+        parse_result = self.parser.parse_string(
+            text
+        )  # Convert search text into an actionable statement
         statement = parse_result.statement  # Extract the parsed statement object
         logger.debug("statement : {}({})".format(type(statement), statement))
-        print(f"DEBUG: MapperSearch.search() - Parsed statement type: {type(statement)}")
-        
+        print(
+            f"DEBUG: MapperSearch.search() - Parsed statement type: {type(statement)}"
+        )
+
         # Step 2: Ensure `invoke()` returns a valid statement
-        #select_stmt, attr = statement.invoke(self) 
+        # select_stmt, attr = statement.invoke(self)
         # Invoke the parsed statement and retrieve raw results (likely a set of IDs or objects)
         raw_results = statement.invoke(self)
         logger.debug("raw_results : {}".format(raw_results))
 
         # ✅ Ensure raw_results is a fresh set to prevent shared state issues
         if raw_results:
-            raw_results = set(raw_results)  # Create a new set to avoid modifying shared references
+            raw_results = set(
+                raw_results
+            )  # Create a new set to avoid modifying shared references
 
         # Extract the action name, which determines how the query should be processed
-        action_name = parse_result.getName()  # Possible values: "domain_expression", "query", "value_list"
+        action_name = (
+            parse_result.getName()
+        )  # Possible values: "domain_expression", "query", "value_list"
         logger.debug("Pyparsing action: %s", action_name)
         logger.debug("raw_results = %s", raw_results)
-        
+
         # If no results were found, return an empty set immediately
         if not raw_results:
             return set(self._results)  # Return an empty result set
-        
+
         # Step 3: Check if raw_results contains primary keys instead of full objects
-        first_result = next(iter(raw_results))  if raw_results else None # Get first result
+        first_result = (
+            next(iter(raw_results)) if raw_results else None
+        )  # Get first result
         if isinstance(first_result, int):  # ✅ Assume raw_results are primary keys
             domain_name = text.split(" ")[0]  # Extract domain name from query
             domain_class = self._domains.get(domain_name, [None])[0]
@@ -1714,7 +1845,9 @@ class MapperSearch(SearchStrategy):
                 stmt = select(domain_class).where(domain_class.id.in_(raw_results))
 
                 # ✅ Print raw SQL for debugging
-                compiled_sql = stmt.compile(self._session.bind, compile_kwargs={"literal_binds": True})
+                compiled_sql = stmt.compile(
+                    self._session.bind, compile_kwargs={"literal_binds": True}
+                )
                 print("\n🔍 GENERATED SQL:\n", compiled_sql)
 
                 full_results = set(self._session.execute(stmt).scalars().all())
@@ -1723,9 +1856,10 @@ class MapperSearch(SearchStrategy):
                 self._results.update(raw_results)  # Fallback to raw results
         else:
             self._results.update(raw_results)
-        
+
         # Return the final set of search results
         return set(self._results)
+
 
 # list of search strategies to be tried on each search string
 _search_strategies = {"MapperSearch": MapperSearch()}
@@ -1735,11 +1869,15 @@ def add_strategy(strategy):
     obj = strategy()
     _search_strategies[obj.__class__.__name__] = obj
 
+
 def get_strategy(name):
     strategy = _search_strategies.get(name)
     return strategy
-#def get_strategy(name):
+
+
+# def get_strategy(name):
 #    return _search_strategies.get(name, None)
+
 
 class SchemaBrowser:
     """
@@ -1748,14 +1886,14 @@ class SchemaBrowser:
 
     def __init__(self):
         self.container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        
+
         # WARNING: this is a hack from MapperSearch
         self.domain_map = MapperSearch.get_domain_classes().copy()
 
         # Search Domain Selection
         frame = Gtk.Frame(label=_("Search Domain"))
         self.container.pack_start(frame, False, False, 0)
-        
+
         self.table_combo = Gtk.ComboBoxText()
         frame.add(self.table_combo)
         for key in sorted(self.domain_map.keys()):
@@ -1766,7 +1904,7 @@ class SchemaBrowser:
         # Property TreeView
         self.prop_tree = Gtk.TreeView()
         self.prop_tree.set_headers_visible(False)
-        
+
         cell = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn(_("Property"), cell)
         self.prop_tree.append_column(column)
@@ -1808,8 +1946,7 @@ class SchemaBrowser:
             [
                 x
                 for x in mapper.iterate_properties
-                if isinstance(x, RelationProperty)
-                and not x.key.startswith("_")
+                if isinstance(x, RelationProperty) and not x.key.startswith("_")
             ],
             key=lambda k: k.key,
         )

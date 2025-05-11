@@ -31,8 +31,7 @@ def get_submissions(user, pw, host, form_id, to_skip=[]):
     )
     auth = HTTPDigestAuth(user, pw)
     result = requests.get(
-        base_format
-        % {"form_id": form_id, "api": "submissionList", "host": host},
+        base_format % {"form_id": form_id, "api": "submissionList", "host": host},
         auth=auth,
     )
     if not result.ok:
@@ -52,8 +51,7 @@ def get_submissions(user, pw, host, form_id, to_skip=[]):
                         "api": "downloadSubmission",
                         "host": host,
                     }
-                    + submission_format
-                    % {"group_name": "plant_form", "uuid": uuid}
+                    + submission_format % {"group_name": "plant_form", "uuid": uuid}
                 ),
                 auth=auth,
             )

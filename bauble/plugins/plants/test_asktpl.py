@@ -33,36 +33,39 @@ def mock_requests():
     """
     Mock the `requests.get` function to simulate API responses.
     """
+
     def mock_get(url, timeout=None):
         import time
+
         time.sleep(0.1)
         answers = {
             "http://www.theplantlist.org/tpl1.1/search?q=Mangifera indica&csv=true": (
-                'ID,Major group,Family,Genus hybrid marker,Genus,Species hybrid marker,Species,'
-                'Infraspecific rank,Infraspecific epithet,Authorship,Taxonomic status in TPL,'
-                'Nomenclatural status from original data source,Confidence level,Source,'
-                'Source id,IPNI id,Publication,Collation,Page,Date,Accepted ID\n'
+                "ID,Major group,Family,Genus hybrid marker,Genus,Species hybrid marker,Species,"
+                "Infraspecific rank,Infraspecific epithet,Authorship,Taxonomic status in TPL,"
+                "Nomenclatural status from original data source,Confidence level,Source,"
+                "Source id,IPNI id,Publication,Collation,Page,Date,Accepted ID\n"
                 'kew-2362842,A,Anacardiaceae,,Mangifera,,"indica",,"","L.",Accepted,,M,'
                 'WCSP (in review),,69913-1,"Sp. Pl.","200","","1753",\n'
             ),
             "http://www.theplantlist.org/tpl1.1/search?q=Iris florentina&csv=true": (
-                'ID,Major group,Family,Genus hybrid marker,Genus,Species hybrid marker,Species,'
-                'Infraspecific rank,Infraspecific epithet,Authorship,Taxonomic status in TPL,'
-                'Nomenclatural status from original data source,Confidence level,Source,'
-                'Source id,IPNI id,Publication,Collation,Page,Date,Accepted ID\n'
+                "ID,Major group,Family,Genus hybrid marker,Genus,Species hybrid marker,Species,"
+                "Infraspecific rank,Infraspecific epithet,Authorship,Taxonomic status in TPL,"
+                "Nomenclatural status from original data source,Confidence level,Source,"
+                "Source id,IPNI id,Publication,Collation,Page,Date,Accepted ID\n"
                 'kew-321828,A,Iridaceae,,Iris,×,"florentina",,"","L.",Synonym,,H,iPlants,321828,'
                 '438598-1,"Syst. Nat. ed. 10","2: 863","","1759",kew-321867\n'
             ),
             "http://www.theplantlist.org/tpl1.1/search?q=kew-321867&csv=true": (
-                'ID,Major group,Family,Genus hybrid marker,Genus,Species hybrid marker,Species,'
-                'Infraspecific rank,Infraspecific epithet,Authorship,Taxonomic status in TPL,'
-                'Nomenclatural status from original data source,Confidence level,Source,'
-                'Source id,IPNI id,Publication,Collation,Page,Date,Accepted ID\n'
+                "ID,Major group,Family,Genus hybrid marker,Genus,Species hybrid marker,Species,"
+                "Infraspecific rank,Infraspecific epithet,Authorship,Taxonomic status in TPL,"
+                "Nomenclatural status from original data source,Confidence level,Source,"
+                "Source id,IPNI id,Publication,Collation,Page,Date,Accepted ID\n"
                 'kew-321867,A,Iridaceae,,Iris,×,"germanica",,"","L.",Accepted,,H,iPlants,321867,'
                 '438637-1,"Sp. Pl.","38","","1753",\n'
             ),
             "http://www.theplantlist.org/tpl1.1/search?q=Manducaria italica&csv=true": "",
         }
+
         class MockResponse:
             def __init__(self, text):
                 self.text = text
@@ -78,6 +81,7 @@ class TestAskTPL:
     """
     Tests for the AskTPL class and its interactions.
     """
+
     logger_name = "bauble.plugins.plants.ask_tpl"
     logger = logging.getLogger(logger_name)
 
@@ -88,7 +92,10 @@ class TestAskTPL:
 
         infolog = mock_logger.messages[self.logger_name]["info"]
         assert len(infolog) == 1
-        assert infolog[0] == "Rhopalocarpus alternifolius var. sambiranensis Capuron (Sphaerosepalaceae)"
+        assert (
+            infolog[0]
+            == "Rhopalocarpus alternifolius var. sambiranensis Capuron (Sphaerosepalaceae)"
+        )
 
     def test_taxon_is_synonym(self, mock_logger):
         self.logger.setLevel(logging.INFO)
@@ -119,7 +126,9 @@ class TestAskTPL:
         obj.stop()
 
         debuglog = mock_logger.messages[self.logger_name]["debug"]
-        assert "already requesting Iris florentina, ignoring repeated request" in debuglog
+        assert (
+            "already requesting Iris florentina, ignoring repeated request" in debuglog
+        )
 
     def test_do_not_run_two_requests_at_same_time(self, mock_logger):
         self.logger.setLevel(logging.DEBUG)

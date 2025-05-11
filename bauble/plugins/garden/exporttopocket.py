@@ -95,9 +95,7 @@ CREATE TABLE "plant" (
 
 
 class ExportToPocketThread(threading.Thread):
-    def __init__(
-        self, filename, progressbar=None, callback=None, include_private=True
-    ):
+    def __init__(self, filename, progressbar=None, callback=None, include_private=True):
         super().__init__(target=None, name=None)
         self.filename = filename
         self.callback = callback
@@ -109,11 +107,7 @@ class ExportToPocketThread(threading.Thread):
         from bauble.plugins.plants import Species
 
         session = db.Session()
-        stmt = (
-            select(Plant)
-            .join(Accession)
-            .order_by(Plant.code, Plant.id)
-        )
+        stmt = select(Plant).join(Accession).order_by(Plant.code, Plant.id)
 
         if self.include_private is False:
             # no private accessions: add a filter to only keep non-private
@@ -123,20 +117,24 @@ class ExportToPocketThread(threading.Thread):
         plants = plant_query.all()
 
         accessions = (
-            session.execute(select(Accession)
-            .where(
-                Accession.id.in_(bindparam("accession_ids", expanding=True))
+            session.execute(
+                select(Accession)
+                .where(Accession.id.in_(bindparam("accession_ids", expanding=True)))
+                .params(accession_ids=[j.accession_id for j in plants])
+                .order_by(Accession.id)
             )
-            .params(accession_ids=[j.accession_id for j in plants])
-            .order_by(Accession.id)
-            ).scalars().all()
+            .scalars()
+            .all()
         )
         species = (
-            session.execute(select(Species)
-            .where(Species.id.in_(bindparam("species_ids", expanding=True)))
-            .params(species_ids=[j.species_id for j in accessions])
-            .order_by(Species.id)
-            ).scalars().all()
+            session.execute(
+                select(Species)
+                .where(Species.id.in_(bindparam("species_ids", expanding=True)))
+                .params(species_ids=[j.species_id for j in accessions])
+                .order_by(Species.id)
+            )
+            .scalars()
+            .all()
         )
         import sqlite3
 
@@ -161,9 +159,7 @@ class ExportToPocketThread(threading.Thread):
                 )
             except Exception as e:
                 logger.info(
-                    "error exporting species {}: {} {}".format(
-                        i.id, type(e), e
-                    )
+                    "error exporting species {}: {} {}".format(i.id, type(e), e)
                 )
             count += 1
             if self.progressbar:
@@ -187,9 +183,7 @@ class ExportToPocketThread(threading.Thread):
                 )
             except Exception as e:
                 logger.info(
-                    "error exporting accession {}: {} {}".format(
-                        i.id, type(e), e
-                    )
+                    "error exporting accession {}: {} {}".format(i.id, type(e), e)
                 )
             count += 1
             if self.progressbar:
@@ -217,9 +211,7 @@ class ExportToPocketThread(threading.Thread):
                     ),
                 )
             except Exception as e:
-                logger.info(
-                    "error exporting plant {}: {} {}".format(i.id, type(e), e)
-                )
+                logger.info("error exporting plant {}: {} {}".format(i.id, type(e), e))
             count += 1
             if self.progressbar:
                 GLib.idle_add(

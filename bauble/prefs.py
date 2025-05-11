@@ -131,6 +131,7 @@ Values: True, False (Default: False)
 """
 testing_pref = "bauble.testing"
 
+
 class _prefs(dict):
 
     def __init__(self, filename=default_prefs_file):
@@ -148,8 +149,9 @@ class _prefs(dict):
         """Allow attributes to refer to module-level constants (keys)."""
         if name in globals():
             return globals()[name]
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-
+        raise AttributeError(
+            f"'{self.__class__.__name__}' object has no attribute '{name}'"
+        )
 
     def __deepcopy__(self, memo):
         """
@@ -158,17 +160,17 @@ class _prefs(dict):
         """
         # Create a new instance of `_prefs`
         new_prefs = _prefs(self._filename)
-        
+
         # Copy additional attributes
         new_prefs._filename = copy.deepcopy(self._filename, memo)
         new_prefs.config = copy.deepcopy(self.config, memo) if self.config else None
-  
-          # Deepcopy the dictionary items
+
+        # Deepcopy the dictionary items
         for key, value in self.items():
             new_prefs[key] = copy.deepcopy(value, memo)
-        
+
         return new_prefs
-    
+
     def _strip_prefix(self, key):
         """
         Strip the 'bauble.' prefix from a key if present.
@@ -176,12 +178,12 @@ class _prefs(dict):
         if key.startswith("bauble."):
             return key[len("bauble.") :]
         return key
-        
+
     @property
     def prefs(self):
         # Mimic the old behavior by returning self
         return self
-    
+
     def __setattr__(self, name, value):
         """
         Allow setting keys as attributes, e.g., prefs.parse_dayfirst_pref = value.
@@ -215,9 +217,7 @@ class _prefs(dict):
         version = self[config_version_pref]
         if version is None:
             logger.warning("%s has no config version pref" % self._filename)
-            logger.warning(
-                "setting the config version to %s.%s" % (config_version)
-            )
+            logger.warning("setting the config version to %s.%s" % (config_version))
             self[config_version_pref] = config_version
 
         # set some defaults if they don't exist
@@ -243,7 +243,7 @@ class _prefs(dict):
     @staticmethod
     def _parse_key(name):
         index = name.rfind(".")
-        return name[:index], name[index + 1:]
+        return name[:index], name[index + 1 :]
 
     def get(self, key, default):
         """
@@ -256,7 +256,7 @@ class _prefs(dict):
 
     def __getitem__(self, key):
         section, option = _prefs._parse_key(key)
-        key = self._strip_prefix(key)        
+        key = self._strip_prefix(key)
         # this doesn't allow None values for preferences
         if not self.config.has_section(section) or not self.config.has_option(
             section, option
@@ -294,10 +294,8 @@ class _prefs(dict):
 
     def __contains__(self, key):
         section, option = _prefs._parse_key(key)
-        key = self._strip_prefix(key) 
-        if self.config.has_section(section) and self.config.has_option(
-            section, option
-        ):
+        key = self._strip_prefix(key)
+        if self.config.has_section(section) and self.config.has_option(section, option):
             return True
         return False
 
@@ -325,7 +323,9 @@ class _prefs(dict):
             else:
                 logger.error(msg)
 
+
 prefs = _prefs()
+
 
 class PrefsView(pluginmgr.View):
     """
@@ -363,9 +363,11 @@ class PrefsView(pluginmgr.View):
         from bauble.pluginmgr import PluginRegistry
 
         session = db.Session()
-        plugins = session.execute(select(PluginRegistry.name, PluginRegistry.version)).all()
+        plugins = session.execute(
+            select(PluginRegistry.name, PluginRegistry.version)
+        ).all()
         for plugin in plugins:
-            name, version  = plugin
+            name, version = plugin
             self.plugins_ls.append((name, version))
         session.close()
 
@@ -386,4 +388,4 @@ class PrefsCommandHandler(pluginmgr.CommandHandler):
 
 pluginmgr.register_command(PrefsCommandHandler)
 
-#prefs = _prefs()
+# prefs = _prefs()

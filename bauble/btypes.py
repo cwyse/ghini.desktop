@@ -39,6 +39,7 @@ from typing import Protocol, runtime_checkable
 class BaseModelProtocol(Protocol):
     id: int
 
+
 # TODO: store all times as UTC or support timezones
 class FreezableList(list):
     def __init__(self, *args):
@@ -93,13 +94,15 @@ class FreezableList(list):
         self._check_mutation()
         super().reverse()
 
+
 class EnumError(error.BaubleError):
     """Raised when a bad value is inserted or returned from the Enum type"""
+
 
 #        types.Enum("s. lat.", "s. str.", "", name="qualifier_enum"),
 class Enum(types.TypeDecorator):
     """A database independent Enum type. The value is stored in the database as a Unicode string."""
-    
+
     impl = types.Unicode  # Stored as Unicode in the database
     cache_ok = True
 
@@ -114,12 +117,14 @@ class Enum(types.TypeDecorator):
         if not isinstance(other, Enum):
             return False
         return (
-            self.values == other.values and
-            self.empty_to_none == other.empty_to_none and
-            self.strict == other.strict
+            self.values == other.values
+            and self.empty_to_none == other.empty_to_none
+            and self.strict == other.strict
         )
-    
-    def __init__(self, values, empty_to_none=False, strict=True, translations=None, **kwargs):
+
+    def __init__(
+        self, values, empty_to_none=False, strict=True, translations=None, **kwargs
+    ):
         """
         :param values: A list of valid values for the column.
         :param empty_to_none: Treat the empty string '' as None. None must be in the values list for this to be set.
@@ -128,8 +133,8 @@ class Enum(types.TypeDecorator):
         """
         logger.debug("Enum::init %s %s %s", type(self).__name__, values, empty_to_none)
         # Remove omit_aliases if present
-        kwargs.pop("omit_aliases", None)        
-        
+        kwargs.pop("omit_aliases", None)
+
         super().__init__()
         # Validate values
         if not values or not isinstance(values, (list, set, tuple)):
@@ -138,18 +143,22 @@ class Enum(types.TypeDecorator):
             raise ValueError("Enum requires string values (or None)")
         if len(values) != len(set(values)):
             raise ValueError("Enum requires unique values")
-        
+
         # Ensure None is present if `empty_to_none` is True
         if empty_to_none and None not in values:
-            raise EnumError(_("You have configured empty_to_none=True, but None is not in the values list"))
+            raise EnumError(
+                _(
+                    "You have configured empty_to_none=True, but None is not in the values list"
+                )
+            )
 
         # Convert values to a **mutable list**
-        #self.values = list(values)  # ✅ Now mutable
+        # self.values = list(values)  # ✅ Now mutable
         self.values = FreezableList(values)
         self.values.freeze()  # prevent later changes
         self.strict = strict
         self.empty_to_none = empty_to_none
-        
+
         # Ensure translations is always a dictionary
         self.translations = translations if isinstance(translations, dict) else {}
 
@@ -173,26 +182,25 @@ class Enum(types.TypeDecorator):
         """
         Process the value going into the database.
         """
-        logger.debug(f"Enum::process_bind_param {type(self).__name__} {type(value).__name__}({value})")
+        logger.debug(
+            f"Enum::process_bind_param {type(self).__name__} {type(value).__name__}({value})"
+        )
 
         # Handle empty strings as None if configured
         if self.empty_to_none and not value:
             value = None
 
         # Convert None to empty string if needed
-        if value is None and None not in self.values and '' in self.values:
-            value = ''
+        if value is None and None not in self.values and "" in self.values:
+            value = ""
 
         # Validate the value
         if value not in self.values:
             raise EnumError(
-                _(
-                    f"{type(value).__name__}({value}) not in Enum.values: {self.values}"
-                )
+                _(f"{type(value).__name__}({value}) not in Enum.values: {self.values}")
             )
 
         return value
-
 
     def process_result_value(self, value, dialect):
         """
@@ -218,18 +226,20 @@ class DateTime(types.TypeDecorator):
     """
     A DateTime type that ensures timezone-aware storage and retrieval.
     """
+
     impl = types.DateTime
     cache_ok = True
 
     import re
-    _rx_tz = re.compile('[+-]')
+
+    _rx_tz = re.compile("[+-]")
 
     def __init__(self):
         super().__init__()
 
     def process_bind_param(self, value, dialect):
         """
-        Convert value (string or datetime) into a proper datetime object, 
+        Convert value (string or datetime) into a proper datetime object,
         ensuring timezone awareness if needed.
         """
         if value is None:
@@ -238,11 +248,13 @@ class DateTime(types.TypeDecorator):
         if isinstance(value, str):
             # Dynamically fetch preferences for date parsing
             from bauble import prefs
+
             dayfirst = prefs.parse_dayfirst_pref
             yearfirst = prefs.parse_yearfirst_pref
 
             # Parse the string into a datetime object
             from bauble.utils import parse_date  # Ensure this is available
+
             result = parse_date(value, dayfirst=dayfirst, yearfirst=yearfirst)
             return result
 
@@ -251,7 +263,6 @@ class DateTime(types.TypeDecorator):
             value = value.replace(tzinfo=timezone.utc)
 
         return value
-
 
     def process_result_value(self, value, dialect):
         """
@@ -279,15 +290,17 @@ class DateTime(types.TypeDecorator):
         if not isinstance(other, DateTime):
             return NotImplemented
         return self.cache_ok == other.cache_ok
-    
+
     def __hash__(self):
         """Ensure SQLAlchemy can cache this type safely."""
         return hash("DateTimeType")  # ✅ Use a static hash to prevent issues
-    
+
+
 class Date(types.TypeDecorator):
     """
     A Date type that allows Date strings
     """
+
     impl = types.Date
     cache_ok = True  # SQLAlchemy caching compatibility
 
@@ -298,8 +311,10 @@ class Date(types.TypeDecorator):
 
     def __hash__(self):
         """Ensure SQLAlchemy can cache this type safely."""
-        return hash("DateType")  # ✅ Static hash ensures uniqueness without breaking SQLAlchemy caching
-    
+        return hash(
+            "DateType"
+        )  # ✅ Static hash ensures uniqueness without breaking SQLAlchemy caching
+
     def _initialize_date_prefs(self):
         """
         Initialize dayfirst and yearfirst preferences if not already set.
@@ -308,9 +323,12 @@ class Date(types.TypeDecorator):
         with _prefs_lock:
             if self._dayfirst is None or self._yearfirst is None:
                 from bauble import prefs
+
                 self._dayfirst = prefs.prefs[prefs.parse_dayfirst_pref]
                 self._yearfirst = prefs.prefs[prefs.parse_yearfirst_pref]
-                logger.debug(f"Date preferences initialized: dayfirst={self._dayfirst}, yearfirst={self._yearfirst}")
+                logger.debug(
+                    f"Date preferences initialized: dayfirst={self._dayfirst}, yearfirst={self._yearfirst}"
+                )
 
     def process_bind_param(self, value, dialect):
         """
@@ -319,7 +337,9 @@ class Date(types.TypeDecorator):
         if not isinstance(value, str):
             return value
         self._initialize_date_prefs()
-        parsed_date = parse_date(value, dayfirst=self._dayfirst, yearfirst=self._yearfirst)
+        parsed_date = parse_date(
+            value, dayfirst=self._dayfirst, yearfirst=self._yearfirst
+        )
         logger.debug(f"Processed bind param: input={value}, parsed_date={parsed_date}")
         return parsed_date.date()
 
@@ -335,11 +355,11 @@ class Date(types.TypeDecorator):
         Create a copy of the Date type with the same configuration.
         """
         return Date()
-    
+
     def __repr__(self):
         return f"Date(cache_ok={self.cache_ok})"
 
     def __eq__(self, other):
         if not isinstance(other, Date):
             return NotImplemented
-        return self.cache_ok == other.cache_ok    
+        return self.cache_ok == other.cache_ok

@@ -29,20 +29,20 @@ import os
 import queue  # For producer-consumer handling
 import sys
 
-#import traceback
-#from gettext import gettext as _
+# import traceback
+# from gettext import gettext as _
 import threading
 
-#import bauble.pluginmgr as pluginmgr
-#import bauble.task
+# import bauble.pluginmgr as pluginmgr
+# import bauble.task
 import bauble.utils as utils
 import sqlalchemy as sa
 from bauble.btypes import Enum
 from bauble.db import Session
 
-#from bauble import pb_set_fraction
-#from bauble.error import BaubleError
-#from gi.repository import Gtk
+# from bauble import pb_set_fraction
+# from bauble.error import BaubleError
+# from gi.repository import Gtk
 from bauble.plugins.imex.unicode_utils import (
     InvalidDataError,
     UnicodeReader,
@@ -50,12 +50,12 @@ from bauble.plugins.imex.unicode_utils import (
 )
 from sqlalchemy import Boolean
 
-#from sqlalchemy import ColumnDefault
-#from sqlalchemy import inspect
-#from sqlalchemy import func
-#from sqlalchemy.exc import DataError
-#from sqlalchemy.orm import configure_mappers
-#from sqlalchemy.orm import sessionmaker
+# from sqlalchemy import ColumnDefault
+# from sqlalchemy import inspect
+# from sqlalchemy import func
+# from sqlalchemy.exc import DataError
+# from sqlalchemy.orm import configure_mappers
+# from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.elements import ClauseElement
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,9 @@ QUOTE_CHAR = '"'
 
 
 class CSVProcessor:
-    def __init__(self, table, filename, defaults, update_every, flush_count=0, steps_so_far=0):
+    def __init__(
+        self, table, filename, defaults, update_every, flush_count=0, steps_so_far=0
+    ):
         """
         Initialize the CSV processor.
 
@@ -86,7 +88,7 @@ class CSVProcessor:
 
         # 🆕 **Thread-safe Queue for batch inserts**
         self.batch_queue = queue.Queue()
-        
+
         # 🆕 **Start a worker thread to process inserts in order**
         self.worker_thread = threading.Thread(target=self._batch_worker, daemon=True)
         self.worker_thread.start()
@@ -163,18 +165,20 @@ class CSVProcessor:
         foreign key points to, e.g ('parent_id', 'id')
         :return: Path to the sorted CSV file
         """
-        print(f"🔍 Performing topological sorting for {filename} using key pairs: {key_pairs}")
+        print(
+            f"🔍 Performing topological sorting for {filename} using key pairs: {key_pairs}"
+        )
 
         with open(filename, "r") as f:
             reader = UnicodeReader(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
             fields = reader.reader.fieldnames  # Extract header fields
 
             # Store all rows indexed by their ID
-            all_nodes = {}  
-            root_nodes = []  
+            all_nodes = {}
+            root_nodes = []
             dependency_graph = {}
 
-            rows = []  
+            rows = []
             for line in reader:
                 rows.append(line)
                 child_key = line.get("id")
@@ -189,7 +193,7 @@ class CSVProcessor:
                     parent_key = None
 
                 # Store in dictionary
-                all_nodes[child_key] = line  
+                all_nodes[child_key] = line
 
                 if parent_key is None:
                     root_nodes.append(line)  # Root-level nodes
@@ -198,14 +202,18 @@ class CSVProcessor:
                     dependency_graph.setdefault(parent_key, []).append(child_key)
 
         # 🔎 Debug: Check all root nodes
-        print(f"✅ Found {len(root_nodes)} root nodes (should include continents like Europe, Africa, etc.)")
+        print(
+            f"✅ Found {len(root_nodes)} root nodes (should include continents like Europe, Africa, etc.)"
+        )
         root_ids = [node["id"] for node in root_nodes]
         print(f"🟢 Root node IDs: {root_ids}")
 
         # Ensure all parents exist
         missing_parents = set(dependency_graph.keys()) - set(all_nodes.keys())
         if missing_parents:
-            print(f"❌ ERROR: The following parent IDs are missing from the dataset: {missing_parents}")
+            print(
+                f"❌ ERROR: The following parent IDs are missing from the dataset: {missing_parents}"
+            )
             exit(1)  # Stop execution
 
         # Create dependency pairs
@@ -231,13 +239,16 @@ class CSVProcessor:
 
         # Write sorted data to temp file
         import tempfile
+
         tmppath = tempfile.mkdtemp()
         head, tail = os.path.split(filename)
         sorted_filename = os.path.join(tmppath, tail)
 
         with open(sorted_filename, "w") as tmpfile:
             tmpfile.write("%s\n" % ",".join(fields))  # Write header
-            writer = UnicodeWriter(tmpfile, fields=fields, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
+            writer = UnicodeWriter(
+                tmpfile, fields=fields, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE
+            )
             writer.writerows(sorted_lines)
 
         print(f"✅ Sorted file saved as: {sorted_filename}")
@@ -253,7 +264,7 @@ class CSVProcessor:
 
         self.column_keys = list(csv_columns.union(self.defaults.keys()))
         self.insert_stmt = self.table.insert()
-    
+
     def process_rows(self):
         """
         Process the CSV rows, applying defaults and preparing for batch insertion.
@@ -272,7 +283,9 @@ class CSVProcessor:
                 if steps_so_far % self.update_every == 0:
                     self._insert_batch(batch_queue)  # Insert current batch
                     batch_queue.clear()  # Clear queue before yielding
-                    logger.debug(f"✅ Batch inserted. Yielding at step {steps_so_far}...")
+                    logger.debug(
+                        f"✅ Batch inserted. Yielding at step {steps_so_far}..."
+                    )
 
                     yield steps_so_far
                     logger.debug("Resumed after yield.")
@@ -293,17 +306,21 @@ class CSVProcessor:
         return any(fk.column.table == self.table for fk in self.table.foreign_keys)
 
     def _sort_by_foreign_keys(self):
-        key_pairs = [(fk.parent.name, fk.column.name) for fk in self.table.foreign_keys if fk.column.table == self.table]
+        key_pairs = [
+            (fk.parent.name, fk.column.name)
+            for fk in self.table.foreign_keys
+            if fk.column.table == self.table
+        ]
         print(f"Sorting {self.filename} based on foreign key dependencies: {key_pairs}")
-        
+
         sorted_filename = self._toposort_file(self.filename, key_pairs)
 
         print(f"Sorted file saved as: {sorted_filename}")
-        
+
         return sorted_filename
-    
+
     def cleanup(self):
-        """ Ensure all batches are processed before exiting. """
+        """Ensure all batches are processed before exiting."""
         self.batch_queue.join()  # Wait for all batches to be inserted
         self.batch_queue.put(None)  # Signal the worker to stop
         self.worker_thread.join()  # Ensure worker thread exits cleanly
@@ -317,7 +334,7 @@ class CSVProcessor:
             value = row.get(column, self.defaults.get(column))
             cleaned_row[column] = self._normalize_value(value, column)
         return cleaned_row
-    
+
     def _normalize_value(self, value, column):
         """
         Normalize the value for a given column, handling types and defaults.
@@ -326,14 +343,16 @@ class CSVProcessor:
         if isinstance(value, ClauseElement):
             return value  # Return as-is for SQL expressions like `now()`
 
-        if value in (None, '', 'None'):  # Treat these as None
+        if value in (None, "", "None"):  # Treat these as None
             return None
 
         try:
             column_type = self.table.c[column].type
 
             if isinstance(column_type, Boolean):
-                return value.lower() == 'true' if isinstance(value, str) else bool(value)
+                return (
+                    value.lower() == "true" if isinstance(value, str) else bool(value)
+                )
 
             elif isinstance(column_type, sa.Integer):
                 return int(value)
@@ -343,21 +362,24 @@ class CSVProcessor:
 
             elif isinstance(column_type, sa.Enum):  # SQLAlchemy Enum
                 if value not in column_type.enums:
-                    raise InvalidDataError(f"Invalid value for column '{column}': {value}. "
-                                        f"Allowed values are: {column_type.enums}")
+                    raise InvalidDataError(
+                        f"Invalid value for column '{column}': {value}. "
+                        f"Allowed values are: {column_type.enums}"
+                    )
                 return value  # Keep as string for DB insertion
 
             elif isinstance(column_type, Enum):  # Custom Enum
                 if value not in column_type.values:
-                    raise InvalidDataError(f"Invalid value for column '{column}': {value}. "
-                                           f"Expected one of: {column_type.values}")
+                    raise InvalidDataError(
+                        f"Invalid value for column '{column}': {value}. "
+                        f"Expected one of: {column_type.values}"
+                    )
                 return value
-                
+
         except ValueError:
             raise InvalidDataError(f"Invalid value for column '{column}': {value}")
 
         return value  # Return as-is for any other data types
-
 
     def _batch_worker(self):
         while True:
@@ -382,7 +404,6 @@ class CSVProcessor:
                         thread_session.rollback()
 
             self.batch_queue.task_done()
-
 
     def _insert_batch(self, batch_values=None):
         """

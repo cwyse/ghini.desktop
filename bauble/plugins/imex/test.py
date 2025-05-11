@@ -112,6 +112,7 @@ def test_directory():
     yield path
     shutil.rmtree(path)
 
+
 @pytest.fixture
 def setup_database():
     """
@@ -126,6 +127,7 @@ def setup_test_files(test_directory):
     """
     Fixture to set up test files for CSV imports.
     """
+
     def create_file(filename, data, fields):
         file_path = os.path.join(test_directory, filename)
         with open(file_path, "w") as f:
@@ -147,7 +149,9 @@ class TestCSV:
     Test suite for CSV import/export functionality.
     """
 
-    def test_import_self_referential_table(self, db_session, test_directory, setup_test_files):
+    def test_import_self_referential_table(
+        self, db_session, test_directory, setup_test_files
+    ):
         """
         Test tables with self-referential relationships are imported in order.
         """
@@ -166,6 +170,7 @@ class TestCSV:
         """
         Test importing CSV data with a boolean column.
         """
+
         class BoolTest(db.Base):
             __tablename__ = "bool_test"
             id = Column(Integer, primary_key=True)
@@ -227,7 +232,9 @@ class TestCSV:
         importer = TestImporter()
         importer.start([filename], force=True)
 
-        family = db_session.execute(select(Family).where(Family.id == 1)).scalars().one()
+        family = (
+            db_session.execute(select(Family).where(Family.id == 1)).scalars().one()
+        )
         assert family.qualifier == ""
 
     def test_export_none_is_empty(self, db_session, test_directory):
@@ -247,9 +254,6 @@ class TestCSV:
             reader = csv.DictReader(f)
             row = next(reader)
             assert row._mapping["cv_group"] == ""
-
-
-
 
 
 class TestCSV2:
@@ -283,6 +287,7 @@ class TestCSV2:
             pytest.fail(f"Unsupported engine type: {db.engine.name}")
 
         from sqlalchemy import text
+
         maxid = conn.execute(text("SELECT max(id) FROM family")).scalar_one_or_none()
         assert (
             nextval > highest_id
@@ -301,8 +306,12 @@ class TestCSV2:
         importer = CSVImporter()
 
         # Import twice to test for idempotency and regression handling
-        importer.start([os.path.join(temp_directory, name) for name in filenames], force=True)
-        importer.start([os.path.join(temp_directory, name) for name in filenames], force=True)
+        importer.start(
+            [os.path.join(temp_directory, name) for name in filenames], force=True
+        )
+        importer.start(
+            [os.path.join(temp_directory, name) for name in filenames], force=True
+        )
 
     def test_unicode(self, db_session):
         """
@@ -361,6 +370,7 @@ class MockExportView:
     def get_selection(self):
         return self.__selection
 
+
 import json
 import os
 from tempfile import mkstemp
@@ -412,7 +422,9 @@ class TestJSONExport:
     Test suite for JSON export functionality.
     """
 
-    def test_export_empty_selection_writes_complete_database(self, temp_file, populate_database):
+    def test_export_empty_selection_writes_complete_database(
+        self, temp_file, populate_database
+    ):
         exporter = JSONExporter(MockView())
         exporter.view.selection = None
         exporter.selection_based_on = "sbo_selection"
@@ -426,13 +438,17 @@ class TestJSONExport:
 
         assert len(result) == 14
 
-        families = [i for i in result if i["object"] == "taxon" and i["rank"] == "familia"]
+        families = [
+            i for i in result if i["object"] == "taxon" and i["rank"] == "familia"
+        ]
         assert len(families) == 2
 
         genera = [i for i in result if i["object"] == "taxon" and i["rank"] == "genus"]
         assert len(genera) == 2
 
-        species = [i for i in result if i["object"] == "taxon" and i["rank"] == "species"]
+        species = [
+            i for i in result if i["object"] == "taxon" and i["rank"] == "species"
+        ]
         assert len(species) == 4
 
         target = [
@@ -545,10 +561,9 @@ class TestJSONExport:
         view.selection = list(range(5000))  # Simulate a large selection
         view.reply_yes_no_dialog = [False]  # Simulate user response to dialog
         exporter.run()
-        
+
         assert "run_yes_no_dialog" in getattr(view, "invoked", [])
         assert view.reply_yes_no_dialog == []
-
 
     def test_writes_full_taxonomic_info(populate_database, temp_file, db_session):
         """
@@ -573,7 +588,6 @@ class TestJSONExport:
         assert len(result) == 1
         assert result[0]["rank"] == "familia"
         assert result[0]["epithet"] == "Orchidaceae"
-
 
     def test_writes_partial_taxonomic_info(populate_database, temp_file, db_session):
         """
@@ -601,12 +615,14 @@ class TestJSONExport:
         assert result[0]["ht-epithet"] == "Orchidaceae"
         assert result[0]["author"] == "R. Br."
 
-
-    def test_writes_partial_taxonomic_info_species(populate_database, temp_file, db_session):
+    def test_writes_partial_taxonomic_info_species(
+        populate_database, temp_file, db_session
+    ):
         """
         Test exporting one species and ensuring all species below genus level are exported.
         """
         from sqlalchemy import select
+
         stmt = (
             select(Species)
             .join(Genus)
@@ -629,13 +645,14 @@ class TestJSONExport:
         assert result[0]["ht-rank"] == "genus"
         assert result[0]["ht-epithet"] == "Calopogon"
         assert result[0]["hybrid"] is False
-            
+
     def test_export_single_species_with_notes(populate_database, temp_file, db_session):
         """
         Test exporting a single species with associated notes.
         """
         # Select species and add a note
         from sqlalchemy import select
+
         stmt = (
             select(Species)
             .join(Genus)
@@ -678,13 +695,15 @@ class TestJSONExport:
         }
         assert set(date_dict.keys()) == {"millis", "__class__"}
 
-
-    def test_export_single_species_with_vernacular_name(populate_database, temp_file, db_session):
+    def test_export_single_species_with_vernacular_name(
+        populate_database, temp_file, db_session
+    ):
         """
         Test exporting a single species with a vernacular name.
         """
         # Select species and add a vernacular name
         from sqlalchemy import select
+
         stmt = (
             select(Species)
             .join(Genus)
@@ -724,7 +743,6 @@ class TestJSONExport:
             "object": "vernacular_name",
             "species": "Calopogon tuberosus",
         }
-
 
     def test_partial_taxonomic_with_synonymy(populate_database, temp_file, db_session):
         """
@@ -771,7 +789,6 @@ class TestJSONExport:
         assert accepted["ht-rank"] == "familia"
         assert accepted["ht-epithet"] == "Orchidaceae"
 
-
     def test_export_ignores_private_if_sbo_selection(populate_database, temp_file):
         """
         Test exporting accessions ignoring private entries when `include_private` is False.
@@ -814,7 +831,6 @@ class TestJSONExport:
 
         assert len(result) == 5
 
-
     def test_export_private_if_sbo_accessions(temp_file, populate_database):
         """
         Test exporting all accessions, including private, when `include_private` is True.
@@ -830,7 +846,6 @@ class TestJSONExport:
             result = json.load(f)
 
         assert len(result) == 6
-
 
     def test_export_non_private_if_sbo_plants(temp_file, populate_database):
         """
@@ -848,7 +863,6 @@ class TestJSONExport:
 
         assert len(result) == 6
 
-
     def test_export_private_if_sbo_plants(temp_file, populate_database):
         """
         Test exporting all plants, including private, when `include_private` is True.
@@ -864,7 +878,6 @@ class TestJSONExport:
             result = json.load(f)
 
         assert len(result) == 8
-
 
     def test_export_with_vernacular(temp_file, db_session):
         """
@@ -891,10 +904,11 @@ class TestJSONExport:
         with open(temp_file, "r") as f:
             result = json.load(f)
 
-        vern_from_json = [item for item in result if item["object"] == "vernacular_name"]
+        vern_from_json = [
+            item for item in result if item["object"] == "vernacular_name"
+        ]
         assert len(vern_from_json) == 1
         assert vern_from_json[0]["language"] == "es"
-
 
     def test_on_btnbrowse_clicked():
         """
@@ -908,17 +922,19 @@ class TestJSONExport:
         assert exporter.filename == "/tmp/test.json"
         assert JSONExporter.last_folder == "/tmp"
 
-
     def test_includes_sources(temp_file, db_session):
         """
         Test exporting accessions with source details included.
         """
         # Precondition: Setup source and contact
         from sqlalchemy import select
+
         stmt = select(Accession)
         accession = db_session.execute(stmt).scalars().first()
         # Ensure test is meaningful
-        assert accession is not None, "Test requires at least one accession in the database."
+        assert (
+            accession is not None
+        ), "Test requires at least one accession in the database."
 
         source = Source()
         contact = Contact(name="Summit")
@@ -940,10 +956,16 @@ class TestJSONExport:
         with open(temp_file, "r") as f:
             result = json.load(f)
 
-        contacts_from_json = [item for item in result if item.get("object") == "contact"]
-        accessions_from_json = [item for item in result if item.get("object") == "accession"]
+        contacts_from_json = [
+            item for item in result if item.get("object") == "contact"
+        ]
+        accessions_from_json = [
+            item for item in result if item.get("object") == "accession"
+        ]
         accessions_with_contact = [
-            item for item in result if item.get("object") == "accession" and "contact" in item
+            item
+            for item in result
+            if item.get("object") == "accession" and "contact" in item
         ]
 
         assert len(contacts_from_json) == 1
@@ -951,6 +973,7 @@ class TestJSONExport:
         assert len(accessions_from_json) == 3
         assert len(accessions_with_contact) == 1
         assert accessions_with_contact[0]["contact"] == "Summit"
+
 
 @pytest.fixture
 def temp_file():
@@ -1013,7 +1036,9 @@ def test_import_new_with_non_timestamped_note(temp_file, db_session):
     importer.filename = temp_file
     importer.on_btnok_clicked(None)
 
-    species = Species.retrieve_or_create(db_session, {"ht-epithet": "Calopogon", "epithet": "pallidus"})
+    species = Species.retrieve_or_create(
+        db_session, {"ht-epithet": "Calopogon", "epithet": "pallidus"}
+    )
     assert species.author == "Chapm."
     assert len(species.notes) == 1
 
@@ -1034,7 +1059,9 @@ def test_import_new_with_three_array_notes(temp_file, db_session):
     importer.filename = temp_file
     importer.on_btnok_clicked(None)
 
-    species = Species.retrieve_or_create(db_session, {"ht-epithet": "Calopogon", "epithet": "pallidus"})
+    species = Species.retrieve_or_create(
+        db_session, {"ht-epithet": "Calopogon", "epithet": "pallidus"}
+    )
     assert species.author == "Chapm."
     assert len(species.notes) == 3
 
@@ -1049,14 +1076,18 @@ def test_import_existing_updates(temp_file, db_session):
     with open(temp_file, "w") as f:
         f.write(json_string)
 
-    species = Species.retrieve_or_create(db_session, {"ht-epithet": "Calopogon", "epithet": "tuberosus"})
+    species = Species.retrieve_or_create(
+        db_session, {"ht-epithet": "Calopogon", "epithet": "tuberosus"}
+    )
     assert species.author is None
 
     importer = JSONImporter(MockView())
     importer.filename = temp_file
     importer.on_btnok_clicked(None)
 
-    species = Species.retrieve_or_create(db_session, {"ht-epithet": "Calopogon", "epithet": "tuberosus"})
+    species = Species.retrieve_or_create(
+        db_session, {"ht-epithet": "Calopogon", "epithet": "tuberosus"}
+    )
     assert species.author == "Britton et al."
 
 
@@ -1080,7 +1111,9 @@ def test_import_ignores_id_new(temp_file, db_session):
 
 def test_import_ignores_id_updating(temp_file, db_session):
     """Test importing an existing taxon disregards the provided ID."""
-    species = Species.retrieve_or_create(db_session, {"ht-epithet": "Calopogon", "epithet": "tuberosus"})
+    species = Species.retrieve_or_create(
+        db_session, {"ht-epithet": "Calopogon", "epithet": "tuberosus"}
+    )
     initial_id = species.id
 
     json_string = (
@@ -1095,8 +1128,11 @@ def test_import_ignores_id_updating(temp_file, db_session):
     importer.filename = temp_file
     importer.on_btnok_clicked(None)
 
-    species = Species.retrieve_or_create(db_session, {"ht-epithet": "Calopogon", "epithet": "tuberosus"})
+    species = Species.retrieve_or_create(
+        db_session, {"ht-epithet": "Calopogon", "epithet": "tuberosus"}
+    )
     assert species.id == initial_id
+
 
 @pytest.fixture
 def temp_file():
@@ -1119,21 +1155,31 @@ def test_import_species_to_new_genus_fails(temp_file, db_session):
     importer.filename = temp_file
     importer.on_btnok_clicked(None)
 
-    sp = db_session.execute(
-        select(Species).where(Species.epithet == "lawrenceae")
-        .join(Genus)
-        .where(Genus.epithet == "Aerides")
-    ).scalars().all()
+    sp = (
+        db_session.execute(
+            select(Species)
+            .where(Species.epithet == "lawrenceae")
+            .join(Genus)
+            .where(Genus.epithet == "Aerides")
+        )
+        .scalars()
+        .all()
+    )
     assert sp == []
 
 
 def test_import_species_to_new_genus_and_family(temp_file, db_session):
     """Test importing a species referring to a non-existing genus with a specified family."""
-    sp = db_session.execute(
-        select(Species).where(Species.epithet == "lawrenceae")
-        .join(Genus)
-        .where(Genus.epithet == "Aerides")
-    ).scalars().all()
+    sp = (
+        db_session.execute(
+            select(Species)
+            .where(Species.epithet == "lawrenceae")
+            .join(Genus)
+            .where(Genus.epithet == "Aerides")
+        )
+        .scalars()
+        .all()
+    )
     assert sp == []
 
     json_string = (
@@ -1150,19 +1196,28 @@ def test_import_species_to_new_genus_and_family(temp_file, db_session):
     if db_session.in_transaction():
         db_session.commit()
 
-    sp = db_session.execute(
-        select(Species).where(Species.epithet == "lawrenceae")
-        .join(Genus)
-        .where(Genus.epithet == "Aerides")
-    ).scalars().all()
+    sp = (
+        db_session.execute(
+            select(Species)
+            .where(Species.epithet == "lawrenceae")
+            .join(Genus)
+            .where(Genus.epithet == "Aerides")
+        )
+        .scalars()
+        .all()
+    )
     assert len(sp) == 1
 
-    genus = db_session.execute(
-        select(Genus).where(Genus.epithet == "Aerides")
-    ).scalars().first()
-    family = db_session.execute(
-        select(Family).where(Family.epithet == "Orchidaceae")
-    ).scalars().first()
+    genus = (
+        db_session.execute(select(Genus).where(Genus.epithet == "Aerides"))
+        .scalars()
+        .first()
+    )
+    family = (
+        db_session.execute(select(Family).where(Family.epithet == "Orchidaceae"))
+        .scalars()
+        .first()
+    )
 
     assert sp[0].genus == genus
     assert genus.family == family
@@ -1186,12 +1241,16 @@ def test_import_with_synonym(temp_file, db_session):
     if db_session.in_transaction():
         db_session.commit()
 
-    synonym = db_session.execute(
-        select(Genus).where(Genus.epithet == "Zygoglossum")
-    ).scalars().first()
-    accepted = db_session.execute(
-        select(Genus).where(Genus.epithet == "Bulbophyllum")
-    ).scalars().first()
+    synonym = (
+        db_session.execute(select(Genus).where(Genus.epithet == "Zygoglossum"))
+        .scalars()
+        .first()
+    )
+    accepted = (
+        db_session.execute(select(Genus).where(Genus.epithet == "Bulbophyllum"))
+        .scalars()
+        .first()
+    )
 
     assert synonym is not None
     assert synonym.accepted == accepted
@@ -1225,9 +1284,7 @@ def test_use_author_to_break_ties(temp_file, db_session):
     if db_session.in_transaction():
         db_session.commit()
 
-    accepted = Genus.retrieve_or_create(
-        db_session, {"epithet": "Sedum"}, create=False
-    )
+    accepted = Genus.retrieve_or_create(db_session, {"epithet": "Sedum"}, create=False)
     assert accepted.__class__ == Genus
     assert miller.accepted == accepted
 
@@ -1259,9 +1316,7 @@ def test_import_create_update(temp_file, db_session):
     if db_session.in_transaction():
         db_session.commit()
 
-    sedum = Genus.retrieve_or_create(
-        db_session, {"epithet": "Sedum"}, create=False
-    )
+    sedum = Genus.retrieve_or_create(db_session, {"epithet": "Sedum"}, create=False)
     anacampseros = Genus.retrieve_or_create(
         db_session, {"epithet": "Anacampseros"}, create=False
     )
@@ -1270,6 +1325,8 @@ def test_import_create_update(temp_file, db_session):
     assert sedum.author == "L."
     assert anacampseros.__class__ == Genus
     assert anacampseros.author == "L."
+
+
 @pytest.fixture
 def temp_file():
     """Fixture to create and clean up a temporary file."""
@@ -1307,9 +1364,7 @@ def test_import_no_create_update(temp_file, db_session):
         db_session.commit()
 
     # Assertions
-    sedum = Genus.retrieve_or_create(
-        db_session, {"epithet": "Sedum"}, create=False
-    )
+    sedum = Genus.retrieve_or_create(db_session, {"epithet": "Sedum"}, create=False)
     assert sedum is None
 
     anacampseros = Genus.retrieve_or_create(
@@ -1348,15 +1403,19 @@ def test_import_create_no_update(temp_file, db_session):
         db_session.commit()
 
     # Assertions
-    sedum = db_session.execute(
-        select(Genus).where(Genus.epithet == "Sedum")
-    ).scalars().first()
+    sedum = (
+        db_session.execute(select(Genus).where(Genus.epithet == "Sedum"))
+        .scalars()
+        .first()
+    )
     assert isinstance(sedum, Genus)
     assert sedum.author == "L."
 
-    anacampseros = db_session.execute(
-        select(Genus).where(Genus.epithet == "Anacampseros")
-    ).scalars().first()
+    anacampseros = (
+        db_session.execute(select(Genus).where(Genus.epithet == "Anacampseros"))
+        .scalars()
+        .first()
+    )
     assert isinstance(anacampseros, Genus)
     assert anacampseros.author == ""
 

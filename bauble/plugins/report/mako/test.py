@@ -63,9 +63,7 @@ def setup_database(session):
                 geo = GeographicArea(id=sctr, name="Mexico%s" % sctr)
                 dist = SpeciesDistribution(geographic_area_id=sctr)
                 sp.distribution.append(dist)
-                vn = VernacularName(
-                    id=sctr, species=sp, name="name%s" % sctr
-                )
+                vn = VernacularName(id=sctr, species=sp, name="name%s" % sctr)
                 session.add_all([sp, geo, dist, vn])
                 for a in range(2):
                     actr += 1
@@ -73,9 +71,7 @@ def setup_database(session):
                     session.add(acc)
                     for p in range(2):
                         pctr += 1
-                        loc = Location(
-                            id=pctr, code="%s" % pctr, name="site%s" % pctr
-                        )
+                        loc = Location(id=pctr, code="%s" % pctr, name="site%s" % pctr)
                         plant = Plant(
                             id=pctr,
                             accession=acc,
@@ -94,7 +90,9 @@ def test_format_mako_templates(session, use_qr):
     Test formatting all mako templates with or without QR codes.
     """
     selection = session.execute(select(Plant)).scalars().all()
-    templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+    templates_dir = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "templates"
+    )
 
     for i, template_name in enumerate(os.listdir(templates_dir)):
         if not template_name.endswith(".mako"):
@@ -135,12 +133,16 @@ def test_format_qr_postscript_templates(session):
     Test formatting mako templates with QR codes and PostScript.
     """
     selection = session.execute(select(Plant)).scalars().all()
-    templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+    templates_dir = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "templates"
+    )
 
     for i, template_name in enumerate(os.listdir(templates_dir)):
         if not template_name.endswith(".mako"):
             continue
-        if "-qr." not in template_name or not template_name.endswith((".ps.mako", ".eps.mako")):
+        if "-qr." not in template_name or not template_name.endswith(
+            (".ps.mako", ".eps.mako")
+        ):
             continue
 
         filename = os.path.join(templates_dir, template_name)
@@ -165,10 +167,16 @@ def test_format_qr_svg_templates(session):
     Test formatting mako templates with QR codes and SVG.
     """
     plants = session.execute(select(Plant)).scalars().all()
-    templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+    templates_dir = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "templates"
+    )
 
     for template_name in os.listdir(templates_dir):
-        if not template_name.endswith(".mako") or "-qr." not in template_name or not template_name.endswith(".svg"):
+        if (
+            not template_name.endswith(".mako")
+            or "-qr." not in template_name
+            or not template_name.endswith(".svg")
+        ):
             continue
 
         filename = os.path.join(templates_dir, template_name)
@@ -182,16 +190,13 @@ def test_format_qr_svg_templates(session):
         assert isinstance(report, bytes)
 
 
-
-
 class TestSvgProduction:
     def test_add_text_a(self):
         g, x, y = SVG.add_text(0, 0, "a", 2)
         assert y == 0
         assert x == 31
         assert (
-            g
-            == '<g transform="translate(0, 0)scale(2)">\n'
+            g == '<g transform="translate(0, 0)scale(2)">\n'
             '<use transform="translate(0,0)" xlink:href="#s1-u0061"/>\n'
             "</g>"
         )
@@ -201,8 +206,7 @@ class TestSvgProduction:
         assert y == 0
         assert x == 62
         assert (
-            g
-            == '<g transform="translate(0, 0)scale(2)">\n'
+            g == '<g transform="translate(0, 0)scale(2)">\n'
             '<use transform="translate(0,0)" xlink:href="#s1-u00e1"/>\n'
             '<use transform="translate(15.5,0)" xlink:href="#s1-u00e0"/>\n'
             "</g>"
@@ -213,8 +217,7 @@ class TestSvgProduction:
         assert y == 0
         assert x == 0
         assert (
-            g
-            == '<g transform="translate(-62.0, 0.0)scale(2)">\n'
+            g == '<g transform="translate(-62.0, 0.0)scale(2)">\n'
             '<use transform="translate(0,0)" xlink:href="#s1-u00e1"/>\n'
             '<use transform="translate(15.5,0)" xlink:href="#s1-u00e0"/>\n'
             "</g>"
@@ -225,8 +228,7 @@ class TestSvgProduction:
         assert y == 0
         assert x == 31.0
         assert (
-            g
-            == '<g transform="translate(-31.0, 0.0)scale(2)">\n'
+            g == '<g transform="translate(-31.0, 0.0)scale(2)">\n'
             '<use transform="translate(0,0)" xlink:href="#s1-u00e1"/>\n'
             '<use transform="translate(15.5,0)" xlink:href="#s1-u00e0"/>\n'
             "</g>"
@@ -328,13 +330,11 @@ class TestSvgProduction:
         assert g == expected_g
 
 
-
 class TestCode39:
     def test_code39_path_0(self):
         g = Code39.path("0", 10)
         assert (
-            g
-            == "M 0,0 0,10 "
+            g == "M 0,0 0,10 "
             "M 2,10 2,0 "
             "M 6,0 6,10 "
             "M 7,10 7,0 "
@@ -348,8 +348,7 @@ class TestCode39:
     def test_code39_path_dot(self):
         g = Code39.path(".", 10)
         assert (
-            g
-            == "M 0,0 0,10 "
+            g == "M 0,0 0,10 "
             "M 1,10 1,0 "
             "M 2,0 2,10 "
             "M 6,10 6,0 "
@@ -363,8 +362,7 @@ class TestCode39:
     def test_code39_path_dot_5(self):
         g = Code39.path(".", 5)
         assert (
-            g
-            == "M 0,0 0,5 "
+            g == "M 0,0 0,5 "
             "M 1,5 1,0 "
             "M 2,0 2,5 "
             "M 6,5 6,0 "
@@ -396,7 +394,7 @@ class TestCode39:
         assert (
             g
             == '<g transform="translate(0,0)scale(1,1)translate(0,0)"><path transform="translate(0,0)" d="M 0,0 0,7 M 4,7 4,0 M 6,0 6,7 M 7,7 7,0 M 8,0 8,7 M 10,7 10,0 M 11,0 11,7 M 12,7 12,0 M 14,0 14,7" style="stroke:#0000ff;stroke-width:1"/>'
-            "<path transform=\"translate(16,0)\" d=\"M 0,0 0,7 M 2,7 2,0 M 6,0 6,7 M 7,7 7,0 M 8,0 8,7 M 10,7 10,0 M 11,0 11,7 M 12,7 12,0 M 14,0 14,7\" style=\"stroke:#0000ff;stroke-width:1\"/>"
+            '<path transform="translate(16,0)" d="M 0,0 0,7 M 2,7 2,0 M 6,0 6,7 M 7,7 7,0 M 8,0 8,7 M 10,7 10,0 M 11,0 11,7 M 12,7 12,0 M 14,0 14,7" style="stroke:#0000ff;stroke-width:1"/>'
             # Add similar lines to complete the full path structure here...
             "</g>"
         )
@@ -453,14 +451,10 @@ class TestQRCode:
         assert parts[2] == "</g>"
 
     def test_can_get_qr_as_string_translated_framed(self):
-        g = SVG.add_qr(
-            30, 10, "http://ghini.readthedocs.io/en/ghini-3.1-dev/", side=30
-        )
+        g = SVG.add_qr(30, 10, "http://ghini.readthedocs.io/en/ghini-3.1-dev/", side=30)
         parts = g.split("\n")
         assert len(parts) == 3
-        assert parts[0].startswith(
-            '<g transform="translate(30,10)scale(0.731707317073'
-        )
+        assert parts[0].startswith('<g transform="translate(30,10)scale(0.731707317073')
         assert parts[2] == "</g>"
 
         g = SVG.add_qr(30, 10, "2014.0018.2", side=30)
@@ -472,7 +466,5 @@ class TestQRCode:
         g = SVG.add_qr(30, 10, "2014.0018", side=30)
         parts = g.split("\n")
         assert len(parts) == 3
-        assert parts[0].startswith(
-            '<g transform="translate(30,10)scale(1.4285714'
-        )
+        assert parts[0].startswith('<g transform="translate(30,10)scale(1.4285714')
         assert parts[2] == "</g>"

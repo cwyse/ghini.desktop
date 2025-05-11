@@ -38,8 +38,6 @@ from sqlalchemy import select
 logger = logging.getLogger(__name__)
 
 
-
-
 def get_ip():
     """get the ip address relative to default route
 
@@ -106,9 +104,7 @@ class PocketServer(Thread):
                 self.log.append(
                     ("register ›{}‹ ›{}‹".format(client_id, security_code),)
                 )
-                if not isinstance(client_id, str) or not isinstance(
-                    user_name, str
-                ):
+                if not isinstance(client_id, str) or not isinstance(user_name, str):
                     return self.WRONG_TYPE_IN_PARAMETERS
                 elif security_code != self.presenter.model.code:
                     return self.INVALID_SECURITY_CODE
@@ -159,9 +155,7 @@ class PocketServer(Thread):
                     return self.PLEASE_TRY_LATER
                 elif client_id not in {i[1] for i in self.clients}:
                     return self.USER_NOT_REGISTERED
-                elif not isinstance(client_id, str) or not isinstance(
-                    log_lines, list
-                ):
+                elif not isinstance(client_id, str) or not isinstance(log_lines, list):
                     return self.WRONG_TYPE_IN_PARAMETERS
                 session = db.Session()
                 db.current_user.override(user_name)
@@ -175,9 +169,7 @@ class PocketServer(Thread):
                 return self.OK
 
             def put_picture(self, client_id, name, base64_content):
-                self.log.append(
-                    ("put_picture ›{}‹ ›{}‹".format(client_id, name),)
-                )
+                self.log.append(("put_picture ›{}‹ ›{}‹".format(client_id, name),))
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
                 elif client_id not in {i[1] for i in self.clients}:
@@ -190,9 +182,7 @@ class PocketServer(Thread):
                     return self.WRONG_TYPE_IN_PARAMETERS
                 from bauble import prefs
 
-                filename = os.path.join(
-                    prefs.prefs[prefs.picture_root_pref], name
-                )
+                filename = os.path.join(prefs.prefs[prefs.picture_root_pref], name)
                 try:
                     with open(filename, "xb") as picture_file:
                         import base64
@@ -209,9 +199,7 @@ class PocketServer(Thread):
             def put_picture_chunk(
                 self, client_id, name, chunk_no, chunk_count, base64_content
             ):
-                self.log.append(
-                    ("put_picture ›{}‹ ›{}‹".format(client_id, name),)
-                )
+                self.log.append(("put_picture ›{}‹ ›{}‹".format(client_id, name),))
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
                 elif client_id not in {i[1] for i in self.clients}:
@@ -231,16 +219,11 @@ class PocketServer(Thread):
                     return self.SEND_MORE
                 from bauble import prefs
 
-                filename = os.path.join(
-                    prefs.prefs[prefs.picture_root_pref], name
-                )
+                filename = os.path.join(prefs.prefs[prefs.picture_root_pref], name)
                 try:
                     with open(filename, "xb") as picture_file:
                         content = b"".join(
-                            [
-                                i[1]
-                                for i in sorted(self.receiving[name].items())
-                            ]
+                            [i[1] for i in sorted(self.receiving[name].items())]
                         )
                         picture_file.write(content)
                         picture_file.close()
@@ -317,8 +300,12 @@ class PocketServerPresenter(GenericEditorPresenter):
     def read_clients_list(self):
         self.clients_ls.clear()
         row = next(
-            iter(self.session.execute(select(meta.BaubleMeta).where(name="pocket-clients")).scalars()),
-            None
+            iter(
+                self.session.execute(
+                    select(meta.BaubleMeta).where(name="pocket-clients")
+                ).scalars()
+            ),
+            None,
         )
         if row:
             elems = eval(row.value)
@@ -446,9 +433,7 @@ class PocketServerTool(pluginmgr.Tool):
         filename = os.path.join(
             paths.lib_dir(), "plugins", "garden", "pocket_server.glade"
         )
-        view = GenericEditorView(
-            filename, root_widget_name="pocket_server_dialog"
-        )
+        view = GenericEditorView(filename, root_widget_name="pocket_server_dialog")
         cls.ip_address = get_ip()
         cls.code = get_code()
         c = PocketServerPresenter(cls, view)

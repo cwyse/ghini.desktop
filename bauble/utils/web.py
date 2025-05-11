@@ -34,11 +34,11 @@ logger.setLevel(logging.INFO)
 def _open_link(data=None, *args, **kwargs):
     """Open a web link"""
     logger.debug(
-        "_open_link received data={}, args={}, kwargs={}".format(
-            data, args, kwargs
-        )
+        "_open_link received data={}, args={}, kwargs={}".format(data, args, kwargs)
     )
     desktop.open(data)
+
+
 import re
 
 from gi.repository import Gtk
@@ -46,7 +46,7 @@ from gi.repository import Gtk
 
 class BaubleLinkButton:
     """
-    A button that acts as a link, but instead of using subclassing, 
+    A button that acts as a link, but instead of using subclassing,
     it uses composition to wrap around a Gtk.LinkButton.
     """
 
@@ -71,7 +71,7 @@ class BaubleLinkButton:
     def set_string(self, row):
         """
         Set the URI for the link button based on a row's values.
-        
+
         The row can be an object with attributes matching the pattern
         in the URI (_base_uri).
         """

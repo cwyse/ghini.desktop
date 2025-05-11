@@ -35,7 +35,7 @@ from bauble.plugins.garden.accession import (
     acc_context_menu,
 )
 
-#from bauble.plugins.garden.accession import Verification
+# from bauble.plugins.garden.accession import Verification
 from bauble.plugins.garden.institution import (
     Institution,
     InstitutionCommand,
@@ -61,7 +61,7 @@ from bauble.plugins.garden.plant import (
 )
 from bauble.plugins.garden.pocket_server import PocketServerTool
 
-#from bauble.plugins.garden.source import ContactPresenter
+# from bauble.plugins.garden.source import ContactPresenter
 from bauble.plugins.garden.source import (
     Collection,
     Contact,
@@ -161,18 +161,25 @@ class GardenPlugin(pluginmgr.Plugin):
         def sd_kids(detail):
             session = object_session(detail)
             if session is None:
-                raise ValueError("The provided detail object is not associated with a session.")
+                raise ValueError(
+                    "The provided detail object is not associated with a session."
+                )
             results = (
-                session.execute(select(Accession)
-                .join(Source)
-                .join(Contact)
-                .options(selectinload(Species.species))
-                .where(Contact.id == detail.id)
-                ).scalars().all()
+                session.execute(
+                    select(Accession)
+                    .join(Source)
+                    .join(Contact)
+                    .options(selectinload(Species.species))
+                    .where(Contact.id == detail.id)
+                )
+                .scalars()
+                .all()
             )
             return results
 
-        mapper_search.add_meta(("contact", "contacts", "person", "org", "source"), Contact, ["name"])
+        mapper_search.add_meta(
+            ("contact", "contacts", "person", "org", "source"), Contact, ["name"]
+        )
         SearchView.row_meta[Contact].set(
             children=sd_kids,
             infobox=ContactInfoBox,
@@ -202,6 +209,7 @@ class GardenPlugin(pluginmgr.Plugin):
         import os.path
 
         from bauble import paths
+
         base = os.path.join(paths.lib_dir(), "plugins", "garden")
 
         # Insert Menu
@@ -211,11 +219,13 @@ class GardenPlugin(pluginmgr.Plugin):
             return
 
         import gi
+
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
+
         insert_menu.append(Gtk.SeparatorMenuItem())
- 
-        #from bauble.ui import GUI 
+
+        # from bauble.ui import GUI
 
         # Add items to Insert menu
         bauble.gui.add_to_insert_menu(
@@ -228,9 +238,7 @@ class GardenPlugin(pluginmgr.Plugin):
             LocationEditor, _("Location"), "insert-new.png", base
         )
         insert_menu.append(Gtk.SeparatorMenuItem())
-        bauble.gui.add_to_insert_menu(
-            create_contact, _("Contact"), "user", base
-        )
+        bauble.gui.add_to_insert_menu(create_contact, _("Contact"), "user", base)
 
         # if the plant delimiter isn't in the bauble meta then add the default
         import bauble.meta as meta
@@ -263,6 +271,7 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
         safe_set_text(cell, utils.utf8(model[treeiter][0]))
 
     import gi
+
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk
 
@@ -303,7 +312,7 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
         logger.debug("on_match_select")
         value = model[treeiter][0]
         on_select(value)
-        safe_set_props(entry, 'text', str(value))
+        safe_set_props(entry, "text", str(value))
         presenter.remove_problem(PROBLEM, entry)
         presenter.refresh_sensitivity()
         return True
@@ -336,12 +345,16 @@ def init_location_comboentry(presenter, combo, on_select, required=True):
             code, name = match.groups()
         else:
             code = name = text
-        codes = list(presenter.session.execute(select(Location).where(
-            utils.ilike(Location.code, "%s" % utils.utf8(code))
-        )).scalars())
-        names = (presenter.session.execute(select(Location).where(
-            utils.ilike(Location.name, "%s" % utils.utf8(name))
-        )).scalars())
+        codes = list(
+            presenter.session.execute(
+                select(Location).where(
+                    utils.ilike(Location.code, "%s" % utils.utf8(code))
+                )
+            ).scalars()
+        )
+        names = presenter.session.execute(
+            select(Location).where(utils.ilike(Location.name, "%s" % utils.utf8(name)))
+        ).scalars()
         if len(codes) == 1:
             logger.debug("location matches code")
             location = codes[0]

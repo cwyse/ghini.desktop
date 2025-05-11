@@ -58,9 +58,7 @@ def test_has_domain():
 
 
 def test_clauses_have_fields():
-    query = BuiltQuery(
-        "genus WHERE epithet=Inga or family.epithet=Poaceae"
-    )
+    query = BuiltQuery("genus WHERE epithet=Inga or family.epithet=Poaceae")
     assert len(query.clauses) == 2
     assert query.clauses[0].connector is None
     assert query.clauses[1].connector == "or"
@@ -120,9 +118,7 @@ def test_is_case_insensitive(query_string):
 
 
 def test_is_only_usable_clauses():
-    query = BuiltQuery(
-        "species WHERE genus.epithet=Inga or count(accessions.id)>4"
-    )
+    query = BuiltQuery("species WHERE genus.epithet=Inga or count(accessions.id)>4")
     assert query.is_valid is True
     assert len(query.clauses) == 1
 
@@ -137,6 +133,6 @@ def test_be_able_to_skip_first_query_if_invalid():
     """
     Skipped: Grammar rewriting is required to handle this case.
     """
-    pytest.skip("we can't do that without rewriting the grammar", allow_module_level=True)
-
-
+    pytest.skip(
+        "we can't do that without rewriting the grammar", allow_module_level=True
+    )

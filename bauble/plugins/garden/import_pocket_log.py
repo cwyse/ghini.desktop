@@ -40,7 +40,11 @@ def get_genus(session, keys):
     except:
         keys["gn_epit"], keys["sp_epit"] = ("Zzz", "sp")
 
-    genus = session.execute(select(Genus).where(Genus.epithet == keys["gn_epit"])).scalars().one()
+    genus = (
+        session.execute(select(Genus).where(Genus.epithet == keys["gn_epit"]))
+        .scalars()
+        .one()
+    )
     return genus
 
 
@@ -55,10 +59,13 @@ def get_species(session, keys, genus):
     if keys["sp_epit"] == "":
         try:
             species = (
-                session.execute(select(Species)
-                .where(Species.genus == genus)
-                .where(Species.infrasp1 == "sp")
-                ).scalars().first()
+                session.execute(
+                    select(Species)
+                    .where(Species.genus == genus)
+                    .where(Species.infrasp1 == "sp")
+                )
+                .scalars()
+                .first()
             )
             if species != zzz:  # no hace falta mencionarlo
                 sys.stdout.write("+")  # encontramos fictive species
@@ -70,11 +77,14 @@ def get_species(session, keys, genus):
     else:
         try:
             species = (
-                session.execute(select(Species)
-                .where(Species.genus == genus)
-                .where(Species.infrasp1 == "")
-                .where(Species.epithet == keys["sp_epit"])
-                ).scalars().one()
+                session.execute(
+                    select(Species)
+                    .where(Species.genus == genus)
+                    .where(Species.infrasp1 == "")
+                    .where(Species.epithet == keys["sp_epit"])
+                )
+                .scalars()
+                .one()
             )
             sys.stdout.write("+")  # encontramos Species
         except:
@@ -134,7 +144,9 @@ def process_inventory_line(session, baseline, timestamp, parameters):
     else:
         # if not even accession is in place, let's create a default one
         accession = (
-            session.execute(select(Accession).where(code=accession_code)).scalars().first()
+            session.execute(select(Accession).where(code=accession_code))
+            .scalars()
+            .first()
         )
         if accession is None:
             fictive_family = lookup(session, Family, epithet="Zz-Plantae")
@@ -172,9 +184,7 @@ def process_inventory_line(session, baseline, timestamp, parameters):
 
 
 def process_pending_edit_line(session, baseline, timestamp, parameters):
-    full_plant_code, scientific_name, quantity, coordinates, *pictures = (
-        parameters
-    )
+    full_plant_code, scientific_name, quantity, coordinates, *pictures = parameters
     if not full_plant_code:
         # what should we do…
         return
@@ -185,12 +195,8 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
     accession_code, plant_code = heuristic_split(full_plant_code)
 
     fictive_family = lookup(session, Family, epithet="Zz-Plantae")
-    fictive_genus = lookup(
-        session, Genus, family=fictive_family, epithet="Zzd-Plantae"
-    )
-    fictive_species = lookup(
-        session, Species, genus=fictive_genus, infrasp1="sp"
-    )
+    fictive_genus = lookup(session, Genus, family=fictive_family, epithet="Zzd-Plantae")
+    fictive_species = lookup(session, Species, genus=fictive_genus, infrasp1="sp")
 
     # how long is the species indication?
     epithets = [i for i in scientific_name.split(" ") if i]
@@ -203,21 +209,24 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
         species = lookup(session, Species, genus=genus, infrasp1="sp")
     elif len(epithets) >= 2:
         if len(epithets) > 2:
-            logger.info(
-                "ignoring infraspecific epithets ›%s‹" % scientific_name
-            )
+            logger.info("ignoring infraspecific epithets ›%s‹" % scientific_name)
         genus = lookup(session, Genus, epithet=epithets[0])
         species = lookup(session, Species, genus=genus, epithet=epithets[1])
 
     # does this plant already exist?
     plant = (
-        session.execute(select(Plant)
-        .where(code=plant_code)
-        .join(Accession)
-        .where(code=accession_code)
-        ).scalars().first()
+        session.execute(
+            select(Plant)
+            .where(code=plant_code)
+            .join(Accession)
+            .where(code=accession_code)
+        )
+        .scalars()
+        .first()
     )
-    accession = session.execute(select(Accession).where(code=accession_code)).scalars().first()
+    accession = (
+        session.execute(select(Accession).where(code=accession_code)).scalars().first()
+    )
     if plant is None:
         # if it does not, we have work to do …
         location = lookup(session, Location, code="default")
@@ -258,17 +267,14 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
         # remove any previous such note
         session.execute(
             delete(PlantNote).where(
-                PlantNote.plant == plant,
-                PlantNote.category == "<coords>"
+                PlantNote.plant == plant, PlantNote.category == "<coords>"
             )
         )
 
         # add new one
         lat, lon = (float(i) for i in coordinates[1:-1].split(";"))
         value = "{{lat:{:0.6f},lon:{:0.6f}}}".format(lat, lon)
-        lookup(
-            session, PlantNote, plant=plant, category="<coords>", note=value
-        )
+        lookup(session, PlantNote, plant=plant, category="<coords>", note=value)
 
     for picture in pictures:
         basename = os.path.basename(picture)

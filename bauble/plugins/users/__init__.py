@@ -29,23 +29,22 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 
-#from bauble.error import CheckConditionError
+# from bauble.error import CheckConditionError
 import gi
 from bauble.error import check
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-#from sqlalchemy import *
+# from sqlalchemy import *
 from sqlalchemy import Integer
 
-#from sqlalchemy.exc import *
+# from sqlalchemy.exc import *
 from sqlalchemy.exc import ProgrammingError
 
-#from sqlalchemy.ext.declarative import declarative_base
-#from sqlalchemy.ext.declarative import DeclarativeMeta
-#from sqlalchemy.orm.exc import *
-
+# from sqlalchemy.ext.declarative import declarative_base
+# from sqlalchemy.ext.declarative import DeclarativeMeta
+# from sqlalchemy.orm.exc import *
 
 
 logger = logging.getLogger(__name__)
@@ -158,6 +157,7 @@ def _create_role(name, password=None, login=False, admin=False):
         logger.error("users._create_role(): %s %s", type(e), utils.utf8(e))
         raise
 
+
 def create_user(name, password=None, admin=False, groups=None):
     """Create a role that can login."""
     if groups is None:
@@ -168,9 +168,14 @@ def create_user(name, password=None, admin=False, groups=None):
     try:
         with db.engine.begin() as conn:
             from sqlalchemy import text
+
             for group in groups:
                 conn.execute(text(f"grant {group} to {name}"))
-            conn.execute(text(f"grant connect on database {bauble.db.engine.url.database} to {name}"))
+            conn.execute(
+                text(
+                    f"grant connect on database {bauble.db.engine.url.database} to {name}"
+                )
+            )
     except Exception as e:
         logger.error("users.create_user(): %s %s", type(e), utils.utf8(e))
         raise
@@ -182,6 +187,7 @@ def create_group(name, admin=False):
     """
     _create_role(name, login=False, password=None, admin=admin)
 
+
 def add_member(name, groups=None):
     """Add name to groups."""
     if groups is None:
@@ -189,10 +195,12 @@ def add_member(name, groups=None):
     try:
         with db.engine.begin() as conn:
             from sqlalchemy import text
+
             for group in groups:
                 conn.execute(text(f'grant "{group}" to {name}'))
     except Exception as e:
         logger.error("users.add_member(): %s %s", type(e), utils.utf8(e))
+
 
 def remove_member(name, groups=None):
     """Remove name from groups."""
@@ -201,6 +209,7 @@ def remove_member(name, groups=None):
     try:
         with db.engine.begin() as conn:
             from sqlalchemy import text
+
             for group in groups:
                 conn.execute(text(f"revoke {group} from {name}"))
     except Exception as e:
@@ -220,15 +229,16 @@ def get_members(group):
             return []
 
         # Get members' role names
-        stmt = text("""
+        stmt = text(
+            """
             SELECT rolname FROM pg_roles
             WHERE oid IN (
                 SELECT member FROM pg_auth_members WHERE roleid = :gid
             )
-        """)
+        """
+        )
         result = conn.execute(stmt, {"gid": gid})
         return [r[0] for r in result.all()]
-
 
 
 def delete(role, revoke=False):
@@ -243,7 +253,7 @@ def drop(role, revoke=False):
             if revoke:
                 set_privilege(role, None)
             from sqlalchemy import text
-            
+
             conn.execute(text(f"drop role {role};"))
     except Exception as e:
         logger.error("users.drop(): %s %s", type(e), utils.utf8(e))
@@ -318,7 +328,10 @@ def has_privileges(role, privilege):
         for priv in _database_privs:
             stmt = text("select has_database_privilege(:role, :db, :priv)")
             with db.engine.connect() as conn:
-                r = conn.execute(stmt, {"role": role, "db": bauble.db.engine.url.database, "priv": priv}).scalar_one_or_none()
+                r = conn.execute(
+                    stmt,
+                    {"role": role, "db": bauble.db.engine.url.database, "priv": priv},
+                ).scalar_one_or_none()
                 if not r:
                     return False
         privs = set(_table_privs).intersection(_privileges["write"])
@@ -333,11 +346,9 @@ def has_privileges(role, privilege):
             stmt = text("select has_table_privilege(:role, :table, :priv)")
             try:
                 with db.engine.connect() as conn:
-                    r = conn.execute(stmt, {
-                        "role": role,
-                        "table": table.name,
-                        "priv": priv
-                    }).scalar_one_or_none()
+                    r = conn.execute(
+                        stmt, {"role": role, "table": table.name, "priv": priv}
+                    ).scalar_one_or_none()
                     if not r:
                         return False
             except ProgrammingError:
@@ -388,15 +399,24 @@ def set_privilege(role, privilege):
 
     try:
         from sqlalchemy import text
+
         with db.engine.begin() as conn:
             # revoke everything first
             for table in db.metadata.sorted_tables:
                 conn.execute(text(f"revoke all on table {table.name} from {role};"))
                 for col in table.c:
                     if hasattr(col, "sequence"):
-                        conn.execute(text(f"revoke all on sequence {col.sequence.name} from {role};"))
+                        conn.execute(
+                            text(
+                                f"revoke all on sequence {col.sequence.name} from {role};"
+                            )
+                        )
 
-            conn.execute(text(f"revoke all on database {bauble.db.engine.url.database} from {role}"))
+            conn.execute(
+                text(
+                    f"revoke all on database {bauble.db.engine.url.database} from {role}"
+                )
+            )
             conn.execute(text(f"alter role {role} with nocreaterole"))
 
             if not privilege:
@@ -433,7 +453,6 @@ def set_privilege(role, privilege):
         raise
 
 
-
 def current_user():
     """Return the name of the current user."""
     return db.current_user()
@@ -459,9 +478,7 @@ class UsersEditor(editor.GenericEditorView):
         self,
     ):
         """ """
-        filename = os.path.join(
-            paths.lib_dir(), "plugins", "users", "ui.glade"
-        )
+        filename = os.path.join(paths.lib_dir(), "plugins", "users", "ui.glade")
         super().__init__(filename)
 
         if db.engine.name not in ("postgres", "postgresql"):
@@ -473,9 +490,7 @@ class UsersEditor(editor.GenericEditorView):
         # admins to change them
         logger.debug("current user is %s" % current_user())
         if not has_privileges(current_user(), "admin"):
-            msg = _(
-                "You do not have privileges to change other " "user privileges"
-            )
+            msg = _("You do not have privileges to change other " "user privileges")
             utils.message_dialog(utils.utf8(msg))
             return
         # setup the users tree
@@ -491,9 +506,7 @@ class UsersEditor(editor.GenericEditorView):
             value = model[it][0]
             cell.set_property("text", value)
 
-        tree.insert_column_with_data_func(
-            0, _("Users"), renderer, cell_data_func
-        )
+        tree.insert_column_with_data_func(0, _("Users"), renderer, cell_data_func)
         self.connect(tree, "cursor-changed", self.on_cursor_changed)
         self.connect(renderer, "edited", self.on_cell_edited)
 
@@ -602,7 +615,7 @@ class UsersEditor(editor.GenericEditorView):
         tree.set_model(model)
         if len(model) > 0:
             tree.set_cursor("0")
-            
+
     def on_pwd_button_clicked(self, button, *args):
         dialog = self.widgets.pwd_dialog
         dialog.set_transient_for(self.get_window())
@@ -617,16 +630,32 @@ class UsersEditor(editor.GenericEditorView):
                 user = self.get_selected_user()
 
                 if pwd1 == "" or pwd2 == "":
-                    msg = _("The password for user <b>%s</b> has not been changed.") % user
-                    utils.message_dialog(msg, Gtk.MessageType.WARNING, parent=self.get_window())
+                    msg = (
+                        _("The password for user <b>%s</b> has not been changed.")
+                        % user
+                    )
+                    utils.message_dialog(
+                        msg, Gtk.MessageType.WARNING, parent=self.get_window()
+                    )
                 elif pwd1 != pwd2:
-                    msg = _("The passwords do not match. The password for user <b>%s</b> has not been changed.") % user
-                    utils.message_dialog(msg, Gtk.MessageType.WARNING, parent=self.get_window())
+                    msg = (
+                        _(
+                            "The passwords do not match. The password for user <b>%s</b> has not been changed."
+                        )
+                        % user
+                    )
+                    utils.message_dialog(
+                        msg, Gtk.MessageType.WARNING, parent=self.get_window()
+                    )
                 else:
                     try:
                         set_password(pwd1, user)
                     except Exception as e:
-                        utils.message_dialog(utils.utf8(e), Gtk.MessageType.ERROR, parent=self.get_window())
+                        utils.message_dialog(
+                            utils.utf8(e),
+                            Gtk.MessageType.ERROR,
+                            parent=self.get_window(),
+                        )
 
             dialog.destroy()
 
@@ -706,7 +735,7 @@ class UsersTool(pluginmgr.Tool):
     item_position = 5
     label = _("Users")
     icon_name = "system-users"
-    
+
     @classmethod
     def start(self):
         UsersEditor().start()

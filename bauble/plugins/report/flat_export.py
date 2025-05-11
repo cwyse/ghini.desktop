@@ -69,9 +69,7 @@ class FlatFileExporter(GenericEditorPresenter):
         return {
             "output_file": self.view.widget_get_value("output_file"),
             "domain": self.view.widget_get_value("domain_combo"),
-            "exported_fields": [
-                r[0] for r in self.view.widgets.exported_fields_ls
-            ],
+            "exported_fields": [r[0] for r in self.view.widgets.exported_fields_ls],
         }
 
     def set_model_fields(
@@ -115,15 +113,15 @@ class FlatFileExporter(GenericEditorPresenter):
         """browse for output file"""
         previously = self.view.widget_get_value("output_file")
         last_folder, bn = os.path.split(previously)
-        
+
         # Use the window from self.view
         parent_window = self.view.get_window()
-        
+
         self.view.run_file_chooser_dialog(
             _("Choose a file…"),
             parent=parent_window,
             action=Gtk.FileChooserAction.SAVE,
-            buttons = [
+            buttons=[
                 _("Ok"),
                 Gtk.ResponseType.ACCEPT,
                 _("Cancel"),
@@ -159,7 +157,10 @@ class FlatFileExporter(GenericEditorPresenter):
         store = self.view.widgets.exported_fields_ls
         this = store.get_iter(path)
         other = None
-        if event.get_keyval() in (Gdk.KEY_Delete, Gdk.KEY_KP_Delete):  # 1. issue_gdkevent_structs
+        if event.get_keyval() in (
+            Gdk.KEY_Delete,
+            Gdk.KEY_KP_Delete,
+        ):  # 1. issue_gdkevent_structs
             store.remove(this)
         elif (
             event.get_keyval() in (Gdk.KEY_Down, Gdk.KEY_J)  # 1. issue_gdkevent_structs
@@ -207,7 +208,9 @@ class FlatFileExporter(GenericEditorPresenter):
         self.mapper = class_mapper(self.domain_map[self.domain])
 
         def on_prop_button_clicked(button, event, menu):
-            menu.popup(None, None, None, None, event.get_button(), event.time)  # 1. issue_gdkevent_structs
+            menu.popup(
+                None, None, None, None, event.get_button(), event.time
+            )  # 1. issue_gdkevent_structs
 
         def relation_filter(container, prop):
             if isinstance(prop, ColumnProperty):
@@ -260,9 +263,7 @@ class FlatFileExporter(GenericEditorPresenter):
                 objs = [row[0] for row in model]
                 from . import get_pertinent_objects
 
-                todo = get_pertinent_objects(
-                    self.domain_map[self.domain], objs
-                )
+                todo = get_pertinent_objects(self.domain_map[self.domain], objs)
             else:
                 todo = session.execute(select(self.mapper)).scalars().all()
             for obj in todo:
@@ -275,9 +276,7 @@ class FlatFileExporter(GenericEditorPresenter):
                     for step in steps:
                         values = [getattr(value, step) for value in values]
                         if values and isinstance(values[0], InstrumentedList):
-                            values = [
-                                item for sublist in values for item in sublist
-                            ]
+                            values = [item for sublist in values for item in sublist]
                             single_valued = False
                     if field == "<str>":
                         value = str(values[0]).replace("\u200b", "")
@@ -327,9 +326,7 @@ class FlatFileExportTool(pluginmgr.Tool):
                 )
                 % report
             )
-            msg_dialog = butils.create_message_dialog(
-                msg, buttons=Gtk.ButtonsType.NONE
-            )
+            msg_dialog = butils.create_message_dialog(msg, buttons=Gtk.ButtonsType.NONE)
             msg_dialog.add_buttons(Gtk.STOCK_OPEN, 42, Gtk.STOCK_STOP, 40)
             msg_dialog.set_default_response(40)
             should_we_open = msg_dialog.run()

@@ -121,9 +121,13 @@ def test_most_values_converted_to_string(temp_prefs_file):
     p = prefs._prefs(temp_prefs_file)
     p.init()
     p["test.not_there_yet-1"] = 1
-    assert p["test.not_there_yet-1"] == "1", "Integer values should be converted to strings"
+    assert (
+        p["test.not_there_yet-1"] == "1"
+    ), "Integer values should be converted to strings"
     p["test.not_there_yet-3"] = None
-    assert p["test.not_there_yet-3"] == "None", "None should be converted to the string 'None'"
+    assert (
+        p["test.not_there_yet-3"] == "None"
+    ), "None should be converted to the string 'None'"
 
 
 def test_boolean_values_stay_boolean(temp_prefs_file):
@@ -148,5 +152,7 @@ def test_saved_dictionary_like_ini_file(temp_prefs_file):
     p.save(force=True)
     with open(temp_prefs_file, "r") as f:
         content = f.read()
-        assert "not_there_yet-1 = 1" in content, "Key-value pair should be present in the file"
+        assert (
+            "not_there_yet-1 = 1" in content
+        ), "Key-value pair should be present in the file"
         assert "[test]" in content, "Section header should be present in the file"

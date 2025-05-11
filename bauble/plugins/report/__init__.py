@@ -36,7 +36,7 @@ from bauble.plugins.plants import Family, Genus, Species, VernacularName
 from bauble.plugins.tag import Tag
 from bauble.prefs import prefs
 
-#from gi.repository import Gdk
+# from gi.repository import Gdk
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
@@ -53,8 +53,6 @@ from .utils import PS, SVG
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
 
 
 # name: formatter_kwargs
@@ -117,9 +115,7 @@ def get_plant_query(obj, session):
         return q.where(Plant.id == obj.id)
 
     elif isinstance(obj, Accession):
-        return q.join(Accession, Plant.accession).where(
-            Accession.id == obj.id
-        )
+        return q.join(Accession, Plant.accession).where(Accession.id == obj.id)
 
     elif isinstance(obj, Location):
         return q.where(Plant.location_id == obj.id)
@@ -136,9 +132,9 @@ def get_plant_query(obj, session):
         plants = get_pertinent_objects(Plant, obj.objects)
         from sqlalchemy import bindparam
 
-        return q.where(
-            Plant.id.in_(bindparam("plant_ids", expanding=True))
-        ).params(plant_ids=[p.id for p in plants])
+        return q.where(Plant.id.in_(bindparam("plant_ids", expanding=True))).params(
+            plant_ids=[p.id for p in plants]
+        )
 
     else:
         raise BaubleError(_("Can't get plants from a %s") % type(obj).__name__)
@@ -179,9 +175,7 @@ def get_accession_query(obj, session):
         return q.where(Accession.id == obj.id)
 
     elif isinstance(obj, Location):
-        return q.join(Plant, Accession.plants).where(
-            Plant.location_id == obj.id
-        )
+        return q.join(Plant, Accession.plants).where(Plant.location_id == obj.id)
 
     elif isinstance(obj, Contact):
         return (
@@ -198,9 +192,7 @@ def get_accession_query(obj, session):
             Accession.id.in_(bindparam("accession_ids", expanding=True))
         ).params(accession_ids=[a.id for a in acc])
     else:
-        raise BaubleError(
-            _("Can't get accessions from a %s") % type(obj).__name__
-        )
+        raise BaubleError(_("Can't get accessions from a %s") % type(obj).__name__)
 
 
 def get_species_query(obj, session):
@@ -220,9 +212,7 @@ def get_species_query(obj, session):
         return q.where(Species.id == obj.id)
 
     elif isinstance(obj, VernacularName):
-        return q.join(Species.vernacular_names).where(
-            VernacularName.id == obj.id
-        )
+        return q.join(Species.vernacular_names).where(VernacularName.id == obj.id)
 
     elif isinstance(obj, Plant):
         return q.join(Accession.plants).where(Plant.id == obj.id)
@@ -244,14 +234,13 @@ def get_species_query(obj, session):
         acc = get_pertinent_objects(Species, obj.objects)
         from sqlalchemy import bindparam
 
-        return q.where(
-            Species.id.in_(bindparam("species_ids", expanding=True))
-        ).params(species_ids=[a.id for a in acc])
+        return q.where(Species.id.in_(bindparam("species_ids", expanding=True))).params(
+            species_ids=[a.id for a in acc]
+        )
 
     else:
-        raise BaubleError(
-            _("Can't get species from a %s") % type(obj).__name__
-        )
+        raise BaubleError(_("Can't get species from a %s") % type(obj).__name__)
+
 
 def get_location_query(obj, session):
     """ """
@@ -315,14 +304,10 @@ def get_location_query(obj, session):
         ).params(location_ids=[l.id for l in locs])
 
     else:
-        raise BaubleError(
-            _("Can't get Location from a %s") % type(obj).__name__
-        )
+        raise BaubleError(_("Can't get Location from a %s") % type(obj).__name__)
 
     # Now execute and scalars at the end
     return session.execute(stmt).scalars()
-
-
 
 
 def get_pertinent_objects(cls, objs):
@@ -359,7 +344,7 @@ class SettingsBox:
     def __init__(self):
         # Create an instance of Gtk.VBox instead of subclassing it
         self.vbox = Gtk.VBox()
-    
+
     def get_settings(self):
         """
         Should be implemented by subclasses or other classes to retrieve
@@ -373,12 +358,13 @@ class SettingsBox:
         the settings with the given data.
         """
         raise NotImplementedError
-    
+
     def get_vbox(self):
         """
         Returns the Gtk.VBox instance managed by this class.
         """
         return self.vbox
+
 
 class FormatterPlugin(pluginmgr.Plugin):
     """
@@ -420,9 +406,7 @@ class FormatterPlugin(pluginmgr.Plugin):
         result = type("Template", (object,), {"filename": ""})()
         for path in [
             os.path.join(bpaths.user_dir(), "templates", name),
-            os.path.join(
-                bpaths.lib_dir(), "plugins", "report", "templates", name
-            ),
+            os.path.join(bpaths.lib_dir(), "plugins", "report", "templates", name),
         ]:
             if os.path.exists(path):
                 result.filename = path
@@ -460,8 +444,7 @@ class FormatterPlugin(pluginmgr.Plugin):
                 option_lines = [
                     m
                     for m in [
-                        cls.option_pattern.match(i.strip())
-                        for i in f.readlines()
+                        cls.option_pattern.match(i.strip()) for i in f.readlines()
                     ]
                     if m is not None
                 ]
@@ -485,8 +468,7 @@ class FormatterPlugin(pluginmgr.Plugin):
                 domains = [
                     m.group(1)
                     for m in [
-                        cls.domain_pattern.match(line.strip())
-                        for line in f.readlines()
+                        cls.domain_pattern.match(line.strip()) for line in f.readlines()
                     ]
                     if m is not None
                 ]
@@ -501,9 +483,7 @@ class FormatterPlugin(pluginmgr.Plugin):
                     domain = ""
         except Exception as e:
             logger.debug(
-                "template {} can't be read - {}({})".format(
-                    name, type(e).__name__, e
-                )
+                "template {} can't be read - {}({})".format(name, type(e).__name__, e)
             )
             domain = ""
 
@@ -594,9 +574,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         self.view.widget_set_value("names_combo", default)
         # hard_coded_options are part of the glade interface, we do not
         # remove them when selecting a different template.
-        self.hard_coded_options = set(
-            self.view.widgets.options_box.get_children()
-        )
+        self.hard_coded_options = set(self.view.widgets.options_box.get_children())
 
     def set_prefs_for(self, name, settings):
         """
@@ -620,9 +598,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         logger.debug("thawn %s templates" % thawn)
 
     def on_new_button_clicked(self, *args):
-        filename = os.path.join(
-            bpaths.lib_dir(), "plugins", "report", "report.glade"
-        )
+        filename = os.path.join(bpaths.lib_dir(), "plugins", "report", "report.glade")
         view = GenericEditorView(filename, root_widget_name="choose_dialog")
         GenericEditorPresenter(model=self, view=view)
         signaller = view.widgets.choose_thaw
@@ -707,11 +683,9 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         if index != -1:
             row = self.view.widgets.names_ls[index]
             name = row[0] + row[3]
-            prefs[default_config_pref] = (
-                name  # set the default to the new name
-            )
+            prefs[default_config_pref] = name  # set the default to the new name
         GLib.idle_add(self._names_combo_changed_idle, combo)
-        
+
     def _names_combo_changed_idle(self, combo):
         index = self.view.widgets.names_combo.get_active()
         self.view.widget_set_sensitive("details_box", (index != -1))
@@ -768,7 +742,9 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
 
         # Populate the options box
         for fname, ftype, fdefault, ftooltip in option_fields:
-            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)  # Replaces Gtk.HBox
+            row = Gtk.Box(
+                orientation=Gtk.Orientation.HORIZONTAL, spacing=5
+            )  # Replaces Gtk.HBox
 
             label = Gtk.Label(label=f"{fname.replace('_', ' ')}:")
             label.set_xalign(0)  # Instead of set_alignment(0, 0.5)
@@ -821,9 +797,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
     def set_bool_option(self, widget, fname):
         self.options[fname] = widget.get_active()
 
-    def add_name_to_combo_and_select_it(
-        self, name, plugin, is_package_template
-    ):
+    def add_name_to_combo_and_select_it(self, name, plugin, is_package_template):
         """the names tells it all
 
         scan through the names_ls, first compare with column:1, which holds
@@ -853,9 +827,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             item = names_ls.insert_before(item, new_row)
         else:
             item = names_ls.append(new_row)
-        GLib.idle_add(
-            butils.none, self.view.widgets.names_combo.set_active_iter, item
-        )
+        GLib.idle_add(butils.none, self.view.widgets.names_combo.set_active_iter, item)
 
     def populate_names_combo(self):
         """populate names_ls from package- and user-templates
@@ -881,9 +853,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             ]
         )
         self.view.widgets.names_ls.clear()
-        for title in sorted(
-            self.formatter_class_map
-        ):  # sort templates by plugin
+        for title in sorted(self.formatter_class_map):  # sort templates by plugin
             plugin = self.formatter_class_map[title]
             logger.debug("scanning {} templates for {}".format(title, plugin))
             for candidate, index, path in basenames_fullnames:  # then by name
@@ -907,9 +877,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
                     names.add(candidate)
                 else:
                     logger.debug("{} refuses {}".format(title, candidate))
-        GLib.idle_add(
-            butils.none, self.view.widget_set_sensitive, "names_combo", True
-        )
+        GLib.idle_add(butils.none, self.view.widget_set_sensitive, "names_combo", True)
 
     def save_formatter_settings(self):
         template_options = prefs[config_list_pref]
@@ -949,14 +917,10 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
     def start(self):
         """collect user choices, invokes formatter, repeat."""
         results_model = bauble.gui.get_results_model()  # guaranteed not empty
-        self.selection = [
-            row[0] for row in results_model
-        ]  # only top level selected
+        self.selection = [row[0] for row in results_model]  # only top level selected
         from sqlalchemy.orm import object_session
 
-        self.session = object_session(
-            self.selection[0]
-        )  # reuse the same session
+        self.session = object_session(self.selection[0])  # reuse the same session
 
         formatter = None
         settings = None
@@ -1056,9 +1020,7 @@ class ReportTool(pluginmgr.Tool):
             filename = os.path.join(
                 bpaths.lib_dir(), "plugins", "report", "report.glade"
             )
-            view = GenericEditorView(
-                filename, root_widget_name="report_dialog"
-            )
+            view = GenericEditorView(filename, root_widget_name="report_dialog")
             presenter = ReportToolDialogPresenter(view)
             presenter.start()
         except AssertionError as e:
@@ -1077,8 +1039,7 @@ class ReportTool(pluginmgr.Tool):
         except Exception as e:
             logger.debug(traceback.format_exc())
             butils.message_details_dialog(
-                _("Formatting Error\n\n" "%s(%s)")
-                % (type(e).__name__, butils.utf8(e)),
+                _("Formatting Error\n\n" "%s(%s)") % (type(e).__name__, butils.utf8(e)),
                 traceback.format_exc(),
                 Gtk.MessageType.ERROR,
             )

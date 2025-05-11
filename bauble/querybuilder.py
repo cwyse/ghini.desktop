@@ -39,7 +39,6 @@ logger = logging.getLogger(__name__)
 RelationProperty = RelationshipProperty
 
 
-
 def parse_typed_value(value):
     """Parses input and returns corresponding typed value: int, float, None, or EmptyToken."""
     try:
@@ -72,7 +71,7 @@ class SchemaMenu:
         mapper,
         activate_cb=None,
         relation_filter=lambda c, p: True,
-        leading_items=[]
+        leading_items=[],
     ):
         self.mapper = mapper
         self.activate_cb = activate_cb
@@ -91,14 +90,14 @@ class SchemaMenu:
     def on_activate(self, menuitem, prop):
         """Invoke activate_cb on selected menu item."""
         path = []
-        #path.append(menuitem.get_child().get_property("label"))
+        # path.append(menuitem.get_child().get_property("label"))
         path.append(menuitem.get_label())
         menu = menuitem.get_parent()
         while menu:
             menuitem = menu.get_attach_widget()
             if not menuitem:
                 break
-            #label = menuitem.get_child().get_property("label")
+            # label = menuitem.get_child().get_property("label")
             label = menuitem.get_label()
             path.append(label)
             menu = menuitem.get_parent()
@@ -152,8 +151,7 @@ class SchemaMenu:
             [
                 x
                 for x in mapper.iterate_properties
-                if isinstance(x, RelationProperty)
-                and not x.key.startswith("_")
+                if isinstance(x, RelationProperty) and not x.key.startswith("_")
             ],
             key=lambda k: k.key,
         )
@@ -185,6 +183,7 @@ class SchemaMenu:
         # Ensure that the menu shows up where the user clicked
         self.menu.popup_at_pointer(event)
 
+
 class ExpressionRow:
     """ """
 
@@ -207,12 +206,13 @@ class ExpressionRow:
         self.prop_button = Gtk.Button(label=_("Choose a property…"))
         self.prop_button.set_property("use-underline", False)
 
-        #def on_prop_button_clicked(button, event, menu):
+        # def on_prop_button_clicked(button, event, menu):
         #    menu.popup(None, None, None, None, event.get_button(), event.time)  # 1. issue_gdkevent_structs
         def on_prop_button_clicked(button, event, menu):
             """Handle button click and show the menu at the pointer position"""
             # Assuming that 'menu' is a SchemaMenu instance
             menu.show_menu(button, event)  # Show the menu at the event position
+
         self.schema_menu = SchemaMenu(
             self.presenter.mapper,
             self.on_schema_menu_activated,
@@ -236,9 +236,7 @@ class ExpressionRow:
         self.table.attach(self.value_widget, 3, row_number, 1, 1)
 
         if row_number != 1:
-            image = Gtk.Image.new_from_icon_name(
-                "edit-delete", Gtk.IconSize.BUTTON
-            )
+            image = Gtk.Image.new_from_icon_name("edit-delete", Gtk.IconSize.BUTTON)
             self.remove_button = Gtk.Button()
             # 7. issue_gtk_button_image_api (REMOVED, pack GtkImage manually inside GtkButton)
             if Gtk.get_major_version() >= 4:
@@ -246,9 +244,7 @@ class ExpressionRow:
             else:
                 self.remove_button.add(image)
                 self.remove_button.show_all()
-            self.remove_button.connect(
-                "clicked", lambda b: remove_callback(self)
-            )
+            self.remove_button.connect("clicked", lambda b: remove_callback(self))
             self.table.attach(self.remove_button, 4, row_number, 1, 1)
 
     def on_value_changed(self, widget, *args):
@@ -267,9 +263,7 @@ class ExpressionRow:
         row = self.table.child_get_property(self.value_widget, "top-attach")
         width = self.table.child_get_property(self.value_widget, "width")
         height = self.table.child_get_property(self.value_widget, "height")
-        column = self.table.child_get_property(
-            self.value_widget, "left-attach"
-        )
+        column = self.table.child_get_property(self.value_widget, "left-attach")
         self.table.remove(self.value_widget)
 
         # change the widget depending on the type of the selected property
@@ -294,8 +288,7 @@ class ExpressionRow:
             else:
                 values = prop.columns[0].type.values
                 prop_values = [
-                    (v, v)
-                    for v in sorted(values, key=lambda x: (x is not None, x))
+                    (v, v) for v in sorted(values, key=lambda x: (x is not None, x))
                 ]
             for value, translation in prop_values:
                 model.append([value, translation])
@@ -458,28 +451,20 @@ class QueryBuilder(GenericEditorPresenter):
         domain = self.domain_map[self.domain]
         self.mapper = class_mapper(domain)
         self.table_row_count += 1
-        row = ExpressionRow(
-            self, self.remove_expression_row, self.table_row_count
-        )
+        row = ExpressionRow(self, self.remove_expression_row, self.table_row_count)
         self.expression_rows.append(row)
         self.view.widgets.expressions_table.show_all()
 
     def start(self):
         if self.default_size is None:
-            self.__class__.default_size = (
-                self.view.widgets.main_dialog.get_size()
-            )
+            self.__class__.default_size = self.view.widgets.main_dialog.get_size()
         else:
             self.view.widgets.main_dialog.resize(*self.default_size)
         return self.view.start()
 
     @property
     def valid_clauses(self):
-        return [
-            i.get_expression()
-            for i in self.expression_rows
-            if i.get_expression()
-        ]
+        return [i.get_expression() for i in self.expression_rows if i.get_expression()]
 
     def get_query(self):
         """
@@ -510,9 +495,7 @@ class QueryBuilder(GenericEditorPresenter):
                 self.on_add_clause()
             row = self.expression_rows[-1]
             if clause.connector:
-                row.and_or_combo.set_active(
-                    {"and": 0, "or": 1}[clause.connector]
-                )
+                row.and_or_combo.set_active({"and": 0, "or": 1}[clause.connector])
 
             # the part about the value is a bit more complex: where the
             # clause.field leads to an enumerated property, on_add_clause

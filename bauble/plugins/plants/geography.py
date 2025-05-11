@@ -67,44 +67,52 @@ def get_species_in_geographic_area(geo):
         # Use the session for query execution
         result = db.Session().execute(stmt)
         kids = [row.id for row in result.scalars()]
-        
+
         for kid in kids:
             # Recursively fetch the children of the current child
             grand_kids = get_geographic_area_children(kid)
             master_ids.update(grand_kids)
 
         return kids
+
     geokids = get_geographic_area_children(geo.id)
     master_ids.update(geokids)
     from sqlalchemy import bindparam
 
     q = (
-        session.execute(select(Species)
-        .join(SpeciesDistribution)
-        .where(
-            SpeciesDistribution.geographic_area_id.in_(
-                bindparam("master_ids", expanding=True)
+        session.execute(
+            select(Species)
+            .join(SpeciesDistribution)
+            .where(
+                SpeciesDistribution.geographic_area_id.in_(
+                    bindparam("master_ids", expanding=True)
+                )
             )
+            .params(master_ids=master_ids)
         )
-        .params(master_ids=master_ids)
-    )).scalars()
+    ).scalars()
     return list(q)
+
 
 class GeographicAreaMenu:
     def __init__(self, callback):
         # Create an instance of Gtk.Menu instead of subclassing it
-        self.menu = Gtk.Menu()  
+        self.menu = Gtk.Menu()
         geographic_area_table = GeographicArea.__table__
         import bauble.db as db
 
         # Query the database for the geographic area information
-        geos = db.Session.execute(
-            select(
-                geographic_area_table.c.id,
-                geographic_area_table.c.name,
-                geographic_area_table.c.parent_id
+        geos = (
+            db.Session.execute(
+                select(
+                    geographic_area_table.c.id,
+                    geographic_area_table.c.name,
+                    geographic_area_table.c.parent_id,
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         geos_hash = {}
         for geo_id, name, parent_id in geos:
             if parent_id not in geos_hash:
@@ -172,10 +180,12 @@ class GeographicAreaMenu:
             self.menu.show_all()
 
         from gi.repository import GLib
+
         GLib.idle_add(populate)
 
     def get_menu(self):
         return self.menu
+
 
 class GeographicArea(db.Base):
     """

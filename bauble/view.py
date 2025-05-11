@@ -33,7 +33,7 @@ import bauble
 import gi
 import sqlalchemy.exc as saexc
 
-#from bauble import prefs
+# from bauble import prefs
 from bauble import db, editor, paths, pictures_view, pluginmgr, search, utils
 from bauble.error import BaubleError, check
 
@@ -79,6 +79,7 @@ css = b"""
     background: #F0F0F0; /* Light grey background for even rows */
 }
 """
+
 
 def apply_css():
     css_provider = Gtk.CssProvider()
@@ -126,7 +127,7 @@ class Action:
     """
     An Action allows a label, tooltip, callback, and accelerator to be called
     when specific items are selected in the SearchView.
-    
+
     Updated to use `Gio.SimpleAction` instead of deprecated `Gtk.Action`.
     """
 
@@ -139,7 +140,7 @@ class Action:
         callback=None,
         accelerator=None,
         multiselect=False,
-        singleselect=True
+        singleselect=True,
     ):
         """
         :param name: Unique action name (e.g., "open").
@@ -165,7 +166,7 @@ class Action:
         self.action = Gio.SimpleAction.new(name, None)
         if callback:
             self.action.connect("activate", callback)
-        
+
         from bauble import app
 
         app.gtk_app.add_action(self.action)
@@ -266,11 +267,12 @@ class PropertiesExpander(InfoExpander):
         )
         safe_set_text(
             self.updated_data,
-            row._last_updated.strftime("%Y-%m-%d %H:%M:%S")
-            if row._last_updated
-            else "",
+            (
+                row._last_updated.strftime("%Y-%m-%d %H:%M:%S")
+                if row._last_updated
+                else ""
+            ),
         )
-
 
 
 class MapInfoExpander(InfoExpander):
@@ -301,7 +303,9 @@ class MapInfoExpander(InfoExpander):
         """Update the map with points from the row."""
         self.map_widget.set_visible(self.get_expanded())
 
-        black = Gdk.RGBA(0, 0, 0, 0.5)  # Equivalent to Clutter.Color.new(0x00, 0x00, 0x00, 0x7F)
+        black = Gdk.RGBA(
+            0, 0, 0, 0.5
+        )  # Equivalent to Clutter.Color.new(0x00, 0x00, 0x00, 0x7F)
 
         self.layer.remove_all()
         if self.get_points is None:
@@ -326,13 +330,13 @@ class InfoBoxPage:
     Container for :class:`bauble.view.InfoExpander` objects.
     Uses composition instead of subclassing Gtk.ScrolledWindow.
     """
+
     def __init__(self):
         self.container = Gtk.ScrolledWindow()
         self.container.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.container.add(self.vbox)
         self.expanders = {}
-
 
     def add_expander(self, expander):
         """
@@ -341,7 +345,9 @@ class InfoBoxPage:
         :param expander: the bauble.view.InfoExpander to add to this infobox
         """
         self.vbox.pack_start(expander, False, True, 5)
-        self.expanders[expander.get_label()] = expander  # Use get_label() instead of get_property("label")
+        self.expanders[expander.get_label()] = (
+            expander  # Use get_label() instead of get_property("label")
+        )
 
         expander._sep = Gtk.Separator.new(orientation=Gtk.Orientation.HORIZONTAL)
         self.vbox.pack_start(expander._sep, False, False, 0)
@@ -378,7 +384,7 @@ class InfoBoxPage:
             expander.update(row)
             from gi.repository import Gdk, Gtk, Pango
 
-            
+
 class InfoBox:
     """
     Holds a list of expanders with an optional tabbed layout.
@@ -395,7 +401,9 @@ class InfoBox:
 
         if not tabbed:
             page = InfoBoxPage()
-            self.notebook.append_page(page, None)  # insert_page → append_page for clarity
+            self.notebook.append_page(
+                page, None
+            )  # insert_page → append_page for clarity
             self.notebook.set_show_tabs(False)
 
         self.notebook.set_current_page(0)
@@ -475,17 +483,19 @@ class LinksExpander(InfoExpander):
                     label.set_ellipsize(Pango.EllipsizeMode.END)
 
                     button = Gtk.LinkButton(uri=url)
-                    
+
                     # GTK 4 requires set_child(), GTK 3 uses add()
                     if hasattr(button, "set_child"):
                         button.set_child(label)  # GTK 4
                     else:
                         button.add(label)  # GTK 3
-                    
+
                     button.set_halign(Gtk.Align.START)
                     self.dynamic_box.pack_start(button, False, False, 0)
 
             self.dynamic_box.show_all()
+
+
 import itertools
 import logging
 import threading
@@ -495,6 +505,7 @@ from gi.repository import GLib, GObject
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
+
 
 class AddOneDot(threading.Thread):
     """
@@ -548,7 +559,9 @@ class CountResultsTask(threading.Thread):
             if self.__cancel.is_set():
                 break
 
-            item = session.execute(select(klass).where(klass.id == ndx)).scalars().first()
+            item = (
+                session.execute(select(klass).where(klass.id == ndx)).scalars().first()
+            )
             if not item:
                 logger.warning(f"object {klass.__name__}({ndx}) disappeared")
                 break
@@ -557,7 +570,10 @@ class CountResultsTask(threading.Thread):
                 d[k] = d.get(k, set()) | v if isinstance(v, set) else d.get(k, 0) + v
 
         if not self.__cancel.is_set():
-            result = ", ".join(f"{k if isinstance(k, str) else k[1]}: {len(v) if isinstance(v, set) else v}" for k, v in sorted(d.items()))
+            result = ", ".join(
+                f"{k if isinstance(k, str) else k[1]}: {len(v) if isinstance(v, set) else v}"
+                for k, v in sorted(d.items())
+            )
             status_text = _("top level count: %s") % result
 
             GLib.idle_add(self.update_status, status_text)
@@ -594,9 +610,14 @@ class PopulateResults(threading.Thread):
         added = set()
 
         groups = sorted(
-            (list(group) for _, group in itertools.groupby(sorted(results, key=lambda x: x[:2]), key=lambda x: x[0])),
+            (
+                list(group)
+                for _, group in itertools.groupby(
+                    sorted(results, key=lambda x: x[:2]), key=lambda x: x[0]
+                )
+            ),
             key=lambda x: x[0][0],
-            reverse=True
+            reverse=True,
         )
 
         model = self.view.results_view.get_model()
@@ -629,19 +650,27 @@ class PopulateResults(threading.Thread):
 
         # Final status update
         GLib.idle_add(self.update_status, _("counting results"))
-        
+
         # If all results are of the same type, count top-level results
         unique_classes = {item[2].__class__ for item in results}
         if len(unique_classes) == 1:
             dots_thread = self.view.start_thread(AddOneDot())
-            self.view.start_thread(CountResultsTask(results[0][2].__class__, [i[2].id for i in results], dots_thread))
+            self.view.start_thread(
+                CountResultsTask(
+                    results[0][2].__class__, [i[2].id for i in results], dots_thread
+                )
+            )
         else:
-            GLib.idle_add(self.update_status, _("size of non homogeneous result: %s") % len(results))
+            GLib.idle_add(
+                self.update_status,
+                _("size of non homogeneous result: %s") % len(results),
+            )
 
     def update_status(self, text):
         """Update the status bar message on the main thread."""
         self.statusbar.pop(self.sbcontext_id)
         self.statusbar.push(self.sbcontext_id, text)
+
 
 class SearchView(pluginmgr.View):
     """
@@ -662,14 +691,22 @@ class SearchView(pluginmgr.View):
                 self.markup_func = None
                 self.actions = []
 
-            def set(self, children=None, infobox=None, context_menu=None, markup_func=None):
+            def set(
+                self, children=None, infobox=None, context_menu=None, markup_func=None
+            ):
                 self.children = children
                 self.infobox = infobox
                 self.markup_func = markup_func
                 self.context_menu = context_menu
-                self.actions = [x for x in context_menu if isinstance(x, Action)] if context_menu else []
+                self.actions = (
+                    [x for x in context_menu if isinstance(x, Action)]
+                    if context_menu
+                    else []
+                )
 
-            def set(self, children=None, infobox=None, context_menu=None, markup_func=None):
+            def set(
+                self, children=None, infobox=None, context_menu=None, markup_func=None
+            ):
                 """
                 Set metadata properties for the ViewMeta class.
 
@@ -683,12 +720,20 @@ class SearchView(pluginmgr.View):
                 self.markup_func = markup_func
                 self.context_menu = context_menu
 
-                self.actions = [x for x in context_menu if isinstance(x, Action)] if context_menu else []
+                self.actions = (
+                    [x for x in context_menu if isinstance(x, Action)]
+                    if context_menu
+                    else []
+                )
 
             def get_children(self, obj):
                 if self.children is None:
                     return []
-                return self.children(obj) if callable(self.children) else getattr(obj, self.children)
+                return (
+                    self.children(obj)
+                    if callable(self.children)
+                    else getattr(obj, self.children)
+                )
 
         def __getitem__(self, item):
             if item not in self:
@@ -711,7 +756,10 @@ class SearchView(pluginmgr.View):
 
         # Picture view
         from bauble import pictures_view
-        pictures_view.floating_window = pictures_view.PicturesView(parent=self.widgets.search_h2pane)
+
+        pictures_view.floating_window = pictures_view.PicturesView(
+            parent=self.widgets.search_h2pane
+        )
 
         # Internal caches
         self.context_menu_cache = {}
@@ -743,9 +791,7 @@ class SearchView(pluginmgr.View):
             "label": label,
             "name": _("Notes"),
         }
-        self.widgets.notes_treeview.connect(
-            "row-activated", self.on_note_row_activated
-        )
+        self.widgets.notes_treeview.connect("row-activated", self.on_note_row_activated)
         logger.debug("exiting add_notes_page_to_bottom_notebook")
 
     def on_note_row_activated(self, tree, path, column):
@@ -808,9 +854,7 @@ class SearchView(pluginmgr.View):
         self.view.widget_set_visible("bottom_notebook", True)
         row = values[0]  # the selected row
         logger.debug(
-            "update_bottom_notebook - for {}({})".format(
-                type(row).__name__, row
-            )
+            "update_bottom_notebook - for {}({})".format(type(row).__name__, row)
         )
 
         # loop over bottom_info plugin classes (eg: Tag)
@@ -824,9 +868,7 @@ class SearchView(pluginmgr.View):
                 self.add_page_to_bottom_notebook(bottom_info)
             label = bottom_info["label"]
             if not hasattr(klass, "attached_to"):
-                logging.warning(
-                    "class %s does not implement attached_to" % klass
-                )
+                logging.warning("class %s does not implement attached_to" % klass)
                 continue
             objs = klass.attached_to(row)
             model = bottom_info["tree"].get_model()
@@ -839,10 +881,7 @@ class SearchView(pluginmgr.View):
                 label.set_label("<b>%s</b>" % bottom_info["name"])
                 for obj in objs:
                     model.append(
-                        [
-                            "%s" % getattr(obj, k)
-                            for k in bottom_info["fields_used"]
-                        ]
+                        ["%s" % getattr(obj, k) for k in bottom_info["fields_used"]]
                     )
             logger.debug("done {} for {}".format(len(objs), klass.__name__))
         logger.debug("update_bottom_notebook - exiting")
@@ -856,15 +895,10 @@ class SearchView(pluginmgr.View):
         def set_infobox_from_row(row):
             """implement the logic for update_infobox"""
 
-            logger.debug(
-                "set_infobox_from_row: {} --  {}".format(row, repr(row))
-            )
+            logger.debug("set_infobox_from_row: {} --  {}".format(row, repr(row)))
             # remove the current infobox if there is one and it is not needed
             if row is None:
-                if (
-                    self.infobox is not None
-                    and self.infobox.get_parent() == self.pane
-                ):
+                if self.infobox is not None and self.infobox.get_parent() == self.pane:
                     self.pane.remove(self.infobox)
                 return
 
@@ -894,14 +928,11 @@ class SearchView(pluginmgr.View):
                     new_infobox = self.row_meta[selected_type].infobox()
                 self.infobox_cache[selected_type] = new_infobox
             logger.debug(
-                "created or retrieved infobox %s %s"
-                % (type(new_infobox), new_infobox)
+                "created or retrieved infobox %s %s" % (type(new_infobox), new_infobox)
             )
 
             # remove any old infoboxes connected to the pane
-            if self.infobox is not None and type(self.infobox) != type(
-                new_infobox
-            ):
+            if self.infobox is not None and type(self.infobox) != type(new_infobox):
                 if self.infobox.get_parent() == self.pane:
                     self.pane.remove(self.infobox)
 
@@ -945,42 +976,47 @@ class SearchView(pluginmgr.View):
         return [model[row][0] for row in rows]
 
     def on_cursor_changed(self, view):
-            """
-            Called when selection changes
-            """
-            self.update_infobox()
-            self.update_bottom_notebook()
-            from bauble import pictures_view
-            pictures_view.floating_window.set_selection(self.get_selected_values())
+        """
+        Called when selection changes
+        """
+        self.update_infobox()
+        self.update_bottom_notebook()
+        from bauble import pictures_view
 
-            for accel, cb in self.installed_accels:
-                r = self.accel_group.disconnect_key(accel[0], accel[1])
-                if not r:
-                    logger.warning("Callback not removed: %s" % cb)
+        pictures_view.floating_window.set_selection(self.get_selected_values())
 
-            self.installed_accels = []
-            selected = self.get_selected_values()
-            if not selected:
-                return
-            selected_type = type(selected[0])
+        for accel, cb in self.installed_accels:
+            r = self.accel_group.disconnect_key(accel[0], accel[1])
+            if not r:
+                logger.warning("Callback not removed: %s" % cb)
 
-            for action in self.row_meta[selected_type].actions:
-                enabled = (len(selected) > 1 and action.multiselect) or (len(selected) <= 1 and action.singleselect)
-                if not enabled:
-                    continue
-                keyval, mod = Gtk.accelerator_parse(action.accelerator)
-                if (keyval, mod) != (0, 0):
+        self.installed_accels = []
+        selected = self.get_selected_values()
+        if not selected:
+            return
+        selected_type = type(selected[0])
 
-                    def cb(func):
-                        def _impl(*args):
-                            sel = self.get_selected_values()
-                            if func(sel):
-                                self.update()
+        for action in self.row_meta[selected_type].actions:
+            enabled = (len(selected) > 1 and action.multiselect) or (
+                len(selected) <= 1 and action.singleselect
+            )
+            if not enabled:
+                continue
+            keyval, mod = Gtk.accelerator_parse(action.accelerator)
+            if (keyval, mod) != (0, 0):
 
-                        return _impl
+                def cb(func):
+                    def _impl(*args):
+                        sel = self.get_selected_values()
+                        if func(sel):
+                            self.update()
 
-                    self.accel_group.connect(keyval, mod, Gtk.AccelFlags.VISIBLE, cb(action.callback))
-                    self.installed_accels.append(((keyval, mod), action.callback))
+                    return _impl
+
+                self.accel_group.connect(
+                    keyval, mod, Gtk.AccelFlags.VISIBLE, cb(action.callback)
+                )
+                self.installed_accels.append(((keyval, mod), action.callback))
 
     nresults_statusbar_context = "searchview.nresults"
 
@@ -1037,7 +1073,9 @@ class SearchView(pluginmgr.View):
         # Handle the case when no results are found
         if not results:
             model = Gtk.ListStore(str)
-            msg = bold % html.escape(_('Couldn\'t find anything for search: "%s"') % text)
+            msg = bold % html.escape(
+                _('Couldn\'t find anything for search: "%s"') % text
+            )
             model.append([msg])
             self.results_view.set_model(model)
             return
@@ -1071,7 +1109,6 @@ class SearchView(pluginmgr.View):
 
         # Update the bottom notebook with additional details
         self.update_bottom_notebook()
-
 
     def remove_children(self, model, parent):
         """
@@ -1107,9 +1144,7 @@ class SearchView(pluginmgr.View):
             logger.debug(traceback.format_exc())
             return True
         else:
-            self.append_children(
-                model, treeiter, sorted(kids, key=utils.natsort_key)
-            )
+            self.append_children(model, treeiter, sorted(kids, key=utils.natsort_key))
             return False
 
     def append_children(self, model, parent, kids):
@@ -1173,8 +1208,7 @@ class SearchView(pluginmgr.View):
 
             except (saexc.InvalidRequestError, TypeError) as e:
                 logger.warning(
-                    "bauble.view.SearchView.cell_data_func(): \n(%s)%s"
-                    % (type(e), e)
+                    "bauble.view.SearchView.cell_data_func(): \n(%s)%s" % (type(e), e)
                 )
 
                 def remove():
@@ -1188,8 +1222,7 @@ class SearchView(pluginmgr.View):
 
             except Exception as e:
                 logger.error(
-                    "bauble.view.SearchView.cell_data_func(): \n(%s)%s"
-                    % (type(e), e)
+                    "bauble.view.SearchView.cell_data_func(): \n(%s)%s" % (type(e), e)
                 )
                 raise
 
@@ -1200,9 +1233,7 @@ class SearchView(pluginmgr.View):
         expanded_rows = []
 
         def expand(view, path):
-            return expanded_rows.append(
-                Gtk.TreeRowReference(view.get_model(), path)
-            )
+            return expanded_rows.append(Gtk.TreeRowReference(view.get_model(), path))
 
         self.results_view.map_expanded_rows(expand)
         # seems to work better if we passed the reversed rows to
@@ -1272,9 +1303,7 @@ class SearchView(pluginmgr.View):
                     except Exception as e:
                         msg = utils.xml_safe(str(e))
                         tb = utils.xml_safe(traceback.format_exc())
-                        utils.message_details_dialog(
-                            msg, tb, Gtk.MessageType.ERROR
-                        )
+                        utils.message_details_dialog(msg, tb, Gtk.MessageType.ERROR)
                         logger.warning(traceback.format_exc())
                     if result:
                         self.update()
@@ -1290,7 +1319,9 @@ class SearchView(pluginmgr.View):
             )
 
         # (parent_menu_shell, parent_menu_item, func, data, button, activate_time)
-        menu.popup(None, None, None, None, event.get_button(), event.time)  # 1. issue_gdkevent_structs
+        menu.popup(
+            None, None, None, None, event.get_button(), event.time
+        )  # 1. issue_gdkevent_structs
         return True
 
     def update(self):
@@ -1337,8 +1368,7 @@ class SearchView(pluginmgr.View):
         expand the row on activation
         """
         logger.debug(
-            "SearchView::on_view_row_activated %s %s %s %s"
-            % (view, path, column, data)
+            "SearchView::on_view_row_activated %s %s %s %s" % (view, path, column, data)
         )
         view.expand_row(path, False)
 
@@ -1381,9 +1411,13 @@ class SearchView(pluginmgr.View):
             This ensures that users can open the context menu without losing their
             current selection when using a right-click.
             """
-            if event.get_button() == Gdk.BUTTON_SECONDARY:  # Right-click  # 1. issue_gdkevent_structs
+            if (
+                event.get_button() == Gdk.BUTTON_SECONDARY
+            ):  # Right-click  # 1. issue_gdkevent_structs
                 if (event.get_state() & Gdk.ModifierType.CONTROL_MASK) == 0:
-                    path_info = view.get_path_at_pos(int(event.get_x()), int(event.get_y()))  # 1. issue_gdkevent_structs
+                    path_info = view.get_path_at_pos(
+                        int(event.get_x()), int(event.get_y())
+                    )  # 1. issue_gdkevent_structs
                     if path_info:
                         path, _, _, _ = path_info
                         if not view.get_selection().path_is_selected(path):
@@ -1407,7 +1441,6 @@ class SearchView(pluginmgr.View):
 
         # Pack the search UI into the main interface
         self.pack_start(vbox, expand=True, fill=True, padding=0)
-
 
     def on_notes_size_allocation(self, treeview, allocation, column, cell):
         """
@@ -1556,9 +1589,7 @@ class HistoryView(pluginmgr.View):
         mapper_search = search.get_strategy("MapperSearch")
         if table in mapper_search._domains:
             query = "{} where id={}".format(table, obj_id)
-            safe_set_text(
-                bauble.gui.widgets.main_comboentry.get_child(), query
-            )
+            safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), query)
             bauble.gui.widgets.go_button.emit("clicked")
 
     def update(self):
@@ -1604,8 +1635,7 @@ def select_in_search_results(obj):
     if not isinstance(view, SearchView):
         return None
     logger.debug(
-        "select_in_search_results %s is in session %s"
-        % (obj, obj in view.session)
+        "select_in_search_results %s is in session %s" % (obj, obj in view.session)
     )
     model = view.results_view.get_model()
     found = utils.search_tree_model(model, obj)

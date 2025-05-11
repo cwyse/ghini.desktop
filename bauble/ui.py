@@ -83,9 +83,7 @@ class DefaultView(pluginmgr.View):
         self.add(self.hbox)
 
         image = Gtk.Image()
-        image.set_from_file(
-            os.path.join(paths.lib_dir(), "images", "bauble_logo.png")
-        )
+        image.set_from_file(os.path.join(paths.lib_dir(), "images", "bauble_logo.png"))
         self.hbox.pack_start(image, True, True, 0)
 
         # the following means we do not have an infobox yet
@@ -143,9 +141,7 @@ def create_menu_item_with_image(label, icon_name=None, base_dir=None):
             path_to_module = path_to_module[:-1]
         base_dir = os.path.join(paths.lib_dir(), *path_to_module)
 
-    logger.debug(
-        f"create_menu_item_with_image {label} {icon_name} {base_dir}"
-    )
+    logger.debug(f"create_menu_item_with_image {label} {icon_name} {base_dir}")
 
     # Resolve full path for PNG icons
     if base_dir and icon_name and icon_name.endswith(".png"):
@@ -206,9 +202,7 @@ class GUI:
             pixbuf = GdkPixbuf.Pixbuf.new_from_file(bauble.default_icon)
             self.window.set_icon(pixbuf)
         except Exception:
-            logger.warning(
-                _("Could not load icon from %s") % bauble.default_icon
-            )
+            logger.warning(_("Could not load icon from %s") % bauble.default_icon)
             logger.warning(traceback.format_exc())
 
         menubar = self.create_main_menu()
@@ -230,13 +224,13 @@ class GUI:
         # Bind the shortcut (Ctrl+L) to focus on the main_entry widget
         key, mod = Gtk.accelerator_parse("<Control>L")
         accel_group.connect(
-            key, mod, Gtk.AccelFlags.VISIBLE,
-            lambda accel_group, acceleratable, keyval, modifier: main_entry.grab_focus()
+            key,
+            mod,
+            Gtk.AccelFlags.VISIBLE,
+            lambda accel_group, acceleratable, keyval, modifier: main_entry.grab_focus(),
         )
 
-        self.widgets.home_button.connect(
-            "clicked", self.on_home_button_clicked
-        )
+        self.widgets.home_button.connect("clicked", self.on_home_button_clicked)
 
         self.widgets.prev_view_button.connect(
             "clicked", self.on_prev_view_button_clicked
@@ -244,9 +238,7 @@ class GUI:
 
         self.widgets.go_button.connect("clicked", self.on_go_button_clicked)
 
-        self.widgets.query_button.connect(
-            "clicked", self.on_query_button_clicked
-        )
+        self.widgets.query_button.connect("clicked", self.on_query_button_clicked)
 
         self.set_default_view()
 
@@ -285,9 +277,7 @@ class GUI:
             restOfLine,
         )
 
-        cmd = (
-            StringStart() + ":" + Word(alphanums + "-_").setResultsName("cmd")
-        )
+        cmd = StringStart() + ":" + Word(alphanums + "-_").setResultsName("cmd")
         arg = restOfLine.setResultsName("arg")
         self.cmd_parser = (cmd + StringEnd()) | (cmd + "=" + arg) | arg
 
@@ -313,9 +303,7 @@ class GUI:
 
     def show_error_box(self, msg, details=None):
         self.close_message_box()
-        box = utils.add_message_box(
-            self.widgets.msg_box_parent, utils.MESSAGE_BOX_INFO
-        )
+        box = utils.add_message_box(self.widgets.msg_box_parent, utils.MESSAGE_BOX_INFO)
         box.message = msg
         box.details = details
         rgba1 = Gdk.RGBA()
@@ -337,9 +325,7 @@ class GUI:
         Show an info message in the message drop down box
         """
         self.close_message_box()
-        box = utils.add_message_box(
-            self.widgets.msg_box_parent, utils.MESSAGE_BOX_INFO
-        )
+        box = utils.add_message_box(self.widgets.msg_box_parent, utils.MESSAGE_BOX_INFO)
         box.message = msg
         box.show()
 
@@ -462,18 +448,14 @@ class GUI:
         if bauble.conn_name is None:
             return "{} {}".format("Ghini", bauble.version)
         else:
-            return "{} {} - {}".format(
-                "Ghini", bauble.version, bauble.conn_name
-            )
+            return "{} {} - {}".format("Ghini", bauble.version, bauble.conn_name)
 
     title = property(__get_title)
 
     def set_busy(self, busy):
         self.widgets.main_box.set_sensitive(not busy)
         if busy:
-            self.window.get_window().set_cursor(
-                Gdk.Cursor.new(Gdk.CursorType.WATCH)
-            )
+            self.window.get_window().set_cursor(Gdk.Cursor.new(Gdk.CursorType.WATCH))
         else:
             self.window.get_window().set_cursor(None)
 
@@ -556,7 +538,7 @@ class GUI:
         # File menu entries
         new_item = Gtk.MenuItem(label=_("New"))
         new_item.connect("activate", self.on_file_menu_new)
-        new_item.set_sensitive(False)  
+        new_item.set_sensitive(False)
         file_menu.append(new_item)
 
         open_item = Gtk.MenuItem(label=_("Open"))
@@ -566,18 +548,24 @@ class GUI:
 
         # Add a keyboard shortcut (Ctrl+O) for the Open menu item
         open_item.add_accelerator(
-            "activate", accel_group, ord("O"),
-            Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE
+            "activate",
+            accel_group,
+            ord("O"),
+            Gdk.ModifierType.CONTROL_MASK,
+            Gtk.AccelFlags.VISIBLE,
         )
-    
+
         quit_item = Gtk.MenuItem(label=_("Quit"))
         quit_item.connect("activate", self.on_quit)
         file_menu.append(quit_item)
 
         # Add a keyboard shortcut (Ctrl+Q) for the Quit menu item
         quit_item.add_accelerator(
-            "activate", accel_group, ord("Q"),
-            Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE
+            "activate",
+            accel_group,
+            ord("Q"),
+            Gdk.ModifierType.CONTROL_MASK,
+            Gtk.AccelFlags.VISIBLE,
         )
 
         # --- Edit Menu ---
@@ -673,7 +661,6 @@ class GUI:
 
         return self.menubar
 
-
     def clear_menu(self, menu):
         """
         Remove all items from a Gtk.Menu.
@@ -689,18 +676,18 @@ class GUI:
         menu.show()
 
     def add_menu(self, name, menu, index=-1):
-            """
-            add a menu to the menubar
+        """
+        add a menu to the menubar
 
-            :param name:
-            :param menu:
-            :param index:
-            """
-            menu_item = Gtk.MenuItem(label=name)
-            menu_item.set_submenu(menu)
-            self.menubar.insert(menu_item, len(self.menubar.get_children()) - 1)
-            self.menubar.show_all()
-            return menu_item
+        :param name:
+        :param menu:
+        :param index:
+        """
+        menu_item = Gtk.MenuItem(label=name)
+        menu_item.set_submenu(menu)
+        self.menubar.insert(menu_item, len(self.menubar.get_children()) - 1)
+        self.menubar.show_all()
+        return menu_item
 
     __insert_menu_cache = {}
 
@@ -782,7 +769,9 @@ class GUI:
         # Add tools with no category to the root menu
         root_tools = tools.pop(None, [])
         for tool in sorted(root_tools, key=lambda x: getattr(x, "item_position", 0)):
-            self.add_to_tools_menu(tools_menu, tool, self.on_tools_menu_item_activate, tool.icon_dir)
+            self.add_to_tools_menu(
+                tools_menu, tool, self.on_tools_menu_item_activate, tool.icon_dir
+            )
         tools_menu.show_all()
 
         # Create submenus for categorized tools
@@ -797,15 +786,17 @@ class GUI:
 
             for tool in sorted(tools[category], key=lambda x: x.label):
                 try:
-                    self.add_to_tools_menu(submenu, tool, self.on_tools_menu_item_activate, tool.icon_dir)
+                    self.add_to_tools_menu(
+                        submenu, tool, self.on_tools_menu_item_activate, tool.icon_dir
+                    )
                 except:
-                    self.add_to_tools_menu(submenu, tool, self.on_tools_menu_item_activate, tool.icon_dir)
+                    self.add_to_tools_menu(
+                        submenu, tool, self.on_tools_menu_item_activate, tool.icon_dir
+                    )
             submenu_item.show_all()
 
         # Ensure all menu items are visible
         tools_menu.show_all()
-
-
 
     def on_tools_menu_item_activate(self, widget, tool):
         """
@@ -869,9 +860,7 @@ class GUI:
         if presenter_cls:
             obj = utils.gc_objects_by_type(presenter_cls)
             if obj != []:
-                logger.warning(
-                    "{} leaked: {}".format(presenter_cls.__name__, obj)
-                )
+                logger.warning("{} leaked: {}".format(presenter_cls.__name__, obj))
             obj = utils.gc_objects_by_type(view_cls)
             if obj != []:
                 logger.warning("{} leaked: {}".format(view_cls.__name__, obj))
@@ -904,9 +893,7 @@ class GUI:
             db.create()
             pluginmgr.init()
         except Exception as e:
-            msg = _("Could not create a new database.\n\n%s") % utils.xml_safe(
-                e
-            )
+            msg = _("Could not create a new database.\n\n%s") % utils.xml_safe(e)
             tb = utils.xml_safe(traceback.format_exc())
             utils.message_details_dialog(msg, tb, Gtk.MessageType.ERROR)
             return
@@ -986,9 +973,7 @@ class GUI:
         desktop.open(filename, dialog_on_error=True)
 
     def on_help_menu_web_devel(self, widget, data=None):
-        desktop.open(
-            "http://github.com/Ghini/ghini.desktop/", dialog_on_error=True
-        )
+        desktop.open("http://github.com/Ghini/ghini.desktop/", dialog_on_error=True)
 
     def on_help_menu_web_wiki(self, widget, data=None):
         desktop.open("http://ghini.github.io/", dialog_on_error=True)

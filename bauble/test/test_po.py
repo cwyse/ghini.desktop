@@ -28,6 +28,7 @@ from babel.messages.pofile import read_po
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 @pytest.fixture
 def po_files():
     """
@@ -38,6 +39,7 @@ def po_files():
     files = glob.glob(os.path.join(po_dir, "po", "*.po"))
     return files
 
+
 @pytest.fixture
 def translation_pattern():
     """
@@ -45,12 +47,13 @@ def translation_pattern():
     """
     return re.compile(r"%\([a-z0-9_]*\)s")
 
+
 def test_same_keys(po_files, translation_pattern):
     """
     Test that keys in the original message and translations match for all .po files.
     """
     for filename in po_files:
-        with open(filename, 'r', encoding='utf-8') as po_file:
+        with open(filename, "r", encoding="utf-8") as po_file:
             catalog = read_po(po_file)
             for msg in catalog:
                 if not msg.id or not msg.string:
@@ -62,4 +65,3 @@ def test_same_keys(po_files, translation_pattern):
                     f"Mismatch in {filename}: "
                     f"original keys {incoming} do not match translated keys {translated}"
                 )
-

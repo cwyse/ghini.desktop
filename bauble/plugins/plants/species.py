@@ -86,7 +86,10 @@ def remove_callback(values):
     if isinstance(species, VernacularName):
         species = species.species
     from sqlalchemy import func
-    nacc = session.execute(select(func.count()).select_from(Accession).where(species_id=species.id))
+
+    nacc = session.execute(
+        select(func.count()).select_from(Accession).where(species_id=species.id)
+    )
     safe_str = utils.xml_safe(species)
     if nacc > 0:
         msg = _("The species <i>%(1)s</i> has %(2)s accessions." "\n\n") % {
@@ -96,10 +99,7 @@ def remove_callback(values):
         utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
         return
     else:
-        msg = (
-            _("Are you sure you want to remove the species <i>%s</i>?")
-            % safe_str
-        )
+        msg = _("Are you sure you want to remove the species <i>%s</i>?") % safe_str
     if not utils.yes_no_dialog(msg):
         return
     try:
@@ -165,7 +165,7 @@ class SynonymSearch(search.SearchStrategy):
             prefs.save()
 
     def search(self, text, session):
-        #from .genus import Genus, GenusSynonym
+        # from .genus import Genus, GenusSynonym
 
         super().search(text, session)
         if not prefs[self.return_synonyms_pref]:
@@ -180,18 +180,35 @@ class SynonymSearch(search.SearchStrategy):
             # synonym of something else, include that something else. that
             # is, the accepted name.
             if isinstance(result, Species):
-                q = session.execute(select(SpeciesSynonym).where(
-                    SpeciesSynonym.synonym_id==result.id
-                )).scalars().all()
+                q = (
+                    session.execute(
+                        select(SpeciesSynonym).where(
+                            SpeciesSynonym.synonym_id == result.id
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
                 results.extend([syn.species for syn in q])
             elif isinstance(result, Genus):
-                q = session.execute(
-                    select(GenusSynonym).where(GenusSynonym.synonym_id==result.id)).scalars().all()
+                q = (
+                    session.execute(
+                        select(GenusSynonym).where(GenusSynonym.synonym_id == result.id)
+                    )
+                    .scalars()
+                    .all()
+                )
                 results.extend([syn.genus for syn in q])
             elif isinstance(results, VernacularName):
-                q = session.execute(select(SpeciesSynonym).where(
-                    SpeciesSynonym.synonym_id==result.species.id
-                )).scalars().all()
+                q = (
+                    session.execute(
+                        select(SpeciesSynonym).where(
+                            SpeciesSynonym.synonym_id == result.species.id
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
                 results.extend([syn.species for syn in q])
         return results
 
@@ -228,9 +245,7 @@ class VernacularExpander(InfoExpander):
                     row.default_vernacular_name is not None
                     and vn == row.default_vernacular_name
                 ):
-                    names.insert(
-                        0, "%s - %s (default)" % (vn.name, vn.language)
-                    )
+                    names.insert(0, "%s - %s (default)" % (vn.name, vn.language))
                 else:
                     names.append("%s - %s" % (vn.name, vn.language))
             self.widget_set_value("sp_vernacular_data", "\n".join(names))
@@ -261,7 +276,9 @@ class SynonymsExpander(InfoExpander):
         syn = (
             session.execute(
                 select(SpeciesSynonym).where(SpeciesSynonym.synonym_id == row.id)
-            ).scalars().first()
+            )
+            .scalars()
+            .first()
         )
         accepted = syn and syn.species
         logger.debug(
@@ -341,9 +358,7 @@ class GeneralSpeciesExpander(InfoExpander):
             cmd = "plant where accession.species.id=%s" % self.current_obj.id
             bauble.gui.send_command(cmd)
 
-        utils.make_label_clickable(
-            self.widgets.sp_nplants_data, on_nplants_clicked
-        )
+        utils.make_label_clickable(self.widgets.sp_nplants_data, on_nplants_clicked)
 
     def update(self, row):
         """
@@ -422,19 +437,25 @@ class GeneralSpeciesExpander(InfoExpander):
         from bauble.plugins.garden.plant import Plant
 
         nacc = (
-            session.execute(select(Accession)
-            .join(Species, Accession.species_id == Species.id)
-            .where(Species.id == row.id)
-            ).scalars().count()
+            session.execute(
+                select(Accession)
+                .join(Species, Accession.species_id == Species.id)
+                .where(Species.id == row.id)
+            )
+            .scalars()
+            .count()
         )
         self.widget_set_value("sp_nacc_data", nacc)
 
         nplants = (
-            session.execute(select(Plant)
-            .join(Accession, Plant.accession_id == Accession.id)
-            .join(Species, Accession.species_id == Species.id)
-            .where(Species.id == row.id)
-            ).scalars().count()
+            session.execute(
+                select(Plant)
+                .join(Accession, Plant.accession_id == Accession.id)
+                .join(Species, Accession.species_id == Species.id)
+                .where(Species.id == row.id)
+            )
+            .scalars()
+            .count()
         )
         if nplants == 0:
             self.widget_set_value("sp_nplants_data", nplants)
@@ -445,7 +466,9 @@ class GeneralSpeciesExpander(InfoExpander):
                     .join(Accession, Plant.accession_id == Accession.id)
                     .join(Species, Accession.species_id == Species.id)
                     .where(Species.id == row.id)
-                ).scalars().all()
+                )
+                .scalars()
+                .all()
             )
             self.widget_set_value(
                 "sp_nplants_data",
@@ -454,11 +477,14 @@ class GeneralSpeciesExpander(InfoExpander):
 
         living_plants = sum(
             i.quantity
-            for i in session.execute(select(Plant)
-            .join(Accession, Plant.accession_id == Accession.id)
-            .join(Species, Accession.species_id == Species.id)
-            .where(Species.id == row.id)
-            ).scalars().all()
+            for i in session.execute(
+                select(Plant)
+                .join(Accession, Plant.accession_id == Accession.id)
+                .join(Species, Accession.species_id == Species.id)
+                .where(Species.id == row.id)
+            )
+            .scalars()
+            .all()
         )
         self.widget_set_value("living_plants_count", living_plants)
 
@@ -488,18 +514,14 @@ class SpeciesInfoBox(InfoBox):
                 "_base_uri": "https://www.gbif.org/species/search?q=%s",
                 "_space": "+",
                 "title": _("Search GBIF"),
-                "tooltip": _(
-                    "Search the Global Biodiversity Information Facility"
-                ),
+                "tooltip": _("Search the Global Biodiversity Information Facility"),
             },
             {
                 "name": "ITISButton",
                 "_base_uri": "https://www.itis.gov/servlet/SingleRpt/SingleRpt?search_topic=Scientific_Name&search_value=%s&search_kingdom=Plant&search_span=containing&categories=All&source=html&search_credRating=All",
                 "_space": "%20",
                 "title": _("Search ITIS"),
-                "tooltip": _(
-                    "Search the Intergrated Taxonomic Information System"
-                ),
+                "tooltip": _("Search the Intergrated Taxonomic Information System"),
             },
             {
                 "name": "GRINButton",
@@ -534,9 +556,7 @@ class SpeciesInfoBox(InfoBox):
                 "_base_uri": "https://plantsearch.bgci.org/search?filter[genus]=%(genus.genus)s&filter[specific_epithet]=%(sp)s&sort=name",
                 "_space": " ",
                 "title": _("Search BGCI"),
-                "tooltip": _(
-                    "Search Botanic Gardens Conservation International"
-                ),
+                "tooltip": _("Search Botanic Gardens Conservation International"),
             },
             {
                 "name": "WFOButton",
@@ -554,9 +574,7 @@ class SpeciesInfoBox(InfoBox):
             },
         ]
         super().__init__()
-        filename = os.path.join(
-            paths.lib_dir(), "plugins", "plants", "infoboxes.glade"
-        )
+        filename = os.path.join(paths.lib_dir(), "plugins", "plants", "infoboxes.glade")
         # load the widgets directly instead of using BuilderWidgets()
         # because the caching that BuilderWidgets() does can mess up
         # displaying the SpeciesInfoBox sometimes if you try to show
@@ -599,9 +617,7 @@ class VernacularNameInfoBox(SpeciesInfoBox):
 
     def update(self, row):
         logger.info(
-            "VernacularNameInfoBox.update {}({})".format(
-                row.__class__.__name__, row
-            )
+            "VernacularNameInfoBox.update {}({})".format(row.__class__.__name__, row)
         )
         if isinstance(row, VernacularName):
             super().update(row.species)

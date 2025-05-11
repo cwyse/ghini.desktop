@@ -51,7 +51,11 @@ def ElementFactory(parent, name, **kwargs):
     el = etree.SubElement(parent, name, **kwargs)
     try:
         if text is not None:
-            el.text = str(text) if isinstance(text, str) else text.decode('utf8', errors='ignore')
+            el.text = (
+                str(text)
+                if isinstance(text, str)
+                else text.decode("utf8", errors="ignore")
+            )
     except Exception as e:
         logger.error(f"Error setting text for element: {e}")
     el.text = ""
@@ -65,7 +69,7 @@ class XMLExporter:
         pass
 
     def start(self, path=None):
-        
+
         dialog = Gtk.Dialog(
             title=_("Ghini - XML Exporter"),
             transient_for=bauble.gui.window,
@@ -73,8 +77,10 @@ class XMLExporter:
         )
         dialog.set_icon_name("document-export")
         dialog.add_buttons(
-            _("Cancel"), Gtk.ResponseType.REJECT,
-            _("OK"), Gtk.ResponseType.ACCEPT,
+            _("Cancel"),
+            Gtk.ResponseType.REJECT,
+            _("OK"),
+            Gtk.ResponseType.ACCEPT,
         )
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
@@ -105,7 +111,6 @@ class XMLExporter:
         )
         dialog.show()
 
-
     def on_open_file_chooser_dialog(self, button):
         chooser = Gtk.FileChooserDialog(
             title=_("Select a Directory"),
@@ -113,15 +118,16 @@ class XMLExporter:
             action=Gtk.FileChooserAction.SELECT_FOLDER,
         )
         chooser.add_buttons(
-            _("Cancel"), Gtk.ResponseType.CANCEL,
-            _("Select"), Gtk.ResponseType.OK,
+            _("Cancel"),
+            Gtk.ResponseType.CANCEL,
+            _("Select"),
+            Gtk.ResponseType.OK,
         )
         response = chooser.run()
         if response == Gtk.ResponseType.OK:
             self.selected_path = chooser.get_filename()
             self.selected_path_label.set_text(self.selected_path)
         chooser.destroy()
-
 
     def on_dialog_response(self, dialog, response, file_chooser, check):
         filename = self.selected_path  # Use the selected path from the label
@@ -133,7 +139,6 @@ class XMLExporter:
                 return
             self.__export_task(filename, one_file)
         dialog.destroy()
-
 
     def __export_task(self, path, one_file=True):
         # Get all tables from metadata
@@ -148,7 +153,9 @@ class XMLExporter:
         for index, (table_name, table) in enumerate(tables):
             # Update progress bar
             self.progress_bar.set_fraction((index + 1) / total_tables)
-            self.progress_bar.set_text(f"Exporting {table_name}... ({index + 1}/{total_tables})")
+            self.progress_bar.set_text(
+                f"Exporting {table_name}... ({index + 1}/{total_tables})"
+            )
             while Gtk.events_pending():
                 Gtk.main_iteration()
 
@@ -156,9 +163,7 @@ class XMLExporter:
                 tableset_el = etree.Element("tableset")
 
             logger.info("exporting %s…" % table_name)
-            table_el = ElementFactory(
-                tableset_el, "table", attrib={"name": table_name}
-            )
+            table_el = ElementFactory(tableset_el, "table", attrib={"name": table_name})
 
             # Query the data using SQLAlchemy 2.x's session
             stmt = select(table)
@@ -195,7 +200,6 @@ class XMLExporter:
         self.progress_bar.set_text(_("Export Complete"))
 
 
-
 class XMLExportCommandHandler(pluginmgr.CommandHandler):
 
     command = "exxml"
@@ -228,7 +232,6 @@ try:
     import lxml.etree as etree
 except ImportError:
     utils.message_dialog(
-        "The <i>lxml</i> package is required for the "
-        "XML Import/Exporter plugin"
+        "The <i>lxml</i> package is required for the " "XML Import/Exporter plugin"
     )
     raise

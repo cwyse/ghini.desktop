@@ -37,7 +37,7 @@ class AskGBIF(threading.Thread):
         gui=False,
         group=None,
         verbose=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(group=group, target=None, name=None)
         logger.debug(
@@ -75,10 +75,9 @@ class AskGBIF(threading.Thread):
         return self._stop
 
     def run(self):
-        def ask_gbif(binomial):              
+        def ask_gbif(binomial):
             result = requests.get(
-                "https://api.gbif.org/v1/species/match?verbose=false&name="
-                + binomial,
+                "https://api.gbif.org/v1/species/match?verbose=false&name=" + binomial,
                 timeout=self.timeout,
             )
             logger.debug(result.text)
@@ -108,9 +107,7 @@ class AskGBIF(threading.Thread):
             logger.debug("found this: %s", str(found))
             if found["status"] == "SYNONYM":
                 accepted = ask_gbif(found["species"])
-                logger.debug(
-                    "ask_gbif on the Accepted ID returns %s", accepted
-                )
+                logger.debug("ask_gbif on the Accepted ID returns %s", accepted)
                 logger.debug("%s after second query", self.name)
             if self.stopped():
                 raise ShouldStopNow("after second query")
@@ -133,6 +130,7 @@ class AskGBIF(threading.Thread):
         logger.debug("%s before invoking callback" % self.name)
         if self.gui:
             import gi
+
             gi.require_version("Gtk", "3.0")
             from gi.repository import GLib
 

@@ -47,7 +47,7 @@ from bauble.view import Action, InfoBox, PropertiesExpander, select_in_search_re
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-#from sqlalchemy import text
+# from sqlalchemy import text
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -80,9 +80,11 @@ logger = logging.getLogger(__name__)
 # to use the accepted name and show the author of the genus then so
 # they aren't using the wrong version of the Genus, e.g. Cananga
 
+
 # Use lazy import where Family is needed
 def get_family_class():
     from bauble.plugins.plants.family import Family
+
     return Family
 
 
@@ -111,7 +113,10 @@ def remove_callback(genera):
 
     session = object_session(genus)
     from sqlalchemy import func
-    nsp = session.execute(select(func.count()).select_from(Species).where(genus_id=genus.id))
+
+    nsp = session.execute(
+        select(func.count()).select_from(Species).where(genus_id=genus.id)
+    )
     safe_str = utils.xml_safe(str(genus))
     if nsp > 0:
         msg = _("The genus <i>%(1)s</i> has %(2)s species." "\n\n") % {
@@ -120,7 +125,7 @@ def remove_callback(genera):
         } + _("You cannot remove a genus with species.")
         utils.message_dialog(msg, type=Gtk.MessageType.WARNING)
         return
-    
+
     # Count the synonyms linked to the genus
     synonym_count = len(genus.synonyms)
     synonyms_exist = synonym_count > 0
@@ -195,9 +200,12 @@ remove_action = Action(
 
 genus_context_menu = [edit_action, add_species_action, remove_action]
 
+
 def get_species_editor():
     from bauble.plugins.plants.species_editor import edit_species
+
     return edit_species
+
 
 class Genus(db.Base, db.Serializable, db.WithNotes):
     """
@@ -245,7 +253,13 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     rank = "genus"
     link_keys = ["accepted"]
 
-    family = relationship("Family", back_populates="genera", lazy="joined", uselist=False, active_history=True)
+    family = relationship(
+        "Family",
+        back_populates="genera",
+        lazy="joined",
+        uselist=False,
+        active_history=True,
+    )
 
     def __init__(self, **kwargs):
         self.species_editor = get_species_editor()
@@ -262,9 +276,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         """the cites status of this taxon, or None"""
 
         cites_notes = [
-            i.note
-            for i in self.notes
-            if i.category and i.category.upper() == "CITES"
+            i.note for i in self.notes if i.category and i.category.upper() == "CITES"
         ]
         if not cites_notes:
             return self.family.cites
@@ -292,7 +304,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         return ""
 
     # columns
-    #genus = synonym("epithet")
+    # genus = synonym("epithet")
 
     # Use hybrid property for the 'genus' synonym
     @hybrid_property
@@ -302,11 +314,11 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     @genus.setter
     def genus(self, value):
         self.epithet = value
-    
+
     @genus.expression
     def genus(cls):
         return cls.epithet
-    
+
     # use '' instead of None so that the constraints will work propertly
     author = Column(Unicode(255), default="")
     order_by = [asc(epithet), asc(author)]
@@ -352,10 +364,11 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         else:
             logger.warning("genus:accepted - object not in session")
             return None
-        
+
         if not self._synonyms_synonym:
             return None
         return self._synonyms_synonym[0].genus if self._synonyms_synonym else None
+
     @accepted.setter
     def accepted(self, value):
         "Assign self as a synonym of the given genus"
@@ -374,7 +387,9 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             existing_synonym = (
                 session.execute(
                     select(GenusSynonym).where(GenusSynonym.synonym_id == self.id)
-                ).scalars().first()
+                )
+                .scalars()
+                .first()
             )
 
             if existing_synonym:
@@ -405,11 +420,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             return repr(genus)
         elif not author or genus.author is None:
             return " ".join(
-                [
-                    s
-                    for s in [genus.epithet, genus.qualifier]
-                    if s not in ("", None)
-                ]
+                [s for s in [genus.epithet, genus.qualifier] if s not in ("", None)]
             )
         else:
             return " ".join(
@@ -466,7 +477,6 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             logger.error(f"Error retrieving {cls.__name__} with keys {keys}: {e}")
             return None
 
-
     @classmethod
     def correct_field_names(cls, keys):
         for internal, exchange in [("family", "ht-epithet")]:
@@ -505,10 +515,11 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
                 if a.source and a.source.source_detail
             },
         }
-    
+
     def __repr__(self):
-#        return f"<Genus(id={self.id}, epithet='{self.epithet}')>"
+        #        return f"<Genus(id={self.id}, epithet='{self.epithet}')>"
         return Genus.str(self)
+
 
 def compute_serializable_fields(cls, session, keys):
     result = {"genus": None}
@@ -516,9 +527,7 @@ def compute_serializable_fields(cls, session, keys):
     # Prepare genus keys from the `keys` parameter
     genus_keys = {"epithet": keys.get("genus")}
 
-    result["genus"] = Genus.retrieve_or_create(
-        session, genus_keys, create=False
-    )
+    result["genus"] = Genus.retrieve_or_create(session, genus_keys, create=False)
 
     return result
 
@@ -545,18 +554,18 @@ class GenusSynonym(db.Base):
     genus_id = Column(Integer, ForeignKey("genus.id"), nullable=False)
 
     # a genus can only be a synonum of one other genus
-    synonym_id = Column(
-        Integer, ForeignKey("genus.id"), nullable=False, unique=True
-    )
+    synonym_id = Column(Integer, ForeignKey("genus.id"), nullable=False, unique=True)
 
     # Primary relationship to Genus via genus_id
-    genus = relationship(
-        "Genus", back_populates="_synonyms", foreign_keys=[genus_id]
-    )
+    genus = relationship("Genus", back_populates="_synonyms", foreign_keys=[genus_id])
 
     # Secondary relationship to Genus via synonym_id (if applicable)
     synonym = relationship(
-        "Genus", uselist=False, back_populates="_synonyms_synonym", primaryjoin='GenusSynonym.synonym_id==Genus.id', active_history=True
+        "Genus",
+        uselist=False,
+        back_populates="_synonyms_synonym",
+        primaryjoin="GenusSynonym.synonym_id==Genus.id",
+        active_history=True,
     )
 
     #    synonym = relationship('Genus', uselist=False,
@@ -573,6 +582,7 @@ class GenusSynonym(db.Base):
 
     def __repr__(self):
         return f"<GenusSynonym(id={self.id}, genus_id={self.genus_id}, synonym_id={self.synonym_id})>"
+
 
 # late bindings
 
@@ -596,8 +606,7 @@ class GenusEditorView(editor.GenericEditorView):
         "gen_family_entry": _("The family name"),
         "gen_genus_entry": _("The genus name"),
         "gen_author_entry": _(
-            "The name or abbreviation of the author that "
-            "published this genus"
+            "The name or abbreviation of the author that " "published this genus"
         ),
         "gen_syn_frame": _(
             "A list of synonyms for this genus.\n\nTo add a "
@@ -689,16 +698,17 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
         # initialize widgets
         self.synonyms_presenter = SynonymsPresenter(self)
         self.refresh_view()  # put model values in view
-        # connect signals  
-#        def gen_get_completions(text):
-#            clause = utils.ilike(Genus.genus, f"{text}%")
-#            stmt = select(Genus).where(clause).order_by(Genus.genus)#
-#
-#            print(stmt.compile(compile_kwargs={"literal_binds": True}))  # optional debug
-#
-#            result = list(self.session.scalars(stmt))
-#            print("Completion query returned:", [g.genus for g in result])
-#            return result
+
+        # connect signals
+        #        def gen_get_completions(text):
+        #            clause = utils.ilike(Genus.genus, f"{text}%")
+        #            stmt = select(Genus).where(clause).order_by(Genus.genus)#
+        #
+        #            print(stmt.compile(compile_kwargs={"literal_binds": True}))  # optional debug
+        #
+        #            result = list(self.session.scalars(stmt))
+        #            print("Completion query returned:", [g.genus for g in result])
+        #            return result
         # connect signals
         def fam_get_completions(text_val):
             clause = utils.ilike(Family.family, f"{text_val}%")
@@ -707,11 +717,12 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
             result = list(self.session.scalars(stmt))
             print("Completion query returned:", [g.family for g in result])
             return result
-#        def fam_get_completions(text_val):
-#            query = self.session.execute(select(family_instance)).scalars()
-#            return query.where(family_instance.epithet.like("%s%%" % text_val)).order_by(
-#                family_instance.epithet
-#            )
+
+        #        def fam_get_completions(text_val):
+        #            query = self.session.execute(select(family_instance)).scalars()
+        #            return query.where(family_instance.epithet.like("%s%%" % text_val)).order_by(
+        #                family_instance.epithet
+        #            )
 
         def on_select(value):
             for kid in self.view.widgets.message_box_parent.get_children():
@@ -720,10 +731,12 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
             if not value:
                 return
             syn = (
-                self.session.execute(select(FamilySynonym)
-                .where(FamilySynonym.synonym_id == value.id)
-                .first()
-            )).scalars()
+                self.session.execute(
+                    select(FamilySynonym)
+                    .where(FamilySynonym.synonym_id == value.id)
+                    .first()
+                )
+            ).scalars()
             if not syn:
                 self.set_model_attr("family", value)
                 return
@@ -741,9 +754,7 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
                     # populate the completions model on the entry so
                     # when we set the text it will match the
                     # completion and set the value
-                    completion = (
-                        self.view.widgets.gen_family_entry.get_completion()
-                    )
+                    completion = self.view.widgets.gen_family_entry.get_completion()
                     utils.clear_model(completion)
                     model = Gtk.ListStore(object)
                     model.append([syn.family])
@@ -774,9 +785,7 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
 
         notes_parent = self.view.widgets.notes_parent_box
         notes_parent.foreach(notes_parent.remove)
-        self.notes_presenter = editor.NotesPresenter(
-            self, "notes", notes_parent
-        )
+        self.notes_presenter = editor.NotesPresenter(self, "notes", notes_parent)
 
         if self.model not in self.session.new:
             self.view.widgets.gen_ok_and_add_button.set_sensitive(True)
@@ -838,10 +847,10 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
             stmt = (
                 select(Genus)
                 .where(
-                and_(
-                    Genus.epithet.like("%s%%" % text_val),
-                    Genus.id != self.model.id,
-                )
+                    and_(
+                        Genus.epithet.like("%s%%" % text_val),
+                        Genus.id != self.model.id,
+                    )
                 )
                 .order_by(Genus.epithet)
             )
@@ -862,9 +871,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
             "gen_syn_entry", gen_get_completions, on_select=on_select
         )
 
-        self.view.connect(
-            "gen_syn_add_button", "clicked", self.on_add_button_clicked
-        )
+        self.view.connect("gen_syn_add_button", "clicked", self.on_add_button_clicked)
         self.view.connect(
             "gen_syn_remove_button", "clicked", self.on_remove_button_clicked
         )
@@ -916,9 +923,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         for syn in self.model._synonyms:
             tree_model.append([syn])
         self.treeview.set_model(tree_model)
-        self.view.connect(
-            self.treeview, "cursor-changed", self.on_tree_cursor_changed
-        )
+        self.view.connect(self.treeview, "cursor-changed", self.on_tree_cursor_changed)
 
     def on_tree_cursor_changed(self, tree, data=None):
         """ """
@@ -1018,12 +1023,8 @@ class GenusEditor(editor.GenericModelViewPresenterEditor):
                     self.commit_changes()
                     self._committed.append(self.model)
             except DBAPIError as e:
-                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(
-                    e.orig
-                )
-                utils.message_details_dialog(
-                    msg, str(e), Gtk.MessageType.ERROR
-                )
+                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(e.orig)
+                utils.message_details_dialog(msg, str(e), Gtk.MessageType.ERROR)
                 return False
             except Exception as e:
                 msg = _(
@@ -1112,18 +1113,13 @@ class GeneralGenusExpander(InfoExpander):
         def on_family_clicked(*args):
             select_in_search_results(self.current_obj.family)
 
-        utils.make_label_clickable(
-            self.widgets.gen_fam_data, on_family_clicked
-        )
+        utils.make_label_clickable(self.widgets.gen_fam_data, on_family_clicked)
 
         def on_nsp_clicked(*args):
             g = self.current_obj
-            cmd = (
-                'species where genus.epithet="%s" and genus.qualifier="%s"'
-                % (
-                    g.epithet,
-                    g.qualifier,
-                )
+            cmd = 'species where genus.epithet="%s" and genus.qualifier="%s"' % (
+                g.epithet,
+                g.qualifier,
             )
             bauble.gui.send_command(cmd)
 
@@ -1143,14 +1139,11 @@ class GeneralGenusExpander(InfoExpander):
             g = self.current_obj
             cmd = (
                 'plant where accession.species.genus.epithet="%s" and '
-                'accession.species.genus.qualifier="%s"'
-                % (g.epithet, g.qualifier)
+                'accession.species.genus.qualifier="%s"' % (g.epithet, g.qualifier)
             )
             bauble.gui.send_command(cmd)
 
-        utils.make_label_clickable(
-            self.widgets.gen_nplants_data, on_nplants_clicked
-        )
+        utils.make_label_clickable(self.widgets.gen_nplants_data, on_nplants_clicked)
 
     def update(self, row):
         """
@@ -1159,6 +1152,7 @@ class GeneralGenusExpander(InfoExpander):
         :param row: the row to get the values from
         """
         from sqlalchemy import func
+
         session = object_session(row)
         self.current_obj = row
         self.widget_set_value(
@@ -1166,9 +1160,7 @@ class GeneralGenusExpander(InfoExpander):
             "<big>%s</big> %s" % (row, utils.xml_safe(str(row.author))),
             markup=True,
         )
-        self.widget_set_value(
-            "gen_fam_data", (utils.xml_safe(str(row.family)))
-        )
+        self.widget_set_value("gen_fam_data", (utils.xml_safe(str(row.family))))
 
         # get the number of species
         nsp = session.execute(
@@ -1203,7 +1195,9 @@ class GeneralGenusExpander(InfoExpander):
                     .join(Species, Accession.species_id == Species.id)
                     .join(Genus, Species.genus_id == Genus.id)
                     .where(Genus.id == row.id)
-                ).scalars().all()
+                )
+                .scalars()
+                .all()
             )
             self.widget_set_value(
                 "gen_nacc_data", "%s in %s species" % (nacc, nsp_in_acc)
@@ -1228,7 +1222,9 @@ class GeneralGenusExpander(InfoExpander):
                     .join(Species, Accession.species_id == Species.id)
                     .join(Genus, Species.genus_id == Genus.id)
                     .where(Genus.id == row.id)
-                ).scalars().all()
+                )
+                .scalars()
+                .all()
             )
             self.widget_set_value(
                 "gen_nplants_data",
@@ -1317,18 +1313,14 @@ class GenusInfoBox(InfoBox):
                 "_base_uri": "https://www.gbif.org/species/search?q=%s",
                 "_space": "+",
                 "title": _("Search GBIF"),
-                "tooltip": _(
-                    "Search the Global Biodiversity Information Facility"
-                ),
+                "tooltip": _("Search the Global Biodiversity Information Facility"),
             },
             {
                 "name": "ITISButton",
                 "_base_uri": "https://www.itis.gov/servlet/SingleRpt/SingleRpt?search_topic=Scientific_Name&search_value=%s&search_kingdom=Plant&search_span=containing&categories=All&source=html&search_credRating=All",
                 "_space": "%20",
                 "title": _("Search ITIS"),
-                "tooltip": _(
-                    "Search the Intergrated Taxonomic Information System"
-                ),
+                "tooltip": _("Search the Intergrated Taxonomic Information System"),
             },
             {
                 "name": "GRINButton",
@@ -1356,9 +1348,7 @@ class GenusInfoBox(InfoBox):
                 "_base_uri": "https://plantsearch.bgci.org/search?filter[genus]=%(genus)s&sort=name",
                 "_space": " ",
                 "title": _("Search BGCI"),
-                "tooltip": _(
-                    "Search Botanic Gardens Conservation International"
-                ),
+                "tooltip": _("Search Botanic Gardens Conservation International"),
             },
             {
                 "name": "WFOButton",
@@ -1376,9 +1366,7 @@ class GenusInfoBox(InfoBox):
             },
         ]
         super().__init__()
-        filename = os.path.join(
-            paths.lib_dir(), "plugins", "plants", "infoboxes.glade"
-        )
+        filename = os.path.join(paths.lib_dir(), "plugins", "plants", "infoboxes.glade")
         self.widgets = utils.BuilderWidgets(filename)
         self.general = GeneralGenusExpander(self.widgets)
         self.add_expander(self.general)

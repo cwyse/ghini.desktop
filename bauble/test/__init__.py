@@ -23,11 +23,13 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 def update_gui():
     """
     Flush any GTK Events.  Used for doing GUI testing.
     """
     import gi
+
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk
 
@@ -71,6 +73,7 @@ class MockLoggingHandler(logging.Handler):
 
     def reset(self):
         self.messages = {}
+
 
 def mockfunc(msg=None, name=None, caller=None, result=False, *args, **kwargs):
     caller.invoked.append((name, msg))

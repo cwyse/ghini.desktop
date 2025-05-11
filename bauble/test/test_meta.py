@@ -51,9 +51,13 @@ def test_get_default_with_creation(session_with_meta):
     meta.get_default(name, default=value, session=session_with_meta)
     if session_with_meta.in_transaction():
         session_with_meta.commit()  # Ensure the object is saved to the database
-    obj = session_with_meta.execute(
-        select(meta.BaubleMeta).where(meta.BaubleMeta.name == name)
-    ).scalars().one()
+    obj = (
+        session_with_meta.execute(
+            select(meta.BaubleMeta).where(meta.BaubleMeta.name == name)
+        )
+        .scalars()
+        .one()
+    )
     assert obj.value == value, f"Expected value '{value}', but got {obj.value}"
 
 
@@ -66,7 +70,7 @@ def test_get_default_no_override(session_with_meta):
     meta.get_default(name, default=value, session=session_with_meta)
     if session_with_meta.in_transaction():
         session_with_meta.commit()  # Ensure the object is saved to the database
-    
+
     value2 = "value2"
     obj = meta.get_default(name, default=value2, session=session_with_meta)
     assert obj.value == value, f"Expected original value '{value}', but got {obj.value}"
@@ -79,4 +83,6 @@ def test_get_default_with_custom_session(session_with_meta):
     name = "name2"
     value = "value"
     obj = meta.get_default(name, default=value, session=session_with_meta)
-    assert obj in session_with_meta.new, "Expected object to be in session's new objects."
+    assert (
+        obj in session_with_meta.new
+    ), "Expected object to be in session's new objects."

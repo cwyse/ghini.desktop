@@ -46,11 +46,11 @@ gi.require_version("Gtk", "3.0")
 import sqlalchemy as sa
 from gi.repository import Gtk
 
-#from sqlalchemy import Boolean
+# from sqlalchemy import Boolean
 from sqlalchemy import ColumnDefault, func, inspect
 from sqlalchemy.exc import IntegrityError
 
-#from sqlalchemy.exc import DataError
+# from sqlalchemy.exc import DataError
 from sqlalchemy.orm import configure_mappers, sessionmaker
 
 logger = logging.getLogger(__name__)
@@ -142,8 +142,6 @@ class CSVImporter(Importer):
 
         bauble.task.queue(self.run(filenames, metadata, force))
 
-
-
     def _map_filenames_to_tables(self, filenames):
         """
         Create a mapping of table names to filenames.
@@ -171,17 +169,19 @@ class CSVImporter(Importer):
                     "file_name": safe(filename_dict[table_name]),
                     "file_name2": safe(f),
                 }
-                msg = _(
-                    "More than one file given to import into table "
-                    "<b>%(table_name)s</b>: %(file_name)s, %(file_name2)s"
-                ) % values
+                msg = (
+                    _(
+                        "More than one file given to import into table "
+                        "<b>%(table_name)s</b>: %(file_name)s, %(file_name2)s"
+                    )
+                    % values
+                )
 
                 raise ValueError(msg)
 
             filename_dict[table_name] = f
 
         return filename_dict  # No sorting, since `run` already does it
-
 
     def _calculate_total_lines(self, filenames):
         """
@@ -204,7 +204,7 @@ class CSVImporter(Importer):
             except OSError as e:
                 raise OSError(_("Failed to read file: %s") % filename) from e
         return total_lines, filesizes
-    
+
     def _handle_dependencies(self, sorted_tables, metadata, session, force):
         """
         Handle dependencies for the tables to be imported.
@@ -223,18 +223,23 @@ class CSVImporter(Importer):
                 break
             logger.debug(f"Get dependencies for table {table.name}")
             dependent_tables = utils.find_dependent_tables(table)
-            logger.debug(f"Dependencies for {table.name}: {', '.join([t.name for t in dependent_tables])}")
+            logger.debug(
+                f"Dependencies for {table.name}: {', '.join([t.name for t in dependent_tables])}"
+            )
             depends.update(dependent_tables)
 
         if depends:
             response = True
             dependent_table_names = ", ".join(sorted([t.name for t in depends]))
             if not force:
-                msg = _(
-                    "In order to import the files, the following "
-                    "tables will be dropped:\n\n<b>%s</b>\n\n"
-                    "Would you like to continue?"
-                ) % dependent_table_names
+                msg = (
+                    _(
+                        "In order to import the files, the following "
+                        "tables will be dropped:\n\n<b>%s</b>\n\n"
+                        "Would you like to continue?"
+                    )
+                    % dependent_table_names
+                )
                 force = response = utils.yes_no_dialog(msg)
 
             if not response:
@@ -253,7 +258,7 @@ class CSVImporter(Importer):
                 raise
 
         return depends
-    
+
     @staticmethod
     def _precompute_defaults(table):
         """
@@ -273,8 +278,10 @@ class CSVImporter(Importer):
                         # Handle constant Python-side defaults
                         defaults[column.name] = column.default.arg
         return defaults
-            
-    def _prepare_table(self, table, filename, filesizes, created_tables, depends, session, force):
+
+    def _prepare_table(
+        self, table, filename, filesizes, created_tables, depends, session, force
+    ):
         """
         Handle table creation and management of empty files.
 
@@ -290,7 +297,7 @@ class CSVImporter(Importer):
         # Check for cancellation or error before proceeding
         if self.__cancel or self.__error:
             return False
-    
+
         # don't do anything if the file is empty:
         if filesizes[filename] <= 1:  # Handle empty files
             if table.name not in inspect(session.bind).get_table_names():
@@ -301,7 +308,10 @@ class CSVImporter(Importer):
         # could have been dropped whereas table.exists() can
         # return true for a dropped table if the transaction
         # hasn't been committed
-        if table in depends or table.name not in inspect(session.bind).get_table_names():
+        if (
+            table in depends
+            or table.name not in inspect(session.bind).get_table_names()
+        ):
             logger.info("%s does not exist. creating." % table.name)
             self._create_table(table, session, created_tables)
         elif table.name not in created_tables and table not in depends:
@@ -328,7 +338,6 @@ class CSVImporter(Importer):
             self._create_table(table, session, created_tables)
         return True
 
-
     def _create_table(self, table, session, created_tables):
         """
         Create a table using the session's bind.
@@ -338,13 +347,13 @@ class CSVImporter(Importer):
         :param created_tables: List of created tables.
         """
         configure_mappers()
-#        print(str(table.compile(bind=session.bind)))
-#        print([fk.column for fk in table.foreign_keys])
+        #        print(str(table.compile(bind=session.bind)))
+        #        print([fk.column for fk in table.foreign_keys])
         table.create(bind=session.bind)
         if table.name not in created_tables:
             created_tables.append(table.name)
 
-     # Ensure this is set up in your database initialization code
+    # Ensure this is set up in your database initialization code
     Session = sessionmaker(bind=db.engine, future=True)
 
     # Instead of recreating all tables, check for and create only missing ones
@@ -381,8 +390,9 @@ class CSVImporter(Importer):
         :param force: default=False
         """
         import logging
+
         logging.basicConfig()
-        logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+        logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
         self.flush_count = 0
 
         self.__error_exc = BaubleError(_("Unknown Error."))
@@ -391,7 +401,7 @@ class CSVImporter(Importer):
             # Create a new session bound to the database engine
             with db.Session() as session:
                 with session.begin():
-                    
+
                     configure_mappers()  # Ensure mappers are configured
 
                     # Map filenames to table names
@@ -400,12 +410,14 @@ class CSVImporter(Importer):
                     except ValueError as e:
                         utils.message_dialog(e, Gtk.MessageType.ERROR)
                         return
-                    
+
                     # resolve filenames to table names and return them in sorted order
                     sorted_tables = []
                     for table in metadata.sorted_tables:
                         try:
-                            sorted_tables.insert(0, (table, filename_dict.pop(table.name)))
+                            sorted_tables.insert(
+                                0, (table, filename_dict.pop(table.name))
+                            )
                         except KeyError as e:
                             # table.name not in list of filenames
                             pass
@@ -432,7 +444,9 @@ class CSVImporter(Importer):
 
                     # Fetch and handle dependencies
                     try:
-                        depends = self._handle_dependencies(sorted_tables, metadata, session, force)
+                        depends = self._handle_dependencies(
+                            sorted_tables, metadata, session, force
+                        )
                     except ValueError as e:
                         utils.message_dialog(str(e), Gtk.MessageType.ERROR)
                         return
@@ -453,9 +467,17 @@ class CSVImporter(Importer):
 
                 with db.Session() as session:
                     try:
-                    
+
                         # Prepare the table and file
-                        if not self._prepare_table(table, filename, filesizes, created_tables, depends, session, force):
+                        if not self._prepare_table(
+                            table,
+                            filename,
+                            filesizes,
+                            created_tables,
+                            depends,
+                            session,
+                            force,
+                        ):
                             continue
 
                         # precompute the defaults...this assumes that the
@@ -467,18 +489,25 @@ class CSVImporter(Importer):
 
                         # update_every determines how many rows we will insert at
                         # a time and consequently how often we update the gui
-                        processor = CSVProcessor(table, filename, defaults, update_every=127, flush_count=self.flush_count, steps_so_far=self.steps_so_far)
+                        processor = CSVProcessor(
+                            table,
+                            filename,
+                            defaults,
+                            update_every=127,
+                            flush_count=self.flush_count,
+                            steps_so_far=self.steps_so_far,
+                        )
                         # Prepare the file for import and get column keys
                         processor.prepare_file()
 
                         for steps in processor.process_rows():
                             self.steps_so_far += steps
-                            yield        
-                                                
+                            yield
+
                         # Count rows in the table
-                        #row_count = session.execute(sa.select(func.count()).select_from(table)).scalar_one()
-                        #logger.debug(f"{table.name}: {row_count}")
-                    
+                        # row_count = session.execute(sa.select(func.count()).select_from(table)).scalar_one()
+                        # logger.debug(f"{table.name}: {row_count}")
+
                         # we have commit after create after each table is imported
                         # or Postgres will complain if two tables that are
                         # being imported have a foreign key relationship.
@@ -486,7 +515,7 @@ class CSVImporter(Importer):
                         # 'with' block.
 
                         logger.info(f"Successfully imported table: {table.name}")
-                        
+
                         # Important: Cleanup after processing each table
                         processor.cleanup()
                         session.commit()
@@ -496,7 +525,10 @@ class CSVImporter(Importer):
                         if session.in_transaction():
                             if session.in_transaction():
                                 session.rollback()  # Rollback to prevent partial imports
-                        utils.message_dialog(_("Data import failed due to integrity constraints."), Gtk.MessageType.ERROR)
+                        utils.message_dialog(
+                            _("Data import failed due to integrity constraints."),
+                            Gtk.MessageType.ERROR,
+                        )
                         self.__error = True
                         return
                     except Exception as e:
@@ -505,10 +537,10 @@ class CSVImporter(Importer):
                             if session.in_transaction():
                                 session.rollback()
                         raise
-                    
+
                     # Update the GUI
                     self._update_gui()
-                        
+
             with db.Session() as session:
 
                 # TODO: need to get those tables from depends that need to
@@ -521,7 +553,7 @@ class CSVImporter(Importer):
 
                 # Update the GUI
                 self._update_gui()
-       
+
         except Exception as e:
             msg = _("Error during import process.\n\n%s") % utils.xml_safe(e)
             utils.message_dialog(msg, Gtk.MessageType.ERROR)
@@ -531,7 +563,6 @@ class CSVImporter(Importer):
             self.__error = True
             self.__error_exc = e
             raise
-
 
     def _reset_sequences(self, sorted_tables):
         """
@@ -548,13 +579,13 @@ class CSVImporter(Importer):
                     try:
                         utils.reset_sequence(column)
                     except Exception as e:
-                        logger.error(f"Failed to reset sequence for column {column.name} in table {table.name}: {e}")
+                        logger.error(
+                            f"Failed to reset sequence for column {column.name} in table {table.name}: {e}"
+                        )
                         raise
         except Exception:
-            col_name = column.name if 'column' in locals() else "Unknown"
-            msg = (
-                _("Error: Could not set the sequence for column: %s") % col_name
-            )
+            col_name = column.name if "column" in locals() else "Unknown"
+            msg = _("Error: Could not set the sequence for column: %s") % col_name
             logger.error(msg)
             logger.debug(traceback.format_exc())
             utils.message_details_dialog(
@@ -565,12 +596,13 @@ class CSVImporter(Importer):
 
     def _update_gui(self):
         """
-        Update the GUI after processing. 
+        Update the GUI after processing.
         Logs an error if the update fails.
         """
         try:
             from bauble import gui
-            if gui is not None: 
+
+            if gui is not None:
                 gui.get_view().update()
         except ImportError as e:
             logger.warning(f"GUI module import failed: {e}")
@@ -611,6 +643,7 @@ class CSVImporter(Importer):
         logger.debug("on_response")
         logger.debug(response)
 
+
 from contextlib import contextmanager
 
 from sqlalchemy import select
@@ -624,6 +657,7 @@ def open_file_safe(filename, mode="w"):
         yield f
     finally:
         f.close()
+
 
 class CSVExporter:
 
@@ -661,7 +695,7 @@ class CSVExporter:
         self.steps_so_far = 0
         ntables = 0
 
-        # Count the number of tables   
+        # Count the number of tables
         for table in db.metadata.sorted_tables:
             ntables += 1
             filename = filename_template % table.name
@@ -681,9 +715,7 @@ class CSVExporter:
 
         def write_csv(filename, rows):
             with open_file_safe(filename, "w") as f:
-                writer = UnicodeWriter(
-                    f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE
-                )
+                writer = UnicodeWriter(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
                 writer.writerows(rows)
 
         update_every = 30
@@ -708,7 +740,7 @@ class CSVExporter:
 
             # Query the data
             stmt = select(table)
-            #results = self.session.execute(stmt).fetchall()  # Use the session for execution
+            # results = self.session.execute(stmt).fetchall()  # Use the session for execution
             results = self.session.execute(stmt).mappings().all()
 
             # create empty files with only the column names
@@ -721,7 +753,7 @@ class CSVExporter:
             rows.append(list(table.c.keys()))  # append col names
             ctr = 0
             for row in results:
-                #values = list(map(replace, list(row)))
+                # values = list(map(replace, list(row)))
                 values = list(map(replace, [row[col] for col in table.c.keys()]))
                 rows.append(values)
                 if ctr == update_every:

@@ -105,9 +105,7 @@ class TestDecodeParts:
             "seq": "1",
             "species": "Annona sp",
         }
-        assert decode_parts(
-            "2009.01.21.2 Opuntia ficus-indica.jpg", "####.##.##"
-        ) == {
+        assert decode_parts("2009.01.21.2 Opuntia ficus-indica.jpg", "####.##.##") == {
             "accession": "2009.01.21",
             "plant": "2",
             "seq": "1",

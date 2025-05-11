@@ -100,17 +100,13 @@ def to_latlon(
                 "northing out of range (must be between 0 m and 10.000.000 m)"
             )
     if not 1 <= zone_number <= 60:
-        raise OutOfRangeError(
-            "zone number out of range (must be between 1 and 60)"
-        )
+        raise OutOfRangeError("zone number out of range (must be between 1 and 60)")
 
     if zone_letter:
         zone_letter = zone_letter.upper()
 
         if not "C" <= zone_letter <= "X" or zone_letter in ["I", "O"]:
-            raise OutOfRangeError(
-                "zone letter out of range (must be between C and X)"
-            )
+            raise OutOfRangeError("zone letter out of range (must be between C and X)")
 
         northern = zone_letter >= "N"
 
@@ -160,23 +156,18 @@ def to_latlon(
         p_rad
         - (p_tan / r)
         * (d2 / 2 - d4 / 24 * (5 + 3 * p_tan2 + 10 * c - 4 * c2 - 9 * E_P2))
-        + d6
-        / 720
-        * (61 + 90 * p_tan2 + 298 * c + 45 * p_tan4 - 252 * E_P2 - 3 * c2)
+        + d6 / 720 * (61 + 90 * p_tan2 + 298 * c + 45 * p_tan4 - 252 * E_P2 - 3 * c2)
     )
 
     longitude = (
         d
         - d3 / 6 * (1 + 2 * p_tan2 + c)
-        + d5
-        / 120
-        * (5 - 2 * c + 28 * p_tan2 - 3 * c2 + 8 * E_P2 + 24 * p_tan4)
+        + d5 / 120 * (5 - 2 * c + 28 * p_tan2 - 3 * c2 + 8 * E_P2 + 24 * p_tan4)
     ) / p_cos
 
     return (
         math.degrees(latitude),
-        math.degrees(longitude)
-        + zone_number_to_central_longitude(zone_number),
+        math.degrees(longitude) + zone_number_to_central_longitude(zone_number),
     )
 
 

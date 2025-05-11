@@ -29,17 +29,22 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+
 def main_is_frozen():
     """Returns True if the application is running from a frozen executable."""
     import importlib.machinery
+
     return (
         hasattr(sys, "frozen")  # Commonly used by PyInstaller and py2exe
         or getattr(sys, "importers", None) is not None  # Old py2exe
         or (
-            hasattr(importlib.machinery, "FrozenImporter") and
-            isinstance(sys.modules["__main__"].__loader__, importlib.machinery.FrozenImporter)
+            hasattr(importlib.machinery, "FrozenImporter")
+            and isinstance(
+                sys.modules["__main__"].__loader__, importlib.machinery.FrozenImporter
+            )
         )  # Check for freeze tools
     )
+
 
 def main_dir():
     """
@@ -146,9 +151,7 @@ def appdata_dir():
                 % dict(username=os.environ["USER"])
             )
     else:
-        raise Exception(
-            "Could not get path for user settings: " "unsupported platform"
-        )
+        raise Exception("Could not get path for user settings: " "unsupported platform")
     return os.path.abspath(d)
 
 

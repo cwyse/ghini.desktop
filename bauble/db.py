@@ -34,12 +34,12 @@ from bauble.utils import parse_date
 from sqlalchemy import asc
 
 gi.require_version("Gtk", "3.0")
-#from sqlalchemy.orm import Query
+# from sqlalchemy.orm import Query
 from bauble import version, version_tuple
 from gi.repository import Gtk
 from sqlalchemy import event, insert, inspect, select
 
-#from sqlalchemy import text
+# from sqlalchemy import text
 from sqlalchemy.orm import DeclarativeMeta, class_mapper, declarative_base
 
 logger = logging.getLogger(__name__)
@@ -86,24 +86,24 @@ from sqlalchemy.orm import sessionmaker
 def get_or_create(session, model, defaults=None, **kwargs):
     """
     Retrieve or create an instance of the given model.
-    
+
     :param session: SQLAlchemy session.
     :param model: The model class.
     :param defaults: Optional dictionary of default values to use if creating a new instance.
     :param kwargs: Filtering criteria for retrieving the instance.
-    :return: A tuple (instance, created), where `instance` is the retrieved or created instance, 
+    :return: A tuple (instance, created), where `instance` is the retrieved or created instance,
              and `created` is a boolean indicating whether the instance was created.
     """
     defaults = defaults or {}
-    
+
     # Build a query to find an existing instance matching kwargs
     stmt = select(model).filter_by(**kwargs)
     instance = session.scalars(stmt).first()
-    
+
     if instance:
         # Return the existing instance with `created` set to False
         return instance, False
-    
+
     # Create a new instance if none was found
     try:
         instance = model(**{**kwargs, **defaults})
@@ -142,7 +142,8 @@ def natsort(attr, obj):
         obj = getattr(obj, attr)
     return sorted(obj, key=utils.natsort_key)
 
-#from sqlalchemy.orm import aliased
+
+# from sqlalchemy.orm import aliased
 def get_orm_entity_by_name(entity_name):
     """
     Dynamically resolve an ORM entity (class) from its name.
@@ -185,13 +186,12 @@ class MapperBase(DeclarativeMeta):
     than to extend it to add more default columns to all the bauble
     tables.
     """
+
     _class_registry = {}
 
     def __init__(cls, classname, bases, dict_):
         if "__tablename__" in dict_:
-            cls.id = sa.Column(
-                "id", sa.Integer, primary_key=True, autoincrement=True
-            )
+            cls.id = sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)
             cls._created = sa.Column(
                 "_created",
                 types.DateTime(),
@@ -249,12 +249,13 @@ class MapperBase(DeclarativeMeta):
         )
         session.execute(stmt)
         logger.debug("History entry added: %s", stmt)
-        
+
     @staticmethod
     def _register_event_listeners(cls):
         """
         Registers SQLAlchemy ORM event listeners for a mapped class.
         """
+
         @event.listens_for(cls, "after_insert")
         def after_insert(mapper, connection, target):
             logger.debug(f"Insert event for {target.__tablename__}")
@@ -282,7 +283,8 @@ class MapperBase(DeclarativeMeta):
         if hasattr(cls, "order_by") and cls.order_by:
             query = query.order_by(*cls.order_by)
         return query
-        
+
+
 engine = None
 """A :class:`sqlalchemy.engine.base.Engine` used as the default
 connection to the database.
@@ -303,6 +305,7 @@ with :func:`session.close()`. Failure to close sessions can lead to
 database deadlocks, particularly when using PostgreSQL based
 databases.
 """
+
 
 class TypedBaseMixin:
     id: int
@@ -388,9 +391,7 @@ def open(uri, verify=True, show_error_dialogs=False):
 
     # Create the SQLAlchemy engine
     try:
-        poolclass = (
-            SingletonThreadPool if bauble.prefs.testing else NullPool
-        )
+        poolclass = SingletonThreadPool if bauble.prefs.testing else NullPool
 
         connect_args = {}
         if "sqlite" in uri and bauble.prefs.testing:
@@ -401,7 +402,7 @@ def open(uri, verify=True, show_error_dialogs=False):
             echo=SQLALCHEMY_DEBUG,
             poolclass=poolclass,
             future=True,  # Enable SQLAlchemy 2.0 features
-            connect_args=connect_args  # Add connect_args here
+            connect_args=connect_args,  # Add connect_args here
         )
         # TODO: there is a problem here: the code may cause an exception, but we
         # immediately loose the 'new_engine', which should know about the
@@ -438,9 +439,11 @@ def open(uri, verify=True, show_error_dialogs=False):
 
     # Ensure mappers are configured
     from sqlalchemy.orm import configure_mappers
+
     configure_mappers()
 
     return engine
+
 
 from sqlalchemy import inspect, text
 
@@ -459,16 +462,18 @@ def create_triggers(connection):
         for table_name in inspector.get_table_names():
             # Get column details
             columns = inspector.get_columns(table_name)
-            
+
             for column in columns:
-                col_name = column['name']
-                col_type = column['type'].__class__.__name__.lower()
+                col_name = column["name"]
+                col_type = column["type"].__class__.__name__.lower()
 
                 # Only apply triggers to TEXT columns
                 if "text" in col_type or "varchar" in col_type:
                     trigger_name = f"normalize_empty_strings_{table_name}_{col_name}"
 
-                    connection.execute(text(f"""
+                    connection.execute(
+                        text(
+                            f"""
                         CREATE TRIGGER IF NOT EXISTS {trigger_name}
                         BEFORE INSERT OR UPDATE ON {table_name}
                         FOR EACH ROW
@@ -476,7 +481,9 @@ def create_triggers(connection):
                         BEGIN
                             UPDATE {table_name} SET {col_name} = NULL WHERE rowid = NEW.rowid;
                         END;
-                    """))
+                    """
+                        )
+                    )
 
         if connection.in_transaction():
             connection.commit()
@@ -488,13 +495,17 @@ def create_triggers(connection):
             columns = inspector.get_columns(table_name)
 
             for column in columns:
-                col_name = column['name']
-                col_type = column['type'].__class__.__name__.lower()
+                col_name = column["name"]
+                col_type = column["type"].__class__.__name__.lower()
 
                 if "text" in col_type or "varchar" in col_type:
-                    connection.execute(text(f"""
+                    connection.execute(
+                        text(
+                            f"""
                         ALTER TABLE {table_name} ALTER COLUMN {col_name} SET DEFAULT NULL;
-                    """))
+                    """
+                        )
+                    )
 
         if connection.in_transaction():
             connection.commit()
@@ -510,7 +521,7 @@ def create(import_defaults=True):
     :type import_defaults: bool
     """
     logger.debug("Entered db.create()")
-    
+
     if not engine:
         raise ValueError("Engine is None. Not connected to a database.")
 
@@ -524,6 +535,7 @@ def create(import_defaults=True):
         with engine.begin() as connection:
             # Ensure all mappers are configured before creating tables
             from sqlalchemy.orm import configure_mappers
+
             configure_mappers()
 
             # Drop and recreate all tables
@@ -547,9 +559,8 @@ def create(import_defaults=True):
             # Insert CREATED_KEY
             logger.debug("Inserting created timestamp.")
             import time
-            tzlocal = datetime.timezone(
-                -datetime.timedelta(seconds=time.timezone)
-            )
+
+            tzlocal = datetime.timezone(-datetime.timedelta(seconds=time.timezone))
             created_stmt = insert(meta_table).values(
                 name=meta.CREATED_KEY, value=str(datetime.datetime.now(tz=tzlocal))
             )
@@ -568,6 +579,7 @@ def create(import_defaults=True):
     except Exception as e:
         logger.error(f"Error while creating the database: {e}")
         raise
+
 
 def verify_connection(engine, show_error_dialogs=False):
     """
@@ -600,7 +612,6 @@ def verify_connection(engine, show_error_dialogs=False):
 
         raise exc
 
-
     try:
         inspector = inspect(engine)
         table_names = inspector.get_table_names()
@@ -624,26 +635,33 @@ def verify_connection(engine, show_error_dialogs=False):
         # will probably get deadlocks....i'm not really sure why
         # Create a temporary session for schema validation
         from sqlalchemy.orm import sessionmaker
+
         with sessionmaker(bind=engine, autoflush=False, future=True)() as session:
             # Check for the presence of the "created" timestamp
-            created_stmt = select(meta.BaubleMeta).where(meta.BaubleMeta.name == meta.CREATED_KEY)
+            created_stmt = select(meta.BaubleMeta).where(
+                meta.BaubleMeta.name == meta.CREATED_KEY
+            )
             if not session.execute(created_stmt).scalar_one_or_none():
                 handle_error(
                     error.TimestampError,
-                    __("The database lacks a 'created' timestamp in the bauble meta table."
-                    "This usually means that there was a problem when you created the "
-                    "database or the database you connected to wasn't created with Ghini."),
+                    __(
+                        "The database lacks a 'created' timestamp in the bauble meta table."
+                        "This usually means that there was a problem when you created the "
+                        "database or the database you connected to wasn't created with Ghini."
+                    ),
                 )
 
             # Check for the "version" key and validate compatibility
-            version_stmt = select(meta.BaubleMeta).where(meta.BaubleMeta.name == meta.VERSION_KEY)
+            version_stmt = select(meta.BaubleMeta).where(
+                meta.BaubleMeta.name == meta.VERSION_KEY
+            )
             version_row = session.execute(version_stmt).scalar_one_or_none()
 
             if not version_row:
                 handle_error(
                     error.VersionError,
-                    __("The database lacks a 'version' key in the bauble meta table."), 
-                    None
+                    __("The database lacks a 'version' key in the bauble meta table."),
+                    None,
                 )
 
             try:
@@ -656,15 +674,16 @@ def verify_connection(engine, show_error_dialogs=False):
                             "database you have connected to was created with "
                             "version %(db_version)s\n\nSome things might not work as "
                             "or some of your data may become unexpectedly "
-                            "corrupted."                            
-                        ) % {"version": bauble.version, "db_version": version_row.value},
-                        version_row.value
+                            "corrupted."
+                        )
+                        % {"version": bauble.version, "db_version": version_row.value},
+                        version_row.value,
                     )
             except ValueError:
                 handle_error(
                     error.VersionError,
                     __("Invalid version format in the bauble meta table."),
-                    version_row.value
+                    version_row.value,
                 )
 
         logger.info("Database connection successfully verified.")
@@ -693,7 +712,7 @@ def make_note_class(
     :param retrieve: Optional callable to define how to retrieve the object.
     """
     from sqlalchemy import Integer
-    
+
     class_name = f"{name}Note"
     table_name = f"{name.lower()}_note"
 
@@ -711,8 +730,13 @@ def make_note_class(
         original_category = keys.get("category", "")
 
         # Handle special cases for unique categories
-        if create and (original_category.startswith("[") and original_category.endswith("]") or original_category == "<picture>"):
+        if create and (
+            original_category.startswith("[")
+            and original_category.endswith("]")
+            or original_category == "<picture>"
+        ):
             import uuid
+
             keys["category"] = str(uuid.uuid4())
 
         # Call the parent class's retrieve_or_create
@@ -727,7 +751,7 @@ def make_note_class(
         except AttributeError as e:
             logger.error(f"Parent class does not implement retrieve_or_create: {e}")
             raise
-    
+
     @classmethod
     def retrieve_default(cls, session, keys):
         """
@@ -750,9 +774,11 @@ def make_note_class(
                 related_class = globals().get(keys["name"].lower())
                 if related_class:
                     fk_attr = getattr(cls, f"{related_name}_id", None)
-                    assert fk_attr is not None, f"Expected attribute '{related_name}_id' not found on {cls.__name__}"
-                    stmt = stmt.join(related_class, 
-                                     related_class.id == fk_attr).where(related_class.code == keys[keys["name"].lower()]
+                    assert (
+                        fk_attr is not None
+                    ), f"Expected attribute '{related_name}_id' not found on {cls.__name__}"
+                    stmt = stmt.join(related_class, related_class.id == fk_attr).where(
+                        related_class.code == keys[keys["name"].lower()]
                     )
 
             # Add filters for `date`
@@ -801,7 +827,7 @@ def make_note_class(
             back_populates="notes",
             cascade="all, delete-orphan",
             single_parent=True,
-            active_history=True
+            active_history=True,
         ),
         "retrieve": classmethod(retrieve),
         "retrieve_or_create": classmethod(retrieve_or_create),
@@ -812,18 +838,18 @@ def make_note_class(
     }
     if compute_serializable_fields is not None:
         bases = (Base, Serializable)
-        fields["compute_serializable_fields"] = classmethod(
-            compute_serializable_fields
-        )
+        fields["compute_serializable_fields"] = classmethod(compute_serializable_fields)
 
     result = type(class_name, bases, fields)
 
     return result
 
+
 class WithNotes:
     """
     A mixin to provide dynamic attribute access to notes based on categories.
     """
+
     key_pattern = re.compile(r"{[^:]+:(.*)}")
 
     def __getattr__(self, name):
@@ -886,7 +912,9 @@ class WithNotes:
 
         try:
             # Attempt parsing after normalizing the key-value structure
-            normalized_text = re.sub(r"(\w+)[ ]*(?=:)", r'"\g<1>"', text.replace(";", ","))
+            normalized_text = re.sub(
+                r"(\w+)[ ]*(?=:)", r'"\g<1>"', text.replace(";", ",")
+            )
             return json.loads(normalized_text)
         except json.JSONDecodeError as e:
             pass
@@ -898,6 +926,7 @@ class WithNotes:
         except json.JSONDecodeError:
             logger.debug("JSON parsing failed: %s. Returning raw text: %s", e, text)
             return text
+
 
 class DefiningPictures:
     """
@@ -921,6 +950,7 @@ class DefiningPictures:
 
         return result
 
+
 class DefiningPictures:
     @property
     def pictures(self):
@@ -935,11 +965,11 @@ class DefiningPictures:
         return result
 
 
-
 class Serializable:
     """
     A base class for serializable ORM objects.
     """
+
     import re
 
     single_cap_re = re.compile("([A-Z])")
@@ -1046,7 +1076,9 @@ class Serializable:
             # Handle recursive creation of linked objects
             for key, link_value in link_values.items():
                 if link_value:
-                    logger.debug("Recursive call to construct_from_dict for %s", link_value)
+                    logger.debug(
+                        "Recursive call to construct_from_dict for %s", link_value
+                    )
                     keys[key] = construct_from_dict(session, link_value)
 
             # Create a new object if it doesn't exist
@@ -1059,14 +1091,18 @@ class Serializable:
             # Handle recursive updates of linked objects
             for key, link_value in link_values.items():
                 if link_value:
-                    logger.debug("Recursive call to construct_from_dict for %s", link_value)
+                    logger.debug(
+                        "Recursive call to construct_from_dict for %s", link_value
+                    )
                     setattr(result, key, construct_from_dict(session, link_value))
 
             # Update fields on the existing object
             for k, v in keys.items():
                 if isinstance(v, dict) and v.get("__class__") == "datetime":
                     millis = v.get("millis", 0)
-                    v = datetime.datetime(1970, 1, 1) + datetime.timedelta(milliseconds=millis)
+                    v = datetime.datetime(1970, 1, 1) + datetime.timedelta(
+                        milliseconds=millis
+                    )
                 setattr(result, k, v)
 
             logger.debug("Updated existing %s with %s", result, keys)
@@ -1075,11 +1111,12 @@ class Serializable:
         session.flush()
         logger.debug("Returning %s", result)
         return result
-        
+
+
 def construct_from_dict(session, obj, create=True, update=True):
     """
     Construct an object from a dictionary representation.
-    
+
     :param session: SQLAlchemy session.
     :param obj: Dictionary containing object data.
     :param create: Whether to create the object if it doesn't exist.
@@ -1087,9 +1124,9 @@ def construct_from_dict(session, obj, create=True, update=True):
     :return: The constructed or retrieved object.
     """
     logger.debug("construct_from_dict %s", obj)
-    
+
     klass = None
-    
+
     # Determine the class of the object
     if "object" in obj:
         klass = class_of_object(obj["object"])
@@ -1097,10 +1134,10 @@ def construct_from_dict(session, obj, create=True, update=True):
         klass_name = obj["rank"].capitalize()
         klass = globals().get(klass_name)
         del obj["rank"]  # Explicitly remove 'rank' after extracting its value
-    
+
     if not klass:
         raise ValueError(f"Unable to determine class for object: {obj}")
-    
+
     # Use the class's `retrieve_or_create` method to handle the object
     return klass.retrieve_or_create(session, obj, create=create, update=update)
 
@@ -1108,28 +1145,29 @@ def construct_from_dict(session, obj, create=True, update=True):
 def class_of_object(obj_name):
     """
     Determine the class that implements the object.
-    
+
     :param obj_name: Name of the object.
     :return: The class that implements the object.
     """
     class_name = "".join(part.capitalize() for part in obj_name.split("_"))
     cls = globals().get(class_name)
-    
+
     if cls is None:
         from bauble import pluginmgr
+
         cls = pluginmgr.provided.get(class_name)
-    
+
     if not cls:
         raise ValueError(f"Class not found for object: {obj_name}")
-    
+
     return cls
 
 
 class current_user_functor:
     """
     Implement the current_user function and allow overriding.
-    
-    This is designed to return the current user's name from the database 
+
+    This is designed to return the current user's name from the database
     or the system, with support for overriding.
     """
 
@@ -1139,7 +1177,7 @@ class current_user_functor:
     def override(self, value=None):
         """
         Override the current user value.
-        
+
         :param value: The username to override with. If None, reset the override.
         """
         self.override_value = value
@@ -1172,7 +1210,6 @@ class current_user_functor:
                 or os.getenv("LOGNAME")
                 or os.getenv("LNAME")
             )
-
 
 
 # Instantiate the current_user function

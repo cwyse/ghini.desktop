@@ -90,8 +90,7 @@ class TestTagMenu:
         """Test menu creation with multiple tags."""
         tag_name_template = "%s-some_tag"
         tags = [
-            Tag(tag=tag_name_template % i, description="description")
-            for i in range(5)
+            Tag(tag=tag_name_template % i, description="description") for i in range(5)
         ]
         session.add_all(tags)
         if session.in_transaction():
@@ -105,8 +104,6 @@ class TestTagMenu:
             assert menu.get_children()[i + 2].get_label() == tag_name_template % i
 
 
-
-
 @pytest.fixture
 def setup_family_and_tags(session):
     """Fixture to add a default family and clear tags before each test."""
@@ -118,7 +115,6 @@ def setup_family_and_tags(session):
     session.execute(delete(Tag))  # <-- direct delete
     if session.in_transaction():
         session.commit()
-
 
 
 @pytest.mark.usefixtures("setup_family_and_tags")
@@ -141,7 +137,9 @@ class TestTag:
         assert result[0].tag == tag_name
 
         create_named_empty_tag(tag_name)
-        tag_retrieved = session.execute(select(Tag).where(Tag.tag == tag_name)).scalars().one()
+        tag_retrieved = (
+            session.execute(select(Tag).where(Tag.tag == tag_name)).scalars().one()
+        )
         assert tag_retrieved == result[0]
 
     def test_tag_nothing(self, session):
@@ -203,6 +201,7 @@ class TestTag:
         assert not tag.is_tagging(family2)
         assert tag.is_tagging(setup_family_and_tags)
 
+
 @pytest.mark.usefixtures("setup_family_and_tags")
 class TestTag:
     def test_search_view_markup_pair(self, session, setup_family_and_tags):
@@ -246,8 +245,12 @@ class TestTag:
             session.commit()
 
         invoked = []
-        yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=False)
-        message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
+        yes_no_dialog = partial(
+            mockfunc, name="yes_no_dialog", caller=invoked, result=False
+        )
+        message_details_dialog = partial(
+            mockfunc, name="message_details_dialog", caller=invoked
+        )
 
         result = remove_callback([tag])
         if session.in_transaction():
@@ -261,7 +264,9 @@ class TestTag:
         ) in invoked
         assert result is None
 
-        matching = session.execute(select(Tag).where(Tag.tag == "Arecaceae")).scalars().all()
+        matching = (
+            session.execute(select(Tag).where(Tag.tag == "Arecaceae")).scalars().all()
+        )
         assert matching == [tag]
 
     def test_remove_callback_confirm(self, session):
@@ -273,8 +278,12 @@ class TestTag:
 
         invoked = []
         save_reset = tag_plugin.tags_menu_manager.reset
-        yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=True)
-        tag_plugin.tags_menu_manager.reset = partial(mockfunc, name="_reset_tags_menu", caller=invoked)
+        yes_no_dialog = partial(
+            mockfunc, name="yes_no_dialog", caller=invoked, result=True
+        )
+        tag_plugin.tags_menu_manager.reset = partial(
+            mockfunc, name="_reset_tags_menu", caller=invoked
+        )
 
         result = remove_callback([tag])
         tag_plugin.tags_menu_manager.reset = save_reset
@@ -289,7 +298,9 @@ class TestTag:
         ) in invoked
         assert result is True
 
-        matching = session.execute(select(Tag).where(Tag.tag == "Arecaceae")).scalars().all()
+        matching = (
+            session.execute(select(Tag).where(Tag.tag == "Arecaceae")).scalars().all()
+        )
         assert matching == []
 
 
@@ -366,9 +377,12 @@ class TestGetTagIds:
         if session.in_transaction():
             session.commit()
 
-        s_all, s_some, s_none = tag_plugin.get_tag_ids([self.fam1, self.fam2, self.fam3, self.fam4])
+        s_all, s_some, s_none = tag_plugin.get_tag_ids(
+            [self.fam1, self.fam2, self.fam3, self.fam4]
+        )
         assert s_all == set()
         assert s_some == {1, 2, 3}
+
 
 class MockTagView(GenericEditorView):
     def __init__(self):
@@ -393,9 +407,7 @@ class MockTagView(GenericEditorView):
     def mark_problem(self, widget_name):
         pass
 
-    def widget_set_value(
-        self, widget, value, markup=False, default=None, index=0
-    ):
+    def widget_set_value(self, widget, value, markup=False, default=None, index=0):
         self.dict[widget] = value
 
     def widget_get_value(self, widget, index=0):
@@ -503,7 +515,9 @@ class TestAttachedTo:
 
     def test_attached_tags_singleton(self, session):
         fam = session.execute(select(Family)).scalars().one()
-        obj2 = session.execute(select(Tag).where(Tag.tag == "maderable")).scalars().one()
+        obj2 = (
+            session.execute(select(Tag).where(Tag.tag == "maderable")).scalars().one()
+        )
         tag_plugin.tag_objects(obj2, [fam])
         assert Tag.attached_to(fam) == [obj2]
 
@@ -533,7 +547,9 @@ class TestAttachedTo:
 
     def test_attached_tags_singleton(self, session):
         fam = session.execute(select(Family)).scalars().one()
-        obj2 = session.execute(select(Tag).where(Tag.tag == "maderable")).scalars().one()
+        obj2 = (
+            session.execute(select(Tag).where(Tag.tag == "maderable")).scalars().one()
+        )
         tag_plugin.tag_objects(obj2, [fam])
         assert Tag.attached_to(fam) == [obj2]
 

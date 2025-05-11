@@ -43,7 +43,7 @@ gi.require_version("Champlain", "0.12")
 from gi.repository import Champlain, Clutter, Gdk, Gtk, GtkChamplain, GtkClutter
 from sqlalchemy import insert, select, update
 
-#from sqlalchemy.orm import Session
+# from sqlalchemy.orm import Session
 
 # Ensure GTK is initialized and get the display
 display = Gdk.Display.get_default()
@@ -75,9 +75,12 @@ def safe_set_text(gtk_widget, text):
         text = ""
     gtk_widget.set_text(text)
 
+
 class MapViewer:
     def __init__(self, title="", parent=None, *args, **kwargs):
-        self.dialog = Gtk.Dialog(title, parent, *args, **kwargs)  # Use composition instead of subclassing
+        self.dialog = Gtk.Dialog(
+            title, parent, *args, **kwargs
+        )  # Use composition instead of subclassing
         self.result = None
 
         # Connect key press event
@@ -104,13 +107,9 @@ class MapViewer:
 
         self.clutter_view.center_on(5.0, 13.0)
         self.clutter_view.set_zoom_level(1)
-        self.clutter_view.connect(
-            "animation-completed", self.on_animation_completed
-        )
+        self.clutter_view.connect("animation-completed", self.on_animation_completed)
         self.clutter_view.set_reactive(True)
-        self.clutter_view.connect(
-            "button-release-event", self.on_view_button_release
-        )
+        self.clutter_view.connect("button-release-event", self.on_view_button_release)
 
         offset = PADDING
         self.buttons = buttons = Clutter.Actor()
@@ -180,10 +179,7 @@ class MapViewer:
         marker_through.set_color(black)
         marker_through.set_size(10)
         lat, lon = marker_circle.get_latitude(), marker_circle.get_longitude()
-        x = (
-            self.clutter_view.longitude_to_x(lon)
-            + marker_circle.get_size() / 2
-        )
+        x = self.clutter_view.longitude_to_x(lon) + marker_circle.get_size() / 2
         lon = self.clutter_view.x_to_longitude(x)
         marker_through.set_location(lat, lon)
         marker_through.set_draggable(True)
@@ -200,12 +196,8 @@ class MapViewer:
         marker_circle.set_reactive(True)
         marker_through.set_reactive(True)
         marker_circle.connect("drag-motion", self.on_marker_button_release)
-        marker_through.connect(
-            "drag-motion", self.on_marker_through_button_release
-        )
-        marker_centre.connect(
-            "drag-motion", self.on_marker_centre_button_release
-        )
+        marker_through.connect("drag-motion", self.on_marker_through_button_release)
+        marker_centre.connect("drag-motion", self.on_marker_centre_button_release)
 
         layer.show()
         return layer
@@ -220,9 +212,9 @@ class MapViewer:
             self.marker_circle.get_latitude(),
             self.marker_circle.get_longitude(),
         )
-        y0, x0 = self.clutter_view.latitude_to_y(
-            lat
-        ), self.clutter_view.longitude_to_x(lon)
+        y0, x0 = self.clutter_view.latitude_to_y(lat), self.clutter_view.longitude_to_x(
+            lon
+        )
         # get the destination marker position
         if event.source == self.place_button:
             x1, y1 = (i / 2 for i in self.clutter_view.get_size())
@@ -233,9 +225,7 @@ class MapViewer:
         # move the circle
         self.marker_circle.set_location(lat, lon)
         # activate the trigger after moving the circle
-        self.on_marker_button_release(
-            self.marker_circle, x1 - x0, y1 - y0, None
-        )
+        self.on_marker_button_release(self.marker_circle, x1 - x0, y1 - y0, None)
         # remove the button if still there
         if self.place_button is not None:
             self.buttons.remove_child(self.place_button)
@@ -261,16 +251,16 @@ class MapViewer:
             self.marker_through.get_latitude(),
             self.marker_through.get_longitude(),
         )
-        y2, x2 = self.clutter_view.latitude_to_y(
-            lat
-        ), self.clutter_view.longitude_to_x(lon)
+        y2, x2 = self.clutter_view.latitude_to_y(lat), self.clutter_view.longitude_to_x(
+            lon
+        )
         lat, lon = (
             self.marker_centre.get_latitude(),
             self.marker_centre.get_longitude(),
         )
-        y, x = self.clutter_view.latitude_to_y(
-            lat
-        ), self.clutter_view.longitude_to_x(lon)
+        y, x = self.clutter_view.latitude_to_y(lat), self.clutter_view.longitude_to_x(
+            lon
+        )
         angle = math.atan2((y2 - y), (x2 - x))
         radius = self.marker_circle.get_size() / 2
         dx = math.cos(angle) * radius
@@ -280,9 +270,7 @@ class MapViewer:
         ), self.clutter_view.x_to_longitude(x + dx)
         self.marker_through.set_location(lat, lon)
 
-    def on_marker_button_release(
-        self, marker_circle, dx, dy, event, *args, **kwargs
-    ):
+    def on_marker_button_release(self, marker_circle, dx, dy, event, *args, **kwargs):
         for marker in [self.marker_through, self.marker_centre]:
             lat, lon = marker.get_latitude(), marker.get_longitude()
             y, x = self.clutter_view.latitude_to_y(
@@ -303,25 +291,23 @@ class MapViewer:
             self.marker_centre.get_longitude(),
         )
         self.marker_circle.set_location(lat, lon)
-        self.on_marker_through_button_release(
-            self.marker_through, dx, dy, event
-        )
+        self.on_marker_through_button_release(self.marker_through, dx, dy, event)
 
     def on_marker_through_button_release(self, marker_through, dx, dy, event):
         lat, lon = (
             marker_through.get_latitude(),
             marker_through.get_longitude(),
         )
-        y2, x2 = self.clutter_view.latitude_to_y(
-            lat
-        ), self.clutter_view.longitude_to_x(lon)
+        y2, x2 = self.clutter_view.latitude_to_y(lat), self.clutter_view.longitude_to_x(
+            lon
+        )
         lat, lon = (
             self.marker_centre.get_latitude(),
             self.marker_centre.get_longitude(),
         )
-        y, x = self.clutter_view.latitude_to_y(
-            lat
-        ), self.clutter_view.longitude_to_x(lon)
+        y, x = self.clutter_view.latitude_to_y(lat), self.clutter_view.longitude_to_x(
+            lon
+        )
         radius = math.sqrt((x - x2) ** 2 + (y - y2) ** 2)
         self.marker_circle.set_size(radius * 2)
 
@@ -363,9 +349,7 @@ class MapViewer:
         lat2 = self.marker_through.get_latitude()
         lon2 = self.marker_through.get_longitude()
         x1, y1, zone_number, zone_letter = utm.from_latlon(lat1, lon1)
-        x2, y2, zone_number, zone_letter = utm.from_latlon(
-            lat2, lon2, zone_number
-        )
+        x2, y2, zone_number, zone_letter = utm.from_latlon(lat2, lon2, zone_number)
         return (lat1, lon1, 2 * math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2))
 
     def set_centre(self, lat, lon, diam):
@@ -520,9 +504,7 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
                 self.message_box = None
         elif not box:
             box = self.view.add_message_box(utils.MESSAGE_BOX_INFO)
-            box.message = _(
-                "Please specify an institution name for this " "database."
-            )
+            box.message = _("Please specify an institution name for this " "database.")
             box.show()
             self.view.add_box(box)
             self.message_box = box
@@ -600,9 +582,7 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
 
 
 def start_institution_editor():
-    glade_path = os.path.join(
-        paths.lib_dir(), "plugins", "garden", "institution.glade"
-    )
+    glade_path = os.path.join(paths.lib_dir(), "plugins", "garden", "institution.glade")
     from bauble import prefs
     from bauble.editor import GenericEditorView, MockView
 
@@ -615,9 +595,7 @@ def start_institution_editor():
     view._tooltips = {
         "inst_name": _("The full name of the institution."),
         "inst_abbr": _("The standard abbreviation of the " "institution."),
-        "inst_code": _(
-            "The intitution code should be unique among " "all institions."
-        ),
+        "inst_code": _("The intitution code should be unique among " "all institions."),
         "inst_contact": _(
             "The name of the person to contact for "
             "information related to the institution."
@@ -631,9 +609,7 @@ def start_institution_editor():
         "inst_tel": _("The telephone number of the institution."),
         "inst_fax": _("The fax number of the institution."),
         "inst_addr": _("The mailing address of the institition."),
-        "inst_geo_latitude": _(
-            "The latitude of the geographic centre of the garden."
-        ),
+        "inst_geo_latitude": _("The latitude of the geographic centre of the garden."),
         "inst_geo_longitude": _(
             "The longitude of the geographic centre of the garden."
         ),

@@ -55,9 +55,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-
-
-
 plugins = {}
 commands = {}
 provided = {}
@@ -152,14 +149,11 @@ def load(path=None):
         # name is unique?
         if isinstance(plugin, type):
             plugins[plugin.__name__] = plugin
-            logger.debug(
-                "registering plugin %s: %s" % (plugin.__name__, plugin)
-            )
+            logger.debug("registering plugin %s: %s" % (plugin.__name__, plugin))
         else:
             plugins[plugin.__class__.__name__] = plugin
             logger.debug(
-                "registering plugin %s: %s"
-                % (plugin.__class__.__name__, plugin)
+                "registering plugin %s: %s" % (plugin.__class__.__name__, plugin)
             )
 
 
@@ -224,9 +218,7 @@ def init(force=False):
                 "The following plugins are in the registry but "
                 "could not be loaded:\n\n%(plugins)s"
             ) % {"plugins": utils.utf8(", ".join(sorted(not_registered)))}
-            utils.message_dialog(
-                utils.xml_safe(msg), type=Gtk.MessageType.WARNING
-            )
+            utils.message_dialog(utils.xml_safe(msg), type=Gtk.MessageType.WARNING)
 
     except Exception as e:
         logger.warning("unhandled exception %s" % e)
@@ -268,14 +260,9 @@ def init(force=False):
             ordered.remove(plugin)
             logger.debug(traceback.print_exc())
             safe = utils.xml_safe
-            values = dict(
-                entry_name=plugin.__class__.__name__, exception=safe(e)
-            )
+            values = dict(entry_name=plugin.__class__.__name__, exception=safe(e))
             utils.message_details_dialog(
-                _(
-                    "Error: Couldn't initialize %(entry_name)s\n\n"
-                    "%(exception)s."
-                )
+                _("Error: Couldn't initialize %(entry_name)s\n\n" "%(exception)s.")
                 % values,
                 traceback.format_exc(),
                 Gtk.MessageType.ERROR,
@@ -289,9 +276,7 @@ def init(force=False):
             try:
                 register_command(cmd)
             except Exception as e:
-                logger.debug(
-                    "exception %s while registering command %s" % (e, cmd)
-                )
+                logger.debug("exception %s while registering command %s" % (e, cmd))
                 msg = (
                     "Error: Could not register command handler.\n\n%s"
                     % utils.xml_safe(str(e))
@@ -409,7 +394,7 @@ class PluginRegistry(db.Base):
 
         with db.Session() as session:
             p = session.execute(
-                select(PluginRegistry).where(PluginRegistry.name==decoded_name)
+                select(PluginRegistry).where(PluginRegistry.name == decoded_name)
             ).scalar_one_or_none()
             if p:
                 session.delete(p)
@@ -437,7 +422,7 @@ class PluginRegistry(db.Base):
         """
         Check if plugin exists in the plugin registry.
         """
-            
+
         if isinstance(plugin, str):
             name = plugin
             version = None
@@ -458,7 +443,6 @@ class PluginRegistry(db.Base):
             except orm_exc.NoResultFound as e:
                 logger.debug(e)
                 return False
-
 
 
 class Plugin:
@@ -543,13 +527,13 @@ class View(Gtk.Box):
             del kwargs["filename"]
             root_widget_name = kwargs.get("root_widget_name")
             del kwargs["root_widget_name"]
-        
+
         # Initialize Gtk.Box with the parent constructor
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        
+
         if filename is not None:
             from bauble import editor, utils
-            
+
             self.widgets = utils.BuilderWidgets(filename)
             self.view = editor.GenericEditorView(
                 filename, root_widget_name=root_widget_name
@@ -577,6 +561,7 @@ class View(Gtk.Box):
 
     def idle_start_thread(self, cls, *args, **kwargs):
         """Start a thread after the main loop yields control."""
+
         def create_and_start(cls, args, kwargs):
             thread = cls(*args, **kwargs)
             self.running_threads.append(thread)
@@ -595,6 +580,7 @@ class View(Gtk.Box):
     def add(self, widget):
         """Add a widget to the vbox container."""
         self.pack_start(widget, True, True, 0)
+
 
 class CommandHandler:
 
@@ -634,7 +620,7 @@ def _find_module_names(path):
     else:
         for dir, subdir, files in os.walk(path):
             if dir != path and "__init__.py" in files:
-                modules.append(dir[len(path) + 1:].replace(os.sep, "."))
+                modules.append(dir[len(path) + 1 :].replace(os.sep, "."))
     return modules
 
 
@@ -650,14 +636,10 @@ def _find_plugins(path):
 
     if path.find("library.zip") != -1:
         plugin_names = [
-            m
-            for m in _find_module_names(path)
-            if m.startswith("bauble.plugins")
+            m for m in _find_module_names(path) if m.startswith("bauble.plugins")
         ]
     else:
-        plugin_names = [
-            "bauble.plugins.%s" % m for m in _find_module_names(path)
-        ]
+        plugin_names = ["bauble.plugins.%s" % m for m in _find_module_names(path)]
 
     import importlib
 
@@ -673,9 +655,7 @@ def _find_plugins(path):
             try:
                 mod = importlib.import_module(name, bauble.plugins)
             except Exception as e:
-                msg = _(
-                    "Could not import the %(module)s module.\n\n" "%(error)s"
-                ) % {
+                msg = _("Could not import the %(module)s module.\n\n" "%(error)s") % {
                     "module": name,
                     "error": e,
                 }
@@ -688,14 +668,11 @@ def _find_plugins(path):
         # plugins
         try:
             mod_plugin = mod.plugin()
-            logger.debug(
-                "module %s contains callable plugin: %s" % (mod, mod_plugin)
-            )
+            logger.debug("module %s contains callable plugin: %s" % (mod, mod_plugin))
         except:
             mod_plugin = mod.plugin
             logger.debug(
-                "module %s contains non callable plugin: %s"
-                % (mod, mod_plugin)
+                "module %s contains non callable plugin: %s" % (mod, mod_plugin)
             )
 
         def is_plugin_class(p):
@@ -710,21 +687,16 @@ def _find_plugins(path):
                     logger.debug("append plugin class {}:{}".format(name, p))
                     plugins.append(p())
                 elif is_plugin_instance(p):
-                    logger.debug(
-                        "append plugin instance {}:{}".format(name, p)
-                    )
+                    logger.debug("append plugin instance {}:{}".format(name, p))
                     plugins.append(p)
         elif is_plugin_class(mod_plugin):
             logger.debug("append plugin class {}:{}".format(name, mod_plugin))
             plugins.append(mod_plugin())
         elif is_plugin_instance(mod_plugin):
-            logger.debug(
-                "append plugin instance {}:{}".format(name, mod_plugin)
-            )
+            logger.debug("append plugin instance {}:{}".format(name, mod_plugin))
             plugins.append(mod_plugin)
         else:
             logger.warning(
-                _("%s.plugin is not an instance of pluginmgr.Plugin")
-                % mod.__name__
+                _("%s.plugin is not an instance of pluginmgr.Plugin") % mod.__name__
             )
     return plugins, errors

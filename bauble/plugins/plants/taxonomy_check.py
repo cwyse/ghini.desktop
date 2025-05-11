@@ -47,9 +47,7 @@ def start_taxonomy_check():
     """run the batch taxonomy check (BTC)"""
 
     view = GenericEditorView(
-        os.path.join(
-            paths.lib_dir(), "plugins", "plants", "taxonomy_check.glade"
-        ),
+        os.path.join(paths.lib_dir(), "plugins", "plants", "taxonomy_check.glade"),
         parent=None,
         root_widget_name="dialog1",
     )
@@ -268,16 +266,14 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
                     tag_bold,
                 )
 
-                gen_epithet, sp_epithet = utils.to_unicode(
-                    row[NEW_BINOMIAL]
-                ).split(" ", 1)
+                gen_epithet, sp_epithet = utils.to_unicode(row[NEW_BINOMIAL]).split(
+                    " ", 1
+                )
                 obj.genus.genus = gen_epithet
                 obj.sp = sp_epithet
                 if accepted:
                     obj.accepted = accepted
-            tb.insert_with_tags(
-                tb.get_end_iter(), " %s\n" % row[AUTHORSHIP], tag_bold
-            )
+            tb.insert_with_tags(tb.get_end_iter(), " %s\n" % row[AUTHORSHIP], tag_bold)
 
     def on_frame_next(self, *args):
         self.model.page += 1
@@ -334,15 +330,15 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
 
         previously = self.view.widget_get_value("file_path_entry")
         last_folder, bn = os.path.split(previously)
-        
+
         # Use the window from self.view
         parent_window = self.view.get_window()
-        
+
         self.view.run_file_chooser_dialog(
             _("Choose a file…"),
             parent=parent_window,
             action=Gtk.FileChooserAction.SAVE,
-            buttons = [
+            buttons=[
                 _("Ok"),
                 Gtk.ResponseType.ACCEPT,
                 _("Cancel"),
@@ -351,6 +347,7 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
             last_folder=last_folder,
             target="file_path_entry",
         )
+
 
 class TaxonomyCheckTool(pluginmgr.Tool):
     item_position = 15

@@ -31,16 +31,19 @@ from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
+
 # Modify desktop.open here to avoid cyclic import
 def disable_desktop_open():
     try:
         import bauble.utils.desktop as desktop
+
         desktop.open = lambda x: x
     except ImportError:
         logger.error("Failed to import and disable desktop.open")
 
 
 disable_desktop_open()
+
 
 # Centralize delayed imports
 def dynamic_import(module_name, class_name):
@@ -103,9 +106,11 @@ def test_duplicate_ids():
     import bauble.plugins.report as mod
 
     head, _ = os.path.split(mod.__file__)
-    files = glob.glob(os.path.join(head, "*.glade")) + \
-            glob.glob(os.path.join(head, "mako", "*.glade")) + \
-            glob.glob(os.path.join(head, "xsl", "*.glade"))
+    files = (
+        glob.glob(os.path.join(head, "*.glade"))
+        + glob.glob(os.path.join(head, "mako", "*.glade"))
+        + glob.glob(os.path.join(head, "xsl", "*.glade"))
+    )
     for file in files:
         assert not check_dupids(file)
 
@@ -149,6 +154,7 @@ class TestReport:
         """
         Test getting the species from a family type.
         """
+
         def get_ids(objs):
             return sorted([o.id for o in objs])
 
@@ -157,10 +163,10 @@ class TestReport:
         Species = dynamic_import("bauble.plugins.plants", "Species")
 
         family = session.get(Family, 1)
-        
+
         # Get pertinent species from the family
         ids = get_ids(get_pertinent_objects(Species, family))
-        
+
         # Assert the IDs are as expected
         assert ids == list(range(1, 5))
 

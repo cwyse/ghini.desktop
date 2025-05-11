@@ -42,7 +42,9 @@ class StoredQueriesModel:
         with db.Session() as session:
             if session.in_transaction():
                 session.commit()  # Ensure session if fully initialized before querying
-            query = select(meta.BaubleMeta).filter(meta.BaubleMeta.name.startswith("stqr_"))
+            query = select(meta.BaubleMeta).filter(
+                meta.BaubleMeta.name.startswith("stqr_")
+            )
             for item in session.scalars(query):
                 if str(item.name)[4] != "_":
                     continue
@@ -71,12 +73,16 @@ class StoredQueriesModel:
                     # If the label is empty, remove the corresponding record
                     if self._label[index] == "":
                         stmt = select(meta.BaubleMeta).filter_by(name=query_name)
-                        obj = session.execute(stmt).scalars().first()  # Retrieve the model instance
+                        obj = (
+                            session.execute(stmt).scalars().first()
+                        )  # Retrieve the model instance
                         if obj:
                             session.delete(obj)
                     else:
                         # Use get_or_create to retrieve or create the object
-                        obj, created = db.get_or_create(session, meta.BaubleMeta, name=query_name)
+                        obj, created = db.get_or_create(
+                            session, meta.BaubleMeta, name=query_name
+                        )
 
                         # Update the object's value if it differs
                         if obj.value != self[index]:
@@ -161,9 +167,7 @@ class StoredQueriesPresenter(editor.GenericEditorPresenter):
             bname = "stqr_%02d_button" % i
             lname = "stqr_%02d_label" % i
             self.view.widget_set_active(bname, i == self.model.page)
-            self.view.widget_set_attributes(
-                lname, self.weight[i == self.model.page]
-            )
+            self.view.widget_set_attributes(lname, self.weight[i == self.model.page])
 
     def refresh_view(self):
         super().refresh_view()
@@ -193,12 +197,11 @@ class StoredQueriesPresenter(editor.GenericEditorPresenter):
     def on_stqr_query_textbuffer_changed(self, widget, value=None, attr=None):
         return self.on_textbuffer_changed(widget, value, attr="query")
 
+
 def edit_callback():
     with db.Session() as session:
         view = editor.GenericEditorView(
-            os.path.join(
-                paths.lib_dir(), "plugins", "plants", "stored_queries.glade"
-            ),
+            os.path.join(paths.lib_dir(), "plugins", "plants", "stored_queries.glade"),
             parent=None,
             root_widget_name="stqr_dialog",
         )
@@ -211,7 +214,8 @@ def edit_callback():
             stored_queries.save()
             bauble.gui.get_view().update()
         return error_state
-    
+
+
 class StoredQueryEditorTool(pluginmgr.Tool):
     item_position = 20
     label = _("Edit stored queries")
