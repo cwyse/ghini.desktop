@@ -163,7 +163,7 @@ class XMLExporter:
             if not one_file:
                 tableset_el = etree.Element("tableset")
 
-            logger.info("exporting %s…" % table_name)
+            logger.info(f"exporting {table_name}…")
             table_el = ElementFactory(tableset_el, "table", attrib={"name": table_name})
 
             # Query the data using SQLAlchemy 2.x's session
@@ -193,7 +193,7 @@ class XMLExporter:
                 if one_file:
                     # Write the individual table's XML to a file
                     tree = etree.ElementTree(tableset_el)
-                    filename = os.path.join(path, "%s.xml" % table_name)
+                    filename = os.path.join(path, f"{table_name}.xml")
                     tree.write(filename, encoding="utf8", xml_declaration=True)
 
         # Finalize progress
@@ -206,7 +206,7 @@ class XMLExportCommandHandler(pluginmgr.CommandHandler):
     command = "exxml"
 
     def __call__(self, cmd, arg):
-        logger.debug("XMLExportCommandHandler(%s)" % arg)
+        logger.debug(f"XMLExportCommandHandler({arg})")
         exporter = XMLExporter()
         logger.debug("starting")
         exporter.start(arg)

@@ -313,7 +313,7 @@ class LocationEditorPresenter(GenericEditorPresenter):
         self.merger_candidate = None
 
         def on_location_select(location):
-            logger.debug("merger candidate: %s" % location)
+            logger.debug(f"merger candidate: {location}")
             self.merger_candidate = location
 
         from bauble.plugins.garden import init_location_comboentry
@@ -329,15 +329,11 @@ class LocationEditorPresenter(GenericEditorPresenter):
         entry_widget = self.view.widgets.loc_merge_entry
         if self.has_problems(entry_widget):
             logger.warning(
-                "'%s' does not identify a valid location" % entry_widget.get_text()
+                f"'{entry_widget.get_text()}' does not identify a valid location"
             )
             return
         logger.debug(
-            "request to merge %s into %s"
-            % (
-                self.model,
-                self.merger_candidate,
-            )
+            f"request to merge {self.model} into {self.merger_candidate}"
         )
 
         md = Gtk.MessageDialog(
@@ -567,7 +563,7 @@ class GeneralLocationExpander(InfoExpander):
         self.current_obj = None
 
         def on_nplants_clicked(*args):
-            cmd = 'plant where location.code="%s"' % self.current_obj.code
+            cmd = f'plant where location.code="{self.current_obj.code}"'
             bauble.gui.send_command(cmd)
 
         utils.make_label_clickable(self.widgets.loc_nplants_data, on_nplants_clicked)
@@ -579,7 +575,7 @@ class GeneralLocationExpander(InfoExpander):
 
         self.widget_set_value(
             "loc_name_data",
-            "<big>%s</big>" % utils.xml_safe(str(row)),
+            f"<big>{utils.xml_safe(str(row))}</big>",
             markup=True,
         )
         session = object_session(row)

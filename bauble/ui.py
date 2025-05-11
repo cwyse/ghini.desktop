@@ -198,14 +198,14 @@ class GUI:
         self.window.set_title(self.title)
 
         try:
-            logger.debug("loading icon from %s" % bauble.default_icon)
+            logger.debug(f"loading icon from {bauble.default_icon}")
             pixbuf = GdkPixbuf.Pixbuf.new_from_file(bauble.default_icon)
             self.window.set_icon(pixbuf)
         except Exception:
             logger.warning(_("Could not load icon from %s") % bauble.default_icon)
             logger.warning(traceback.format_exc())
 
-        menubar = self.create_main_menu()
+        self.create_main_menu()
 
         combo = self.widgets.main_comboentry
         model = Gtk.ListStore(str)
@@ -836,8 +836,7 @@ class GUI:
                 Gtk.MessageType.ERROR,
             )
             logger.error(
-                "bauble.gui.on_insert_menu_item_activate():\n %s"
-                % traceback.format_exc()
+                f"bauble.gui.on_insert_menu_item_activate():\n {traceback.format_exc()}"
             )
             return
 

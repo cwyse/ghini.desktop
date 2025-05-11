@@ -293,7 +293,7 @@ def copy_picture_with_thumbnail(path, basename=None):
         logger.warning("can't make thumbnail")
     except Exception as e:
         logger.warning(
-            "unexpected exception making thumbnail: " "(%s)%s" % (type(e), e)
+            "unexpected exception making thumbnail: " f"({type(e)}){e}"
         )
     return result
 
@@ -336,15 +336,15 @@ class ImageLoader(threading.Thread):
                 self.box.add(image)
             image.set_from_pixbuf(scaled_buf)
         except (GLib.GError, AttributeError) as e:
-            logger.debug("picture %s caused %s %s" % (self.url, type(e).__name__, e))
+            logger.debug(f"picture {self.url} caused {type(e).__name__} {e}")
             text = _("picture file %s not found.") % self.url
             label = Gtk.Label()
             safe_set_text(label, text)
             self.box.add(label)
         except Exception as e:
-            logger.warning("picture %s caused Exception %s:%s" % (self.url, type(e), e))
+            logger.warning(f"picture {self.url} caused Exception {type(e)}:{e}")
             label = Gtk.Label()
-            safe_set_text(label, "%s" % e)
+            safe_set_text(label, f"{e}")
             self.box.add(label)
         self.box.show_all()
 
@@ -357,7 +357,7 @@ class ImageLoader(threading.Thread):
         try:
             self.loader.close()
         except GLib.GError:
-            logger.debug("broken picture %s" % self.url)
+            logger.debug(f"broken picture {self.url}")
 
     def read_base64(self):
         self.loader.connect("area-prepared", self.loader_notified)
@@ -390,7 +390,7 @@ class ImageLoader(threading.Thread):
                     self.loader.write(piece)
                     pieces.append(piece)
         except FileNotFoundError as e:
-            logger.debug("picture %s caused FileNotFoundError %s" % (self.url, e))
+            logger.debug(f"picture {self.url} caused FileNotFoundError {e}")
         return b"".join(pieces)
 
 
@@ -556,7 +556,7 @@ def set_combo_from_value(combo, value, cmp=lambda row, value: row[0] == value):
     matches = search_tree_model(model, value, cmp)
     if len(matches) == 0:
         raise ValueError(
-            "set_combo_from_value() - could not find value in " "combo: %s" % value
+            "set_combo_from_value() - could not find value in " f"combo: {value}"
         )
     combo.set_active_iter(matches[0])
     combo.emit("changed")
@@ -617,7 +617,7 @@ def get_widget_value(w, index=0):
     else:
         raise TypeError(
             "utils.set_widget_value(): Don't know how to handle "
-            "the widget type %s with name %s" % (type(w), w.name)
+            f"the widget type {type(w)} with name {w.name}"
         )
 
 
@@ -634,8 +634,7 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
     """
 
     logger.debug(
-        "(widget ›%s‹, value ›%s‹, markup ›%s‹, default ›%s‹, index ›%s‹)"
-        % (widget, value, markup, default, index)
+        f"(widget ›{widget}‹, value ›{value}‹, markup ›{markup}‹, default ›{default}‹, index ›{index}‹)"
     )
 
     if value is None:  # set the value from the default
@@ -666,24 +665,23 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
         else:
             safe_set_text(widget, str(value) or "")
     elif isinstance(widget, Gtk.TextView):
-        safe_set_text(widget.get_buffer(), "%s" % value)
+        safe_set_text(widget.get_buffer(), f"{value}")
     elif isinstance(widget, Gtk.TextBuffer):
-        safe_set_text(widget, "%s" % value)
+        safe_set_text(widget, f"{value}")
     elif isinstance(widget, Gtk.Entry):
         safe_set_text(widget, str(value) or "")
     elif isinstance(widget, Gtk.ComboBox):
         treeiter = None
         if not widget.get_model():
             logger.warning(
-                "utils.set_widget_value: impossible on ComboBox without a model: %s"
-                % Gtk.Buildable.get_name(widget)
+                f"utils.set_widget_value: impossible on ComboBox without a model: {Gtk.Buildable.get_name(widget)}"
             )
         else:
             treeiter = combo_get_value_iter(
                 widget, value, cmp=lambda row, value: row[index] == value
             )
             if treeiter:
-                logger.debug("value found in model at %s" % treeiter)
+                logger.debug(f"value found in model at {treeiter}")
                 widget.set_active_iter(treeiter)
             else:
                 logger.debug("value not found in model")
@@ -711,7 +709,7 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
     else:
         raise TypeError(
             "utils.set_widget_value(): Don't know how to handle "
-            "the widget type %s with name %s" % (type(widget), widget.name)
+            f"the widget type {type(widget)} with name {widget.name}"
         )
 
 
@@ -1272,7 +1270,7 @@ def natsort_key(obj):
     use like: sorted(some_list, key=utils.natsort_key)
     """
 
-    item = "%s" % obj
+    item = f"{obj}"
     chunks = __natsort_rx.split(item)
     for ii in range(len(chunks)):
         if chunks[ii] and chunks[ii][0] in "0123456789":
@@ -1915,7 +1913,7 @@ def add_message_box(parent, type=MESSAGE_BOX_INFO):
     elif type == MESSAGE_BOX_YESNO:
         msg_box = YesNoMessageBox()
     else:
-        raise ValueError("unknown message box type: %s" % type)
+        raise ValueError(f"unknown message box type: {type}")
     parent.pack_start(msg_box.get_widget(), True, True, 0)
     return msg_box
 
@@ -1929,7 +1927,7 @@ def get_distinct_values(column, session):
     return [v for v in results if v is not None]
 
 
-def get_invalid_columns(obj, ignore_columns=["id"]):
+def get_invalid_columns(obj, ignore_columns=None):
     """
     Return column names on a mapped object that have values
     which aren't valid for the model.
@@ -1939,6 +1937,8 @@ def get_invalid_columns(obj, ignore_columns=["id"]):
     - ...what else?
     """
     # TODO: check for invalid enum types
+    if ignore_columns is None:
+        ignore_columns = ["id"]
     if not obj:
         return []
 

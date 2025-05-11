@@ -127,7 +127,7 @@ class AskGBIF(threading.Thread):
             self.__class__.running = None
             found = accepted = None
         self.__class__.running = None
-        logger.debug("%s before invoking callback" % self.name)
+        logger.debug(f"{self.name} before invoking callback")
         if self.gui:
             import gi
 
@@ -140,7 +140,7 @@ class AskGBIF(threading.Thread):
 
 
 def citation(d):
-    return ("%(scientificName)s " "(%(family)s)" % d).replace("   ", " ")
+    return ("{scientificName} " "({family})".format(**d)).replace("   ", " ")
 
 
 def what_to_do_with_it(found, accepted):

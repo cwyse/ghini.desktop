@@ -53,15 +53,15 @@ def populate_test_data(session):
     Plant = dynamic_import("bauble.plugins.garden.plant", "Plant")
 
     fctr = gctr = sctr = actr = pctr = 0
-    for f in range(2):
+    for _f in range(2):
         fctr += 1
         family = Family(id=fctr, family=f"fam{fctr}")
         session.add(family)
-        for g in range(2):
+        for _g in range(2):
             gctr += 1
             genus = Genus(id=gctr, family=family, genus=f"gen{gctr}")
             session.add(genus)
-            for s in range(2):
+            for _s in range(2):
                 sctr += 1
                 sp = Species(id=sctr, genus=genus, sp=f"sp{sctr}")
                 geo = GeographicArea(id=sctr, name=f"Mexico{sctr}")
@@ -69,11 +69,11 @@ def populate_test_data(session):
                 sp.distribution.append(dist)
                 vn = VernacularName(id=sctr, species=sp, name=f"name{sctr}")
                 session.add_all([sp, geo, dist, vn])
-                for a in range(2):
+                for _a in range(2):
                     actr += 1
                     acc = Accession(id=actr, species=sp, code=f"{actr}")
                     session.add(acc)
-                    for p in range(2):
+                    for _p in range(2):
                         pctr += 1
                         loc = Location(id=pctr, code=f"{pctr}", name=f"site{pctr}")
                         plant = Plant(

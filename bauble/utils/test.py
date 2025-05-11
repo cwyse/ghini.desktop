@@ -343,5 +343,5 @@ def test_partial_dependencies():
 
 
 def test_empty_input_full_dependencies():
-    r = topological_sort([], [("a", "b"), ("b", "c"), ("b", "d")])
+    topological_sort([], [("a", "b"), ("b", "c"), ("b", "d")])
     # assert r == []  # This assertion is commented in the original

@@ -24,7 +24,9 @@ import requests
 from requests.auth import HTTPDigestAuth
 
 
-def get_submissions(user, pw, host, form_id, to_skip=[]):
+def get_submissions(user, pw, host, form_id, to_skip=None):
+    if to_skip is None:
+        to_skip = []
     base_format = "https://%(host)s/view/%(api)s?formId=%(form_id)s"
     submission_format = (
         "[@version=null and @uiVersion=null]/%(group_name)s[@key=%(uuid)s]"
@@ -70,7 +72,7 @@ def get_submissions(user, pw, host, form_id, to_skip=[]):
             prefix = key[:-7]
             item[prefix] = [i[0].text for i in form if i.tag.endswith(key)]
         item["media"] = {}
-        for i, media_element in enumerate(root[1:]):
+        for _i, media_element in enumerate(root[1:]):
             filename, hash, url = media_element
             item["media"][filename.text] = (url.text, hash.text)
     return result

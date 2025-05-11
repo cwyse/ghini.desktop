@@ -210,9 +210,9 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
                     msg_box_msg = _("your data finely matches ThePlantList.org")
                 else:
                     cit = (
-                        "<i>%(Genus)s</i> %(Species hybrid marker)s"
-                        "<i>%(Species)s</i> %(Authorship)s (%(Family)s)"
-                    ) % found_s
+                        "<i>{Genus}</i> {Species hybrid marker}"
+                        "<i>{Species}</i> {Authorship} ({Family})"
+                    ).format(**found_s)
                     msg = (
                         _(
                             "%s is the closest match for your data.\n"
@@ -255,9 +255,9 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
                     else:
                         # synonym is at rank species, this is fine
                         cit = (
-                            "<i>%(Genus)s</i> %(Species hybrid marker)s"
-                            "<i>%(Species)s</i> %(Authorship)s (%(Family)s)"
-                        ) % accepted_s
+                            "<i>{Genus}</i> {Species hybrid marker}"
+                            "<i>{Species}</i> {Authorship} ({Family})"
+                        ).format(**accepted_s)
                         msg = (
                             _(
                                 "%s is the accepted taxon for your data.\n"
@@ -328,7 +328,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
 
         # called when a genus is selected from the genus completions
         def on_select(value):
-            logger.debug("on select: %s" % value)
+            logger.debug(f"on select: {value}")
             if isinstance(value, str):
                 value = self.session.scalars(
                     select(Genus).where(Genus.genus == value)
@@ -484,7 +484,8 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         building the fullname string in the sp_fullname_label widget
         """
         self.refresh_fullname_label()
-        refresh = lambda *args: self.refresh_fullname_label(*args)
+        def refresh(*args):
+            return self.refresh_fullname_label(*args)
         widgets = [
             "sp_genus_entry",
             "sp_species_entry",
@@ -503,7 +504,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             self.view.widgets.remove_parent(kid)
 
         new_text = text
-        current_text = entry.get_text()
+        entry.get_text()
         # get position from entry, can't trust position parameter
         cursor_pos = entry.get_position()
 
@@ -548,7 +549,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         set the value of sp_fullname_label to either '--' if there
         is a problem or to the name of the string returned by Species.str
         """
-        logger.debug("SpeciesEditorPresenter:refresh_fullname_label %s" % widget)
+        logger.debug(f"SpeciesEditorPresenter:refresh_fullname_label {widget}")
         if len(self.problems) > 0 or self.model.genus is None:
             self.view.set_label("sp_fullname_label", "--")
             return
@@ -564,7 +565,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
                 )
             ).first()
 
-            logger.debug("looking for %s %s, found %s" % (genus, epithet, omonym))
+            logger.debug(f"looking for {genus} {epithet}, found {omonym}")
             if omonym in [None, self.model]:
                 # should not warn, so check warning and remove
                 if self.omonym_box is not None:
@@ -610,7 +611,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
                 value = self.model.genus
             else:
                 value = getattr(self.model, field)
-            logger.debug("%s, %s, %s(%s)" % (widget, field, type(value), value))
+            logger.debug(f"{widget}, {field}, {type(value)}({value})")
             self.view.widget_set_value(widget, value)
 
         utils.set_widget_value(
@@ -1025,7 +1026,7 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
                 cell.set_property("active", v == self.model.default_vernacular_name)
                 return
             except AttributeError as e:
-                logger.debug("AttributeError %s" % e)
+                logger.debug(f"AttributeError {e}")
             cell.set_property("active", False)
 
         cell = self.view.widgets.vn_default_cell
@@ -1183,9 +1184,9 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         value = tree_model[tree_model.get_iter(path)][0]
         s = value.synonym.str(markup=True)
         msg = (
-            "Are you sure you want to remove %s as a synonym to the "
+            f"Are you sure you want to remove {s} as a synonym to the "
             "current species?\n\n<i>Note: This will not remove the species "
-            "%s from the database.</i>" % (s, s)
+            f"{s} from the database.</i>"
         )
         if not utils.yes_no_dialog(msg, parent=self.view.get_window()):
             return

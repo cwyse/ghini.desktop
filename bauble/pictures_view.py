@@ -34,7 +34,7 @@ class PicturesView:
 
     def __init__(self, parent=None, fake=False):
         logger.debug(
-            "entering PicturesView.__init__(parent=%s, fake=%s)" % (parent, fake)
+            f"entering PicturesView.__init__(parent={parent}, fake={fake})"
         )
         self.fake = fake
 

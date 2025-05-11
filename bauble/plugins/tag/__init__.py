@@ -783,18 +783,17 @@ def _get_tagged_object_pairs(tag):
             cls = getattr(module, cls_name)
             kids.append((cls, obj.obj_id))
         except KeyError as e:
-            logger.warning("KeyError -- tag.get_tagged_objects(%s): %s" % (tag, e))
+            logger.warning(f"KeyError -- tag.get_tagged_objects({tag}): {e}")
             continue
         except DBAPIError as e:
-            logger.warning("DBAPIError -- tag.get_tagged_objects(%s): %s" % (tag, e))
+            logger.warning(f"DBAPIError -- tag.get_tagged_objects({tag}): {e}")
             continue
         except AttributeError as e:
             logger.warning(
-                "AttributeError -- tag.get_tagged_objects(%s): %s" % (tag, e)
+                f"AttributeError -- tag.get_tagged_objects({tag}): {e}"
             )
             logger.warning(
-                "Could not get the object for %s.%s(%s)"
-                % (module_name, cls_name, obj.obj_id)
+                f"Could not get the object for {module_name}.{cls_name}({obj.obj_id})"
             )
             continue
 
@@ -1024,7 +1023,7 @@ class GeneralTagExpander(InfoExpander):
             eb.add(leb)
             eb.set_hexpand(False)
             table.attach(eb, 1, row_no, 1, 1)
-            safe_set_text(leb, " %s " % len(obj_ids))
+            safe_set_text(leb, f" {len(obj_ids)} ")
             utils.make_label_clickable(
                 leb,
                 on_label_clicked,

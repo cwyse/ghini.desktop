@@ -66,7 +66,7 @@ def decode_parts(name, acc_format=None):
         use_accno_re = accno_re
     else:
         exp_str = acc_format.replace(".", r"\.").replace("#", "[0-9]")
-        exp_str = r"(%s)(?:\.([0-9]+))?" % exp_str
+        exp_str = rf"({exp_str})(?:\.([0-9]+))?"
         use_accno_re = re.compile(exp_str)
     for key, exp in [
         ("accession", use_accno_re),
@@ -276,10 +276,10 @@ class PictureImporterPresenter(GenericEditorPresenter):
                     pixbuf,
                 )
             except GLib.GError as e:
-                logger.debug("picture %s caused GLib.GError %s" % (fname, e))
+                logger.debug(f"picture {fname} caused GLib.GError {e}")
             except Exception as e:
                 logger.warning(
-                    "picture %s caused Exception %s:%s" % (fname, type(e), e)
+                    f"picture {fname} caused Exception {type(e)}:{e}"
                 )
 
     def add_rows(self, arg, dirname, fnames):
@@ -414,7 +414,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
                         f"created accession {accession_code} for species {epgn} {epsp}",
                     )
                 else:
-                    logger.log(12, "reusing new accession %s" % (accession_code))
+                    logger.log(12, f"reusing new accession {accession_code}")
 
             # create or retrieve plant (needs: accession, location)
             plant = get_first_or_none(
@@ -438,9 +438,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
                         code=plant_code,
                     )
                     session.add(plant)
-                    logger.log(13, "created plant %s" % (complete_plant_code))
+                    logger.log(13, f"created plant {complete_plant_code}")
                 else:
-                    logger.log(12, "reusing new plant %s" % (complete_plant_code))
+                    logger.log(12, f"reusing new plant {complete_plant_code}")
 
             # copy picture file - possibly renaming it
             utils.copy_picture_with_thumbnail(self.model.filepath, filename)

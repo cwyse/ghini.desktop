@@ -93,7 +93,7 @@ class PocketServer(Thread):
                 self.imei_to_user_name = {v[1]: v[2] for v in self.clients}
 
             def verify(self, client_id):
-                self.log.append(("verify ›%s‹" % (client_id),))
+                self.log.append((f"verify ›{client_id}‹",))
                 user_name = self.imei_to_user_name.get(client_id, None)
                 if user_name is None:
                     return self.USER_NOT_REGISTERED

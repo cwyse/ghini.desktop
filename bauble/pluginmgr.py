@@ -69,15 +69,15 @@ def register_command(handler):
     :param handler:  A class which extends pluginmgr.CommandHandler
     """
     global commands
-    logger.debug("registering command handler %s" % str(handler.command))
+    logger.debug(f"registering command handler {str(handler.command)}")
     if isinstance(handler.command, str):
         if handler.command in commands:
-            logger.info("overwriting command %s" % handler.command)
+            logger.info(f"overwriting command {handler.command}")
         commands[handler.command] = handler
     else:
         for cmd in handler.command:
             if cmd in commands:
-                logger.info("overwriting command %s" % cmd)
+                logger.info(f"overwriting command {cmd}")
             commands[cmd] = handler
 
 
@@ -123,7 +123,7 @@ def load(path=None):
             path = os.path.join(paths.main_dir(), "library.zip")
         else:
             path = os.path.join(paths.lib_dir(), "plugins")
-    logger.debug("pluginmgr.load(%s)" % path)
+    logger.debug(f"pluginmgr.load({path})")
     found, errors = _find_plugins(path)
     logger.debug(f"found={found}, errors={errors}")
 
@@ -136,13 +136,13 @@ def load(path=None):
         exc_str = utils.xml_safe(exc_info[1])
         tb_str = "".join(traceback.format_tb(exc_info[2]))
         utils.message_details_dialog(
-            "Could not load plugin: " "\n\n<i>%s</i>\n\n%s" % (name, exc_str),
+            "Could not load plugin: " f"\n\n<i>{name}</i>\n\n{exc_str}",
             tb_str,
             type=Gtk.MessageType.ERROR,
         )
 
     if len(found) == 0:
-        logger.debug("No plugins found at path: %s" % path)
+        logger.debug(f"No plugins found at path: {path}")
 
     for plugin in found:
         # issue #27: should we include the module name of the plugin to
@@ -150,11 +150,11 @@ def load(path=None):
         # name is unique?
         if isinstance(plugin, type):
             plugins[plugin.__name__] = plugin
-            logger.debug("registering plugin %s: %s" % (plugin.__name__, plugin))
+            logger.debug(f"registering plugin {plugin.__name__}: {plugin}")
         else:
             plugins[plugin.__class__.__name__] = plugin
             logger.debug(
-                "registering plugin %s: %s" % (plugin.__class__.__name__, plugin)
+                f"registering plugin {plugin.__class__.__name__}: {plugin}"
             )
 
 
@@ -181,7 +181,7 @@ def init(force=False):
 
     # search for plugins that are in the plugins dict but not in the registry
     registered = list(plugins.values())
-    logger.debug("registered plugins: %s" % plugins)
+    logger.debug(f"registered plugins: {plugins}")
     try:
         # try to access the plugin registry, if the table does not exist
         # then it might mean that we are opening a pre 0.9 database, in this
@@ -209,7 +209,7 @@ def init(force=False):
                 registered.append(plugins[name])
             except KeyError as e:
                 logger.debug(
-                    "could not find '%s' plugin. " "removing from database" % e
+                    f"could not find '{e}' plugin. " "removing from database"
                 )
                 not_registered.append(utils.utf8(name))
                 PluginRegistry.remove(name=name)
@@ -222,7 +222,7 @@ def init(force=False):
             utils.message_dialog(utils.xml_safe(msg), type=Gtk.MessageType.WARNING)
 
     except Exception as e:
-        logger.warning("unhandled exception %s" % e)
+        logger.warning(f"unhandled exception {e}")
         raise
 
     if not registered:
@@ -242,10 +242,10 @@ def init(force=False):
 
     # call init() for each ofthe plugins
     for plugin in ordered:
-        logger.debug("about to invoke init on: %s" % plugin)
+        logger.debug(f"about to invoke init on: {plugin}")
         try:
             plugin.init()
-            logger.debug("plugin %s initialized" % plugin)
+            logger.debug(f"plugin {plugin} initialized")
         except KeyError:
             # keep the plugin in the registry so if we find it again we do
             # not offer the user the option to reinstall it, something which
@@ -277,10 +277,9 @@ def init(force=False):
             try:
                 register_command(cmd)
             except Exception as e:
-                logger.debug("exception %s while registering command %s" % (e, cmd))
+                logger.debug(f"exception {e} while registering command {cmd}")
                 msg = (
-                    "Error: Could not register command handler.\n\n%s"
-                    % utils.xml_safe(str(e))
+                    f"Error: Could not register command handler.\n\n{utils.xml_safe(str(e))}"
                 )
                 utils.message_dialog(msg, Gtk.MessageType.ERROR)
 
@@ -305,7 +304,7 @@ def install(plugins_to_install, import_defaults=True, force=False):
     :type force: book
     """
 
-    logger.debug("pluginmgr.install(%s)" % str(plugins_to_install))
+    logger.debug(f"pluginmgr.install({str(plugins_to_install)})")
     if plugins_to_install == "all":
         to_install = list(plugins.values())
     else:
@@ -317,12 +316,12 @@ def install(plugins_to_install, import_defaults=True, force=False):
 
     # sort the plugins by their dependency
     depends, unmet = _create_dependency_pairs(list(plugins.values()))
-    logger.debug("%s - the dependencies pairs" % str(depends))
+    logger.debug(f"{str(depends)} - the dependencies pairs")
     if unmet != {}:
         logger.debug(unmet)
         raise BaubleError("unmet dependencies")
     to_install = utils.topological_sort(to_install, depends)
-    logger.debug("%s - this is after topological sort" % str(to_install))
+    logger.debug(f"{str(to_install)} - this is after topological sort")
     if not to_install:
         raise BaubleError(
             _(
@@ -334,16 +333,16 @@ def install(plugins_to_install, import_defaults=True, force=False):
 
     try:
         for p in to_install:
-            logger.debug("install: %s" % p)
+            logger.debug(f"install: {p}")
             p.install(import_defaults=import_defaults)
             # issue #28: here we make sure we don't add the plugin to the
             # registry twice but we should really update the version number
             # in the future when we accept versioned plugins (if ever)
             if not PluginRegistry.exists(p):
-                logger.debug("%s - adding to registry" % p)
+                logger.debug(f"{p} - adding to registry")
                 PluginRegistry.add(p)
     except Exception as e:
-        logger.warning("bauble.pluginmgr.install(): %s" % utils.utf8(e))
+        logger.warning(f"bauble.pluginmgr.install(): {utils.utf8(e)}")
         logger.debug(traceback.print_exc())
         raise
 
@@ -432,11 +431,11 @@ class PluginRegistry(db.Base):
             version = plugin.version
 
         # Decode name if it's in bytes
-        decoded_name = name.decode() if isinstance(name, bytes) else name
+        name.decode() if isinstance(name, bytes) else name
 
         with db.Session() as session:
             try:
-                logger.debug("not using value of version (%s)." % version)
+                logger.debug(f"not using value of version ({version}).")
                 # Apply the where clause to the select object
                 query = select(PluginRegistry).where(PluginRegistry.name == name)
                 session.execute(query).scalar_one()
@@ -619,7 +618,7 @@ def _find_module_names(path):
                 modules.append(m.group(1).replace("/", ".")[:-1])
         z.close()
     else:
-        for dir, subdir, files in os.walk(path):
+        for dir, _subdir, files in os.walk(path):
             if dir != path and "__init__.py" in files:
                 modules.append(dir[len(path) + 1 :].replace(os.sep, "."))
     return modules
@@ -640,7 +639,7 @@ def _find_plugins(path):
             m for m in _find_module_names(path) if m.startswith("bauble.plugins")
         ]
     else:
-        plugin_names = ["bauble.plugins.%s" % m for m in _find_module_names(path)]
+        plugin_names = [f"bauble.plugins.{m}" for m in _find_module_names(path)]
 
     import importlib
 
@@ -669,11 +668,11 @@ def _find_plugins(path):
         # plugins
         try:
             mod_plugin = mod.plugin()
-            logger.debug("module %s contains callable plugin: %s" % (mod, mod_plugin))
+            logger.debug(f"module {mod} contains callable plugin: {mod_plugin}")
         except:
             mod_plugin = mod.plugin
             logger.debug(
-                "module %s contains non callable plugin: %s" % (mod, mod_plugin)
+                f"module {mod} contains non callable plugin: {mod_plugin}"
             )
 
         def is_plugin_class(p):

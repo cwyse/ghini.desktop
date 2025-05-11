@@ -249,7 +249,7 @@ class TestEnumModel:
 
         # Query for None (should return row2)
         query = db_session.execute(
-            select(_TestEnum).where(_TestEnum.value == None)
+            select(_TestEnum).where(_TestEnum.value is None)
         ).scalars()
         assert query.all() == [row2]
 

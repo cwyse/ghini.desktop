@@ -269,12 +269,12 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         """provide the two lines describing object for SearchView row."""
         try:
             if len(self.vernacular_names) > 0:
-                substring = "%s -- %s" % (
+                substring = "{} -- {}".format(
                     self.genus.family,
                     ", ".join([str(v) for v in self.vernacular_names]),
                 )
             else:
-                substring = "%s" % self.genus.family
+                substring = f"{self.genus.family}"
             trail = ""
             if self.accepted:
                 trail += (
@@ -381,7 +381,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             (self.infrasp3_rank, self.infrasp3, self.infrasp3_author),
             (self.infrasp4_rank, self.infrasp4, self.infrasp4_author),
         )
-        for rank, epithet, author in infrasp:
+        for rank, epithet, _author in infrasp:
             if rank == "cv.":
                 return epithet
         return ""
@@ -560,7 +560,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         if self.distribution is None:
             return ""
         else:
-            dist = ["%s" % d for d in self.distribution]
+            dist = [f"{d}" for d in self.distribution]
             return ", ".join(sorted(dist))
 
     def markup(self, authors=False, genus=True):
@@ -611,9 +611,9 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             escape = utils.xml_safe
 
             def italicize(s):
-                return "<i>%s</i>" % escape(  # all but the multiplication signs
+                return "<i>{}</i>".format(escape(  # all but the multiplication signs
                     s
-                ).replace("×", "</i>×<i>")
+                ).replace("×", "</i>×<i>"))
 
             genus = italicize(genus)
             if epithet is not None:
@@ -643,7 +643,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                     infrasp_parts.append(
                         _("(%(group)s Group)") % dict(group=self.cv_group)
                     )
-                infrasp_parts.append("'%s'" % escape(iepithet))
+                infrasp_parts.append(f"'{escape(iepithet)}'")
             else:
                 if irank:
                     infrasp_parts.append(irank)
@@ -659,7 +659,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
         # create the binomial part
         binomial = [genus, self.hybrid and self.hybrid_char, epithet, author]
-        logger.debug("binomial parts: »%s« »%s« »%s« »%s«" % tuple(binomial))
+        logger.debug("binomial parts: »{}« »{}« »{}« »{}«".format(*tuple(binomial)))
 
         # create the tail, ie: anything to add on to the end
         tail = []
@@ -680,19 +680,19 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                 if infrasp_parts:
                     infrasp_parts.insert(0, qual)
             else:
-                for r, e, a in infrasp:
+                for r, e, _a in infrasp:
                     if r == "cv.":
-                        e = "'%s'" % e
+                        e = f"'{e}'"
                     if rank == r:
                         pos = infrasp_parts.index(e)
                         infrasp_parts.insert(pos, qual)
                 else:
-                    logger.info("cannot find specified rank %s" % e)
+                    logger.info(f"cannot find specified rank {e}")
 
         parts = chain(binomial, infrasp_parts, tail)
         s = utils.utf8(" ".join(i for i in parts if i))
         if self.hybrid:
-            s = s.replace("%s " % self.hybrid_char, self.hybrid_char)
+            s = s.replace(f"{self.hybrid_char} ", self.hybrid_char)
         return s
 
     @property
@@ -832,7 +832,7 @@ def as_dict(self):
 
 
 def compute_serializable_fields(cls, session, keys):
-    logger.debug("compute_serializable_fields(session, %s)" % keys)
+    logger.debug(f"compute_serializable_fields(session, {keys})")
     result = {}
     genus_name, epithet = keys["species"].split(" ", 1)
     sp_dict = {"ht-epithet": genus_name, "epithet": epithet}
@@ -972,7 +972,7 @@ class VernacularName(db.Base, db.Serializable):
 
     @classmethod
     def compute_serializable_fields(cls, session, keys):
-        logger.debug("compute_serializable_fields(session, %s)" % keys)
+        logger.debug(f"compute_serializable_fields(session, {keys})")
         result = {"species": None}
         if "species" in keys:
             # now we must connect the name to the species it refers to

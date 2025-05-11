@@ -189,35 +189,35 @@ class MapperBase(DeclarativeMeta):
 
     _class_registry = {}
 
-    def __init__(cls, classname, bases, dict_):
+    def __init__(self, classname, bases, dict_):
         if "__tablename__" in dict_:
-            cls.id = sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)
-            cls._created = sa.Column(
+            self.id = sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)
+            self._created = sa.Column(
                 "_created",
                 types.DateTime(),
                 default=datetime.datetime.utcnow(),
             )
-            cls._last_updated = sa.Column(
+            self._last_updated = sa.Column(
                 "_last_updated",
                 types.DateTime(),
                 default=datetime.datetime.utcnow(),
                 onupdate=datetime.datetime.utcnow(),
             )
         if "top_level_count" not in dict_:
-            cls.top_level_count = lambda x: {classname: 1}
+            self.top_level_count = lambda x: {classname: 1}
         if "search_view_markup_pair" not in dict_:
-            cls.search_view_markup_pair = lambda x: (
+            self.search_view_markup_pair = lambda x: (
                 utils.xml_safe(str(x)),
-                "(%s)" % type(x).__name__,
+                f"({type(x).__name__})",
             )
 
         # Add the class to the registry
-        MapperBase._class_registry[classname.lower()] = cls
+        MapperBase._class_registry[classname.lower()] = self
 
         super().__init__(classname, bases, dict_)
 
         # Automatically add event listeners for insert, update, delete
-        MapperBase._register_event_listeners(cls)
+        MapperBase._register_event_listeners(self)
 
     @staticmethod
     def add_history_entry(operation, instance):

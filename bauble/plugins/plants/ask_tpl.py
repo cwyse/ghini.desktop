@@ -322,7 +322,7 @@ class AskTPL(threading.Thread):
             self.__class__.running = None
             found = accepted = None
         self.__class__.running = None
-        logger.debug("%s before invoking callback" % self.name)
+        logger.debug(f"{self.name} before invoking callback")
         if self.gui:
             import gi
 
@@ -341,7 +341,7 @@ def citation(d):
     #     # "%(Infraspecific rank)s %(Infraspecific epithet)s "
     #     "%(Authorship)s (%(Family)s)" % d
     # ).replace("   ", " ")
-    return ("%(Title)s (%(Family)s)" % d).replace("   ", " ")
+    return ("{Title} ({Family})".format(**d)).replace("   ", " ")
 
 
 def what_to_do_with_it(found, accepted):

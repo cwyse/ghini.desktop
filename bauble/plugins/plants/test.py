@@ -808,10 +808,10 @@ class TestSpecies:
         def syn_str(id1, id2, isit="not"):
             sp1 = load_sp(id1)
             load_sp(id2)
-            return "%s(%s).synonyms: %s" % (
+            return "{}({}).synonyms: {}".format(
                 sp1,
                 sp1.id,
-                str(["%s(%s)" % (s, s.id) for s in sp1.synonyms]),
+                str([f"{s}({s.id})" for s in sp1.synonyms]),
             )
 
         def synonym_of(id1, id2):
@@ -1201,7 +1201,7 @@ class TestFromAndToDict:
         other_session = db.Session(bind=db_session.connection())
         try:
             db_families = other_session.execute(select(Family)).scalars().all()
-            fab_in_other_session = Family.retrieve_or_create(
+            Family.retrieve_or_create(
                 other_session, {"rank": "family", "epithet": "Fabaceae"}
             )
             assert fab not in db_families, "Family unexpectedly found in other session."
@@ -1221,7 +1221,7 @@ class TestFromAndToDict:
         other_session = db.Session(bind=db.engine.connect())
         try:
             all_families = other_session.execute(select(Family)).scalars().all()
-            fab_in_other_session = Family.retrieve_or_create(
+            Family.retrieve_or_create(
                 other_session, {"rank": "family", "epithet": "Fabaceae"}
             )
             assert (

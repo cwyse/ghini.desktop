@@ -246,9 +246,9 @@ class VernacularExpander(InfoExpander):
                     row.default_vernacular_name is not None
                     and vn == row.default_vernacular_name
                 ):
-                    names.insert(0, "%s - %s (default)" % (vn.name, vn.language))
+                    names.insert(0, f"{vn.name} - {vn.language} (default)")
                 else:
-                    names.append("%s - %s" % (vn.name, vn.language))
+                    names.append(f"{vn.name} - {vn.language}")
             self.widget_set_value("sp_vernacular_data", "\n".join(names))
             self.set_sensitive(True)
             # TODO: get expanded state from prefs
@@ -283,8 +283,7 @@ class SynonymsExpander(InfoExpander):
         )
         accepted = syn and syn.species
         logger.debug(
-            "species %s is synonym of %s and has synonyms %s"
-            % (row, accepted, row.synonyms)
+            f"species {row} is synonym of {accepted} and has synonyms {row.synonyms}"
         )
         self.set_label(_("Synonyms"))  # reset default value
 
@@ -350,13 +349,13 @@ class GeneralSpeciesExpander(InfoExpander):
         self.current_obj = None
 
         def on_nacc_clicked(*args):
-            cmd = "accession where species.id=%s" % self.current_obj.id
+            cmd = f"accession where species.id={self.current_obj.id}"
             bauble.gui.send_command(cmd)
 
         utils.make_label_clickable(self.widgets.sp_nacc_data, on_nacc_clicked)
 
         def on_nplants_clicked(*args):
-            cmd = "plant where accession.species.id=%s" % self.current_obj.id
+            cmd = f"plant where accession.species.id={self.current_obj.id}"
             bauble.gui.send_command(cmd)
 
         utils.make_label_clickable(self.widgets.sp_nplants_data, on_nplants_clicked)
@@ -377,7 +376,7 @@ class GeneralSpeciesExpander(InfoExpander):
         # Link to family
         self.widget_set_value(
             "sp_fam_data",
-            "<small>(%s)</small>" % row.genus.family.epithet,
+            f"<small>({row.genus.family.epithet})</small>",
             markup=True,
         )
         utils.make_label_clickable(
@@ -386,7 +385,7 @@ class GeneralSpeciesExpander(InfoExpander):
         # link to genus
         self.widget_set_value(
             "sp_gen_data",
-            "<big><i>%s</i></big>" % row.genus.genus,
+            f"<big><i>{row.genus.genus}</i></big>",
             markup=True,
         )
         utils.make_label_clickable(
@@ -395,7 +394,7 @@ class GeneralSpeciesExpander(InfoExpander):
         # epithet (full binomial but missing genus)
         self.widget_set_value(
             "sp_epithet_data",
-            "<big>%s</big>" % row.markup(authors=True, genus=False),
+            f"<big>{row.markup(authors=True, genus=False)}</big>",
             markup=True,
         )
 
@@ -404,7 +403,7 @@ class GeneralSpeciesExpander(InfoExpander):
             awards = utils.utf8(row.awards)
         self.widget_set_value("sp_awards_data", awards)
 
-        logger.debug("setting cites data from row %s" % row)
+        logger.debug(f"setting cites data from row {row}")
         cites = ""
         if row.cites:
             cites = utils.utf8(row.cites)
@@ -473,7 +472,7 @@ class GeneralSpeciesExpander(InfoExpander):
             )
             self.widget_set_value(
                 "sp_nplants_data",
-                "%s in %s accessions" % (nplants, nacc_in_plants),
+                f"{nplants} in {nacc_in_plants} accessions",
             )
 
         living_plants = sum(

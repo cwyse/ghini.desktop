@@ -393,7 +393,7 @@ class TestSearch:
         """
 
         stmt = select(Family)
-        persisted_families = db_session.execute(stmt).scalars().all()
+        db_session.execute(stmt).scalars().all()
         mapper_search = get_strategy("MapperSearch")
         # Register domains
         self.setup_test_domains(mapper_search)
@@ -536,7 +536,7 @@ class TestSearch:
         )
         print(f"Executing SQL: {compiled_stmt}")
 
-        direct_results = db_session.execute(stmt).scalars().all()
+        db_session.execute(stmt).scalars().all()
 
         # ✅ Step 4: Ensure at least one known family exists
         stmt = select(Family).where(Family.family == "fam4")
@@ -963,7 +963,7 @@ class TestSearch:
         from bauble.plugins.plants.genus import Genus
 
         # Data setup
-        family1 = setup_test_data["family1"]
+        setup_test_data["family1"]
         family2 = Family(family="family2")
         family3 = Family(family="afamily3")
         genus1 = setup_test_data["genus1"]
@@ -1813,7 +1813,7 @@ class FilterThenMatchTests:
         results = mapper_search.search(s, db_session)
         assert results == {genus2}
 
-    def test_can_find_empty_set(dself, db_session, setup_filter_then_match):
+    def test_can_find_empty_set(self, db_session, setup_filter_then_match):
         mapper_search = search.get_strategy("MapperSearch")
         _, _, _, genus4 = setup_filter_then_match
 
@@ -1862,8 +1862,8 @@ class ParseTypedValue:
             ("whatever else", "whatever else"),
         ],
     )
-    def test_parse_typed_value(input_value, expected):
-        result = querybuilder.parse_typed_value(input_value)
+    def test_parse_typed_value(self, expected):
+        result = querybuilder.parse_typed_value(self)
         assert result == expected
 
 

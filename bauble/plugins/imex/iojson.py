@@ -183,7 +183,7 @@ class JSONExporter(editor.GenericEditorPresenter):
 
             if self.include_private is False:
                 plant_query = plant_query.where(
-                    Accession.private == False
+                    not Accession.private
                 )  # `is` does not work
 
             plants = plant_query.all()
@@ -390,7 +390,7 @@ class JSONExporter(editor.GenericEditorPresenter):
 
         filename = self.filename
         if os.path.exists(filename) and not os.path.isfile(filename):
-            raise ValueError("%s exists and is not a a regular file" % filename)
+            raise ValueError(f"{filename} exists and is not a a regular file")
 
         objects = self.get_objects()
         # if objects is None then export all objects under classes Familia,
@@ -507,7 +507,7 @@ class JSONImporter(editor.GenericEditorPresenter):
                     if session.in_transaction():
                         session.rollback()
                 logger.warning(
-                    "could not import %s (%s: %s)" % (obj, type(e).__name__, e.args)
+                    f"could not import {obj} ({type(e).__name__}: {e.args})"
                 )
             pb_set_fraction(float(i) / n)
             yield

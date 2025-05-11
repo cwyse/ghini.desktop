@@ -139,7 +139,7 @@ def set_message(msg):
         # this is expected to happen, it's normal behaviour.
         logger.info(e)  # global name '_context_id' is not defined
         _context_id = bauble.gui.widgets.statusbar.get_context_id("__task")
-        logger.info("new context id: %s" % _context_id)
+        logger.info(f"new context id: {_context_id}")
     msg_id = bauble.gui.widgets.statusbar.push(_context_id, msg)
     __message_ids.append(msg_id)
     return msg_id

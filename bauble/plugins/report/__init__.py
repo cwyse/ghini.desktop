@@ -499,7 +499,7 @@ class TemplateFormatterPlugin(FormatterPlugin):
     @classmethod
     def install(cls, import_defaults=True):
         "create templates dir on plugin installation"
-        logger.debug("installing %s plugin" % cls.title)
+        logger.debug(f"installing {cls.title} plugin")
         container_dir = os.path.join(bpaths.appdata_dir(), "templates")
         if not os.path.exists(container_dir):
             os.mkdir(container_dir)
@@ -533,7 +533,7 @@ class TemplateFormatterPlugin(FormatterPlugin):
         os.write(fd, report)
         os.close(fd)
         try:
-            butils.desktop.open("file://%s" % filename)
+            butils.desktop.open(f"file://{filename}")
         except OSError:
             butils.message_dialog(
                 _(
@@ -592,7 +592,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
                 pass
         prefs[config_list_pref] = template_options
         self.start_thread(Thread(target=self.populate_names_combo))
-        logger.debug("thawn %s templates" % thawn)
+        logger.debug(f"thawn {thawn} templates")
 
     def on_new_button_clicked(self, *args):
         filename = os.path.join(bpaths.lib_dir(), "plugins", "report", "report.glade")
@@ -711,7 +711,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             if domain == "raw":
                 search_result = bauble.gui.get_results_model()
                 top_left_content = search_result[0][0]
-                domain = "(%s)" % top_left_content.__class__.__name__.lower()
+                domain = f"({top_left_content.__class__.__name__.lower()})"
 
             self.view.widget_set_value("basename_entry", row[0])
             self.view.widget_set_value("formatter_entry", title)
@@ -735,7 +735,6 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
 
         # Retrieve template options
         option_fields = plugin.get_options(name)
-        current_row = 1  # should not be hard-coded
 
         # Populate the options box
         for fname, ftype, fdefault, ftooltip in option_fields:
@@ -853,7 +852,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         for title in sorted(self.formatter_class_map):  # sort templates by plugin
             plugin = self.formatter_class_map[title]
             logger.debug(f"scanning {title} templates for {plugin}")
-            for candidate, index, path in basenames_fullnames:  # then by name
+            for candidate, index, _path in basenames_fullnames:  # then by name
                 name = candidate[: -len(plugin.extension)]
                 if options.get(name, {}).get("__is_frozen__"):
                     continue
@@ -1000,7 +999,7 @@ class ReportTool(pluginmgr.Tool):
     icon_name = "text-x-generic-template"
 
     @classmethod
-    def start(self):
+    def start(cls):
         """ """
         # is anything selected?  if not, refuse even considering
         if not bauble.gui.get_results_model():
@@ -1018,11 +1017,11 @@ class ReportTool(pluginmgr.Tool):
             logger.debug(e)
             logger.debug(traceback.format_exc())
             parent = None
-            if hasattr(self, "view") and hasattr(self.view, "dialog"):
-                parent = self.view.get_window()
+            if hasattr(cls, "view") and hasattr(cls.view, "dialog"):
+                parent = cls.view.get_window()
 
             butils.message_details_dialog(
-                "AssertionError(%s)" % e,
+                f"AssertionError({e})",
                 traceback.format_exc(),
                 Gtk.MessageType.ERROR,
                 parent=parent,
