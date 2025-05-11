@@ -113,3 +113,24 @@ platforms = [
     "Windows",
     "macOS"
 ]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["mypackage"]
+src_paths = ["src"]
+
+[tool.ruff]
+line-length = 88
+extend-select = ["I", "E", "F", "B", "UP", "N", "W", "C90"]
+exclude = ["tests/data"]
+src = ["src"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = "src"
