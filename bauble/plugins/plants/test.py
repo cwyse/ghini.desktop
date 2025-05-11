@@ -20,25 +20,34 @@
 #
 # Description: test for the Plant plugin
 #
-import pytest
-from functools import partial
-from sqlalchemy.exc import IntegrityError, NoResultFound
-from sqlalchemy import select
-from bauble.plugins.plants.family import Family, FamilyEditor, FamilySynonym, remove_callback
-from bauble.plugins.plants.genus import Genus, GenusSynonym
-from bauble.plugins.plants.species import Species
-from bauble.test import mockfunc, check_dupids
-from bauble import db, utils
-import os
 import glob
-from bauble.plugins.plants.species_model import _remove_zws as remove_zws
-from bauble.plugins.plants.species import DefaultVernacularName
-from bauble.plugins.plants.species import SpeciesSynonym
-from bauble.plugins.plants.species import SpeciesNote
-from editor import GenericModelViewPresenterEditor
-from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
-from bauble.editor import MockView
 import logging
+import os
+from functools import partial
+
+import pytest
+from bauble import db, utils
+from bauble.editor import MockView
+from bauble.plugins.plants.family import (
+    Family,
+    FamilyEditor,
+    FamilySynonym,
+    remove_callback,
+)
+from bauble.plugins.plants.genus import Genus, GenusSynonym
+from bauble.plugins.plants.species import (
+    DefaultVernacularName,
+    Species,
+    SpeciesNote,
+    SpeciesSynonym,
+)
+from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
+from bauble.plugins.plants.species_model import _remove_zws as remove_zws
+from bauble.test import check_dupids, mockfunc
+from editor import GenericModelViewPresenterEditor
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, NoResultFound
+
 
 @pytest.fixture
 def setup_plant_data():
@@ -426,15 +435,16 @@ class TestGenusSynonymy:
 
         assert genus_alta.accepted == genus_sedum
 
-import pytest
-from sqlalchemy import select
 from unittest.mock import patch
+
+import pytest
+from bauble import utils
+from bauble.plugins.imex.csv_ import CSVImporter
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.species import Species
-from bauble.plugins.plants.species import edit_species
-from bauble.plugins.imex.csv_ import CSVImporter
-from bauble import utils
+from bauble.plugins.plants.species import Species, edit_species
+from sqlalchemy import select
+
 
 @pytest.mark.usefixtures("setup_plant_data")
 class TestSpecies:
@@ -1002,15 +1012,20 @@ class TestSpecies:
         matching = q.all()
         self.assertEqual(matching, [acc])
 
+from unittest.mock import patch
+
 import pytest
-from sqlalchemy import select
+from bauble.plugins.imex.csv_ import CSVImporter
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.geography import (
+    GeographicArea,
+    get_species_in_geographic_area,
+)
 from bauble.plugins.plants.species import Species
 from bauble.plugins.plants.species_distribution import SpeciesDistribution
-from bauble.plugins.plants.geography import GeographicArea, get_species_in_geographic_area
-from bauble.plugins.imex.csv_ import CSVImporter
-from unittest.mock import patch
+from sqlalchemy import select
+
 
 @pytest.mark.usefixtures("setup_plant_data")
 class TestGeographicArea:
@@ -1082,9 +1097,9 @@ class TestGeographicArea:
         self.session.flush()
         assert sp1.distribution_str() == "Mexico Central, Western Canada", "Distribution string mismatch for multiple areas"
 import pytest
-from sqlalchemy import select
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
+from sqlalchemy import select
 
 
 @pytest.mark.usefixtures("setup_plant_data")
@@ -1184,11 +1199,13 @@ class TestFromAndToDict:
         assert mxl in set(all_genera_orc), "Maxillaria not found in retrieved genera."
         assert enc in set(all_genera_orc), "Encyclia not found in retrieved genera."
 import pytest
-from sqlalchemy import select
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species import Species
 from bauble.plugins.plants.vernacular_name import VernacularName
+from sqlalchemy import select
+
+
 def get_first_or_none(session, stmt):
     return session.execute(stmt).scalars().first()
 
@@ -1412,9 +1429,9 @@ class TestFromAndToDictCreateUpdate:
         assert obj.name == "wrong"
 
 import pytest
-from sqlalchemy import select
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species import Species
+from sqlalchemy import select
 
 
 @pytest.mark.usefixtures("setup_plant_data")
@@ -1550,10 +1567,10 @@ class TestGenusHybridMarker:
         assert gen.hybrid_marker == "+"
         assert gen.hybrid_epithet == "Crataegomespilus"
 import pytest
-from sqlalchemy import select
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species import Species
+from sqlalchemy import select
 
 
 @pytest.mark.usefixtures("setup_plant_data")

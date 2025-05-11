@@ -29,30 +29,21 @@ import bauble.paths as bpaths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as butils
 import gi
-from bauble.editor import GenericEditorPresenter
-from bauble.editor import GenericEditorView
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.error import BaubleError
-from bauble.plugins.garden import Accession
-from bauble.plugins.garden import Contact
-from bauble.plugins.garden import Location
-from bauble.plugins.garden import Plant
-from bauble.plugins.garden import Source
-from bauble.plugins.plants import Family
-from bauble.plugins.plants import Genus
-from bauble.plugins.plants import Species
-from bauble.plugins.plants import VernacularName
+from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
+from bauble.plugins.plants import Family, Genus, Species, VernacularName
 from bauble.plugins.tag import Tag
 from bauble.prefs import prefs
+
 #from gi.repository import Gdk
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib
-from gi.repository import Gtk
-from sqlalchemy import union, select
+from gi.repository import GLib, Gtk
+from sqlalchemy import select, union
 
 from .flat_export import FlatFileExportTool
-from .utils import PS
-from .utils import SVG
+from .utils import PS, SVG
 
 #
 # __init__.py

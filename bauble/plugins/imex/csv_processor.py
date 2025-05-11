@@ -24,24 +24,32 @@
 # with the system csv module
 #
 import csv
-import sys
 import logging
 import os
+import queue  # For producer-consumer handling
+import sys
+
 #import traceback
 #from gettext import gettext as _
 import threading
-import queue  # For producer-consumer handling
 
-from bauble.db import Session
 #import bauble.pluginmgr as pluginmgr
 #import bauble.task
 import bauble.utils as utils
+import sqlalchemy as sa
+from bauble.btypes import Enum
+from bauble.db import Session
+
 #from bauble import pb_set_fraction
 #from bauble.error import BaubleError
 #from gi.repository import Gtk
-from bauble.plugins.imex.unicode_utils import UnicodeReader, UnicodeWriter, InvalidDataError
-import sqlalchemy as sa
+from bauble.plugins.imex.unicode_utils import (
+    InvalidDataError,
+    UnicodeReader,
+    UnicodeWriter,
+)
 from sqlalchemy import Boolean
+
 #from sqlalchemy import ColumnDefault
 #from sqlalchemy import inspect
 #from sqlalchemy import func
@@ -49,7 +57,6 @@ from sqlalchemy import Boolean
 #from sqlalchemy.orm import configure_mappers
 #from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.elements import ClauseElement
-from bauble.btypes import Enum
 
 logger = logging.getLogger(__name__)
 QUOTE_STYLE = csv.QUOTE_MINIMAL
@@ -384,12 +391,10 @@ class CSVProcessor:
 
         :param batch_values: Optional. List of rows to insert instead of self.values.
         """
-        from sqlalchemy.sql import sqltypes
-        from sqlalchemy.dialects.sqlite import base
-        from sqlalchemy import inspect
-
-
         from btypes import Enum
+        from sqlalchemy import inspect
+        from sqlalchemy.dialects.sqlite import base
+        from sqlalchemy.sql import sqltypes
 
         # Check for Enum types in batch_values or self.values
         def convert_enum(value):

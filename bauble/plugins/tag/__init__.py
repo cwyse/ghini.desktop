@@ -25,50 +25,46 @@ import logging
 import os
 import traceback
 from gettext import gettext as _
-import sqlalchemy.orm.exc as orm_exc
 
 import bauble
 import gi
-from bauble import db
-from bauble import editor
-from bauble import paths
-from bauble import pluginmgr
-from bauble import search
+import sqlalchemy.orm.exc as orm_exc
+
 #from bauble import ui
-from bauble import utils
-from bauble.editor import GenericEditorPresenter
-from bauble.editor import GenericEditorView
-from bauble.utils import safe_set_text
-from bauble.view import Action
-from bauble.view import InfoBox
+from bauble import db, editor, paths, pluginmgr, search, utils
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.shared import InfoExpander
-from bauble.view import SearchView
+from bauble.utils import safe_set_text
+from bauble.view import Action, InfoBox, SearchView
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk
-from gi.repository import Gtk
-from sqlalchemy import and_
-from sqlalchemy import Column
-from sqlalchemy import ForeignKey
-from sqlalchemy import Integer
-from sqlalchemy import String
-from sqlalchemy import select
+from contextlib import contextmanager
+from typing import TYPE_CHECKING, Optional
+
+from bauble.plugins.garden.propagation import Propagation
+from gi.repository import Gdk, Gtk
+
 #from sqlalchemy import text
-from sqlalchemy import Unicode
-from sqlalchemy import UnicodeText
+from sqlalchemy import (
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    Unicode,
+    UnicodeText,
+    and_,
+    select,
+)
 from sqlalchemy.exc import DBAPIError
+
 #from sqlalchemy.exc import InvalidRequestError
+from sqlalchemy.orm import Session as SASession
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
+
 #from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import object_session
-from contextlib import contextmanager
-from bauble.plugins.garden.propagation import Propagation
 
-from typing import Optional
-
-from sqlalchemy.orm import Session as SASession
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bauble.types import BaseModelProtocol
 

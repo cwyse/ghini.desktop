@@ -19,25 +19,25 @@
 #
 # test_search.py
 #
+from datetime import datetime, timedelta
+from unittest.mock import Mock
+
 import pytest
-from sqlalchemy.orm import sessionmaker
-from bauble import db, prefs
+from bauble import db, prefs, search
 from bauble.editor import GenericEditorView
-from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.genus import Genus, GenusNote
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.plant import Plant
+from bauble.plugins.garden.source import Collection, Contact
+from bauble.plugins.plants.family import Family
+from bauble.plugins.plants.genus import Genus, GenusNote
 from bauble.plugins.plants.species_model import Species
-from bauble.plugins.garden.source import Contact, Collection
-from bauble.search import SearchParser
-from bauble.search import EmptyToken, NoneToken
-from datetime import datetime, timedelta
-from pyparsing import ParseException
-from bauble import search
 from bauble.search import QueryAction  # Ensure correct import path
-from unittest.mock import Mock
+from bauble.search import EmptyToken, NoneToken, SearchParser
+from pyparsing import ParseException
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select
+
 
 # Search Parser Fixture
 @pytest.fixture(scope="function")
@@ -627,8 +627,8 @@ class TestSearch:
         assert isinstance(mapper_search, search.MapperSearch)
 
         
-        from sqlalchemy import select
         from bauble.plugins.plants.genus import Genus
+        from sqlalchemy import select
 
         stmt_direct = select(Genus)
         direct_objs = db_session.scalars(stmt_direct).all()
@@ -965,12 +965,13 @@ class TestSearch:
         Query with MapperSearch, joined tables, fields starting with an underscore.
         """
         import datetime
-        from bauble.plugins.plants.family import Family
-        from bauble.plugins.plants.genus import Genus
-        from bauble.plugins.plants.species_model import Species
+
         from bauble.plugins.garden.accession import Accession
         from bauble.plugins.garden.location import Location
         from bauble.plugins.garden.plant import Plant
+        from bauble.plugins.plants.family import Family
+        from bauble.plugins.plants.genus import Genus
+        from bauble.plugins.plants.species_model import Species
 
         # Data setup
         family2 = Family(family="family2")
@@ -1036,10 +1037,10 @@ class TestSearch:
         """
         Query with BETWEEN value and value.
         """
+        from bauble.plugins.garden.accession import Accession
         from bauble.plugins.plants.family import Family
         from bauble.plugins.plants.genus import Genus
         from bauble.plugins.plants.species_model import Species
-        from bauble.plugins.garden.accession import Accession
 
         # Data setup
         family2 = Family(family="family2")
@@ -1089,6 +1090,7 @@ class TestSearch:
         # Enable synonym search
         prefs.prefs["bauble.search.return_synonyms"] = True
         from bauble.plugins.plants.species import SynonymSearch
+
         # Perform the query
         mapper_search = search.get_strategy("SynonymSearch")
         assert isinstance(mapper_search, SynonymSearch)
@@ -1531,11 +1533,11 @@ class BuildingSQLStatements:
         results = search_parser.parse_string(query)
         assert str(results.statement) == expected
 
+import os
+
 import pytest
 from bauble import querybuilder
-
 from bauble.utils import paths
-import os
 
 
 @pytest.fixture(scope="function")

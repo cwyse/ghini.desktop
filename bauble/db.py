@@ -24,27 +24,23 @@ import logging
 import os
 import re
 from gettext import gettext as __
-from sqlalchemy import asc
+
 import bauble.btypes as types
 import bauble.error as error
 import bauble.utils as utils
 import gi
 import sqlalchemy.orm as orm
 from bauble.utils import parse_date
+from sqlalchemy import asc
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-from sqlalchemy import event
-from sqlalchemy import inspect
-from sqlalchemy import select
-#from sqlalchemy import text
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import DeclarativeMeta
-from sqlalchemy.orm import class_mapper
-from sqlalchemy import insert
 #from sqlalchemy.orm import Query
 from bauble import version, version_tuple
+from gi.repository import Gtk
+from sqlalchemy import event, insert, inspect, select
 
-
+#from sqlalchemy import text
+from sqlalchemy.orm import DeclarativeMeta, class_mapper, declarative_base
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -82,9 +78,10 @@ def sqlalchemy_debug(verbose):
 
 SQLALCHEMY_DEBUG = False
 sqlalchemy_debug(SQLALCHEMY_DEBUG)
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
+
 
 def get_or_create(session, model, defaults=None, **kwargs):
     """
@@ -382,10 +379,10 @@ def open(uri, verify=True, show_error_dialogs=False):
     :type show_error_dialogs: bool
     """
     logger.debug(f"db.open({uri})")
+    import bauble.prefs
+    from sqlalchemy.exc import SQLAlchemyError
     from sqlalchemy.orm import scoped_session, sessionmaker
     from sqlalchemy.pool import NullPool, SingletonThreadPool
-    from sqlalchemy.exc import SQLAlchemyError
-    import bauble.prefs
 
     global engine, Session
 
@@ -445,7 +442,8 @@ def open(uri, verify=True, show_error_dialogs=False):
 
     return engine
 
-from sqlalchemy import text, inspect
+from sqlalchemy import inspect, text
+
 
 def create_triggers(connection):
     """
@@ -517,6 +515,7 @@ def create(import_defaults=True):
         raise ValueError("Engine is None. Not connected to a database.")
 
     import datetime
+
     import bauble
     import bauble.meta as meta
     from bauble import pluginmgr

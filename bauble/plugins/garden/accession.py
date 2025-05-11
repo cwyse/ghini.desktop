@@ -26,8 +26,7 @@ import os
 import sys
 import traceback
 import weakref
-from decimal import Decimal
-from decimal import ROUND_DOWN
+from decimal import ROUND_DOWN, Decimal
 from functools import reduce
 from gettext import gettext as _
 from random import random
@@ -40,48 +39,50 @@ import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 import bauble.view as view
+import gi
 import lxml.etree as etree
 from bauble import meta
 from bauble.error import check
-from bauble.plugins.garden.source import Collection
-from bauble.plugins.garden.source import CollectionPresenter
-from bauble.plugins.garden.source import Contact
-from bauble.plugins.garden.source import create_contact
-from bauble.plugins.garden.source import PropagationChooserPresenter
-from bauble.plugins.garden.source import Source
+from bauble.plugins.garden.source import (
+    Collection,
+    CollectionPresenter,
+    Contact,
+    PropagationChooserPresenter,
+    Source,
+    create_contact,
+)
 from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.species_model import Species
-from bauble.plugins.plants.species_model import SpeciesSynonym
-from bauble.utils import safe_int, handle_db_error
-from bauble.view import Action
-from bauble.view import InfoBox
+from bauble.plugins.plants.species_model import Species, SpeciesSynonym
 from bauble.shared import InfoExpander
-from bauble.view import MapInfoExpander
-from bauble.view import PropertiesExpander
-from bauble.view import select_in_search_results
-import gi
+from bauble.utils import handle_db_error, safe_int
+from bauble.view import (
+    Action,
+    InfoBox,
+    MapInfoExpander,
+    PropertiesExpander,
+    select_in_search_results,
+)
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-from gi.repository import Pango
-from sqlalchemy import Boolean
-from sqlalchemy import Column
-from sqlalchemy import event
-from sqlalchemy import ForeignKey
-from sqlalchemy import Integer
-from sqlalchemy import or_
-from sqlalchemy import select
-from sqlalchemy import delete
+from gi.repository import Gtk, Pango
+
 #from sqlalchemy import text
-from sqlalchemy import Unicode
-from sqlalchemy import UnicodeText
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    Integer,
+    Unicode,
+    UnicodeText,
+    asc,
+    delete,
+    event,
+    or_,
+    select,
+)
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import reconstructor
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import reconstructor, relationship, validates
 from sqlalchemy.orm.session import object_session
-from sqlalchemy import asc
-
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -210,8 +211,7 @@ def edit_callback(accessions):
 
 
 def add_plants_callback(accessions):
-    from bauble.plugins.garden.plant import PlantEditor
-    from bauble.plugins.garden.plant import Plant
+    from bauble.plugins.garden.plant import Plant, PlantEditor
     session = db.Session()
     acc = session.merge(accessions[0])
     e = PlantEditor(model=Plant(accession=acc))
@@ -775,6 +775,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         If there is an error getting the next code the None is returned.
         """
         from bauble.plugins.garden.plant import Plant
+
         # auto generate/increment the accession code
         session = db.Session()
         if code_format is None:
@@ -1373,6 +1374,8 @@ class VerificationPresenter(editor.GenericEditorPresenter):
         return box
 
 from utils import ilike
+
+
 class VerificationBox:
     """
     A widget that manages the verification details for a species,
@@ -1633,8 +1636,10 @@ class SourcePresenter(editor.GenericEditorPresenter):
     garden_prop_str = _("Garden Propagation")
 
     def __init__(self, parent, model, view, session):
-        from bauble.plugins.garden.propagation import Propagation
-        from bauble.plugins.garden.propagation import SourcePropagationPresenter
+        from bauble.plugins.garden.propagation import (
+            Propagation,
+            SourcePropagationPresenter,
+        )
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
         self.session = session
@@ -2743,8 +2748,7 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         """
         handle the response from self.presenter.start() in self.start()
         """
-        from bauble.plugins.garden.plant import PlantEditor
-        from bauble.plugins.garden.plant import Plant
+        from bauble.plugins.garden.plant import Plant, PlantEditor
         not_ok_msg = _("Are you sure you want to lose your changes?")
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
             try:

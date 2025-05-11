@@ -21,15 +21,14 @@ import logging
 import os
 import threading
 
+import gi
 from bauble import db
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
-import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from sqlalchemy import bindparam, select
-
-
 
 logger = logging.getLogger(__name__)
 

@@ -21,19 +21,17 @@ import logging
 from gettext import gettext as _
 
 import bauble
+import gi
 from bauble.editor import GenericEditorPresenter
 from bauble.utils import safe_set_text
-import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy.orm import class_mapper
-from sqlalchemy.orm.properties import ColumnProperty
-from sqlalchemy.orm.properties import RelationshipProperty
+from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
 
 from .querybuilderparser import BuiltQuery
-from .search import EmptyToken
-from .search import MapperSearch
-
+from .search import EmptyToken, MapperSearch
 
 logger = logging.getLogger(__name__)
 

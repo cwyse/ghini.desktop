@@ -28,15 +28,20 @@ import bauble.editor as editor
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-from bauble.error import check
+
 #from bauble.error import CheckConditionError
 import gi
+from bauble.error import check
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+
 #from sqlalchemy import *
 from sqlalchemy import Integer
+
 #from sqlalchemy.exc import *
 from sqlalchemy.exc import ProgrammingError
+
 #from sqlalchemy.ext.declarative import declarative_base
 #from sqlalchemy.ext.declarative import DeclarativeMeta
 #from sqlalchemy.orm.exc import *
@@ -203,6 +208,7 @@ def remove_member(name, groups=None):
 
 
 from sqlalchemy import text
+
 
 def get_members(group):
     """Return members of group."""

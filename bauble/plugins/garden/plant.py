@@ -34,43 +34,50 @@ import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 import bauble.view as view
-from bauble.editor import GenericEditorPresenter
-from bauble.editor import GenericEditorView
-from bauble.editor import GenericModelViewPresenterEditor
-from bauble.editor import NotesPresenter
-from bauble.editor import PicturesPresenter
-from bauble.error import CheckConditionError
-from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.location import LocationEditor
-from bauble.search import SearchStrategy
-from bauble.utils import safe_set_text, handle_db_error
-from bauble.view import Action
-from bauble.view import InfoBox
-from bauble.shared import InfoExpander
-from bauble.view import MapInfoExpander
-from bauble.view import PropertiesExpander
-from bauble.view import select_in_search_results
 import gi
+from bauble.editor import (
+    GenericEditorPresenter,
+    GenericEditorView,
+    GenericModelViewPresenterEditor,
+    NotesPresenter,
+    PicturesPresenter,
+)
+from bauble.error import CheckConditionError
+from bauble.plugins.garden.location import Location, LocationEditor
+from bauble.search import SearchStrategy
+from bauble.shared import InfoExpander
+from bauble.utils import handle_db_error, safe_set_text
+from bauble.view import (
+    Action,
+    InfoBox,
+    MapInfoExpander,
+    PropertiesExpander,
+    select_in_search_results,
+)
+
 gi.require_version("Gtk", "3.0")
+from datetime import datetime
+
 from gi.repository import Gtk
-from sqlalchemy import and_
-from sqlalchemy import Boolean
-from sqlalchemy import Column
-from sqlalchemy import ForeignKey
-from sqlalchemy import func
-from sqlalchemy import Integer
-from sqlalchemy import select
+
 #from sqlalchemy import text
-from sqlalchemy import Unicode
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    Integer,
+    Unicode,
+    UniqueConstraint,
+    and_,
+    asc,
+    func,
+    select,
+)
+
 #from sqlalchemy.exc import DBAPIError
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import object_mapper
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import object_mapper, relationship, validates
 from sqlalchemy.orm.session import object_session
-from sqlalchemy import asc
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -185,10 +192,11 @@ def get_next_code(acc):
             return None
     return utils.utf8(next)
 
-from sqlalchemy import bindparam, select, and_, func
-from bauble.plugins.garden import Accession, Plant
-import utils
 import db
+import utils
+from bauble.plugins.garden import Accession, Plant
+from sqlalchemy import and_, bindparam, func, select
+
 
 def is_code_unique(plant, code):
     """
@@ -1566,12 +1574,14 @@ def label_size_allocate(widget, rect):
 
 
 import gi
+
 gi.require_version("Gtk", "3.0")
 gi.require_version("Pango", "1.0")
 
-from gi.repository import Gtk, Pango
+from bauble import prefs, utils
 from bauble.shared import InfoExpander
-from bauble import utils, prefs
+from gi.repository import Gtk, Pango
+
 
 class PropagationExpander(InfoExpander):
     """

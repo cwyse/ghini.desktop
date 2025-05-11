@@ -21,21 +21,22 @@
 # QueryBuilder will be able to start from there
 #
 # if the query does not follow the grammar, start from scratch.
-from pyparsing import alphanums
-from pyparsing import alphas
-from pyparsing import alphas8bit
-from pyparsing import CaselessLiteral
-from pyparsing import delimitedList
-from pyparsing import Group
-from pyparsing import oneOf
-from pyparsing import quotedString
-from pyparsing import Regex
-from pyparsing import removeQuotes
-from pyparsing import Word
-from pyparsing import WordEnd
-from pyparsing import WordStart
-from pyparsing import ZeroOrMore
-
+from pyparsing import (
+    CaselessLiteral,
+    Group,
+    Regex,
+    Word,
+    WordEnd,
+    WordStart,
+    ZeroOrMore,
+    alphanums,
+    alphas,
+    alphas8bit,
+    delimitedList,
+    oneOf,
+    quotedString,
+    removeQuotes,
+)
 
 
 class BuiltQuery:

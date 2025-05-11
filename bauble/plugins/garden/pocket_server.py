@@ -24,23 +24,16 @@ import logging
 import os.path
 from gettext import gettext as _
 from threading import Thread
-from xmlrpc.server import SimpleXMLRPCRequestHandler
-from xmlrpc.server import SimpleXMLRPCServer
+from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
 import gi
-from bauble import db
-from bauble import meta
-from bauble import paths
-from bauble import pluginmgr
-from bauble.editor import GenericEditorPresenter
-from bauble.editor import GenericEditorView
+from bauble import db, meta, paths, pluginmgr
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.utils import safe_set_text
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from sqlalchemy import select
-
-
 
 logger = logging.getLogger(__name__)
 

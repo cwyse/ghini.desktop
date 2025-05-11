@@ -24,15 +24,12 @@ import logging
 import os
 import shutil
 import tempfile
-from sqlalchemy import Boolean, Column, Integer, select
+from tempfile import mkdtemp
 
 import bauble.db as db
 import bauble.plugins.garden.test as garden_test
 import bauble.plugins.plants.test as plants_test
 import pytest
-from tempfile import mkdtemp
-from bauble.plugins.plants.geography import GeographicArea
-
 from bauble.editor import MockView
 from bauble.plugins.garden import (
     Accession,
@@ -42,10 +39,10 @@ from bauble.plugins.garden import (
     Source,
 )
 from bauble.plugins.imex.csv_ import (
-    CSVExporter,
-    CSVImporter,
     QUOTE_CHAR,
     QUOTE_STYLE,
+    CSVExporter,
+    CSVImporter,
 )
 from bauble.plugins.imex.iojson import JSONExporter, JSONImporter
 from bauble.plugins.plants import (
@@ -56,6 +53,8 @@ from bauble.plugins.plants import (
     SpeciesNote,
     VernacularName,
 )
+from bauble.plugins.plants.geography import GeographicArea
+from sqlalchemy import Boolean, Column, Integer, select
 
 logger = logging.getLogger(__name__)
 
@@ -263,6 +262,7 @@ class TestCSV2:
         Test that sequences are correctly updated after imports.
         """
         from sqlalchemy import text
+
         # Import family data
         filename = os.path.join("bauble", "plugins", "plants", "default", "family.txt")
         importer = CSVImporter()
@@ -361,13 +361,14 @@ class MockExportView:
     def get_selection(self):
         return self.__selection
 
-import os
 import json
-import pytest
+import os
 from tempfile import mkstemp
-from sqlalchemy import select
+
+import pytest
+from bauble.plugins.garden import Accession, Family, Genus, Location, Plant, Species
 from bauble.plugins.imex.iojson import JSONExporter
-from bauble.plugins.garden import Family, Genus, Species, Accession, Location, Plant
+from sqlalchemy import select
 
 
 @pytest.fixture
@@ -1394,6 +1395,7 @@ def test_import_contact(temp_file, db_session):
 def test_json_serializer_datetime():
     """Test JSON serialization of datetime objects."""
     import datetime
+
     from .iojson import serializedatetime
 
     stamp = datetime.datetime(2011, 11, 11, 12, 13)

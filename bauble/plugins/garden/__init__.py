@@ -27,43 +27,54 @@ import bauble.db as db
 import bauble.pluginmgr as pluginmgr
 import bauble.search as search
 import bauble.utils as utils
-from bauble.plugins.garden.accession import acc_context_menu
-from bauble.plugins.garden.accession import Accession
-from bauble.plugins.garden.accession import AccessionEditor
-from bauble.plugins.garden.accession import AccessionInfoBox
-from bauble.plugins.garden.accession import AccessionNote
+from bauble.plugins.garden.accession import (
+    Accession,
+    AccessionEditor,
+    AccessionInfoBox,
+    AccessionNote,
+    acc_context_menu,
+)
+
 #from bauble.plugins.garden.accession import Verification
-from bauble.plugins.garden.institution import Institution
-from bauble.plugins.garden.institution import InstitutionCommand
-from bauble.plugins.garden.institution import InstitutionTool
-from bauble.plugins.garden.institution import start_institution_editor
-from bauble.plugins.garden.location import loc_context_menu
-from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.location import LocationEditor
-from bauble.plugins.garden.location import LocationInfoBox
+from bauble.plugins.garden.institution import (
+    Institution,
+    InstitutionCommand,
+    InstitutionTool,
+    start_institution_editor,
+)
+from bauble.plugins.garden.location import (
+    Location,
+    LocationEditor,
+    LocationInfoBox,
+    loc_context_menu,
+)
 from bauble.plugins.garden.picture_importer import PictureImporterTool
-from bauble.plugins.garden.plant import default_plant_delimiter
-from bauble.plugins.garden.plant import Plant
-from bauble.plugins.garden.plant import plant_context_menu
-from bauble.plugins.garden.plant import plant_delimiter_key
-from bauble.plugins.garden.plant import PlantEditor
-from bauble.plugins.garden.plant import PlantInfoBox
-from bauble.plugins.garden.plant import PlantNote
-from bauble.plugins.garden.plant import PlantSearch
+from bauble.plugins.garden.plant import (
+    Plant,
+    PlantEditor,
+    PlantInfoBox,
+    PlantNote,
+    PlantSearch,
+    default_plant_delimiter,
+    plant_context_menu,
+    plant_delimiter_key,
+)
 from bauble.plugins.garden.pocket_server import PocketServerTool
-from bauble.plugins.garden.source import Collection
-from bauble.plugins.garden.source import collection_context_menu
-from bauble.plugins.garden.source import Contact
-from bauble.plugins.garden.source import ContactInfoBox
+
 #from bauble.plugins.garden.source import ContactPresenter
-from bauble.plugins.garden.source import create_contact
-from bauble.plugins.garden.source import Source
-from bauble.plugins.garden.source import source_detail_context_menu
-from bauble.utils import safe_set_text, safe_set_props
+from bauble.plugins.garden.source import (
+    Collection,
+    Contact,
+    ContactInfoBox,
+    Source,
+    collection_context_menu,
+    create_contact,
+    source_detail_context_menu,
+)
+from bauble.utils import safe_set_props, safe_set_text
 from bauble.view import SearchView
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-from sqlalchemy.orm import object_session
+from sqlalchemy.orm import object_session, selectinload
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -117,8 +128,9 @@ class GardenPlugin(pluginmgr.Plugin):
     @staticmethod
     def _setup_search_metas():
         """Configure search strategies and row metadata."""
-        from bauble.plugins.plants import Species
         from functools import partial
+
+        from bauble.plugins.plants import Species
 
         mapper_search = search.get_strategy("MapperSearch")
 
@@ -188,6 +200,7 @@ class GardenPlugin(pluginmgr.Plugin):
             return
 
         import os.path
+
         from bauble import paths
         base = os.path.join(paths.lib_dir(), "plugins", "garden")
 

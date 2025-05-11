@@ -33,38 +33,37 @@ import bauble.editor as editor
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
-from bauble.utils import parse_date
+import gi
+from bauble.plugins.garden.constants import (
+    bottom_heat_unit_values,
+    cutting_type_values,
+    flower_buds_values,
+    leaves_values,
+    length_unit_values,
+    prop_type_values,
+    tip_values,
+    wound_values,
+)
 from bauble.utils import (
-    get_object_session,
     add_to_relationship,
+    count_relationship_items,
+    get_object_session,
+    handle_db_error,
+    parse_date,
     remove_from_relationship,
     sorted_relationship,
-    handle_db_error,
-    count_relationship_items,
 )
-from bauble.plugins.garden.constants import (
-    prop_type_values,
-    cutting_type_values,
-    tip_values,
-    leaves_values,
-    flower_buds_values,
-    wound_values,
-    bottom_heat_unit_values,
-    length_unit_values,
-)
-import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-from sqlalchemy import Column
-from sqlalchemy import ForeignKey
-from sqlalchemy import Integer
-from sqlalchemy import Table
+
 #from sqlalchemy import text
-from sqlalchemy import UnicodeText
+from sqlalchemy import Column, ForeignKey, Integer, Table, UnicodeText, asc
+
 #from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import object_session
-from sqlalchemy import asc
+
 #from sqlalchemy.ext.declarative import declared_attr
 
 logger = logging.getLogger(__name__)
@@ -536,14 +535,16 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
         else:
             propagation.plant = None
 import gi
-gi.require_version("Gtk", "3.0")
 
-from gi.repository import Gtk
+gi.require_version("Gtk", "3.0")
 
 import gi
+from gi.repository import Gtk
+
 gi.require_version("Gtk", "3.0")
 
 from gi.repository import Gtk
+
 
 class PropagationHandler:
     def create_propagation_box(self, propagation):

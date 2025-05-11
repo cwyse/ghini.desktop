@@ -46,15 +46,10 @@ import bauble.utils as utils
 import gi
 import sqlalchemy.orm.exc as orm_exc
 from bauble.error import BaubleError
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib
-from gi.repository import Gtk
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import select
-from sqlalchemy import Unicode
-
-
+from gi.repository import GLib, Gtk
+from sqlalchemy import Column, Integer, Unicode, select
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

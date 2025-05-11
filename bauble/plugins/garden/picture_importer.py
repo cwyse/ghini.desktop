@@ -21,19 +21,13 @@ import re
 import threading
 from gettext import gettext as _
 
-from bauble import db
-from bauble import pluginmgr
-from bauble import utils
-from bauble.editor import GenericEditorPresenter
-from bauble.editor import GenericEditorView
 import gi
-gi.require_version("Gtk", "3.0")
-from gi.repository import GdkPixbuf
-from gi.repository import GLib
-from gi.repository import GObject
-from gi.repository import Gtk
-from sqlalchemy import select
+from bauble import db, pluginmgr, utils
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 
+gi.require_version("Gtk", "3.0")
+from gi.repository import GdkPixbuf, GLib, GObject, Gtk
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -176,6 +170,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         self.create_actions()
 
 from gi.repository import Gio, Gtk
+
 
 def get_first_or_none(session, stmt):
     """Return the first result from a scalars() query, or None if no results."""

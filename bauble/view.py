@@ -19,6 +19,7 @@
 #
 # Description: the default view
 #
+import ast
 import html
 import itertools
 import logging
@@ -26,46 +27,40 @@ import os
 import sys
 import threading
 import traceback
-import ast
 from gettext import gettext as _
 
 import bauble
 import gi
 import sqlalchemy.exc as saexc
-from bauble import db
-from bauble import editor
-from bauble import paths
-from bauble import pictures_view
-from bauble import pluginmgr
-#from bauble import prefs
-from bauble import search
-from bauble import utils
-from bauble.error import BaubleError
-from bauble.error import check
 
+#from bauble import prefs
+from bauble import db, editor, paths, pictures_view, pluginmgr, search, utils
+from bauble.error import BaubleError, check
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Champlain", "0.12")
 gi.require_version("GtkChamplain", "0.12")
 gi.require_version("GtkClutter", "1.0")
 
-from gi.repository import Champlain
-from gi.repository import Clutter
-from gi.repository import Gdk
-from gi.repository import GObject
-from gi.repository import Gtk
-from gi.repository import GtkChamplain
-from gi.repository import GtkClutter
-from gi.repository import Pango
-from pyparsing import ParseException
-from sqlalchemy.orm import object_session
 from bauble.shared import InfoExpander
-from sqlalchemy import select, func
+from gi.repository import (
+    Champlain,
+    Clutter,
+    Gdk,
+    GObject,
+    Gtk,
+    GtkChamplain,
+    GtkClutter,
+    Pango,
+)
+from pyparsing import ParseException
+from sqlalchemy import func, select
+from sqlalchemy.orm import object_session
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from gi.repository import Gdk, Clutter, GtkClutter
+from gi.repository import Clutter, Gdk, GtkClutter
 
 # Ensure GTK is initialized and get the display
 display = Gdk.Display.get_default()
@@ -125,6 +120,7 @@ else:
     _substr_tmpl = "<small>%s</small>"
 
 from gi.repository import Gio
+
 
 class Action:
     """
@@ -380,7 +376,7 @@ class InfoBoxPage:
         """
         for expander in self.expanders.values():
             expander.update(row)
-            from gi.repository import Gtk, Gdk, Pango
+            from gi.repository import Gdk, Gtk, Pango
 
             
 class InfoBox:
@@ -490,11 +486,12 @@ class LinksExpander(InfoExpander):
                     self.dynamic_box.pack_start(button, False, False, 0)
 
             self.dynamic_box.show_all()
-import threading
 import itertools
 import logging
-from gi.repository import GLib, GObject
+import threading
+
 from bauble import db, gui
+from gi.repository import GLib, GObject
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)

@@ -19,14 +19,15 @@
 #
 # test for bauble.plugins.users
 #
-import os
-import pytest
 import glob
-from sqlalchemy import Table, Column, Integer, Sequence, String
-from sqlalchemy.exc import OperationalError
-from bauble import db
+import os
+
 import bauble.plugins.users as users
+import pytest
+from bauble import db
 from bauble.test import check_dupids
+from sqlalchemy import Column, Integer, Sequence, String, Table
+from sqlalchemy.exc import OperationalError
 
 
 @pytest.fixture

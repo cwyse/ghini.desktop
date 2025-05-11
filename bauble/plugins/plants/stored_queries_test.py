@@ -16,10 +16,12 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from bauble.prefs import testing
 from bauble.editor import MockView
-from bauble.plugins.plants.stored_queries import StoredQueriesModel
-from bauble.plugins.plants.stored_queries import StoredQueriesPresenter
+from bauble.plugins.plants.stored_queries import (
+    StoredQueriesModel,
+    StoredQueriesPresenter,
+)
+from bauble.prefs import testing
 
 # Enable testing mode
 testing = True

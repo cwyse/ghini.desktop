@@ -25,23 +25,25 @@ import bauble.btypes as types
 import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
-from sqlalchemy import Boolean
-from sqlalchemy import Column
-from sqlalchemy import ForeignKey
-from sqlalchemy import Integer
-from sqlalchemy import select
-from sqlalchemy import text
-from sqlalchemy import Unicode
-from sqlalchemy import UnicodeText
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    Integer,
+    Unicode,
+    UnicodeText,
+    UniqueConstraint,
+    select,
+    text,
+)
 from sqlalchemy.ext.associationproxy import association_proxy
+
 #from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
+
 #from sqlalchemy.orm import foreign
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.orm import relationship, synonym
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

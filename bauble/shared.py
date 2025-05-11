@@ -1,18 +1,21 @@
 # shared.py
 
 import logging
+
 import gi
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-#from gi.repository import Pango
-from bauble.utils import set_widget_value
 #from bauble.utils import safe_set_text
 from bauble import prefs
-from gi.repository import Gio
+
+#from gi.repository import Pango
+from bauble.utils import set_widget_value
+from gi.repository import Gio, Gtk
 
 logger = logging.getLogger(__name__)
 
 import logging
+
 from gi.repository import Gtk
 
 logger = logging.getLogger(__name__)

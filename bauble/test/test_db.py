@@ -20,9 +20,9 @@
 
 import pytest
 from bauble import db
-from bauble.prefs import prefs
-from bauble.plugins.plants.genus import Genus
 from bauble.plugins.garden.accession import AccessionNote
+from bauble.plugins.plants.genus import Genus
+from bauble.prefs import prefs
 
 prefs.testing = True
 

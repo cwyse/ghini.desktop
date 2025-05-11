@@ -20,13 +20,11 @@ import os
 from functools import reduce
 from gettext import gettext as _
 
-from bauble import paths
-from bauble import pluginmgr
-from bauble import utils
-from bauble.editor import GenericEditorPresenter
-from bauble.editor import GenericEditorView
-from bauble.plugins.plants import Species
 import gi
+from bauble import paths, pluginmgr, utils
+from bauble.editor import GenericEditorPresenter, GenericEditorView
+from bauble.plugins.plants import Species
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Pango
 

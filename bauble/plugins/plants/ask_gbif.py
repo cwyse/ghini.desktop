@@ -21,8 +21,6 @@ import threading
 
 import requests
 
-
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 

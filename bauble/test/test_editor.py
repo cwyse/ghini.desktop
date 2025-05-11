@@ -22,11 +22,11 @@
 # Import necessary modules
 import datetime
 import os
-import pytest
 
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
+import pytest
 from bauble.editor import GenericEditorView
 from bauble.utils import parse_date
 

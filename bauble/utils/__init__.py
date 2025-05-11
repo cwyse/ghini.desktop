@@ -30,6 +30,7 @@ import re
 import textwrap
 import threading
 import traceback
+
 #import xml.sax.saxutils as saxutils
 from gettext import gettext as _
 
@@ -39,19 +40,14 @@ import gi
 import sqlalchemy
 from bauble import paths
 from bauble.error import check
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk
-from gi.repository import GdkPixbuf
-from gi.repository import GLib
-from gi.repository import GObject
-from gi.repository import Gtk
 from bauble import utils
-from sqlalchemy.orm.session import object_session
+from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk
+
 #from sqlalchemy.exc import DBAPIError
-from sqlalchemy import select,distinct
-
-
-
+from sqlalchemy import distinct, select
+from sqlalchemy.orm.session import object_session
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -1321,9 +1317,9 @@ def reset_sequence(column):
     This function only works for PostgreSQL database.  It does nothing
     for other database engines.
     """
+    import bauble.db as db
     from sqlalchemy import schema
     from sqlalchemy.types import Integer
-    import bauble.db as db
 
     if db.engine.name != "postgresql":
         return
@@ -1498,6 +1494,7 @@ def ilike(col, val, engine=None):
     Return a cross platform ilike function.
     """
     from sqlalchemy import func
+
     #from sqlalchemy.engine import Engine
 
     if not engine:
@@ -1663,8 +1660,10 @@ def topological_sort(items, partial_order):
     return sorted
 
 import gi
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Gdk, Pango
+from gi.repository import Gdk, Gtk, Pango
+
 
 class GenericMessageBox():  # identify_subclassing_issues (Consider using composition instead of subclassing GtkWidget)
     """

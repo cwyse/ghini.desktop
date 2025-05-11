@@ -19,20 +19,47 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
 from gettext import gettext as _
-from sqlalchemy import Unicode
-from sqlalchemy import UnicodeText
+
 import bauble.utils as utils
+import gi
+
 #from bauble.db import get_orm_entity_by_name
 from bauble.error import check
-import gi
+from sqlalchemy import Unicode, UnicodeText
+
 gi.require_version("Gtk", "3.0")
+from abc import ABC, abstractmethod
+from datetime import date, datetime, timedelta
+
 from gi.repository import Gtk
 from pyparsing import (
-    Word, alphas8bit, removeQuotes, DelimitedList, Regex,
-    ZeroOrMore, OneOrMore, one_of, alphas, alphanums, Group, Literal,
-    CaselessLiteral, WordStart, WordEnd, srange,
-    stringEnd, Keyword, quotedString,
-    infix_notation, OpAssoc, Forward, MatchFirst, CaselessKeyword)
+    CaselessKeyword,
+    CaselessLiteral,
+    DelimitedList,
+    Forward,
+    Group,
+    Keyword,
+    Literal,
+    MatchFirst,
+    OneOrMore,
+    OpAssoc,
+    Regex,
+    Word,
+    WordEnd,
+    WordStart,
+    ZeroOrMore,
+    alphanums,
+    alphas,
+    alphas8bit,
+    infix_notation,
+    one_of,
+    quotedString,
+    removeQuotes,
+    srange,
+    stringEnd,
+)
+
+#from sqlalchemy import not_
 # from pyparsing import alphanums
 # from pyparsing import alphas
 # from pyparsing import alphas8bit
@@ -55,30 +82,19 @@ from pyparsing import (
 # from pyparsing import WordEnd
 # from pyparsing import WordStart
 # from pyparsing import ZeroOrMore
-from sqlalchemy import select
-from sqlalchemy import except_
-#from sqlalchemy import not_
-from sqlalchemy import and_
-from sqlalchemy import or_
-from sqlalchemy.sql.expression import exists
+from sqlalchemy import and_, except_, or_, select, union_all
+from sqlalchemy.exc import NoInspectionAvailable, NoResultFound
+
 #from sqlalchemy import Unicode
 #from sqlalchemy import UnicodeText
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import aliased
-from sqlalchemy.sql.selectable import CompoundSelect
-from sqlalchemy.sql.expression import ColumnElement
-from sqlalchemy.orm.properties import ColumnProperty
-from sqlalchemy.orm.properties import RelationshipProperty
-from sqlalchemy.orm.util import AliasedClass
-from sqlalchemy.sql import Select, Alias, Subquery
-from sqlalchemy.sql import func
-from sqlalchemy.sql import text
-from sqlalchemy.exc import NoInspectionAvailable
 from sqlalchemy.orm import Session  # ✅ Add this import
-from abc import ABC, abstractmethod
-from sqlalchemy import union_all
-from sqlalchemy.exc import NoResultFound
-from datetime import datetime, date, timedelta
+from sqlalchemy.orm import aliased
+from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
+from sqlalchemy.orm.util import AliasedClass
+from sqlalchemy.sql import Alias, Select, Subquery, func, text
+from sqlalchemy.sql.expression import ColumnElement, exists
+from sqlalchemy.sql.selectable import CompoundSelect
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -257,9 +273,10 @@ class TypedValueToken(ValueABC):
     def __repr__(self):
         return "%s" % (self.value)
 
-from sqlalchemy.orm import aliased
 from sqlalchemy import select
 from sqlalchemy.inspection import inspect
+from sqlalchemy.orm import aliased
+
 
 class IdentifierAction(object):
     def __init__(self, t):
@@ -1168,42 +1185,33 @@ class DomainExpressionAction(object):
     def __repr__(self):
         return f"{self.domain} {self.cond} {self.values}"
 
-    from sqlalchemy import select, or_
-    from sqlalchemy import inspect
+    from sqlalchemy import inspect, or_, select
 
     # def invoke(self, search_strategy):
     #     logger.debug("DomainExpressionAction:invoke")
-
     #     # Step 1: Validate domain
     #     if self.domain in search_strategy._shorthand:
     #         self.domain = search_strategy._shorthand[self.domain]
-
     #     if self.domain not in search_strategy._domains:
     #         raise KeyError(f"Unknown search domain: {self.domain}")
-
     #     cls, properties = search_strategy._domains[self.domain]
-
     #     # Step 2: Construct SQLAlchemy Query
     #     stmt = select(cls)
-
     #     # here is the place where to optionally filter out unrepresented
     #     # domain values. each domain class should define its own 'I have
     #     # accessions' filter. see issue #42
-
     #     # Step 3: Handle the special case where '*' is used
     #     if self.values == "*":
     #         logger.debug(f"Wildcard search on {cls.__name__}, retrieving all records.")
     #         self.stmt = stmt
     #         return set(search_strategy._session.execute(stmt).scalars().all())
-        
+    
     #     # Step 4: Build the filtering logic
     #     try:
     #         mapper = inspect(cls).mapper  # Use inspect to get mapper
     #     except NoInspectionAvailable:
     #         raise ValueError(f"Cannot inspect class {cls}. Ensure it's mapped.")
-
     #     inspect(cls)  # Validate cls as a mapped class
-
     #     # Define condition mapping
     #     condition_map = {
     #         "=": lambda col, val: col == val,
@@ -1217,32 +1225,25 @@ class DomainExpressionAction(object):
     #         "contains": lambda col, val: col.ilike(f"%{val}%"),  # Similar to ilike for flexible search
     #         "has": lambda col, val: col.has(val),  # Used for relationships
     #     }
-
     #     if self.cond not in condition_map:
     #         raise ValueError(f"Unsupported condition: {self.cond}")
-
     #     condition_func = condition_map[self.cond]
-
     #     # Step 5: Apply filters for the properties
     #     filters = []
     #     for col_name in properties:
     #         if not hasattr(cls, col_name):
     #             logger.warning(f"Column '{col_name}' not found on class '{cls}', skipping.")
     #             continue
-
     #         col = getattr(cls, col_name)
     #         filters.extend([condition_func(col, val) for val in self.values.express()])
-
     #     if not filters:
     #         raise ValueError("No valid filters could be constructed.")
-
     #     stmt = stmt.filter(or_(*filters))
     #     self.stmt = stmt
-        
+    
     #     # Step 6: Execute query and return results
     #     results = search_strategy._session.execute(stmt).scalars().all()
     #     result_set = {item for item in results if item is not None}
-
     #     logger.debug(f"DomainExpressionAction Results: {result_set}")
     #     return result_set
 
@@ -1351,7 +1352,7 @@ class ValueListAction(object):
         print(f"🔍 DEBUG: ValueListAction.express() -> {result} ({type(result)})")
         return result
 
-    from sqlalchemy import select, or_
+    from sqlalchemy import or_, select
 
     def invoke(self, search_strategy):
         """

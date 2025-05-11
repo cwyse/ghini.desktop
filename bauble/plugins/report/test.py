@@ -18,25 +18,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
+import logging
 import os
 
-from bauble.plugins.garden import Accession
-from bauble.plugins.garden import Contact
-from bauble.plugins.garden import Location
-from bauble.plugins.garden import Plant
-from bauble.plugins.garden import Source
-from bauble.plugins.plants import Family
-from bauble.plugins.plants import Genus
-from bauble.plugins.plants import Species
-from bauble.plugins.plants import VernacularName
-from bauble.plugins.report import get_pertinent_objects
-from bauble.plugins.tag import Tag
-from bauble.plugins.tag import tag_objects
-from bauble.test import BaubleTestCase
-from bauble.test import check_dupids
-from sqlalchemy import select
 import pytest
-import logging
+from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
+from bauble.plugins.plants import Family, Genus, Species, VernacularName
+from bauble.plugins.report import get_pertinent_objects
+from bauble.plugins.tag import Tag, tag_objects
+from bauble.test import BaubleTestCase, check_dupids
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +99,7 @@ def test_duplicate_ids():
     Test for duplicate IDs for all .glade files in the gardens plugin.
     """
     import glob
+
     import bauble.plugins.report as mod
 
     head, _ = os.path.split(mod.__file__)
@@ -122,8 +114,8 @@ def test_duplicate_ids():
 class TestReport:
     def test_no_objects_in_family_note(self, session):
         family = session.execute(select(Family)).scalars().first()
-        from bauble.plugins.plants.family import FamilyNote
         from bauble.error import BaubleError
+        from bauble.plugins.plants.family import FamilyNote
 
         fn = FamilyNote(family=family, note="empty")
         session.add(fn)

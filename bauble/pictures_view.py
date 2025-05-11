@@ -20,6 +20,7 @@ import logging
 
 import bauble.utils as utils
 import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -40,6 +41,7 @@ class PicturesView:
             return
 
         import os
+
         from bauble import paths
 
         glade_file = os.path.join(paths.lib_dir(), "pictures_view.glade")

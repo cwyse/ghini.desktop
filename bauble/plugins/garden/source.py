@@ -21,6 +21,7 @@
 #
 # source.py
 #
+import importlib
 import logging
 import os
 import traceback
@@ -33,26 +34,27 @@ import bauble.db as db
 import bauble.editor as editor
 import bauble.paths as paths
 import bauble.utils as utils
-import importlib
-from bauble.plugins.plants.geography import GeographicArea
-from bauble.plugins.plants.geography import GeographicAreaMenu
-from bauble.utils import safe_set_text
 import gi
+from bauble.plugins.plants.geography import GeographicArea, GeographicAreaMenu
+from bauble.utils import safe_set_text
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk
-from gi.repository import GLib
-from gi.repository import Gtk
-from sqlalchemy import Column
-from sqlalchemy import Float
-from sqlalchemy import ForeignKey
-from sqlalchemy import Integer
-from sqlalchemy import select
-#from sqlalchemy import text
-from sqlalchemy import Unicode
-from sqlalchemy import UnicodeText
-from sqlalchemy.orm import relationship
+from gi.repository import Gdk, GLib, Gtk
+
 #from bauble.shared import InfoExpander
-from sqlalchemy import asc
+#from sqlalchemy import text
+from sqlalchemy import (
+    Column,
+    Float,
+    ForeignKey,
+    Integer,
+    Unicode,
+    UnicodeText,
+    asc,
+    select,
+)
+from sqlalchemy.orm import relationship
+
 #from bauble.plugins.garden.propagation import Propagation
 #from sqlalchemy.orm import configure_mappers
 #from sqlalchemy.ext.declarative import declared_attr

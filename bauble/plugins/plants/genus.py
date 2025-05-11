@@ -36,38 +36,36 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.view as view
-from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.family import FamilySynonym
+import gi
+from bauble.plugins.plants.family import Family, FamilySynonym
 from bauble.plugins.plants.species_model import Species
 from bauble.prefs import prefs
-from bauble.utils import safe_set_props, safe_set_text
-from bauble.view import Action
-from bauble.view import InfoBox
 from bauble.shared import InfoExpander
-from bauble.view import PropertiesExpander
-from bauble.view import select_in_search_results
-import gi
+from bauble.utils import safe_set_props, safe_set_text
+from bauble.view import Action, InfoBox, PropertiesExpander, select_in_search_results
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-from sqlalchemy import and_
-from sqlalchemy import Column
-from sqlalchemy import ForeignKey
-from sqlalchemy import Integer
-from sqlalchemy import select,distinct
-from sqlalchemy import String
+
 #from sqlalchemy import text
-from sqlalchemy import Unicode
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import (
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    Unicode,
+    UniqueConstraint,
+    and_,
+    asc,
+    distinct,
+    select,
+)
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
-from sqlalchemy.orm import validates
-from sqlalchemy.orm.session import object_session
-from sqlalchemy import asc
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship, synonym, validates
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
+from sqlalchemy.orm.session import object_session
 
 logger = logging.getLogger(__name__)
 

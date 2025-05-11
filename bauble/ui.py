@@ -31,17 +31,15 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.utils.desktop as desktop
+import gi
 from bauble import querybuilder
 from bauble.editor import GenericEditorView
 from bauble.prefs import prefs
 from bauble.view import SearchView
-import gi
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk
-from gi.repository import GdkPixbuf
-from gi.repository import Gtk
-from gi.repository import GLib
 from bauble import version, version_tuple
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

@@ -18,13 +18,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-import os
 import logging
-from sqlalchemy import select
+import os
+
 import pytest
-from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
 from bauble.plugins.report import get_pertinent_objects
+from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
 from bauble.utils import natsort_key
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 

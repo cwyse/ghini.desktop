@@ -18,12 +18,14 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import datetime
+import glob
 import logging
 import os
-import glob
+
+import gi
 import pytest
 from bauble.test import check_dupids
-import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -98,18 +100,24 @@ def test_duplicate_ids():
 
 
 import datetime
-import pytest
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import object_session
-from sqlalchemy import and_, select
 
+import pytest
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.plant import Plant, PlantChange, PlantNote, branch_callback, is_code_unique
+from bauble.plugins.garden.plant import (
+    Plant,
+    PlantChange,
+    PlantNote,
+    branch_callback,
+    is_code_unique,
+)
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species_model import Species
 from bauble.utils import update_gui
+from sqlalchemy import and_, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import object_session
 
 
 @pytest.fixture
@@ -262,12 +270,10 @@ def test_setting_quantity_to_zero_defines_date_of_death(db_session, plant_data):
     db_session.flush()
     assert plant.date_of_death is not None
 
-import pytest
 import datetime
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select
 
-from bauble.plugins.garden.accession import Accession, Voucher
+import pytest
+from bauble.plugins.garden.accession import Accession, AccessionEditorView, Voucher
 from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.plant import Plant
 from bauble.plugins.garden.propagation import (
@@ -277,7 +283,8 @@ from bauble.plugins.garden.propagation import (
     PropSeed,
 )
 from bauble.plugins.plants.species_model import Species
-from bauble.plugins.garden.accession import AccessionEditorView
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 # Constants for test data
 default_cutting_values = {
@@ -427,21 +434,23 @@ def test_propagation_get_summary_cutting(db_session, setup_plants):
     )
     assert summary == expected
 
-import pytest
 import datetime
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select
+
+import pytest
 from bauble.plugins.garden.accession import Accession, Voucher
 from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.plant import Plant
 from bauble.plugins.garden.propagation import (
     Propagation,
     PropCutting,
-    PropSeed,
     PropCuttingRooted,
+    PropSeed,
 )
 from bauble.plugins.plants.species_model import Species
 from bauble.utils import remove_zws
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+
 
 @pytest.fixture
 def setup_accession(db_session, setup_species):
@@ -580,16 +589,15 @@ def test_location_editor_interactions(db_session, setup_location):
     editor.session.close()
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from bauble.meta import BaubleMeta
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.collection import Collection
-from bauble.plugins.garden.institution import Institution
-from bauble.plugins.garden.institution import InstitutionPresenter
+from bauble.plugins.garden.institution import Institution, InstitutionPresenter
 from bauble.plugins.garden.source import Source
 from bauble.plugins.plants.species_model import Species
-from bauble.meta import BaubleMeta
 from bauble.utils import ilike
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 
 @pytest.fixture
@@ -726,8 +734,9 @@ def test_institution_presenter_valid_email_allows_registration():
 
 def test_institution_presenter_registration_logs_info():
     """Test that registration logs information."""
-    from bauble.editor import MockView
     from functools import partial
+
+    from bauble.editor import MockView
     from bauble.test import mockfunc
     from bauble.utils import desktop
 
@@ -741,19 +750,20 @@ def test_institution_presenter_registration_logs_info():
 
     assert "desktop.open" in invoked
 
-import pytest
-from decimal import Decimal
-from sqlalchemy import select
 from datetime import datetime
-import bauble.utils as utils
+from decimal import Decimal
+
 import bauble.search as search
+import bauble.utils as utils
+import pytest
 from bauble.plugins.garden.accession import Accession, AccessionNote
-from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.plant import Plant, PlantNote
-from bauble.plugins.garden.propagation import Propagation, PropSeed, PropCutting
 from bauble.plugins.garden.collection import Collection
 from bauble.plugins.garden.institution import Institution
+from bauble.plugins.garden.location import Location
+from bauble.plugins.garden.plant import Plant, PlantNote
+from bauble.plugins.garden.propagation import Propagation, PropCutting, PropSeed
 from bauble.test import setUp_data
+from sqlalchemy import select
 
 
 @pytest.fixture
@@ -858,14 +868,15 @@ def test_location_retrieve_or_create_with_timestamps(db_session):
     location = Location.retrieve_or_create(db_session, {"code": "1"})
     assert location._created == datetime(2001, 12, 10)
 
-import pytest
-import tempfile
 import os
 import sqlite3
+import tempfile
+
+import pytest
 from bauble.plugins.garden.accession import Accession
+from bauble.plugins.garden.exporttopocket import ExportToPocketThread, create_pocket
 from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.plant import Plant
-from bauble.plugins.garden.exporttopocket import create_pocket, ExportToPocketThread
 
 
 @pytest.fixture

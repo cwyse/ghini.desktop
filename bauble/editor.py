@@ -28,28 +28,22 @@ import sys
 import weakref
 from gettext import gettext as _
 from random import random
-from gi.repository import Gtk, Gio, Gdk
+
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
-import lxml.etree as etree
-from bauble.error import check
-from bauble.error import CheckConditionError
-from bauble.utils import parse_date, safe_set_props, handle_db_error
 import gi
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk
-from gi.repository import GdkPixbuf
-from gi.repository import GLib
-from gi.repository import GObject
-from gi.repository import Gtk
-from gi.repository import Pango
-from sqlalchemy.orm import object_mapper
-from sqlalchemy.orm import object_session
-from sqlalchemy import select
+import lxml.etree as etree
+from bauble.error import CheckConditionError, check
+from bauble.utils import handle_db_error, parse_date, safe_set_props
+from gi.repository import Gdk, Gio, Gtk
 
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk, Pango
+from sqlalchemy import select
+from sqlalchemy.orm import object_mapper, object_session
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

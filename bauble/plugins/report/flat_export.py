@@ -16,30 +16,25 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
+import logging
 import os.path
 from gettext import gettext as _
-import logging
-from os.path import dirname
-from os.path import isdir
+from os.path import dirname, isdir
 
 import bauble
-from bauble import paths
-from bauble import pluginmgr
+import gi
+from bauble import paths, pluginmgr
 from bauble import utils as butils
-from bauble.editor import GenericEditorPresenter
-from bauble.editor import GenericEditorView
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.querybuilder import SchemaMenu
 from bauble.search import MapperSearch
-import gi
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk
-from gi.repository import Gtk
+from gi.repository import Gdk, Gtk
+from sqlalchemy import select
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.properties import ColumnProperty
-from sqlalchemy.types import Boolean
-from sqlalchemy.types import Float
-from sqlalchemy.types import Integer
-from sqlalchemy import select
+from sqlalchemy.types import Boolean, Float, Integer
 
 
 class FlatFileExporter(GenericEditorPresenter):
@@ -247,9 +242,8 @@ class FlatFileExporter(GenericEditorPresenter):
     def do_export(self):
         import csv
 
-        from sqlalchemy.orm.collections import InstrumentedList
-
         from bauble import db
+        from sqlalchemy.orm.collections import InstrumentedList
 
         filename = self.view.widget_get_value("output_file")
         rows_count = 0
