@@ -30,6 +30,7 @@ import re
 from gettext import gettext as _
 
 import gi
+
 from bauble import paths, utils
 from bauble.plugins.report import PS, SVG, TemplateFormatterPlugin
 
@@ -84,9 +85,7 @@ class Jinja2FormatterPlugin(TemplateFormatterPlugin):
             import traceback
 
             utils.idle_message(
-                "Reading template {}\n{}({})\n{}".format(
-                    name, type(e).__name__, e, traceback.format_exc()
-                ),
+                f"Reading template {name}\n{type(e).__name__}({e})\n{traceback.format_exc()}",
                 type=Gtk.MessageType.ERROR,
             )
             logger.error(f"Failed to load Jinja2 template {name}: {e}")

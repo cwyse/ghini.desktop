@@ -21,10 +21,6 @@ import logging
 from gettext import gettext as _
 from itertools import chain
 
-import bauble.btypes as types
-import bauble.db as db
-import bauble.error as error
-import bauble.utils as utils
 from sqlalchemy import (
     Boolean,
     Column,
@@ -43,7 +39,12 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 # from sqlalchemy.orm import foreign
 from sqlalchemy.orm import relationship, synonym
-from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
+from sqlalchemy.orm.exc import MultipleResultsFound
+
+import bauble.btypes as types
+import bauble.db as db
+import bauble.error as error
+import bauble.utils as utils
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -1118,7 +1119,7 @@ class Habit(db.Base):
 
     def __str__(self):
         if self.name:
-            return "{} ({})".format(self.name, self.code)
+            return f"{self.name} ({self.code})"
         else:
             return str(self.code)
 
@@ -1137,7 +1138,7 @@ class Color(db.Base):
 
     def __str__(self):
         if self.name:
-            return "{} ({})".format(self.name, self.code)
+            return f"{self.name} ({self.code})"
         else:
             return str(self.code)
 

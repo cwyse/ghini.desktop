@@ -19,7 +19,6 @@
 #
 # Description: the default view
 #
-import ast
 import html
 import itertools
 import logging
@@ -29,9 +28,10 @@ import threading
 import traceback
 from gettext import gettext as _
 
-import bauble
 import gi
 import sqlalchemy.exc as saexc
+
+import bauble
 
 # from bauble import prefs
 from bauble import db, editor, paths, pictures_view, pluginmgr, search, utils
@@ -42,14 +42,11 @@ gi.require_version("Champlain", "0.12")
 gi.require_version("GtkChamplain", "0.12")
 gi.require_version("GtkClutter", "1.0")
 
-from bauble.shared import InfoExpander
 from gi.repository import (
     Champlain,
     Clutter,
     Gdk,
-    GObject,
     Gtk,
-    GtkChamplain,
     GtkClutter,
     Pango,
 )
@@ -57,10 +54,11 @@ from pyparsing import ParseException
 from sqlalchemy import func, select
 from sqlalchemy.orm import object_session
 
+from bauble.shared import InfoExpander
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from gi.repository import Clutter, Gdk, GtkClutter
 
 # Ensure GTK is initialized and get the display
 display = Gdk.Display.get_default()
@@ -382,7 +380,6 @@ class InfoBoxPage:
         """
         for expander in self.expanders.values():
             expander.update(row)
-            from gi.repository import Gdk, Gtk, Pango
 
 
 class InfoBox:
@@ -496,13 +493,11 @@ class LinksExpander(InfoExpander):
             self.dynamic_box.show_all()
 
 
-import itertools
 import logging
-import threading
 
-from bauble import db, gui
-from gi.repository import GLib, GObject
-from sqlalchemy import select
+from gi.repository import GLib
+
+from bauble import gui
 
 logger = logging.getLogger(__name__)
 
@@ -755,7 +750,6 @@ class SearchView(pluginmgr.View):
         self.create_gui()
 
         # Picture view
-        from bauble import pictures_view
 
         pictures_view.floating_window = pictures_view.PicturesView(
             parent=self.widgets.search_h2pane
@@ -804,14 +798,12 @@ class SearchView(pluginmgr.View):
             # retrieve the activated row
             row = tree.get_model()[path]
             # construct the query
-            query = "{} where notes[category='{}'].note='{}'".format(
-                domain, row[2], row[3]
-            )
+            query = f"{domain} where notes[category='{row[2]}'].note='{row[3]}'"
             # fire it
             safe_set_text(bauble.gui.widgets.main_comboentry.child, query)
             bauble.gui.widgets.go_button.emit("clicked")
         except Exception as e:
-            logger.debug("{}({})".format(type(e), e))
+            logger.debug(f"{type(e)}({e})")
 
     def add_page_to_bottom_notebook(self, bottom_info):
         """add notebook page for a plugin class"""
@@ -854,15 +846,13 @@ class SearchView(pluginmgr.View):
         self.view.widget_set_visible("bottom_notebook", True)
         row = values[0]  # the selected row
         logger.debug(
-            "update_bottom_notebook - for {}({})".format(type(row).__name__, row)
+            f"update_bottom_notebook - for {type(row).__name__}({row})"
         )
 
         # loop over bottom_info plugin classes (eg: Tag)
         for klass, bottom_info in list(self.bottom_info.items()):
             logger.debug(
-                "update_bottom_notebook - for {}({})".format(
-                    klass.__name__, bottom_info
-                )
+                f"update_bottom_notebook - for {klass.__name__}({bottom_info})"
             )
             if "label" not in bottom_info:  # late initialization
                 self.add_page_to_bottom_notebook(bottom_info)
@@ -883,7 +873,7 @@ class SearchView(pluginmgr.View):
                     model.append(
                         ["%s" % getattr(obj, k) for k in bottom_info["fields_used"]]
                     )
-            logger.debug("done {} for {}".format(len(objs), klass.__name__))
+            logger.debug(f"done {len(objs)} for {klass.__name__}")
         logger.debug("update_bottom_notebook - exiting")
 
     def update_infobox(self):
@@ -895,7 +885,7 @@ class SearchView(pluginmgr.View):
         def set_infobox_from_row(row):
             """implement the logic for update_infobox"""
 
-            logger.debug("set_infobox_from_row: {} --  {}".format(row, repr(row)))
+            logger.debug(f"set_infobox_from_row: {row} --  {repr(row)}")
             # remove the current infobox if there is one and it is not needed
             if row is None:
                 if self.infobox is not None and self.infobox.get_parent() == self.pane:
@@ -981,7 +971,6 @@ class SearchView(pluginmgr.View):
         """
         self.update_infobox()
         self.update_bottom_notebook()
-        from bauble import pictures_view
 
         pictures_view.floating_window.set_selection(self.get_selected_values())
 
@@ -1552,7 +1541,7 @@ class HistoryView(pluginmgr.View):
         del d["_created"]
         del d["_last_updated"]
         friendly = ", ".join(
-            "{}: {}".format(k, self.show_typed_value(v))
+            f"{k}: {self.show_typed_value(v)}"
             for k, v in sorted(list(d.items()), key=HistoryView.key_for_item)
         )
         self.liststore.append(
@@ -1588,7 +1577,7 @@ class HistoryView(pluginmgr.View):
                 obj_id = int(dic[key])
         mapper_search = search.get_strategy("MapperSearch")
         if table in mapper_search._domains:
-            query = "{} where id={}".format(table, obj_id)
+            query = f"{table} where id={obj_id}"
             safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), query)
             bauble.gui.widgets.go_button.emit("clicked")
 

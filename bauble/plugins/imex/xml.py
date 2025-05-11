@@ -26,11 +26,12 @@ import os
 import traceback
 from gettext import gettext as _
 
+import gi
+
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
 import bauble.task
 import bauble.utils as utils
-import gi
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

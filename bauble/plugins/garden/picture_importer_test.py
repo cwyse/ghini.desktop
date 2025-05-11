@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import pytest
+
 from bauble import prefs
 from bauble.plugins.garden.picture_importer import decode_parts
 

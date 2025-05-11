@@ -34,20 +34,22 @@ import traceback
 # import xml.sax.saxutils as saxutils
 from gettext import gettext as _
 
-import bauble
 import dateutil.parser
 import gi
 import sqlalchemy
+
+import bauble
 from bauble import paths
 from bauble.error import check
 
 gi.require_version("Gtk", "3.0")
-from bauble import utils
 from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk
 
 # from sqlalchemy.exc import DBAPIError
 from sqlalchemy import distinct, select
 from sqlalchemy.orm.session import object_session
+
+from bauble import utils
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -279,7 +281,7 @@ def copy_picture_with_thumbnail(path, basename=None):
     try:
         im = Image.open(filename)
         im.thumbnail((400, 400))
-        logger.debug("copying {} to {}".format(filename, full_dest_path))
+        logger.debug(f"copying {filename} to {full_dest_path}")
         im.save(full_dest_path)
         from io import BytesIO
 
@@ -1296,10 +1298,10 @@ def delete_or_expunge(obj):
     if session is None:
         return
     if obj not in session.new:
-        logger.debug("delete obj: {} -- {}".format(obj, repr(obj)))
+        logger.debug(f"delete obj: {obj} -- {repr(obj)}")
         session.delete(obj)
     else:
-        logger.debug("expunge obj: {} -- {}".format(obj, repr(obj)))
+        logger.debug(f"expunge obj: {obj} -- {repr(obj)}")
         session.expunge(obj)
         del obj
 
@@ -1316,9 +1318,10 @@ def reset_sequence(column):
     This function only works for PostgreSQL database.  It does nothing
     for other database engines.
     """
-    import bauble.db as db
     from sqlalchemy import schema
     from sqlalchemy.types import Integer
+
+    import bauble.db as db
 
     if db.engine.name != "postgresql":
         return
@@ -1668,7 +1671,7 @@ def topological_sort(items, partial_order):
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, Gtk, Pango
+from gi.repository import Gtk, Pango
 
 
 class GenericMessageBox:  # identify_subclassing_issues (Consider using composition instead of subclassing GtkWidget)

@@ -269,9 +269,7 @@ class SVG:
         result_list.insert(
             0,
             (
-                '<g transform="translate({},{})scale({},1)translate({},0)">'.format(
-                    x, y, unit, shift
-                )
+                f'<g transform="translate({x},{y})scale({unit},1)translate({shift},0)">'
             ),
         )
         result_list.append("</g>")
@@ -640,14 +638,14 @@ class PS:
             hfactor = 1
         x -= totalwidth * align
         result = [
-            "{:0.1f} {:0.1f} moveto".format(x, y),
+            f"{x:0.1f} {y:0.1f} moveto",
             "".join(glyphs),
             " ".join(widths),
             "xshow",
         ]
         if hfactor != 1 or stretch != 1:
             result.insert(1, "gsave")
-            result.insert(2, "{:0.3f} {:0.1f} scale".format(hfactor, stretch))
+            result.insert(2, f"{hfactor:0.3f} {stretch:0.1f} scale")
             result.append("grestore")
 
         return "\n".join(result)
@@ -805,7 +803,7 @@ class Code39:
             "M %(2)s,0 %(2)s,H M %(3)s,H %(3)s,0 "
             "M %(4)s,0 %(4)s,H"
         )
-        if not letter in "%$+/":
+        if letter not in "%$+/":
             format += (
                 " M %(5)s,H %(5)s,0 "
                 "M %(6)s,0 %(6)s,H M %(7)s,H %(7)s,0 "
@@ -822,11 +820,7 @@ class Code39:
             transform_text = ' transform="translate(%s,%s)"' % translate
         else:
             transform_text = ""
-        return '<path{transform} d="{path}" style="stroke:{colour};stroke-width:1"/>'.format(
-            transform=transform_text,
-            path=cls.path(letter, height),
-            colour=colour,
-        )
+        return f'<path{transform_text} d="{cls.path(letter, height)}" style="stroke:{colour};stroke-width:1"/>'
 
 
 class add_qr_functor:
@@ -859,14 +853,14 @@ class add_qr_functor:
         transform = []
         if x != 0 or y != 0:
             if format == "ps":
-                transform.append("{} {} translate".format(x, y))
+                transform.append(f"{x} {y} translate")
             else:
-                transform.append("translate({},{})".format(x, y))
+                transform.append(f"translate({x},{y})")
         if side is not None:
             orig_side = float(match.group(1))
             if format == "ps":
                 transform.append(
-                    "{} {} scale".format(side / orig_side, side / orig_side)
+                    f"{side / orig_side} {side / orig_side} scale"
                 )
             else:
                 transform.append("scale(%s)" % (side / orig_side))
@@ -879,7 +873,7 @@ class add_qr_functor:
         if format == "ps":
             result_list = ["gsave"] + result_list + ["grestore"]
         result = "\n".join(result_list)
-        logger.debug("qr-svg: {}({})".format(type(result).__name__, result))
+        logger.debug(f"qr-svg: {type(result).__name__}({result})")
         return result
 
 
@@ -909,5 +903,5 @@ def get_caller_template_location():
             template_name = info.template_filename
         return os.path.dirname(template_name)
     except Exception as e:
-        logger.debug("{}({})".format(type(e).__name__, e))
+        logger.debug(f"{type(e).__name__}({e})")
         return ""

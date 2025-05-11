@@ -24,24 +24,24 @@
 import datetime
 import logging
 import os
-import sys
 import weakref
 from gettext import gettext as _
 from random import random
+
+import gi
+import lxml.etree as etree
+from gi.repository import Gdk, Gio, Gtk
 
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
-import gi
-import lxml.etree as etree
 from bauble.error import CheckConditionError, check
 from bauble.utils import handle_db_error, parse_date, safe_set_props
-from gi.repository import Gdk, Gio, Gtk
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk, Pango
+from gi.repository import GdkPixbuf, GLib, Pango
 from sqlalchemy import select
 from sqlalchemy.orm import object_mapper, object_session
 
@@ -1197,7 +1197,7 @@ class GenericEditorPresenter:
                 self.session = object_session(model)
             except Exception as e:
                 logger.debug(
-                    "GenericEditorPresenter::__init__ - {}, {}".format(type(e), e)
+                    f"GenericEditorPresenter::__init__ - {type(e)}, {e}"
                 )
 
             if self.session is None:  # object_session gave None without error
@@ -1280,9 +1280,7 @@ class GenericEditorPresenter:
                 if current_page_widget == container:
                     value = presenter.view.widget_get_value(name)
                     logger.debug(
-                        "writing »{}« in clipboard {} for {}".format(
-                            value, presenter.__class__.__name__, name
-                        )
+                        f"writing »{value}« in clipboard {presenter.__class__.__name__} for {name}"
                     )
                     presenter.clipboard[name] = value
 
@@ -1304,23 +1302,17 @@ class GenericEditorPresenter:
                 if current_page_widget == container:
                     if presenter.view.widget_get_value(name):
                         logger.debug(
-                            "skipping {} in clipboard {} because widget has value".format(
-                                name, presenter.__class__.__name__
-                            )
+                            f"skipping {name} in clipboard {presenter.__class__.__name__} because widget has value"
                         )
                         continue
                     clipboard_value = presenter.clipboard.get(name)
                     if not clipboard_value:
                         logger.debug(
-                            "skipping {} because clipboard {} has no value".format(
-                                name, presenter.__class__.__name__
-                            )
+                            f"skipping {name} because clipboard {presenter.__class__.__name__} has no value"
                         )
                         continue
                     logger.debug(
-                        "setting »{}« from clipboard {} for {}".format(
-                            clipboard_value, presenter.__class__.__name__, name
-                        )
+                        f"setting »{clipboard_value}« from clipboard {presenter.__class__.__name__} for {name}"
                     )
                     presenter.view.widget_set_value(name, clipboard_value)
 
@@ -1508,7 +1500,7 @@ class GenericEditorPresenter:
         "handle 'changed' signal on datetime entry widgets."
 
         attr = self.__get_widget_attr(widget)
-        logger.debug("on_datetime_entry_changed({}, {})".format(widget, attr))
+        logger.debug(f"on_datetime_entry_changed({widget}, {attr})")
         if value is None:
             value = widget.get_text()
             value = value or None
@@ -1524,9 +1516,7 @@ class GenericEditorPresenter:
             self.__set_model_attr(attr, value)
         else:
             logging.debug(
-                "presenter {} does not know widget {}".format(
-                    self.__class__.__name__, self.__get_widget_name(widget)
-                )
+                f"presenter {self.__class__.__name__} does not know widget {self.__get_widget_name(widget)}"
             )
 
     on_chkbx_toggled = on_check_toggled
@@ -1715,7 +1705,7 @@ class GenericEditorPresenter:
         :param value: the value the attribute will be set to
         :param validator: validates the value before setting it
         """
-        logger.debug("editor.set_model_attr({}, {})".format(attr, value))
+        logger.debug(f"editor.set_model_attr({attr}, {value})")
         if validator:
             try:
                 # Safely retrieve the 'wrapped' attribute if it exists
@@ -1727,9 +1717,7 @@ class GenericEditorPresenter:
                     log_validator = validator
 
                 logger.debug(
-                    "validating {}({}) for {} using {}".format(
-                        type(value).__name__, value, attr, log_validator
-                    )
+                    f"validating {type(value).__name__}({value}) for {attr} using {log_validator}"
                 )
                 value = validator.to_python(value)
                 self.remove_problem("BAD_VALUE_%s" % attr)
@@ -1738,7 +1726,7 @@ class GenericEditorPresenter:
                 self.add_problem("BAD_VALUE_%s" % attr)
             else:
                 logger.debug(
-                    "validated {}({}) for {}".format(type(value).__name__, value, attr)
+                    f"validated {type(value).__name__}({value}) for {attr}"
                 )
                 setattr(self.model, attr, value)
         else:
@@ -1831,7 +1819,7 @@ class GenericEditorPresenter:
 
             def toggled(button, data=None):
                 active = button.get_active()
-                logger.debug("toggled {}: {}".format(widget_name, active))
+                logger.debug(f"toggled {widget_name}: {active}")
                 button.set_inconsistent(False)
                 self.set_model_attr(model_attr, active, validator)
 
@@ -1914,7 +1902,7 @@ class GenericEditorPresenter:
                 if comp_model:
                     comp_model.foreach(
                         lambda m, p, i, ud: logger.debug(
-                            "item({}) of comp_model: {}".format(p, m[p][0])
+                            f"item({p}) of comp_model: {m[p][0]}"
                         ),
                         None,
                     )
@@ -2081,7 +2069,7 @@ class GenericModelViewPresenterEditor:
             except Exception as update_error:
                 logger.warning(f"Failed to update the view: {update_error}")
         except Exception as e:
-            logger.warning("can't commit changes: ({}) {}".format(type(e), e))
+            logger.warning(f"can't commit changes: ({type(e)}) {e}")
             if self.session.in_transaction():
                 self.session.rollback()
             self.session.add_all(objs)
@@ -2347,7 +2335,7 @@ class PictureBox(NoteBox):
                 im = Gtk.Label()
                 safe_set_text(im, label)
             except Exception as e:
-                logger.warning("can't commit changes: ({}) {}".format(type(e), e))
+                logger.warning(f"can't commit changes: ({type(e)}) {e}")
                 im = Gtk.Label()
                 safe_set_text(im, e)
         else:

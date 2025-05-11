@@ -23,6 +23,9 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
+from pyparsing import ParseException
+from sqlalchemy.sql import select
+
 from bauble import db, prefs, search
 from bauble.editor import GenericEditorView
 from bauble.plugins.garden.accession import Accession
@@ -32,11 +35,11 @@ from bauble.plugins.garden.source import Collection, Contact
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus, GenusNote
 from bauble.plugins.plants.species_model import Species
-from bauble.search import QueryAction  # Ensure correct import path
-from bauble.search import EmptyToken, NoneToken, SearchParser
-from pyparsing import ParseException
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import select
+from bauble.search import (
+    EmptyToken,
+    NoneToken,
+    SearchParser,
+)
 
 
 # Search Parser Fixture
@@ -57,7 +60,6 @@ def setup_test_data(request, clean_db, db_session):
 
     from bauble.plugins.plants.family import Family
     from bauble.plugins.plants.genus import Genus
-    from bauble.plugins.plants.species_model import Species
 
     # Populate test data
     family1 = Family(family="family1", qualifier="s. lat.")
@@ -297,11 +299,10 @@ class TestSearchParser:
 
 
 import pytest
-from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.species_model import Species, VernacularName
-from bauble.search import get_strategy
 from sqlalchemy import select
+
+from bauble.plugins.plants.species_model import VernacularName
+from bauble.search import get_strategy
 
 
 @pytest.mark.usefixtures("db_session", "setup_test_data")
@@ -650,8 +651,9 @@ class TestSearch:
         mapper_search = search.get_strategy("MapperSearch")
         assert isinstance(mapper_search, search.MapperSearch)
 
-        from bauble.plugins.plants.genus import Genus
         from sqlalchemy import select
+
+        from bauble.plugins.plants.genus import Genus
 
         stmt_direct = select(Genus)
         direct_objs = db_session.scalars(stmt_direct).all()
@@ -1164,7 +1166,7 @@ class TestSearch:
         """
         from bauble.plugins.plants.family import Family
         from bauble.plugins.plants.genus import Genus
-        from bauble.plugins.plants.species_model import Species, VernacularName
+        from bauble.plugins.plants.species_model import Species
 
         # Data setup
         family2 = Family(family="family2")
@@ -1418,7 +1420,6 @@ class QueryBuilderTests:
 
 
 import pytest
-from bauble.search import SearchParser
 
 
 @pytest.fixture(scope="function")
@@ -1566,6 +1567,7 @@ class BuildingSQLStatements:
 import os
 
 import pytest
+
 from bauble import querybuilder
 from bauble.utils import paths
 
@@ -1905,8 +1907,9 @@ class EmptySetEqualityTest:
 
 
 import pytest
-from bauble.plugins.plants import Family, Genus, Species
 from sqlalchemy import text
+
+from bauble.plugins.plants import Family, Genus, Species
 
 
 @pytest.fixture(scope="function")

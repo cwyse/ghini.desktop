@@ -21,6 +21,7 @@ import logging
 import sys
 
 import pytest
+
 from bauble import db, pluginmgr
 from bauble.error import BaubleError
 from bauble.prefs import prefs

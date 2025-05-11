@@ -36,11 +36,12 @@ import sys
 import tempfile
 from gettext import gettext as _
 
+import gi
+
 # import bauble.db as db
 import bauble.paths as bpaths
 import bauble.prefs as prefs
 import bauble.utils as butils
-import gi
 from bauble.plugins.abcd import ABCDAdapter, ABCDElement, create_abcd
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
@@ -318,9 +319,7 @@ class AccessionABCDAdapter(SpeciesABCDAdapter):
             if collection.elevation:
                 altitude = ABCDElement(gathering, "Altitude")
                 if collection.elevation_accy:
-                    text = "{}m (+/- {}m)".format(
-                        collection.elevation, collection.elevation_accy
-                    )
+                    text = f"{collection.elevation}m (+/- {collection.elevation_accy}m)"
                 else:
                     text = "%sm" % collection.elevation
                 ABCDElement(altitude, "MeasurementOrFactText", text=text)

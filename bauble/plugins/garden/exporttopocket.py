@@ -22,6 +22,7 @@ import os
 import threading
 
 import gi
+
 from bauble import db
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
@@ -159,7 +160,7 @@ class ExportToPocketThread(threading.Thread):
                 )
             except Exception as e:
                 logger.info(
-                    "error exporting species {}: {} {}".format(i.id, type(e), e)
+                    f"error exporting species {i.id}: {type(e)} {e}"
                 )
             count += 1
             if self.progressbar:
@@ -183,7 +184,7 @@ class ExportToPocketThread(threading.Thread):
                 )
             except Exception as e:
                 logger.info(
-                    "error exporting accession {}: {} {}".format(i.id, type(e), e)
+                    f"error exporting accession {i.id}: {type(e)} {e}"
                 )
             count += 1
             if self.progressbar:
@@ -211,7 +212,7 @@ class ExportToPocketThread(threading.Thread):
                     ),
                 )
             except Exception as e:
-                logger.info("error exporting plant {}: {} {}".format(i.id, type(e), e))
+                logger.info(f"error exporting plant {i.id}: {type(e)} {e}")
             count += 1
             if self.progressbar:
                 GLib.idle_add(

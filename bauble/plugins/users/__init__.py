@@ -22,15 +22,15 @@ import os
 import re
 from gettext import gettext as _
 
+# from bauble.error import CheckConditionError
+import gi
+
 import bauble
 import bauble.db as db
 import bauble.editor as editor
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-
-# from bauble.error import CheckConditionError
-import gi
 from bauble.error import check
 
 gi.require_version("Gtk", "3.0")
@@ -523,7 +523,7 @@ class UsersEditor(editor.GenericEditorView):
             role = self.get_selected_user()
             active = button.get_active()
             if active and not has_privileges(role, priv):
-                logger.debug("grant {} to {}".format(priv, role))
+                logger.debug(f"grant {priv} to {role}")
                 try:
                     set_privilege(role, priv)
                 except Exception as e:
@@ -682,7 +682,7 @@ class UsersEditor(editor.GenericEditorView):
         """ """
 
         def _set_buttons(mode):
-            logger.debug("{}: {}".format(role, mode))
+            logger.debug(f"{role}: {mode}")
             if mode:
                 self.widgets[self.buttons[mode]].set_active(True)
             not_modes = [p for p in list(self.buttons.keys()) if p != mode]

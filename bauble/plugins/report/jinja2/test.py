@@ -22,10 +22,11 @@ import logging
 import os
 
 import pytest
+from sqlalchemy import select
+
 from bauble.plugins.report import get_pertinent_objects
 from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
 from bauble.utils import natsort_key
-from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 

@@ -27,6 +27,8 @@ import traceback
 from gettext import gettext as _
 from random import random
 
+import gi
+
 import bauble.btypes as types
 import bauble.db as db
 import bauble.meta as meta
@@ -34,7 +36,6 @@ import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 import bauble.view as view
-import gi
 from bauble.editor import (
     GenericEditorPresenter,
     GenericEditorView,
@@ -198,8 +199,9 @@ def get_next_code(acc):
 
 import db
 import utils
+from sqlalchemy import bindparam
+
 from bauble.plugins.garden import Accession, Plant
-from sqlalchemy import and_, bindparam, func, select
 
 
 def is_code_unique(plant, code):
@@ -220,7 +222,6 @@ def is_code_unique(plant, code):
     # setting the accession on the model doesn't set the
     # accession_id until the session is flushed
     session = db.Session()
-    from sqlalchemy import bindparam
 
     stmt = select(func.count()).select_from(
         select(Plant)
@@ -261,7 +262,7 @@ class PlantSearch(SearchStrategy):
             logger.debug("delimiter not found, can't split the code")
             return []
         acc_code, plant_code = text.rsplit(delimiter, 1)
-        logger.debug("ac: {}, pl: {}".format(acc_code, plant_code))
+        logger.debug(f"ac: {acc_code}, pl: {plant_code}")
 
         try:
             from bauble.plugins.garden import Accession
@@ -276,7 +277,7 @@ class PlantSearch(SearchStrategy):
             )
             return query.scalars().all()
         except Exception as e:
-            logger.debug("{} {}".format(e.__class__.__name__, e))
+            logger.debug(f"{e.__class__.__name__} {e}")
             return []
 
 
@@ -317,7 +318,7 @@ def compute_serializable_fields(cls, session, keys):
     result = {"plant": None}
 
     acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
-    logger.debug("acc-plant: {}-{}".format(acc_code, plant_code))
+    logger.debug(f"acc-plant: {acc_code}-{plant_code}")
     q = session.execute(
         select(Plant)
         .where(Plant.code == str(plant_code))
@@ -560,9 +561,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         import inspect
 
         logger.debug(
-            "entering search_view_markup_pair {}, {}".format(
-                self, str(inspect.stack()[1])
-            )
+            f"entering search_view_markup_pair {self}, {str(inspect.stack()[1])}"
         )
         sp_str = self.accession.species_str(markup=True, authors=True)
         dead_color = "#9900ff"
@@ -613,7 +612,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     delimiter = property(lambda self: self._get_delimiter())
 
     def __str__(self):
-        return "{}{}{}".format(self.accession, self.delimiter, self.code)
+        return f"{self.accession}{self.delimiter}{self.code}"
 
     def duplicate(self, code=None, session=None):
         """Return a Plant that is a flat (not deep) duplicate of self. For notes,
@@ -637,12 +636,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         return plant
 
     def markup(self):
-        return "{}{}{} ({})".format(
-            self.accession,
-            self.delimiter,
-            self.code,
-            self.accession.species_str(markup=True, authors=True),
-        )
+        return f"{self.accession}{self.delimiter}{self.code} ({self.accession.species_str(markup=True, authors=True)})"
 
     def as_dict(self):
         result = db.Serializable.as_dict(self)
@@ -761,7 +755,7 @@ class PlantEditorView(GenericEditorView):
 
         def acc_cell_data_func(column, renderer, model, treeiter, data=None):
             v = model[treeiter][0]
-            renderer.set_property("text", "{} ({})".format(str(v), str(v.species)))
+            renderer.set_property("text", f"{str(v)} ({str(v.species)})")
 
         self.attach_completion(
             "plant_acc_entry", acc_cell_data_func, minimum_key_length=2
@@ -1036,7 +1030,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
                 )
             )
         except OperationalError as e:
-            logger.debug("({}){}".format(type(e), e))
+            logger.debug(f"({type(e)}){e}")
             return
         logger.debug(self.problems)
 
@@ -1063,7 +1057,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         self.view.widgets.split_planting_button.set_visible = False
 
     def set_model_attr(self, field, value, validator=None):
-        logger.debug("set_model_attr({}, {})".format(field, value))
+        logger.debug(f"set_model_attr({field}, {value})")
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.refresh_sensitivity()
@@ -1093,7 +1087,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         for widget, field in list(self.widget_to_field_map.items()):
             value = getattr(self.model, field)
             self.view.widget_set_value(widget, value)
-            logger.debug("{}: {} = {}".format(widget, field, value))
+            logger.debug(f"{widget}: {field} = {value}")
 
         self.view.widget_set_value(
             "plant_acc_type_combo",
@@ -1507,9 +1501,7 @@ class ChangesExpander(InfoExpander):
                     quantity=change.quantity, location=change.to_location
                 )
             else:
-                s = "{}: {} -> {}".format(
-                    change.quantity, change.from_location, change.to_location
-                )
+                s = f"{change.quantity}: {change.from_location} -> {change.to_location}"
             if change.reason is not None:
                 s += "\n%s" % change_reasons[change.reason]
             label = Gtk.Label(label=s)
@@ -1561,9 +1553,9 @@ import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Pango", "1.0")
 
-from bauble import prefs, utils
+
+from bauble import utils
 from bauble.shared import InfoExpander
-from gi.repository import Gtk, Pango
 
 
 class PropagationExpander(InfoExpander):

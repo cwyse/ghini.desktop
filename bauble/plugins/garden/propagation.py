@@ -26,6 +26,8 @@ import traceback
 import weakref
 from gettext import gettext as _
 
+import gi
+
 import bauble
 import bauble.btypes as types
 import bauble.db as db
@@ -33,7 +35,6 @@ import bauble.editor as editor
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
-import gi
 from bauble.plugins.garden.constants import (
     bottom_heat_unit_values,
     cutting_type_values,
@@ -160,7 +161,7 @@ class Propagation(db.Base, db.WithNotes):
 
     # Lazy import for Source
     def __init__(self):
-        from bauble.plugins.garden.source import Source
+        pass
 
     @property
     def accessions(self):
@@ -537,11 +538,9 @@ import gi
 gi.require_version("Gtk", "3.0")
 
 import gi
-from gi.repository import Gtk
 
 gi.require_version("Gtk", "3.0")
 
-from gi.repository import Gtk
 
 
 class PropagationHandler:
@@ -869,7 +868,7 @@ class CuttingPresenter(editor.GenericEditorPresenter):
         return self._dirty
 
     def set_model_attr(self, field, value, validator=None):
-        logger.debug("{} = {}".format(field, value))
+        logger.debug(f"{field} = {value}")
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
@@ -1103,7 +1102,7 @@ class PropagationPresenter(editor.ChildPresenter):
         """
         Set attributes on the model and update the GUI as expected.
         """
-        logging.debug("{} = {}".format(field, value))
+        logging.debug(f"{field} = {value}")
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.refresh_sensitivity()
@@ -1177,7 +1176,7 @@ class SourcePropagationPresenter(PropagationPresenter):
         self._dirty = False
 
     def set_model_attr(self, attr, value, validator=None):
-        logger.debug("set_model_attr({}, {})".format(attr, value))
+        logger.debug(f"set_model_attr({attr}, {value})")
         super().set_model_attr(attr, value)
         self._dirty = True
         self.refresh_sensitivity()

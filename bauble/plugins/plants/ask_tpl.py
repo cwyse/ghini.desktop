@@ -15,7 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-import csv
 import difflib
 import logging
 import threading
@@ -273,7 +272,7 @@ class AskTPL(threading.Thread):
                 for item in candidates:
                     g, s = item["Genus"], item["Species"]
                     seq = difflib.SequenceMatcher(
-                        a=self.binomial, b="{} {}".format(g, s)
+                        a=self.binomial, b=f"{g} {s}"
                     )
                     item["_score_"] = seq.ratio()
 

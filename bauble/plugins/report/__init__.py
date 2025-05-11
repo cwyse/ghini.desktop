@@ -24,11 +24,12 @@ import traceback
 from gettext import gettext as _
 from threading import Thread
 
+import gi
+
 import bauble
 import bauble.paths as bpaths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as butils
-import gi
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.error import BaubleError
 from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
@@ -423,9 +424,7 @@ class FormatterPlugin(pluginmgr.Plugin):
                 return False
         except Exception as e:
             logger.debug(
-                "{} can't handle template {} - {}({})".format(
-                    cls.title, name, type(e).__name__, e
-                )
+                f"{cls.title} can't handle template {name} - {type(e).__name__}({e})"
             )
             return False
 
@@ -476,14 +475,12 @@ class FormatterPlugin(pluginmgr.Plugin):
                     domain = domains[0]
                 except IndexError:
                     logger.debug(
-                        "template {}({}) contains no {} DOMAIN declaration".format(
-                            template, filename, cls.title
-                        )
+                        f"template {template}({filename}) contains no {cls.title} DOMAIN declaration"
                     )
                     domain = ""
         except Exception as e:
             logger.debug(
-                "template {} can't be read - {}({})".format(name, type(e).__name__, e)
+                f"template {name} can't be read - {type(e).__name__}({e})"
             )
             domain = ""
 
@@ -659,7 +656,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             try:
                 os.unlink(fullpath)
             except Exception as e:
-                logger.debug("{}({})".format(type(e).__name__, e))
+                logger.debug(f"{type(e).__name__}({e})")
 
         # also mark any corresponding package template as hidden
         self.options["__is_frozen__"] = True
@@ -722,7 +719,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             self.view.widget_set_sensitive("ok_button", True)
             self.view.widget_set_value("is_package_template", is_package_template)
         except Exception as e:
-            logger.debug("Template {} raised {}({}).".format(name, type(e).__name__, e))
+            logger.debug(f"Template {name} raised {type(e).__name__}({e}).")
             return
 
         self.set_prefs_for(name, settings)
@@ -855,7 +852,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         self.view.widgets.names_ls.clear()
         for title in sorted(self.formatter_class_map):  # sort templates by plugin
             plugin = self.formatter_class_map[title]
-            logger.debug("scanning {} templates for {}".format(title, plugin))
+            logger.debug(f"scanning {title} templates for {plugin}")
             for candidate, index, path in basenames_fullnames:  # then by name
                 name = candidate[: -len(plugin.extension)]
                 if options.get(name, {}).get("__is_frozen__"):
@@ -876,7 +873,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
                     )
                     names.add(candidate)
                 else:
-                    logger.debug("{} refuses {}".format(title, candidate))
+                    logger.debug(f"{title} refuses {candidate}")
         GLib.idle_add(butils.none, self.view.widget_set_sensitive, "names_combo", True)
 
     def save_formatter_settings(self):
@@ -981,13 +978,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             formatter.format(todo, **settings)
         except Exception as e:
             butils.idle_message(
-                "formatting {} objects of type {}\n{}({})\n{}".format(
-                    len(todo),
-                    type((todo + [None])[0]).__name__,
-                    type(e).__name__,
-                    e,
-                    traceback.format_exc(),
-                ),
+                f"formatting {len(todo)} objects of type {type((todo + [None])[0]).__name__}\n{type(e).__name__}({e})\n{traceback.format_exc()}",
                 type=Gtk.MessageType.ERROR,
             )
 

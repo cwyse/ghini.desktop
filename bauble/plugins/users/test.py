@@ -22,12 +22,12 @@
 import glob
 import os
 
-import bauble.plugins.users as users
 import pytest
+from sqlalchemy import Column, Integer, Sequence, String, Table
+
+import bauble.plugins.users as users
 from bauble import db
 from bauble.test import check_dupids
-from sqlalchemy import Column, Integer, Sequence, String, Table
-from sqlalchemy.exc import OperationalError
 
 
 @pytest.fixture

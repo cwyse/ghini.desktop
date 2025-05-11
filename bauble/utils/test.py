@@ -21,13 +21,13 @@
 # test.py
 #
 # Description: test for bauble.utils
-import bauble.db as db
-import bauble.utils as utils
 import gi
 import pytest
+from sqlalchemy import Column, ForeignKey, Integer, Sequence, Table
+
+import bauble.utils as utils
 from bauble.error import CheckConditionError
 from bauble.utils import topological_sort
-from sqlalchemy import Column, ForeignKey, Integer, MetaData, Sequence, Table
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

@@ -25,20 +25,20 @@ import os
 import traceback
 from gettext import gettext as _
 
+import gi
+
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.utils.desktop as desktop
-import gi
 from bauble import querybuilder
 from bauble.editor import GenericEditorView
 from bauble.prefs import prefs
 from bauble.view import SearchView
 
 gi.require_version("Gtk", "3.0")
-from bauble import version, version_tuple
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
 logger = logging.getLogger(__name__)
@@ -855,15 +855,15 @@ class GUI:
         # check for leaks
         obj = utils.gc_objects_by_type(editor_cls)
         if obj != []:
-            logger.warning("{} leaked: {}".format(editor_cls.__name__, obj))
+            logger.warning(f"{editor_cls.__name__} leaked: {obj}")
 
         if presenter_cls:
             obj = utils.gc_objects_by_type(presenter_cls)
             if obj != []:
-                logger.warning("{} leaked: {}".format(presenter_cls.__name__, obj))
+                logger.warning(f"{presenter_cls.__name__} leaked: {obj}")
             obj = utils.gc_objects_by_type(view_cls)
             if obj != []:
-                logger.warning("{} leaked: {}".format(view_cls.__name__, obj))
+                logger.warning(f"{view_cls.__name__} leaked: {obj}")
 
     def on_edit_menu_cut(self, widget, data=None):
         self.widgets.main_comboentry.get_child().cut_clipboard()

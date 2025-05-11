@@ -27,6 +27,8 @@ import weakref
 import xml
 from gettext import gettext as _
 
+import gi
+
 import bauble
 import bauble.btypes as types
 import bauble.db as db
@@ -36,7 +38,6 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.view as view
-import gi
 from bauble.plugins.plants.family import Family, FamilySynonym
 from bauble.plugins.plants.species_model import Species
 from bauble.prefs import prefs
@@ -819,7 +820,7 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
     def refresh_view(self):
         for widget, field in list(self.widget_to_field_map.items()):
             if field == "family_id":
-                value = getattr(self.model, "family")
+                value = self.model.family
             else:
                 value = getattr(self.model, field)
             self.view.widget_set_value(widget, value)

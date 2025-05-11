@@ -26,6 +26,8 @@ import traceback
 import weakref
 from gettext import gettext as _
 
+import gi
+
 import bauble
 import bauble.btypes as types
 import bauble.db as db
@@ -33,7 +35,6 @@ import bauble.editor as editor
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-import gi
 from bauble.prefs import prefs
 from bauble.shared import InfoExpander
 from bauble.utils import handle_db_error, safe_set_props
@@ -64,7 +65,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 
 # from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Session, relationship, synonym, validates
+from sqlalchemy.orm import Session, relationship, validates
 from sqlalchemy.orm.session import object_session
 
 view = importlib.import_module("bauble.view")

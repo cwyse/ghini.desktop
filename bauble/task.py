@@ -24,9 +24,10 @@ running tasks still block but allows the GUI to update.
 """
 import logging
 
-import bauble
 import fibra
 import gi
+
+import bauble
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

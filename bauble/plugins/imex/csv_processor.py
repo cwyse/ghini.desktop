@@ -27,16 +27,25 @@ import csv
 import logging
 import os
 import queue  # For producer-consumer handling
-import sys
 
 # import traceback
 # from gettext import gettext as _
 import threading
 
+import sqlalchemy as sa
+from sqlalchemy import Boolean
+
+# from sqlalchemy import ColumnDefault
+# from sqlalchemy import inspect
+# from sqlalchemy import func
+# from sqlalchemy.exc import DataError
+# from sqlalchemy.orm import configure_mappers
+# from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql.elements import ClauseElement
+
 # import bauble.pluginmgr as pluginmgr
 # import bauble.task
 import bauble.utils as utils
-import sqlalchemy as sa
 from bauble.btypes import Enum
 from bauble.db import Session
 
@@ -48,15 +57,6 @@ from bauble.plugins.imex.unicode_utils import (
     UnicodeReader,
     UnicodeWriter,
 )
-from sqlalchemy import Boolean
-
-# from sqlalchemy import ColumnDefault
-# from sqlalchemy import inspect
-# from sqlalchemy import func
-# from sqlalchemy.exc import DataError
-# from sqlalchemy.orm import configure_mappers
-# from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql.elements import ClauseElement
 
 logger = logging.getLogger(__name__)
 QUOTE_STYLE = csv.QUOTE_MINIMAL
@@ -169,7 +169,7 @@ class CSVProcessor:
             f"🔍 Performing topological sorting for {filename} using key pairs: {key_pairs}"
         )
 
-        with open(filename, "r") as f:
+        with open(filename) as f:
             reader = UnicodeReader(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
             fields = reader.reader.fieldnames  # Extract header fields
 
@@ -413,9 +413,6 @@ class CSVProcessor:
         :param batch_values: Optional. List of rows to insert instead of self.values.
         """
         from btypes import Enum
-        from sqlalchemy import inspect
-        from sqlalchemy.dialects.sqlite import base
-        from sqlalchemy.sql import sqltypes
 
         # Check for Enum types in batch_values or self.values
         def convert_enum(value):

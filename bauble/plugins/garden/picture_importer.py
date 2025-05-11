@@ -22,11 +22,12 @@ import threading
 from gettext import gettext as _
 
 import gi
+
 from bauble import db, pluginmgr, utils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GdkPixbuf, GLib, GObject, Gtk
+from gi.repository import GdkPixbuf, GLib, Gtk
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
@@ -141,9 +142,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
         kwargs["refresh_view"] = True
         super().__init__(model, view, **kwargs)
         self.panes = [
-            getattr(self.view.widgets, "box_define"),
-            getattr(self.view.widgets, "box_review"),
-            getattr(self.view.widgets, "box_log"),
+            self.view.widgets.box_define,
+            self.view.widgets.box_review,
+            self.view.widgets.box_log,
         ]
         self.review_liststore = self.view.widgets.review_liststore
         self.running_thread = None
@@ -168,7 +169,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         self.create_actions()
 
 
-from gi.repository import Gio, Gtk
+from gi.repository import Gio
 
 
 def get_first_or_none(session, stmt):
@@ -355,11 +356,11 @@ class PictureImporterPresenter(GenericEditorPresenter):
         location_stmt = select(Location).where(Location.code == self.model.location)
         location = get_first_or_none(session, location_stmt)
         if location:
-            logger.log(11, "location {} already in database".format(location))
+            logger.log(11, f"location {location} already in database")
         else:
             location = Location(code=self.model.location)
             session.add(location)
-            logger.log(13, "created new location {}".format(location))
+            logger.log(13, f"created new location {location}")
 
         # iterate over liststore content
         for row in self.review_liststore:
@@ -392,9 +393,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
                 if species is None:
                     species = Species(genus=genus, epithet=epsp)
                     session.add(species)
-                    logger.log(13, "created species {} {}".format(epgn, epsp))
+                    logger.log(13, f"created species {epgn} {epsp}")
                 else:
-                    logger.log(12, "reusing new species {} {}".format(epgn, epsp))
+                    logger.log(12, f"reusing new species {epgn} {epsp}")
 
             # create or retrieve accession (needs species)
             accession_stmt = select(Accession).where(Accession.code == accession_code)
@@ -410,9 +411,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
                     session.add(accession)
                     logger.log(
                         13,
-                        "created accession {} for species {} {}".format(
-                            accession_code, epgn, epsp
-                        ),
+                        f"created accession {accession_code} for species {epgn} {epsp}",
                     )
                 else:
                     logger.log(12, "reusing new accession %s" % (accession_code))
@@ -477,16 +476,12 @@ class PictureImporterPresenter(GenericEditorPresenter):
                     session.add(note)
                     logger.log(
                         13,
-                        "picture {} added to plant {}".format(
-                            filename, complete_plant_code
-                        ),
+                        f"picture {filename} added to plant {complete_plant_code}",
                     )
                 else:
                     logger.log(
                         12,
-                        "reusing new picture {} in plant {}".format(
-                            filename, complete_plant_code
-                        ),
+                        f"reusing new picture {filename} in plant {complete_plant_code}",
                     )
         logger.removeHandler(handler)
         self.view.widgets.button_ok.set_sensitive(self.keep_running is True)

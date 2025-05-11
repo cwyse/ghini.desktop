@@ -22,12 +22,13 @@ import logging
 import os
 
 import pytest
+from sqlalchemy import select
+
 from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
 from bauble.plugins.plants import Family, Genus, Species, VernacularName
 from bauble.plugins.report import get_pertinent_objects
 from bauble.plugins.tag import Tag, tag_objects
-from bauble.test import BaubleTestCase, check_dupids
-from sqlalchemy import select
+from bauble.test import check_dupids
 
 logger = logging.getLogger(__name__)
 

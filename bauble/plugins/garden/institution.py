@@ -27,13 +27,14 @@ import os
 import re
 from gettext import gettext as _
 
+import gi
+
 import bauble.db as db
 import bauble.editor as editor
 import bauble.meta as meta
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-import gi
 
 # mapping stuff
 gi.require_version("Gtk", "3.0")

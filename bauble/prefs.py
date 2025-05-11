@@ -21,11 +21,12 @@ import os
 from configparser import RawConfigParser
 from gettext import gettext as _
 
+import gi
+
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
-import gi
 
 gi.require_version("Gtk", "3.0")
 import copy
@@ -275,7 +276,7 @@ class _prefs(dict):
 
     def items(self):
         return [
-            ("{}.{}".format(section, name), value)
+            (f"{section}.{name}", value)
             for section in sorted(prefs.config.sections())
             for name, value in prefs.config.items(section)
         ]
