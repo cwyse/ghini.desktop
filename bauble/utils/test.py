@@ -21,16 +21,17 @@
 # test.py
 #
 # Description: test for bauble.utils
-import pytest
-
 import bauble.db as db
 import bauble.utils as utils
+import gi
+import pytest
 from bauble.error import CheckConditionError
 from bauble.utils import topological_sort
-from sqlalchemy import MetaData, Table, ForeignKey, Column, Integer, Sequence
-import gi
+from sqlalchemy import Column, ForeignKey, Integer, MetaData, Sequence, Table
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+
 
 def test_create_message_details_dialog():
     pytest.skip("Not Implemented")  # Skip the test with pytest's skip functionality

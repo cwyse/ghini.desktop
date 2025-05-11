@@ -23,34 +23,35 @@
 # Description: have to name this module csv_ in order to avoid conflict
 # with the system csv module
 #
-import sys
 import csv
 import logging
 import os
+import sys
+import threading
 import traceback
 from gettext import gettext as _
-import threading
 from queue import Queue
+
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
-from bauble.plugins.imex.csv_processor import CSVProcessor
 import bauble.task
 import bauble.utils as utils
+import gi
 from bauble import pb_set_fraction
 from bauble.error import BaubleError
+from bauble.plugins.imex.csv_processor import CSVProcessor
 from bauble.plugins.imex.unicode_utils import UnicodeWriter
-import gi
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
 import sqlalchemy as sa
+from gi.repository import Gtk
+
 #from sqlalchemy import Boolean
-from sqlalchemy import ColumnDefault
-from sqlalchemy import inspect
-from sqlalchemy import func
-#from sqlalchemy.exc import DataError
-from sqlalchemy.orm import configure_mappers
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import ColumnDefault, func, inspect
 from sqlalchemy.exc import IntegrityError
+
+#from sqlalchemy.exc import DataError
+from sqlalchemy.orm import configure_mappers, sessionmaker
 
 logger = logging.getLogger(__name__)
 QUOTE_STYLE = csv.QUOTE_MINIMAL
@@ -610,8 +611,10 @@ class CSVImporter(Importer):
         logger.debug("on_response")
         logger.debug(response)
 
-from sqlalchemy import select
 from contextlib import contextmanager
+
+from sqlalchemy import select
+
 
 @contextmanager
 def open_file_safe(filename, mode="w"):

@@ -1,10 +1,18 @@
-import pytest
-from bauble.error import BaubleError
-from bauble.pluginmgr import Plugin, PluginRegistry, _create_dependency_pairs, install, init, plugins
-import bauble.utils as utils
-import os
 import logging
+import os
+
+import bauble.utils as utils
+import pytest
 from bauble import db
+from bauble.error import BaubleError
+from bauble.pluginmgr import (
+    Plugin,
+    PluginRegistry,
+    _create_dependency_pairs,
+    init,
+    install,
+    plugins,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +155,7 @@ class PluginMgrTests:
 
                 # Verify the expected record count
                 from bauble.plugins.plants import Family
-                from sqlalchemy import select, func
+                from sqlalchemy import func, select
                 stmt = select(func.count()).select_from(Family)
                 count = db_session.execute(stmt).scalar_one()
                 assert count == 1387, f"Expected 1387 records in Family, found {count}"

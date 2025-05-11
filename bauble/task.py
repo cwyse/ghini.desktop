@@ -27,6 +27,7 @@ import logging
 import bauble
 import fibra
 import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 

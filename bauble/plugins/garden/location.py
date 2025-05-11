@@ -28,30 +28,25 @@ import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.utils as utils
-from bauble.editor import GenericEditorPresenter
-from bauble.editor import GenericEditorView
-from bauble.editor import GenericModelViewPresenterEditor
-from bauble.editor import NotesPresenter
-from bauble.editor import UnicodeOrNoneValidator
-from bauble.view import Action
-from bauble.view import InfoBox
-from bauble.shared import InfoExpander
-from bauble.view import MapInfoExpander
-from bauble.view import PropertiesExpander
 import gi
+from bauble.editor import (
+    GenericEditorPresenter,
+    GenericEditorView,
+    GenericModelViewPresenterEditor,
+    NotesPresenter,
+    UnicodeOrNoneValidator,
+)
+from bauble.shared import InfoExpander
+from bauble.view import Action, InfoBox, MapInfoExpander, PropertiesExpander
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import select
+
 #from sqlalchemy import text
-from sqlalchemy import Unicode
-from sqlalchemy import UnicodeText
+from sqlalchemy import Column, Integer, Unicode, UnicodeText, asc, select
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import relationship, validates
 from sqlalchemy.orm.session import object_session
-from sqlalchemy import asc
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

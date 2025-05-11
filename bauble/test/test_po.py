@@ -20,9 +20,9 @@ import glob
 import logging
 import os
 import re
-import pytest
 import unittest
 
+import pytest
 from babel.messages.pofile import read_po
 
 logger = logging.getLogger(__name__)

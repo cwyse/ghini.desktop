@@ -30,6 +30,7 @@ convert the stylesheet to PDF.
 import logging
 import os
 import re
+
 #import shutil
 import sys
 import tempfile
@@ -39,14 +40,13 @@ from gettext import gettext as _
 import bauble.paths as bpaths
 import bauble.prefs as prefs
 import bauble.utils as butils
-from bauble.plugins.abcd import ABCDAdapter
-from bauble.plugins.abcd import ABCDElement
-from bauble.plugins.abcd import create_abcd
+import gi
+from bauble.plugins.abcd import ABCDAdapter, ABCDElement, create_abcd
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
 from bauble.plugins.plants.species import Species
 from bauble.plugins.report import FormatterPlugin
-import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy.orm import object_session

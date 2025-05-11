@@ -29,26 +29,28 @@ import bauble
 import bauble.editor as editor
 import bauble.paths as paths
 import bauble.utils as utils
+import gi
 from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.genus import GenusSynonym
+from bauble.plugins.plants.genus import Genus, GenusSynonym
 from bauble.plugins.plants.geography import GeographicAreaMenu
-from bauble.plugins.plants.species_model import compare_rank
-from bauble.plugins.plants.species_model import Habit
-from bauble.plugins.plants.species_model import infrasp_rank_values
-from bauble.plugins.plants.species_model import Species
-from bauble.plugins.plants.species_model import SpeciesDistribution
-from bauble.plugins.plants.species_model import SpeciesSynonym
-from bauble.plugins.plants.species_model import VernacularName
+from bauble.plugins.plants.species_model import (
+    Habit,
+    Species,
+    SpeciesDistribution,
+    SpeciesSynonym,
+    VernacularName,
+    compare_rank,
+    infrasp_rank_values,
+)
 from bauble.prefs import prefs
 from bauble.utils import safe_set_props
-import gi
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib
-from gi.repository import Gtk
+from gi.repository import GLib, Gtk
+from sqlalchemy import func, select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm.session import object_session
-from sqlalchemy import select, func
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 

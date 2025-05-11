@@ -31,10 +31,10 @@ import bauble.pluginmgr as pluginmgr
 import bauble.task
 import bauble.utils as utils
 import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import select
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

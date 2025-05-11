@@ -33,36 +33,40 @@ import bauble.editor as editor
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-from bauble.prefs import prefs
-from bauble.view import InfoBox
-from bauble.shared import InfoExpander
-from bauble.utils import safe_set_props, handle_db_error
-from bauble.view import PropertiesExpander
-from bauble.view import select_in_search_results
 import gi
+from bauble.prefs import prefs
+from bauble.shared import InfoExpander
+from bauble.utils import handle_db_error, safe_set_props
+from bauble.view import InfoBox, PropertiesExpander, select_in_search_results
+
 gi.require_version("Gtk", "3.0")
+import importlib
+
 from gi.repository import Gtk
-from sqlalchemy import and_
-from sqlalchemy import Column
-from sqlalchemy import ForeignKey
-from sqlalchemy import Integer
-from sqlalchemy import String
-from sqlalchemy import select,distinct, delete
+
+#from sqlalchemy.types import Enum
 #from sqlalchemy import text
-from sqlalchemy import Unicode
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import (
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    Unicode,
+    UniqueConstraint,
+    and_,
+    asc,
+    delete,
+    distinct,
+    select,
+)
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
-#from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
-from sqlalchemy.orm import validates
-from sqlalchemy.orm.session import object_session
-#from sqlalchemy.types import Enum
-from sqlalchemy import asc
-from sqlalchemy.orm import Session
 from sqlalchemy.ext.hybrid import hybrid_property
-import importlib
+
+#from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import Session, relationship, synonym, validates
+from sqlalchemy.orm.session import object_session
+
 view = importlib.import_module("bauble.view")
 logger = logging.getLogger(__name__)
 

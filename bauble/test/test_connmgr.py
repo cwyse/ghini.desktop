@@ -19,21 +19,23 @@
 # Refactored for Pytest and SQLAlchemy 2.0.36 compatibility
 
 import os
-import pytest
+
 import gi
+import pytest
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-from bauble.prefs import prefs
+import copy
+import logging
+import shutil
+import tempfile
+import threading
+
+import bauble
 from bauble.connmgr import ConnMgrPresenter
 from bauble.editor import MockDialog, MockView
+from bauble.prefs import prefs
 from bauble.test import check_dupids
-import tempfile
-import bauble
-import shutil
-
-import copy
-import threading
-import logging
+from gi.repository import Gtk
 
 logger = logging.getLogger('bauble.connmgr')
 logger._cache.clear()

@@ -23,6 +23,7 @@ from gettext import gettext as _
 
 import bauble.utils.desktop as desktop
 import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -39,7 +40,9 @@ def _open_link(data=None, *args, **kwargs):
     )
     desktop.open(data)
 import re
+
 from gi.repository import Gtk
+
 
 class BaubleLinkButton:
     """

@@ -33,20 +33,16 @@ import bauble.meta as meta
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-
 import gi
+
 # mapping stuff
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkClutter", "1.0")
 gi.require_version("GtkChamplain", "0.12")
 gi.require_version("Champlain", "0.12")
-from gi.repository import Champlain
-from gi.repository import Clutter
-from gi.repository import Gdk
-from gi.repository import Gtk
-from gi.repository import GtkChamplain
-from gi.repository import GtkClutter
-from sqlalchemy import select, insert, update
+from gi.repository import Champlain, Clutter, Gdk, Gtk, GtkChamplain, GtkClutter
+from sqlalchemy import insert, select, update
+
 #from sqlalchemy.orm import Session
 
 # Ensure GTK is initialized and get the display

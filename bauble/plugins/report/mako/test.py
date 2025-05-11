@@ -20,15 +20,22 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
 import os
+
 import pytest
-from bauble.plugins.garden import Accession, Location, Plant
-from bauble.plugins.plants import Family, Genus, Species, GeographicArea, SpeciesDistribution, VernacularName
-from bauble.plugins.report import get_pertinent_objects
-from bauble.plugins.report.mako import MakoFormatterPlugin
-from sqlalchemy import select
 from bauble import utils
+from bauble.plugins.garden import Accession, Location, Plant
+from bauble.plugins.plants import (
+    Family,
+    Genus,
+    GeographicArea,
+    Species,
+    SpeciesDistribution,
+    VernacularName,
+)
+from bauble.plugins.report import SVG, get_pertinent_objects
+from bauble.plugins.report.mako import MakoFormatterPlugin
 from bauble.plugins.report.utils import Code39
-from bauble.plugins.report import SVG
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 

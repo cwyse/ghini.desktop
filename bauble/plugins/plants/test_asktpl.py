@@ -22,9 +22,11 @@
 # Refactored for Pytest and SQLAlchemy 2.0.36 compatibility
 
 import logging
-import pytest
 from unittest.mock import patch
+
+import pytest
 from bauble.plugins.plants.ask_tpl import AskTPL, what_to_do_with_it
+
 
 @pytest.fixture
 def mock_requests():

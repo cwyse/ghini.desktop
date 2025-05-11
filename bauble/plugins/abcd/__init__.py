@@ -33,10 +33,9 @@ import gi
 from bauble.error import check
 from bauble.plugins.garden.plant import Plant
 from sqlalchemy import select
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-
-
 
 # NOTE: see biocase provider software for reading and writing ABCD data
 # files, already downloaded software to desktop
@@ -390,7 +389,7 @@ class ABCDExporter:
         if plants:
             nplants = len(plants)
         else:
-            from sqlalchemy import select, func
+            from sqlalchemy import func, select
 
             stmt = select(func.count()).select_from(Plant)
             nplants = db.Session().execute(stmt).scalar_one()

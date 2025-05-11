@@ -20,9 +20,10 @@
 # test for bauble.meta
 #
 # Import necessary modules
+import bauble.meta as meta
 import pytest
 from sqlalchemy import select
-import bauble.meta as meta
+
 
 @pytest.fixture
 def session_with_meta(db_session, clean_db):

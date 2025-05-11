@@ -1,5 +1,7 @@
 import csv
+
 import bauble.utils as utils
+
 
 class UnicodeReader:
 

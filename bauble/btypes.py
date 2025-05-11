@@ -20,19 +20,20 @@
 # types.py
 #
 import logging
+from datetime import datetime, timezone
 from gettext import gettext as _
+from threading import Lock
 
 import bauble.error as error
 import sqlalchemy.types as types
 from bauble.utils import parse_date
-from datetime import datetime, timezone
-from threading import Lock
 
 _prefs_lock = Lock()  # ✅ Add this at the module level
 
 logger = logging.getLogger(__name__)
 
 from typing import Protocol, runtime_checkable
+
 
 @runtime_checkable
 class BaseModelProtocol(Protocol):

@@ -20,13 +20,9 @@
 # meta.py
 #
 import bauble.db as db
-#import bauble.utils as utils
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import select
-from sqlalchemy import Unicode
 
-from sqlalchemy import UnicodeText
+#import bauble.utils as utils
+from sqlalchemy import Column, Integer, Unicode, UnicodeText, select
 
 VERSION_KEY = "version"
 CREATED_KEY = "created"

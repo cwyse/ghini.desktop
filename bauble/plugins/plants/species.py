@@ -30,29 +30,30 @@ import bauble.pluginmgr as pluginmgr
 import bauble.search as search
 import bauble.utils as utils
 import bauble.view as view
-from bauble.plugins.plants.species_editor import edit_species
-from bauble.plugins.plants.species_editor import SpeciesDistribution
-from bauble.plugins.plants.species_editor import SpeciesEditor
-from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
-from bauble.plugins.plants.species_editor import SpeciesEditorView
-from bauble.plugins.plants.species_model import DefaultVernacularName
-from bauble.plugins.plants.species_model import Species
-from bauble.plugins.plants.species_model import SpeciesNote
-from bauble.plugins.plants.species_model import SpeciesSynonym
-from bauble.plugins.plants.genus import Genus, GenusSynonym
-from bauble.plugins.plants.species_model import VernacularName
-from bauble.prefs import prefs
-from bauble.view import Action
-from bauble.view import InfoBox
-from bauble.shared import InfoExpander
-from bauble.view import PropertiesExpander
-from bauble.view import select_in_search_results
 import gi
+from bauble.plugins.plants.genus import Genus, GenusSynonym
+from bauble.plugins.plants.species_editor import (
+    SpeciesDistribution,
+    SpeciesEditor,
+    SpeciesEditorPresenter,
+    SpeciesEditorView,
+    edit_species,
+)
+from bauble.plugins.plants.species_model import (
+    DefaultVernacularName,
+    Species,
+    SpeciesNote,
+    SpeciesSynonym,
+    VernacularName,
+)
+from bauble.prefs import prefs
+from bauble.shared import InfoExpander
+from bauble.view import Action, InfoBox, PropertiesExpander, select_in_search_results
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+from sqlalchemy import distinct, select
 from sqlalchemy.orm.session import object_session
-from sqlalchemy import select, distinct
-
 
 logger = logging.getLogger(__name__)
 

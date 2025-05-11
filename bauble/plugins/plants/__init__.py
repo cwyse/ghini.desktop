@@ -28,6 +28,7 @@
 # dynamically
 import logging
 import os
+
 #import sys
 from functools import partial
 from gettext import gettext as _
@@ -38,40 +39,49 @@ import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.search as search
+import gi
 from bauble import utils
-from bauble.plugins.plants.family import Familia
-from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.family import family_context_menu
-from bauble.plugins.plants.family import FamilyEditor
-from bauble.plugins.plants.family import FamilyInfoBox
-from bauble.plugins.plants.family import FamilyNote
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.genus import genus_context_menu
-from bauble.plugins.plants.genus import GenusEditor
-from bauble.plugins.plants.genus import GenusInfoBox
-from bauble.plugins.plants.genus import GenusNote
-from bauble.plugins.plants.geography import GeographicArea
-from bauble.plugins.plants.geography import get_species_in_geographic_area
-from bauble.plugins.plants.species import add_accession_action
-from bauble.plugins.plants.species import Species
-from bauble.plugins.plants.species import species_context_menu
-from bauble.plugins.plants.species import SpeciesDistribution
-from bauble.plugins.plants.species import SpeciesEditor
-from bauble.plugins.plants.species import SpeciesInfoBox
-from bauble.plugins.plants.species import SpeciesNote
-from bauble.plugins.plants.species import SynonymSearch
-from bauble.plugins.plants.species import VernacularName
-from bauble.plugins.plants.species import VernacularNameInfoBox
-from bauble.plugins.plants.species import vernname_context_menu
+from bauble.plugins.plants.family import (
+    Familia,
+    Family,
+    FamilyEditor,
+    FamilyInfoBox,
+    FamilyNote,
+    family_context_menu,
+)
+from bauble.plugins.plants.genus import (
+    Genus,
+    GenusEditor,
+    GenusInfoBox,
+    GenusNote,
+    genus_context_menu,
+)
+from bauble.plugins.plants.geography import (
+    GeographicArea,
+    get_species_in_geographic_area,
+)
+from bauble.plugins.plants.species import (
+    Species,
+    SpeciesDistribution,
+    SpeciesEditor,
+    SpeciesInfoBox,
+    SpeciesNote,
+    SynonymSearch,
+    VernacularName,
+    VernacularNameInfoBox,
+    add_accession_action,
+    species_context_menu,
+    vernname_context_menu,
+)
 from bauble.ui import DefaultView
 from bauble.utils import safe_set_text
 from bauble.view import SearchView
-import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
+
 #from gi.repository import Gtk
-from sqlalchemy import select
-from sqlalchemy import text
+from sqlalchemy import select, text
 
 from .stored_queries import StoredQueryEditorTool
 from .taxonomy_check import TaxonomyCheckTool
@@ -495,6 +505,7 @@ class PlantsPlugin(pluginmgr.Plugin):
             return
 
         import os.path
+
         from bauble import paths
 
         base = os.path.join(paths.lib_dir(), "plugins", "plants")

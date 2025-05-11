@@ -21,12 +21,9 @@ import os.path
 from gettext import gettext as _
 
 import bauble
-from bauble import db
-from bauble import editor
-from bauble import meta
-from bauble import paths
-from bauble import pluginmgr
 import gi
+from bauble import db, editor, meta, paths, pluginmgr
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Pango
 from sqlalchemy import select

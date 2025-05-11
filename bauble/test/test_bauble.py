@@ -24,17 +24,16 @@
 import datetime
 import logging
 import os
-import pytest
+import tempfile
 import time
-from sqlalchemy import Column, Integer, select
-from bauble import db, meta, prefs
+from io import BytesIO
+
 import bauble.btypes as types
+import pytest
+from bauble import db, meta, prefs
 from bauble.plugins.plants import Family
 from bauble.test import check_dupids
-import tempfile
-from sqlalchemy import text
-
-from io import BytesIO
+from sqlalchemy import Column, Integer, select, text
 
 logger = logging.getLogger(__name__)
 logger._cache.clear()
@@ -351,8 +350,9 @@ class TestDateTypes:
         """
         Test for duplicate IDs in all `.glade` files.
         """
-        import bauble as mod
         import glob
+
+        import bauble as mod
 
         # Get the directory of the module
         head, _ = os.path.split(mod.__file__)
@@ -430,6 +430,8 @@ class TestHistory:
 
 
 from bauble.editor import GenericEditorPresenter, GenericEditorView
+
+
 @pytest.mark.usefixtures("clean_db")
 class TestMVP:
     """

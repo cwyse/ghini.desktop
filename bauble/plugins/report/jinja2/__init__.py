@@ -20,19 +20,19 @@
 # report/jinja2/
 #
 import logging
+
 #import math
 import os
 import re
+
 #import shutil
 #import tempfile
 from gettext import gettext as _
 
-from bauble import paths
-from bauble import utils
-from bauble.plugins.report import PS
-from bauble.plugins.report import SVG
-from bauble.plugins.report import TemplateFormatterPlugin
 import gi
+from bauble import paths, utils
+from bauble.plugins.report import PS, SVG, TemplateFormatterPlugin
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 

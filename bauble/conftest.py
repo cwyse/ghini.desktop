@@ -19,10 +19,11 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
 import sys
+
 import pytest
 from bauble import db, pluginmgr
-from bauble.prefs import prefs
 from bauble.error import BaubleError
+from bauble.prefs import prefs
 
 # Global configuration
 logger = logging.getLogger(__name__)

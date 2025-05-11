@@ -30,15 +30,17 @@ from gettext import gettext as _
 import bauble.error as err
 import bauble.i18n
 import bauble.paths as paths
+
 #import debugpy
 import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
-from gi.repository import Gtk
-
 import warnings
+
+from gi.repository import Gtk
 from sqlalchemy.exc import SAWarning
+
 warnings.simplefilter("always", SAWarning)
 
 from bauble import _version
@@ -48,15 +50,14 @@ version_tuple = tuple(int(part) if part.isdigit() else part for part in version.
 
 # extract release date (assuming setuptools_scm local_scheme='node-and-date')
 import re
+
 match = re.search(r'\+g[0-9a-f]+\.d(\d{8})', version)
 release_date = match.group(1) if match else None
 installation_date = os.environ.get("BUILD_DATE", "1970-01-01T00:00:00Z")
 
 
 from bauble.connmgr import start_connection_manager
-
-
-from gi.repository import Gtk, Gio, GLib, Gdk
+from gi.repository import Gdk, Gio, GLib, Gtk
 
 try:
     from gi.repository import GObject  # Ensures compatibility
@@ -253,12 +254,13 @@ def command_handler(cmd, arg):
 conn_default_pref = "conn.default"
 conn_list_pref = "conn.list"
 
-from gi.repository import Gtk, Gio, GLib, Gdk
-from bauble.prefs import prefs, use_sentry_client_pref
+import bauble.db as db
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
+from bauble.prefs import prefs, use_sentry_client_pref
 from bauble.view import DefaultCommandHandler
-import bauble.db as db
+from gi.repository import Gdk, Gio, GLib, Gtk
+
 
 class GhiniApp:
     """Manages application logic without subclassing Gtk.Application."""

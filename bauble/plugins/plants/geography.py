@@ -23,17 +23,12 @@ from operator import itemgetter
 
 import bauble.db as db
 import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-from sqlalchemy import Column
-from sqlalchemy import ForeignKey
-from sqlalchemy import Integer
-from sqlalchemy import select
-from sqlalchemy import String
-from sqlalchemy import Unicode
-from sqlalchemy.orm import object_session
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import Session
+from sqlalchemy import Column, ForeignKey, Integer, String, Unicode, select
+from sqlalchemy.orm import Session, object_session, relationship
+
 
 def get_species_in_geographic_area(geo):
     """
@@ -101,6 +96,7 @@ class GeographicAreaMenu:
         self.menu = Gtk.Menu()  
         geographic_area_table = GeographicArea.__table__
         import bauble.db as db
+
         # Query the database for the geographic area information
         geos = db.Session.execute(
             select(

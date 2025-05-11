@@ -31,17 +31,12 @@ import os
 from gettext import gettext as _
 
 import bauble
-from bauble import paths
-from bauble import prefs
-from bauble.editor import GenericEditorPresenter
-from bauble.editor import GenericEditorView
-from bauble import version, version_tuple
-
 import gi
-gi.require_version("Gtk", "3.0")
-from gi.repository import GdkPixbuf
-from gi.repository import Gtk
+from bauble import paths, prefs, version, version_tuple
+from bauble.editor import GenericEditorPresenter, GenericEditorView
 
+gi.require_version("Gtk", "3.0")
+from gi.repository import GdkPixbuf, Gtk
 
 logger = logging.getLogger(__name__)
 logger._cache.clear()
