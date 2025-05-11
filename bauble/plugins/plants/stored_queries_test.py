@@ -107,7 +107,7 @@ class TestStoredQueries:
         model[1] = "l:t:q"
         model[4] = "l:t:q"
         after = [i for i in model]
-        for i, v in enumerate(after):
+        for i, _v in enumerate(after):
             if i in [0, 3]:
                 assert after[i] == "l:t:q"
             else:

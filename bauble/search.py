@@ -160,8 +160,7 @@ def search(text, session=None):
     results = set()
     for strategy in list(_search_strategies.values()):
         logger.debug(
-            "applying search strategy %s from module %s"
-            % (type(strategy).__name__, type(strategy).__module__)
+            f"applying search strategy {type(strategy).__name__} from module {type(strategy).__module__}"
         )
         results.update(strategy.search(text, session))
     return list(results)
@@ -220,7 +219,7 @@ class StringToken(ValueABC):
         self.value = t[0]  # no need to parse the string
 
     def __repr__(self):
-        return "'%s'" % (self.value)
+        return f"'{self.value}'"
 
 
 class NumericToken(ValueABC):
@@ -228,7 +227,7 @@ class NumericToken(ValueABC):
         self.value = float(t[0])  # store the float value
 
     def __repr__(self):
-        return "%s" % (self.value)
+        return f"{self.value}"
 
 
 def smartdatetime(year_or_offset, *args):
@@ -272,7 +271,7 @@ class TypedValueToken(ValueABC):
     }
 
     def __init__(self, t):
-        logger.debug("constructing typedvaluetoken %s" % str(t))
+        logger.debug(f"constructing typedvaluetoken {str(t)}")
         try:
             constructor, converter = self.constructor[t[1]]
         except KeyError:
@@ -281,14 +280,14 @@ class TypedValueToken(ValueABC):
         self.value = constructor(*params)
 
     def __repr__(self):
-        return "%s" % (self.value)
+        return f"{self.value}"
 
 
 
 
 class IdentifierAction:
     def __init__(self, t):
-        logger.debug("IdentifierAction::__init__(%s)" % t)
+        logger.debug(f"IdentifierAction::__init__({t})")
         self.steps = t[0][:-2:2]
         self.leaf = t[0][-1]
 
@@ -302,7 +301,7 @@ class IdentifierAction:
         """
         # Handle both dictionary and object-style `env`
         domain_class = getattr(env, "domain", None) or env.get("domain", None)
-        session = getattr(env, "session", None) or env.get("session", None)
+        getattr(env, "session", None) or env.get("session", None)
         search_strategy = getattr(env, "search_strategy", None) or env.get(
             "search_strategy", None
         )
@@ -441,7 +440,7 @@ class IdentifierAction:
 
 class FilteredIdentifierAction:
     def __init__(self, t):
-        logger.debug("FilteredIdentifierAction::__init__(%s)" % t)
+        logger.debug(f"FilteredIdentifierAction::__init__({t})")
         self.steps = t[0][:-7:2]
         self.filter_attr = t[0][-6]
         self.filter_op = t[0][-5]
@@ -461,12 +460,12 @@ class FilteredIdentifierAction:
             "<=": lambda x, y: x <= y,
             ">": lambda x, y: x > y,
             ">=": lambda x, y: x >= y,
-            "like": lambda x, y: utils.ilike(x, "%s" % y),
-            "contains": lambda x, y: utils.ilike(x, "%%%s%%" % y),
-            "has": lambda x, y: utils.ilike(x, "%%%s%%" % y),
-            "ilike": lambda x, y: utils.ilike(x, "%s" % y),
-            "icontains": lambda x, y: utils.ilike(x, "%%%s%%" % y),
-            "ihas": lambda x, y: utils.ilike(x, "%%%s%%" % y),
+            "like": lambda x, y: utils.ilike(x, f"{y}"),
+            "contains": lambda x, y: utils.ilike(x, f"%{y}%"),
+            "has": lambda x, y: utils.ilike(x, f"%{y}%"),
+            "ilike": lambda x, y: utils.ilike(x, f"{y}"),
+            "icontains": lambda x, y: utils.ilike(x, f"%{y}%"),
+            "ihas": lambda x, y: utils.ilike(x, f"%{y}%"),
         }.get(self.filter_op)
 
     def __repr__(self):
@@ -494,7 +493,8 @@ class FilteredIdentifierAction:
             )
         attr = getattr(current_cls, self.filter_attr)
 
-        clause = lambda x: self.operation(attr, x)
+        def clause(x):
+            return self.operation(attr, x)
         stmt = stmt.filter(clause(self.filter_value.express()))
 
         # Resolve the final leaf attribute
@@ -512,7 +512,7 @@ class FilteredIdentifierAction:
 
 class IdentExpression:
     def __init__(self, t):
-        logger.debug("IdentExpression::__init__(%s)" % t)
+        logger.debug(f"IdentExpression::__init__({t})")
         self.op = t[0][1]
 
         # cfr: SearchParser.binop
@@ -529,12 +529,12 @@ class IdentExpression:
             "<=": lambda x, y: x <= y,
             ">": lambda x, y: x > y,
             ">=": lambda x, y: x >= y,
-            "like": lambda x, y: utils.ilike(x, "%s" % y),
-            "contains": lambda x, y: utils.ilike(x, "%%%s%%" % y),
-            "has": lambda x, y: utils.ilike(x, "%%%s%%" % y),
-            "ilike": lambda x, y: utils.ilike(x, "%s" % y),
-            "icontains": lambda x, y: utils.ilike(x, "%%%s%%" % y),
-            "ihas": lambda x, y: utils.ilike(x, "%%%s%%" % y),
+            "like": lambda x, y: utils.ilike(x, f"{y}"),
+            "contains": lambda x, y: utils.ilike(x, f"%{y}%"),
+            "has": lambda x, y: utils.ilike(x, f"%{y}%"),
+            "ilike": lambda x, y: utils.ilike(x, f"{y}"),
+            "icontains": lambda x, y: utils.ilike(x, f"%{y}%"),
+            "ihas": lambda x, y: utils.ilike(x, f"%{y}%"),
         }.get(self.op)
         self.operands = t[0][0::2]  # every second object is an operand
 
@@ -675,7 +675,8 @@ class IdentExpression:
                     and_(attr.is_not(None), attr != "")
                 )  # ✅ Convert to SQL NULL check
         else:
-            clause = lambda x: self.operation(attr, x)
+            def clause(x):
+                return self.operation(attr, x)
             stmt = stmt.filter(clause(comparison_value))
         print(
             "Updated IdentExpression stmt:",
@@ -745,7 +746,7 @@ class AggregatedExpression(IdentExpression):
 
     def __init__(self, t):
         super().__init__(t)
-        logger.debug("AggregatedExpression::__init__(%s)" % t)
+        logger.debug(f"AggregatedExpression::__init__({t})")
 
     def evaluate(self, env):
         """
@@ -769,7 +770,8 @@ class AggregatedExpression(IdentExpression):
         logger.debug(f"Applying aggregate function {f} to attribute {attr}")
 
         # Create HAVING clause
-        clause = lambda x: self.operation(f(attr), x)
+        def clause(x):
+            return self.operation(f(attr), x)
 
         # Apply GROUP BY and HAVING conditions
         stmt = stmt.group_by(group_by_column).having(clause(self.operands[1].express()))
@@ -782,7 +784,7 @@ class BetweenExpressionAction:
         self.operands = t[0][0::2]  # every second object is an operand
 
     def __repr__(self):
-        return "(BETWEEN %s %s %s)" % tuple(self.operands)
+        return "(BETWEEN {} {} {})".format(*tuple(self.operands))
 
     def evaluate(self, env):
         """
@@ -820,7 +822,7 @@ class UnaryLogical:
         self.op, self.operand = t[0]
 
     def __repr__(self):
-        return "%s %s" % (self.name, str(self.operand))
+        return f"{self.name} {str(self.operand)}"
 
     def needs_join(self, env):
         """
@@ -838,7 +840,7 @@ class BinaryLogical:
         self.operands = t[0][0::2]
 
     def __repr__(self):
-        return "(%s %s %s)" % (self.operands[0], self.name, self.operands[1])
+        return f"({self.operands[0]} {self.name} {self.operands[1]})"
 
     def needs_join(self, env):
         #        left = self.operands[0].needs_join(env) or []
@@ -949,7 +951,7 @@ class ParenthesisedQuery:
         self.content = t[1]
 
     def __repr__(self):
-        return "(%s)" % self.content.__repr__()
+        return f"({self.content.__repr__()})"
 
     def evaluate(self, env):
         return self.content.evaluate(env)
@@ -1046,7 +1048,7 @@ class QueryAction:
         print(f"DEBUG: Compiled SQL Query:\n{compiled_sql}")
 
         # ✅ Ensure only primary key (`id`) is selected
-        primary_key_column = inspect(domain_class).primary_key[
+        inspect(domain_class).primary_key[
             0
         ]  # Get the primary key column
         # stmt = select(primary_key_column).where(stmt.whereclause)  # Modify query to select only the primary key
@@ -1065,7 +1067,7 @@ class QueryAction:
         try:
             result = set(session.scalars(stmt).all())
         except NoResultFound:
-            resuls = set()
+            result = set()
 
         if None in result:
             logger.warning("Removing None from result set")
@@ -1205,7 +1207,7 @@ class BinomialNameAction:
         self.species_epithet = t[1]
 
     def __repr__(self):
-        return "%s %s" % (self.genus_epithet, self.species_epithet)
+        return f"{self.genus_epithet} {self.species_epithet}"
 
     def invoke(self, search_strategy):
         from bauble.plugins.plants.genus import Genus
@@ -1359,23 +1361,26 @@ class DomainExpressionAction:
         }  # exclude "=" since it's handled separately
 
         if self.cond in ("like", "ilike"):
-            condition = lambda col_name: lambda val: utils.ilike(
-                getattr(cls, col_name), f"{val}"
-            )
+            def condition(col_name):
+                return lambda val: utils.ilike(
+                            getattr(cls, col_name), f"{val}"
+                        )
         elif self.cond in ("contains", "icontains", "has", "ihas"):
-            condition = lambda col_name: lambda val: utils.ilike(
-                getattr(cls, col_name), f"%{val}%"
-            )
+            def condition(col_name):
+                return lambda val: utils.ilike(
+                            getattr(cls, col_name), f"%{val}%"
+                        )
         elif self.cond == "=":
-            condition = lambda col_name: lambda val: getattr(cls, col_name) == val
+            def condition(col_name):
+                return lambda val: getattr(cls, col_name) == val
         elif self.cond in op_map:
-            condition = lambda col_name: lambda val: op_map[self.cond](
-                getattr(cls, col_name), val
-            )
+            def condition(col_name):
+                return lambda val: op_map[self.cond](
+                            getattr(cls, col_name), val
+                        )
         else:
             raise ValueError(f"Unsupported or unsafe operator: {self.cond}")
 
-        result = set()
 
         filters = []
         for col_name in properties:
@@ -1403,12 +1408,12 @@ class DomainExpressionAction:
 class AggregatingAction:
 
     def __init__(self, t):
-        logger.debug("AggregatingAction::__init__(%s)" % t)
+        logger.debug(f"AggregatingAction::__init__({t})")
         self.function = t[0]
         self.identifier = t[2]
 
     def __repr__(self):
-        return "(%s %s)" % (self.function, self.identifier)
+        return f"({self.function} {self.identifier})"
 
     def needs_join(self, env):
         return [self.identifier.needs_join(env)]
@@ -1429,7 +1434,7 @@ class AggregatingAction:
 class ValueListAction:
 
     def __init__(self, t):
-        logger.debug("ValueListAction::__init__(%s)" % t)
+        logger.debug(f"ValueListAction::__init__({t})")
         self.values = t[0]
 
     def __repr__(self):
@@ -1511,12 +1516,12 @@ wordStart, wordEnd = WordStart(), WordEnd()
 class SearchParser:
     """The parser for bauble.search.MapperSearch"""
 
-    def debug_parse_action(name):
+    def debug_parse_action(self):
         """Returns a parse action that prints the parsed tokens with a label."""
 
         def action(tokens):
             print(
-                f"🔍 {name} parsed:", tokens.dump()
+                f"🔍 {self} parsed:", tokens.dump()
             )  # Print structured result with a label
             return tokens  # Ensure the original tokens are returned
 
@@ -1736,7 +1741,7 @@ class MapperSearch(SearchStrategy):
                            search by default
         """
 
-        logger.debug("%s.add_meta(%s, %s, %s)" % (self, domain, cls, properties))
+        logger.debug(f"{self}.add_meta({domain}, {cls}, {properties})")
 
         check(
             isinstance(properties, list),

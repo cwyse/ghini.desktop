@@ -117,7 +117,7 @@ if paths.main_is_frozen():  # main is frozen
     sys.path.insert(0, zipfile)
     # put the bundled gtk at the beginning of the path to make it the
     # preferred version
-    os.environ["PATH"] = "%s%s%s%s%s%s" % (
+    os.environ["PATH"] = "{}{}{}{}{}{}".format(
         os.pathsep,
         os.path.join(paths.main_dir(), "gtk", "bin"),
         os.pathsep,
@@ -190,7 +190,7 @@ def quit():
     try:
         import bauble.task as task
     except Exception as e:
-        logger.error("bauble.quit(): %s" % utils.utf8(e))
+        logger.error(f"bauble.quit(): {utils.utf8(e)}")
     else:
         task.kill()
     try:
@@ -244,10 +244,10 @@ def command_handler(cmd, arg):
         if hasattr(handler_view, "accel_group"):
             gui.window.add_accel_group(handler_view.accel_group)
     try:
-        last_handler("%s" % cmd, arg)
+        last_handler(f"{cmd}", arg)
     except Exception as e:
         msg = utils.xml_safe(e)
-        logger.error("bauble.command_handler(): %s" % msg)
+        logger.error(f"bauble.command_handler(): {msg}")
         utils.message_details_dialog(msg, traceback.format_exc(), Gtk.MessageType.ERROR)
 
 

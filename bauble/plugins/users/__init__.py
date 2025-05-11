@@ -363,8 +363,7 @@ def has_privileges(role, privilege):
     # if admin check that the user can also create roles
     if privilege == "admin":
         stmt = (
-            "select rolname from pg_roles where rolcreaterole is true and rolname = '%s'"
-            % role
+            f"select rolname from pg_roles where rolcreaterole is true and rolname = '{role}'"
         )
         r = db.engine.execute(stmt).fetchone()
         if not r:
@@ -392,7 +391,7 @@ def set_privilege(role, privilege):
     """Set the role's privileges."""
     check(
         privilege in ("read", "write", "admin", None),
-        "invalid privilege: %s" % privilege,
+        f"invalid privilege: {privilege}",
     )
     if privilege:
         privs = _privileges[privilege]
@@ -488,7 +487,7 @@ class UsersEditor(editor.GenericEditorView):
 
         # TODO: should allow anyone to view the priveleges but only
         # admins to change them
-        logger.debug("current user is %s" % current_user())
+        logger.debug(f"current user is {current_user()}")
         if not has_privileges(current_user(), "admin"):
             msg = _("You do not have privileges to change other " "user privileges")
             utils.message_dialog(utils.utf8(msg))
@@ -515,11 +514,6 @@ class UsersEditor(editor.GenericEditorView):
         self.widgets.filter_check.set_active(True)
 
         def on_toggled(button, priv=None):
-            buttons = (
-                self.widgets.read_button,
-                self.widgets.write_button,
-                self.widgets.admin_button,
-            )
             role = self.get_selected_user()
             active = button.get_active()
             if active and not has_privileges(role, priv):
@@ -540,8 +534,7 @@ class UsersEditor(editor.GenericEditorView):
 
         # only superusers can toggle the admin flag
         stmt = (
-            "select rolname from pg_roles where rolsuper is true and rolname = '%s'"
-            % current_user()
+            f"select rolname from pg_roles where rolsuper is true and rolname = '{current_user()}'"
         )
         r = db.engine.execute(stmt).fetchone()
         if r:
@@ -737,7 +730,7 @@ class UsersTool(pluginmgr.Tool):
     icon_name = "system-users"
 
     @classmethod
-    def start(self):
+    def start(cls):
         UsersEditor().start()
 
 

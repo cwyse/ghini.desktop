@@ -112,7 +112,7 @@ class ExportToPocketThread(threading.Thread):
 
         if self.include_private is False:
             # no private accessions: add a filter to only keep non-private
-            stmt = stmt.where(Accession.private == False)  # `is` does not work
+            stmt = stmt.where(not Accession.private)  # `is` does not work
 
         plant_query = session.execute(stmt).scalars()
         plants = plant_query.all()

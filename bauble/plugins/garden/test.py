@@ -701,7 +701,7 @@ def test_institution_presenter_empty_name_is_a_problem():
 
     view = MockView()
     institution = Institution(name="")
-    presenter = InstitutionPresenter(institution, view)
+    InstitutionPresenter(institution, view)
     assert "add_box" in view.invoked
     assert len(view.boxes) == 1
 

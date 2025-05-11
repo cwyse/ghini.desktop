@@ -547,9 +547,9 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
             pass
         if map.run() == Gtk.ResponseType.OK:
             lat, lon, diam = map.result
-            self.view.widget_set_value("inst_geo_latitude", "%0.6f" % lat)
-            self.view.widget_set_value("inst_geo_longitude", "%0.6f" % lon)
-            self.view.widget_set_value("inst_geo_diameter", "%0.0f" % diam)
+            self.view.widget_set_value("inst_geo_latitude", f"{lat:0.6f}")
+            self.view.widget_set_value("inst_geo_longitude", f"{lon:0.6f}")
+            self.view.widget_set_value("inst_geo_diameter", f"{diam:0.0f}")
         map.destroy()
 
     def on_inst_register_clicked(self, *args, **kwargs):

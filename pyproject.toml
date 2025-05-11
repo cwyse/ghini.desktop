@@ -126,9 +126,11 @@ src_paths = ["src"]
 
 [tool.ruff]
 line-length = 88
-extend-select = ["I", "E", "F", "B", "UP", "N", "W", "C90"]
 exclude = ["tests/data"]
 src = ["src"]
+
+[tool.ruff.lint]
+extend-select = ["I", "E", "F", "B", "UP", "N", "W", "C90"]
 
 [tool.mypy]
 python_version = "3.11"

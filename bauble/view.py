@@ -438,10 +438,12 @@ class LinksExpander(InfoExpander):
     Displays external links and notes associated with a row.
     """
 
-    def __init__(self, notes=None, links=[]):
+    def __init__(self, notes=None, links=None):
         """
         :param notes: The name of the notes property on the row.
         """
+        if links is None:
+            links = []
         super().__init__(_("Links"))
 
         self.dynamic_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
@@ -624,7 +626,7 @@ class PopulateResults(threading.Thread):
             if self.view.row_meta.get(content_type, {}).get("children") is not None:
                 model.append(parent, ["-"])
 
-        for kname, klass, obj in itertools.chain(*groups):
+        for _kname, _klass, obj in itertools.chain(*groups):
             if self.__stopped.is_set():
                 return
             if obj in added:
@@ -858,7 +860,7 @@ class SearchView(pluginmgr.View):
                 self.add_page_to_bottom_notebook(bottom_info)
             label = bottom_info["label"]
             if not hasattr(klass, "attached_to"):
-                logging.warning("class %s does not implement attached_to" % klass)
+                logging.warning(f"class {klass} does not implement attached_to")
                 continue
             objs = klass.attached_to(row)
             model = bottom_info["tree"].get_model()
@@ -868,10 +870,10 @@ class SearchView(pluginmgr.View):
                 label.set_label(bottom_info["name"])
             else:
                 label.set_use_markup(True)
-                label.set_label("<b>%s</b>" % bottom_info["name"])
+                label.set_label("<b>{}</b>".format(bottom_info["name"]))
                 for obj in objs:
                     model.append(
-                        ["%s" % getattr(obj, k) for k in bottom_info["fields_used"]]
+                        [f"{getattr(obj, k)}" for k in bottom_info["fields_used"]]
                     )
             logger.debug(f"done {len(objs)} for {klass.__name__}")
         logger.debug("update_bottom_notebook - exiting")
@@ -904,8 +906,7 @@ class SearchView(pluginmgr.View):
                 and self.row_meta[selected_type].infobox is not None
             ):
                 logger.debug(
-                    "%s defines infobox class %s"
-                    % (selected_type, self.row_meta[selected_type].infobox)
+                    f"{selected_type} defines infobox class {self.row_meta[selected_type].infobox}"
                 )
                 # it might be in cache under different name
                 for ib in list(self.infobox_cache.values()):
@@ -918,7 +919,7 @@ class SearchView(pluginmgr.View):
                     new_infobox = self.row_meta[selected_type].infobox()
                 self.infobox_cache[selected_type] = new_infobox
             logger.debug(
-                "created or retrieved infobox %s %s" % (type(new_infobox), new_infobox)
+                f"created or retrieved infobox {type(new_infobox)} {new_infobox}"
             )
 
             # remove any old infoboxes connected to the pane
@@ -951,7 +952,7 @@ class SearchView(pluginmgr.View):
             set_infobox_from_row(values[0])
         except Exception as e:
             # if an error occurrs, log it and empty infobox.
-            logger.debug("SearchView.update_infobox: %s" % e)
+            logger.debug(f"SearchView.update_infobox: {e}")
             logger.debug(traceback.format_exc())
             logger.debug(values)
             set_infobox_from_row(None)
@@ -977,7 +978,7 @@ class SearchView(pluginmgr.View):
         for accel, cb in self.installed_accels:
             r = self.accel_group.disconnect_key(accel[0], accel[1])
             if not r:
-                logger.warning("Callback not removed: %s" % cb)
+                logger.warning(f"Callback not removed: {cb}")
 
         self.installed_accels = []
         selected = self.get_selected_values()
@@ -1185,19 +1186,15 @@ class SearchView(pluginmgr.View):
                     main, substr = r
                 except:
                     main = r
-                    substr = "(%s)" % type(value).__name__
+                    substr = f"({type(value).__name__})"
                 cell.set_property(
                     "markup",
-                    "%s\n%s"
-                    % (
-                        _mainstr_tmpl % utils.utf8(main),
-                        _substr_tmpl % utils.utf8(substr),
-                    ),
+                    f"{_mainstr_tmpl % utils.utf8(main)}\n{_substr_tmpl % utils.utf8(substr)}",
                 )
 
             except (saexc.InvalidRequestError, TypeError) as e:
                 logger.warning(
-                    "bauble.view.SearchView.cell_data_func(): \n(%s)%s" % (type(e), e)
+                    f"bauble.view.SearchView.cell_data_func(): \n({type(e)}){e}"
                 )
 
                 def remove():
@@ -1211,7 +1208,7 @@ class SearchView(pluginmgr.View):
 
             except Exception as e:
                 logger.error(
-                    "bauble.view.SearchView.cell_data_func(): \n(%s)%s" % (type(e), e)
+                    f"bauble.view.SearchView.cell_data_func(): \n({type(e)}){e}"
                 )
                 raise
 
@@ -1276,7 +1273,7 @@ class SearchView(pluginmgr.View):
         except KeyError:
             menu = Gtk.Menu()
             for action in self.row_meta[selected_type].actions:
-                logger.debug("path: %s" % action.get_accel_path())
+                logger.debug(f"path: {action.get_accel_path()}")
                 item = action.create_menu_item()
 
                 def on_activate(item, cb):
@@ -1357,7 +1354,7 @@ class SearchView(pluginmgr.View):
         expand the row on activation
         """
         logger.debug(
-            "SearchView::on_view_row_activated %s %s %s %s" % (view, path, column, data)
+            f"SearchView::on_view_row_activated {view} {path} {column} {data}"
         )
         view.expand_row(path, False)
 
@@ -1534,7 +1531,7 @@ class HistoryView(pluginmgr.View):
             eval(v)
             return v
         except:
-            return "»%s«" % v
+            return f"»{v}«"
 
     def add_row(self, item):
         d = eval(item.values)
@@ -1546,7 +1543,7 @@ class HistoryView(pluginmgr.View):
         )
         self.liststore.append(
             [
-                ("%s" % item.timestamp)[:19],
+                (f"{item.timestamp}")[:19],
                 item.operation,
                 item.user,
                 item.table_name,
@@ -1624,7 +1621,7 @@ def select_in_search_results(obj):
     if not isinstance(view, SearchView):
         return None
     logger.debug(
-        "select_in_search_results %s is in session %s" % (obj, obj in view.session)
+        f"select_in_search_results {obj} is in session {obj in view.session}"
     )
     model = view.results_view.get_model()
     found = utils.search_tree_model(model, obj)

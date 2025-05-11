@@ -190,7 +190,7 @@ def generic_taxon_add_action(
         logger.debug("new taxon added from within AccessionEditor")
         # add the new taxon to the session and start using it
         presenter.session.add(committed)
-        safe_set_text(taxon_entry, "%s" % committed)
+        safe_set_text(taxon_entry, f"{committed}")
         presenter.remove_problem(hash(Gtk.Buildable.get_name(taxon_entry)), None)
         model.species = committed
         presenter._dirty = True
@@ -812,8 +812,8 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             "2": len({p.location for p in self.plants}),
         }
         suffix = (
-            '<span foreground="#555555" size="small" ' 'weight="light"> - %s</span>'
-        ) % suffix
+            '<span foreground="#555555" size="small" ' f'weight="light"> - {suffix}</span>'
+        )
         return first + suffix, second
 
     @property
@@ -899,7 +899,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             self.__warned_about_id_qual = True
 
         if self.id_qual:
-            logger.debug("id_qual is %s" % self.id_qual)
+            logger.debug(f"id_qual is {self.id_qual}")
             sp_str = self.species.str(
                 authors,
                 markup,
@@ -931,7 +931,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
 
     @classmethod
     def compute_serializable_fields(cls, session, keys):
-        logger.debug("compute_serializable_fields(session, %s)" % keys)
+        logger.debug(f"compute_serializable_fields(session, {keys})")
         result = {"species": None}
         keys = dict(keys)  # make copy
         if "species" in keys:
@@ -1652,7 +1652,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
                 self.model.source = self.source
                 self.model.source.source_detail = None
             else:
-                logger.warning("unknown source: %s" % source)
+                logger.warning(f"unknown source: {source}")
             # self.model.source = self.source
             # self.model.source.source_detail = source_detail
 
@@ -1786,7 +1786,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         )
 
     def refresh_sensitivity(self):
-        logger.warning("refresh_sensitivity: %s" % str(self.problems))
+        logger.warning(f"refresh_sensitivity: {str(self.problems)}")
         self.parent_ref().refresh_sensitivity()
 
     def on_coll_add_button_clicked(self, *args):
@@ -2424,8 +2424,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
     def on_loc_button_clicked(self, button, target_widget, target_field):
         logger.debug(
-            "on_loc_button_clicked %s, %s, %s, %s"
-            % (self, button, target_widget, target_field)
+            f"on_loc_button_clicked {self}, {button}, {target_widget}, {target_field}"
         )
         from bauble.plugins.garden.location import LocationEditor
 
@@ -2900,7 +2899,7 @@ class GeneralAccessionExpander(InfoExpander):
         )
 
         def on_nplants_clicked(*args):
-            cmd = 'plant where accession.code="%s"' % self.current_obj.code
+            cmd = f'plant where accession.code="{self.current_obj.code}"'
             bauble.gui.send_command(cmd)
 
         utils.make_label_clickable(self.widgets.nplants_data, on_nplants_clicked)
@@ -2912,7 +2911,7 @@ class GeneralAccessionExpander(InfoExpander):
         self.current_obj = row
         self.widget_set_value(
             "acc_code_data",
-            "<big>%s</big>" % utils.xml_safe(str(row.code)),
+            f"<big>{utils.xml_safe(str(row.code))}</big>",
             markup=True,
         )
 
@@ -2970,10 +2969,7 @@ class GeneralAccessionExpander(InfoExpander):
 
         prov_str = dict(prov_type_values)[row.prov_type]
         if row.prov_type == "Wild" and row.wild_prov_status:
-            prov_str = "%s (%s)" % (
-                prov_str,
-                dict(wild_prov_status_values)[row.wild_prov_status],
-            )
+            prov_str = f"{prov_str} ({dict(wild_prov_status_values)[row.wild_prov_status]})"
         self.set_labeled_value("prov", prov_str)
 
         image_size = Gtk.IconSize.SMALL_TOOLBAR
@@ -2996,9 +2992,9 @@ class GeneralAccessionExpander(InfoExpander):
                 if location.name and location.code:
                     location_str = f"{location.name} ({location.code})"
                 elif location.name and not location.code:
-                    location_str = "%s" % location.name
+                    location_str = f"{location.name}"
                 elif not location.name and location.code:
-                    location_str = "(%s)" % location.code
+                    location_str = f"({location.code})"
             self.set_labeled_value(prefix, location_str)
         self.widgets["intended_loc_separator"].set_visible(set_count)
 
@@ -3018,39 +3014,25 @@ class SourceExpander(InfoExpander):
         if not geo_accy:
             geo_accy = ""
         else:
-            geo_accy = "(+/- %sm)" % geo_accy
+            geo_accy = f"(+/- {geo_accy}m)"
 
         lat_str = ""
         if collection.latitude is not None:
             dir, deg, min, sec = latitude_to_dms(collection.latitude)
-            lat_str = "%s (%s %s°%s'%.2f\") %s" % (
-                collection.latitude,
-                dir,
-                deg,
-                min,
-                sec,
-                geo_accy,
-            )
+            lat_str = f"{collection.latitude} ({dir} {deg}°{min}'{sec:.2f}\") {geo_accy}"
         self.widget_set_value("lat_data", lat_str)
 
         long_str = ""
         if collection.longitude is not None:
             dir, deg, min, sec = longitude_to_dms(collection.longitude)
-            long_str = "%s (%s %s°%s'%.2f\") %s" % (
-                collection.longitude,
-                dir,
-                deg,
-                min,
-                sec,
-                geo_accy,
-            )
+            long_str = f"{collection.longitude} ({dir} {deg}°{min}'{sec:.2f}\") {geo_accy}"
         self.widget_set_value("lon_data", long_str)
 
         elevation = ""
         if collection.elevation:
-            elevation = "%sm" % collection.elevation
+            elevation = f"{collection.elevation}m"
             if collection.elevation_accy:
-                elevation += " (+/- %sm)" % collection.elevation_accy
+                elevation += f" (+/- {collection.elevation_accy}m)"
         self.widget_set_value("elev_data", elevation)
 
         self.widget_set_value("coll_data", collection.collector)

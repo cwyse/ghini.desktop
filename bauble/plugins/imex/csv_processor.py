@@ -245,7 +245,7 @@ class CSVProcessor:
         sorted_filename = os.path.join(tmppath, tail)
 
         with open(sorted_filename, "w") as tmpfile:
-            tmpfile.write("%s\n" % ",".join(fields))  # Write header
+            tmpfile.write("{}\n".format(",".join(fields)))  # Write header
             writer = UnicodeWriter(
                 tmpfile, fields=fields, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE
             )

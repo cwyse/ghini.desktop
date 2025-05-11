@@ -509,7 +509,7 @@ class CollectionPresenter(editor.ChildPresenter):
 
         latitude = self.model.latitude
         if latitude is not None:
-            dms_string = "%s %s\u00b0%s'%s\"" % latitude_to_dms(latitude)
+            dms_string = "{} {}\u00b0{}'{}\"".format(*latitude_to_dms(latitude))
             safe_set_text(self.view.widgets.lat_dms_label, dms_string)
             if float(latitude) < 0:
                 self.view.widgets.south_radio.set_active(True)
@@ -521,7 +521,7 @@ class CollectionPresenter(editor.ChildPresenter):
 
         longitude = self.model.longitude
         if longitude is not None:
-            dms_string = "%s %s\u00b0%s'%s\"" % longitude_to_dms(longitude)
+            dms_string = "{} {}\u00b0{}'{}\"".format(*longitude_to_dms(longitude))
             safe_set_text(self.view.widgets.lon_dms_label, dms_string)
             if float(longitude) < 0:
                 self.view.widgets.west_radio.set_active(True)
@@ -568,7 +568,7 @@ class CollectionPresenter(editor.ChildPresenter):
             return
 
         if direction == "W" and lon_text[0] != "-":
-            safe_set_text(entry, "-%s" % lon_text)
+            safe_set_text(entry, f"-{lon_text}")
         elif direction == "E" and lon_text[0] == "-":
             safe_set_text(entry, lon_text[1:])
 
@@ -588,7 +588,7 @@ class CollectionPresenter(editor.ChildPresenter):
             return
 
         if direction == "S" and lat_text[0] != "-":
-            safe_set_text(entry, "-%s" % lat_text)
+            safe_set_text(entry, f"-{lat_text}")
         elif direction == "N" and lat_text[0] == "-":
             safe_set_text(entry, lat_text[1:])
 
@@ -659,12 +659,11 @@ class CollectionPresenter(editor.ChildPresenter):
                 direction = self._get_lat_direction()
                 latitude = CollectionPresenter._parse_lat_lon(direction, text)
                 # u"\N{DEGREE SIGN}"
-                dms_string = "%s %s\u00b0%s'%s\"" % latitude_to_dms(latitude)
+                dms_string = "{} {}\u00b0{}'{}\"".format(*latitude_to_dms(latitude))
         except Exception:
             logger.debug(traceback.format_exc())
             rgba = Gdk.RGBA()
             rgba.parse("red")
-            color = rgba
             self.add_problem(self.PROBLEM_BAD_LATITUDE, self.view.widgets.lat_entry)
         else:
             self.remove_problem(self.PROBLEM_BAD_LATITUDE, self.view.widgets.lat_entry)
@@ -692,12 +691,11 @@ class CollectionPresenter(editor.ChildPresenter):
                 east_radio.handler_unblock(self.east_toggle_signal_id)
                 direction = self._get_lon_direction()
                 longitude = CollectionPresenter._parse_lat_lon(direction, text)
-                dms_string = "%s %s\u00b0%s'%s\"" % longitude_to_dms(longitude)
+                dms_string = "{} {}\u00b0{}'{}\"".format(*longitude_to_dms(longitude))
         except Exception:
             logger.debug(traceback.format_exc())
             rgba = Gdk.RGBA()
             rgba.parse("red")
-            color = rgba
             self.add_problem(self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry)
         else:
             self.remove_problem(self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry)
@@ -1044,7 +1042,7 @@ class GeneralSourceDetailExpander(view.InfoExpander):
         # wrapper = TextWrapper(width=50, subsequent_indent='  ')
         self.widget_set_value(
             "sd_name_data",
-            "<big>%s</big>" % utils.xml_safe(row.name),
+            f"<big>{utils.xml_safe(row.name)}</big>",
             markup=True,
         )
 

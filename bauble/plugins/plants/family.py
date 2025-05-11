@@ -696,7 +696,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
                 select(Family)
                 .where(
                     and_(
-                        Family.epithet.like("%s%%" % text),
+                        Family.epithet.like(f"{text}%"),
                         Family.id != self.model.id,
                     )
                 )
@@ -862,9 +862,9 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         #        debug('%s: %s' % (value, type(value)))
         s = Family.str(value.synonym)
         msg = (
-            "Are you sure you want to remove %s as a synonym to the "
+            f"Are you sure you want to remove {s} as a synonym to the "
             "current family?\n\n<i>Note: This will not remove the family "
-            "%s from the database.</i>" % (s, s)
+            f"{s} from the database.</i>"
         )
         if utils.yes_no_dialog(msg, parent=self.view.get_window()):
             # Remove synonym from database and model
@@ -984,10 +984,7 @@ class GeneralFamilyExpander(InfoExpander):
 
         def on_ngen_clicked(*args):
             f = self.current_obj
-            cmd = 'genus where family.epithet="%s" and family.qualifier="%s"' % (
-                f.epithet,
-                f.qualifier,
-            )
+            cmd = f'genus where family.epithet="{f.epithet}" and family.qualifier="{f.qualifier}"'
             bauble.gui.send_command(cmd)
 
         utils.make_label_clickable(self.widgets.fam_ngen_data, on_ngen_clicked)
@@ -995,8 +992,8 @@ class GeneralFamilyExpander(InfoExpander):
         def on_nsp_clicked(*args):
             f = self.current_obj
             cmd = (
-                'species where genus.family.epithet="%s" '
-                'and genus.family.qualifier="%s"' % (f.epithet, f.qualifier)
+                f'species where genus.family.epithet="{f.epithet}" '
+                f'and genus.family.qualifier="{f.qualifier}"'
             )
             bauble.gui.send_command(cmd)
 
@@ -1005,8 +1002,8 @@ class GeneralFamilyExpander(InfoExpander):
         def on_nacc_clicked(*args):
             f = self.current_obj
             cmd = (
-                'accession where species.genus.family.epithet="%s" '
-                'and species.genus.family.qualifier="%s"' % (f.epithet, f.qualifier)
+                f'accession where species.genus.family.epithet="{f.epithet}" '
+                f'and species.genus.family.qualifier="{f.qualifier}"'
             )
             bauble.gui.send_command(cmd)
 
@@ -1015,9 +1012,8 @@ class GeneralFamilyExpander(InfoExpander):
         def on_nplants_clicked(*args):
             f = self.current_obj
             cmd = (
-                'plant where accession.species.genus.family.epithet="%s" '
-                'and accession.species.genus.family.qualifier="%s"'
-                % (f.epithet, f.qualifier)
+                f'plant where accession.species.genus.family.epithet="{f.epithet}" '
+                f'and accession.species.genus.family.qualifier="{f.qualifier}"'
             )
             bauble.gui.send_command(cmd)
 
@@ -1032,7 +1028,7 @@ class GeneralFamilyExpander(InfoExpander):
         genus_instance = get_genus_class()
 
         self.current_obj = row
-        self.widget_set_value("fam_name_data", "<big>%s</big>" % row, markup=True)
+        self.widget_set_value("fam_name_data", f"<big>{row}</big>", markup=True)
         session = object_session(row)
         # get the number of genera
         from sqlalchemy import func
@@ -1066,7 +1062,7 @@ class GeneralFamilyExpander(InfoExpander):
                 .scalars()
                 .all()
             )
-            self.widget_set_value("fam_nsp_data", "%s in %s genera" % (nsp, ngen_in_sp))
+            self.widget_set_value("fam_nsp_data", f"{nsp} in {ngen_in_sp} genera")
 
         # stop here if no GardenPlugin
         if "GardenPlugin" not in pluginmgr.plugins:
@@ -1100,7 +1096,7 @@ class GeneralFamilyExpander(InfoExpander):
                 .all()
             )
             self.widget_set_value(
-                "fam_nacc_data", "%s in %s species" % (nacc, nsp_in_acc)
+                "fam_nacc_data", f"{nacc} in {nsp_in_acc} species"
             )
 
         # get the number of plants in the family
@@ -1131,7 +1127,7 @@ class GeneralFamilyExpander(InfoExpander):
             )
             self.widget_set_value(
                 "fam_nplants_data",
-                "%s in %s accessions" % (nplants, nacc_in_plants),
+                f"{nplants} in {nacc_in_plants} accessions",
             )
 
 
@@ -1157,8 +1153,7 @@ class SynonymsExpander(InfoExpander):
         # use True comparison in case the preference isn't set
         self.set_expanded(prefs[self.expanded_pref] is True)
         logger.debug(
-            "family %s is synonym of %s and has synonyms %s"
-            % (row, row.accepted, row.synonyms)
+            f"family {row} is synonym of {row.accepted} and has synonyms {row.synonyms}"
         )
         self.set_label(_("Synonyms"))  # reset default value
         if row.accepted is not None:

@@ -246,10 +246,10 @@ class TestTag:
             session.commit()
 
         invoked = []
-        yes_no_dialog = partial(
+        partial(
             mockfunc, name="yes_no_dialog", caller=invoked, result=False
         )
-        message_details_dialog = partial(
+        partial(
             mockfunc, name="message_details_dialog", caller=invoked
         )
 
@@ -279,7 +279,7 @@ class TestTag:
 
         invoked = []
         save_reset = tag_plugin.tags_menu_manager.reset
-        yes_no_dialog = partial(
+        partial(
             mockfunc, name="yes_no_dialog", caller=invoked, result=True
         )
         tag_plugin.tags_menu_manager.reset = partial(

@@ -147,8 +147,7 @@ def retrieve_latest_release_date():
 
         # from github retrieve the date of the latest release
         stream = urllib.request.urlopen(
-            "https://api.github.com/repos/Ghini/ghini.desktop/branches/ghini-%s.%s"
-            % bauble.version_tuple[:2],
+            "https://api.github.com/repos/Ghini/ghini.desktop/branches/ghini-{}.{}".format(*bauble.version_tuple[:2]),
             timeout=5,
         )
         text = stream.read().decode()
@@ -175,12 +174,12 @@ def retrieve_latest_release_date():
     except urllib.error.URLError:
         logger.info("connection is slow or down")
     except ssl.SSLError as e:
-        logger.info("SSLError %s while checking for newer version" % e)
+        logger.info(f"SSLError {e} while checking for newer version")
     except urllib.error.HTTPError:
         logger.info("HTTPError while checking for newer version")
     except Exception as e:
         logger.warning(
-            "unhandled %s(%s) while checking for newer version" % (type(e), e)
+            f"unhandled {type(e)}({e}) while checking for newer version"
         )
 
 
@@ -223,12 +222,12 @@ def check_and_notify_new_version(view):
     except urllib.error.URLError:
         logger.info("connection is slow or down")
     except ssl.SSLError as e:
-        logger.info("SSLError %s while checking for newer version" % e)
+        logger.info(f"SSLError {e} while checking for newer version")
     except urllib.error.HTTPError:
         logger.info("HTTPError while checking for newer version")
     except Exception as e:
         logger.warning(
-            "unhandled %s(%s) while checking for newer version" % (type(e).__name__, e)
+            f"unhandled {type(e).__name__}({e}) while checking for newer version"
         )
 
 
@@ -319,7 +318,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
                 Thread(target=check_and_notify_new_version, args=[self.view])
             )
             self.start_thread(Thread(target=retrieve_latest_release_date))
-        logger.debug("main_is_frozen = %s" % (main_is_frozen()))
+        logger.debug(f"main_is_frozen = {main_is_frozen()}")
 
     def on_file_btnbrowse_clicked(self, *args):
         previously = self.view.widget_get_value("file_entry")
@@ -542,8 +541,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         the name changed so fill in everything else
         """
         logger.debug(
-            "on_name_combo_changing from %s to %s"
-            % (self.prev_connection_name, self.connection_name)
+            f"on_name_combo_changing from {self.prev_connection_name} to {self.connection_name}"
         )
 
         conn_dict = self.connections
@@ -568,10 +566,9 @@ class ConnMgrPresenter(GenericEditorPresenter):
 
         if self.connection_names:
             self.on_combo_changed(combo, data)  # this updates connection_name
-        logger.debug("on_name_combo_changed %s" % self.connection_name)
+        logger.debug(f"on_name_combo_changed {self.connection_name}")
         logger.debug(
-            "changing form >%s< to >%s<"
-            % (self.prev_connection_name, self.connection_name)
+            f"changing form >{self.prev_connection_name}< to >{self.connection_name}<"
         )
 
         if self.connection_name in conn_dict:

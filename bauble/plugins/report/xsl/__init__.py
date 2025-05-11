@@ -321,7 +321,7 @@ class AccessionABCDAdapter(SpeciesABCDAdapter):
                 if collection.elevation_accy:
                     text = f"{collection.elevation}m (+/- {collection.elevation_accy}m)"
                 else:
-                    text = "%sm" % collection.elevation
+                    text = f"{collection.elevation}m"
                 ABCDElement(altitude, "MeasurementOrFactText", text=text)
 
             if collection.notes:
@@ -407,12 +407,12 @@ class XSLFormatterPlugin(FormatterPlugin):
 
     @classmethod
     def format(cls, objs, **kwargs):
-        logger.debug("format(%s)" % kwargs)
+        logger.debug(f"format({kwargs})")
         name = kwargs["template"]
         stylesheet = cls.get_template(name).filename
         authors = kwargs.get("authors", False)
         renderer = kwargs.get("renderer", "Apache FOP")
-        source_type = kwargs.get("domain", "plant").replace("(", "").replace(")", "")
+        kwargs.get("domain", "plant").replace("(", "").replace(")", "")
         use_private = kwargs.get("private", True)
         error_msg = None
         if not stylesheet:
@@ -463,7 +463,7 @@ class XSLFormatterPlugin(FormatterPlugin):
         with open(fo_filename, "wb") as fo_outfile:
             fo_outfile.write(result)
         dummy, filename = tempfile.mkstemp()
-        filename = "%s.pdf" % filename
+        filename = f"{filename}.pdf"
 
         # run the report to produce the pdf file, the command has to be
         # on the path for this to work
@@ -486,7 +486,7 @@ class XSLFormatterPlugin(FormatterPlugin):
             )
         else:
             try:
-                butils.desktop.open("file://%s" % filename)
+                butils.desktop.open(f"file://{filename}")
             except OSError:
                 butils.idle_message(
                     _(

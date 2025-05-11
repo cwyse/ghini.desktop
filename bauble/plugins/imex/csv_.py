@@ -216,7 +216,7 @@ class CSVImporter(Importer):
         :raises ValueError: If user declines to drop required tables.
         """
         depends = set()
-        for table, unused_var in sorted_tables:
+        for table, _unused_var in sorted_tables:
             if self.__cancel or self.__error:
                 break
             logger.debug(f"Get dependencies for table {table.name}")
@@ -310,7 +310,7 @@ class CSVImporter(Importer):
             table in depends
             or table.name not in inspect(session.bind).get_table_names()
         ):
-            logger.info("%s does not exist. creating." % table.name)
+            logger.info(f"{table.name} does not exist. creating.")
             self._create_table(table, session, created_tables)
         elif table.name not in created_tables and table not in depends:
             # we get here if the table wasn't previously
@@ -572,7 +572,7 @@ class CSVImporter(Importer):
         # has a sequence doesn't update the sequence, we shortcut this
         # by setting the sequence manually to the max(column)+1
         try:
-            for table, unused_var in sorted_tables:
+            for table, _unused_var in sorted_tables:
                 for column in table.c:
                     try:
                         utils.reset_sequence(column)
@@ -734,7 +734,7 @@ class CSVExporter:
             }
             msg = msg + "  " + spinner[0]
             bauble.task.set_message(msg)
-            logger.info("exporting %s" % table.name)
+            logger.info(f"exporting {table.name}")
 
             # Query the data
             stmt = select(table)

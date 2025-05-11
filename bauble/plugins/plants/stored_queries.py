@@ -221,5 +221,5 @@ class StoredQueryEditorTool(pluginmgr.Tool):
     icon_name = "x-office-spreadsheet"
 
     @classmethod
-    def start(self):
+    def start(cls):
         edit_callback()

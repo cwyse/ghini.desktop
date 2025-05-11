@@ -127,7 +127,7 @@ def ABCDElement(parent, name, text=None, attrib=None):
 
 def DataSets():
     """ """
-    return Element("{%s}DataSets" % namespaces["abcd"], nsmap=namespaces)
+    return Element("{{{}}}DataSets".format(namespaces["abcd"]), nsmap=namespaces)
 
 
 class ABCDAdapter:
@@ -398,7 +398,7 @@ class ABCDExporter:
             raise ValueError("filename can not be None")
 
         if os.path.exists(filename) and not os.path.isfile(filename):
-            raise ValueError("%s exists and is not a a regular file" % filename)
+            raise ValueError(f"{filename} exists and is not a a regular file")
 
         # if plants is None then export all plants, this could be huge
         # TODO: do something about this, like list the number of plants

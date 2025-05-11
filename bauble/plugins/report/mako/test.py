@@ -41,7 +41,8 @@ from bauble.plugins.report.utils import Code39
 logger = logging.getLogger(__name__)
 
 # TURN OFF desktop.open for this module so that the test doesn't open the report
-desktop_open = lambda x: x
+def desktop_open(x):
+    return x
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -50,34 +51,34 @@ def setup_database(session):
     Fixture to set up the database for the tests.
     """
     fctr = gctr = sctr = actr = pctr = 0
-    for f in range(2):
+    for _f in range(2):
         fctr += 1
-        family = Family(id=fctr, family="fam%s" % fctr)
+        family = Family(id=fctr, family=f"fam{fctr}")
         session.add(family)
-        for g in range(2):
+        for _g in range(2):
             gctr += 1
-            genus = Genus(id=gctr, family=family, genus="gen%s" % gctr)
+            genus = Genus(id=gctr, family=family, genus=f"gen{gctr}")
             session.add(genus)
-            for s in range(2):
+            for _s in range(2):
                 sctr += 1
-                sp = Species(id=sctr, genus=genus, sp="sp%s" % sctr)
-                geo = GeographicArea(id=sctr, name="Mexico%s" % sctr)
+                sp = Species(id=sctr, genus=genus, sp=f"sp{sctr}")
+                geo = GeographicArea(id=sctr, name=f"Mexico{sctr}")
                 dist = SpeciesDistribution(geographic_area_id=sctr)
                 sp.distribution.append(dist)
-                vn = VernacularName(id=sctr, species=sp, name="name%s" % sctr)
+                vn = VernacularName(id=sctr, species=sp, name=f"name{sctr}")
                 session.add_all([sp, geo, dist, vn])
-                for a in range(2):
+                for _a in range(2):
                     actr += 1
-                    acc = Accession(id=actr, species=sp, code="%s" % actr)
+                    acc = Accession(id=actr, species=sp, code=f"{actr}")
                     session.add(acc)
-                    for p in range(2):
+                    for _p in range(2):
                         pctr += 1
-                        loc = Location(id=pctr, code="%s" % pctr, name="site%s" % pctr)
+                        loc = Location(id=pctr, code=f"{pctr}", name=f"site{pctr}")
                         plant = Plant(
                             id=pctr,
                             accession=acc,
                             location=loc,
-                            code="%s" % pctr,
+                            code=f"{pctr}",
                             quantity=1,
                         )
                         session.add_all([loc, plant])
@@ -95,7 +96,7 @@ def test_format_mako_templates(session, use_qr):
         os.path.dirname(os.path.dirname(__file__)), "templates"
     )
 
-    for i, template_name in enumerate(os.listdir(templates_dir)):
+    for _i, template_name in enumerate(os.listdir(templates_dir)):
         if not template_name.endswith(".mako"):
             continue
 
@@ -123,7 +124,7 @@ def test_format_mako_templates(session, use_qr):
         else:
             todo = sorted(get_pertinent_objects(cls, selection), key=utils.natsort_key)
 
-        logger.debug("Formatting ›%s‹" % filename)
+        logger.debug(f"Formatting ›{filename}‹")
         report = MakoFormatterPlugin.format(todo, template=filename)
 
         assert isinstance(report, bytes)
@@ -138,7 +139,7 @@ def test_format_qr_postscript_templates(session):
         os.path.dirname(os.path.dirname(__file__)), "templates"
     )
 
-    for i, template_name in enumerate(os.listdir(templates_dir)):
+    for _i, template_name in enumerate(os.listdir(templates_dir)):
         if not template_name.endswith(".mako"):
             continue
         if "-qr." not in template_name or not template_name.endswith(

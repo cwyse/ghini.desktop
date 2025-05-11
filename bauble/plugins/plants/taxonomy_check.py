@@ -228,7 +228,7 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
             if row[OLD_BINOMIAL] == "":
                 tb.insert_with_tags(
                     tb.get_end_iter(),
-                    "new taxon %s" % row[NEW_BINOMIAL],
+                    f"new taxon {row[NEW_BINOMIAL]}",
                     tag_bold,
                 )
                 obj = species_to_fix(
@@ -256,14 +256,14 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
                 if obj is None:
                     tb.insert_with_tags(
                         tb.get_end_iter(),
-                        "bad taxon %s" % row[OLD_BINOMIAL],
+                        f"bad taxon {row[OLD_BINOMIAL]}",
                         tag_bold,
                         tag_red,
                     )
                     continue
                 tb.insert_with_tags(
                     tb.get_end_iter(),
-                    "update taxon %s" % row[OLD_BINOMIAL],
+                    f"update taxon {row[OLD_BINOMIAL]}",
                     tag_bold,
                 )
 
@@ -274,7 +274,7 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
                 obj.sp = sp_epithet
                 if accepted:
                     obj.accepted = accepted
-            tb.insert_with_tags(tb.get_end_iter(), " %s\n" % row[AUTHORSHIP], tag_bold)
+            tb.insert_with_tags(tb.get_end_iter(), f" {row[AUTHORSHIP]}\n", tag_bold)
 
     def on_frame_next(self, *args):
         self.model.page += 1
@@ -357,5 +357,5 @@ class TaxonomyCheckTool(pluginmgr.Tool):
     icon_dir = "plugins/plants"
 
     @classmethod
-    def start(self):
+    def start(cls):
         start_taxonomy_check()

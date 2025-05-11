@@ -162,7 +162,7 @@ def remove_callback(genera):
     try:
         # If 'Yes, remove genus and synonyms' was selected, delete the synonyms
         if response == utils.DialogResponse.YES:
-            for unused_var in genus.synonyms:
+            for _unused_var in genus.synonyms:
                 synonym_obj = session.get(Genus, synonym.id)
                 session.delete(synonym_obj)
 
@@ -650,8 +650,7 @@ class GenusEditorView(editor.GenericEditorView):
             author = utils.xml_safe(str(v.author))
         renderer.set_property(
             "markup",
-            "<i>%s</i> %s (<small>%s</small>)"
-            % (Genus.str(v), author, family_instance.str(v.family)),
+            f"<i>{Genus.str(v)}</i> {author} (<small>{family_instance.str(v.family)}</small>)",
         )
 
     def save_state(self):
@@ -691,7 +690,7 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
         @model: should be an instance of class Genus
         @view: should be an instance of GenusEditorView
         """
-        family_instance = get_family_class()
+        get_family_class()
         super().__init__(model, view)
         self.create_toolbar()
         self.session = object_session(model)
@@ -849,7 +848,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
                 select(Genus)
                 .where(
                     and_(
-                        Genus.epithet.like("%s%%" % text_val),
+                        Genus.epithet.like(f"{text_val}%"),
                         Genus.id != self.model.id,
                     )
                 )
@@ -902,12 +901,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
             syn = v.synonym
             cell.set_property(
                 "markup",
-                "<i>%s</i> %s (<small>%s</small>)"
-                % (
-                    Genus.str(syn),
-                    utils.xml_safe(str(syn.author)),
-                    family_instance.str(syn.family),
-                ),
+                f"<i>{Genus.str(syn)}</i> {utils.xml_safe(str(syn.author))} (<small>{family_instance.str(syn.family)}</small>)",
             )
             # set background color to indicate it's new
             if v.id is None:
@@ -1118,10 +1112,7 @@ class GeneralGenusExpander(InfoExpander):
 
         def on_nsp_clicked(*args):
             g = self.current_obj
-            cmd = 'species where genus.epithet="%s" and genus.qualifier="%s"' % (
-                g.epithet,
-                g.qualifier,
-            )
+            cmd = f'species where genus.epithet="{g.epithet}" and genus.qualifier="{g.qualifier}"'
             bauble.gui.send_command(cmd)
 
         utils.make_label_clickable(self.widgets.gen_nsp_data, on_nsp_clicked)
@@ -1129,8 +1120,8 @@ class GeneralGenusExpander(InfoExpander):
         def on_nacc_clicked(*args):
             g = self.current_obj
             cmd = (
-                'accession where species.genus.epithet="%s" '
-                'and species.genus.qualifier="%s"' % (g.epithet, g.qualifier)
+                f'accession where species.genus.epithet="{g.epithet}" '
+                f'and species.genus.qualifier="{g.qualifier}"'
             )
             bauble.gui.send_command(cmd)
 
@@ -1139,8 +1130,8 @@ class GeneralGenusExpander(InfoExpander):
         def on_nplants_clicked(*args):
             g = self.current_obj
             cmd = (
-                'plant where accession.species.genus.epithet="%s" and '
-                'accession.species.genus.qualifier="%s"' % (g.epithet, g.qualifier)
+                f'plant where accession.species.genus.epithet="{g.epithet}" and '
+                f'accession.species.genus.qualifier="{g.qualifier}"'
             )
             bauble.gui.send_command(cmd)
 
@@ -1158,7 +1149,7 @@ class GeneralGenusExpander(InfoExpander):
         self.current_obj = row
         self.widget_set_value(
             "gen_name_data",
-            "<big>%s</big> %s" % (row, utils.xml_safe(str(row.author))),
+            f"<big>{row}</big> {utils.xml_safe(str(row.author))}",
             markup=True,
         )
         self.widget_set_value("gen_fam_data", (utils.xml_safe(str(row.family))))
@@ -1201,7 +1192,7 @@ class GeneralGenusExpander(InfoExpander):
                 .all()
             )
             self.widget_set_value(
-                "gen_nacc_data", "%s in %s species" % (nacc, nsp_in_acc)
+                "gen_nacc_data", f"{nacc} in {nsp_in_acc} species"
             )
 
         # get the number of plants in the genus
@@ -1229,7 +1220,7 @@ class GeneralGenusExpander(InfoExpander):
             )
             self.widget_set_value(
                 "gen_nplants_data",
-                "%s in %s accessions" % (nplants, nacc_in_plants),
+                f"{nplants} in {nacc_in_plants} accessions",
             )
 
 
@@ -1255,8 +1246,7 @@ class SynonymsExpander(InfoExpander):
         # use True comparison in case the preference isn't set
         self.set_expanded(prefs[self.expanded_pref] is True)
         logger.debug(
-            "genus %s is synonym of %s and has synonyms %s"
-            % (row, row.accepted, row.synonyms)
+            f"genus {row} is synonym of {row.accepted} and has synonyms {row.synonyms}"
         )
         self.set_label(_("Synonyms"))  # reset default value
         if row.accepted is not None:

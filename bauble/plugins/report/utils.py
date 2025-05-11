@@ -218,8 +218,7 @@ class SVG:
             glyph_wid = cls.font[i] / 2.0
             glyph_ref = "s%d-u%04x" % (strokes, ord(i))
             result_list.append(
-                '<use transform="translate(%s,0)" xlink:href="#%s"/>'
-                % (totalwidth, glyph_ref)
+                f'<use transform="translate({totalwidth},0)" xlink:href="#{glyph_ref}"/>'
             )
             totalwidth += glyph_wid
         radians = rotate / 180.0 * math.pi
@@ -227,7 +226,7 @@ class SVG:
             x -= (totalwidth * size) * align * math.cos(radians)
             y -= (totalwidth * size) * align * math.sin(radians)
         italic_text = italic and "matrix(1,0,-0.1,1,2,0)" or ""
-        rotate_text = rotate and ("rotate(%s)" % rotate) or ""
+        rotate_text = rotate and (f"rotate({rotate})") or ""
         # we can't do the following before having placed all glyphs
         result_list.insert(
             0,
@@ -628,7 +627,7 @@ class PS:
             glyphs.append(glyph_def[0])
             w = round((0.28 * glyph_def[1]) * size + 0.5, 1)
             totalwidth += w
-            widths.append("%0.1f" % w)
+            widths.append(f"{w:0.1f}")
         glyphs.append(">")
         widths.append("]")
         if maxwidth is not None and totalwidth > maxwidth:
@@ -696,7 +695,7 @@ class PS:
                 "width": width,
                 "height": height,
                 "channels": channels,
-                "text": "".join([("%02x" % g) for g in chain]),
+                "text": "".join([(f"{g:02x}") for g in chain]),
             }
         )
         return result
@@ -735,7 +734,7 @@ class PS:
                 "width": width,
                 "height": height,
                 "channels": channels,
-                "text": "".join(["%02x" % g for g in content]),
+                "text": "".join([f"{g:02x}" for g in content]),
             }
         )
 
@@ -817,7 +816,7 @@ class Code39:
     @classmethod
     def letter(cls, letter, height, translate=None, colour="#0000ff"):
         if translate is not None:
-            transform_text = ' transform="translate(%s,%s)"' % translate
+            transform_text = ' transform="translate({},{})"'.format(*translate)
         else:
             transform_text = ""
         return f'<path{transform_text} d="{cls.path(letter, height)}" style="stroke:{colour};stroke-width:1"/>'
@@ -868,7 +867,7 @@ class add_qr_functor:
             if format == "ps":
                 result_list = transform + result_list
             else:
-                result_list.insert(0, '<g transform="%s">' % ("".join(transform)))
+                result_list.insert(0, '<g transform="{}">'.format("".join(transform)))
                 result_list.append("</g>")
         if format == "ps":
             result_list = ["gsave"] + result_list + ["grestore"]

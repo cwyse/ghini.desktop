@@ -99,7 +99,7 @@ def installation_dir():
         d = main_dir()
     else:
         raise NotImplementedError(
-            "This platform does not support " "translations: %s" % sys.platform
+            "This platform does not support " f"translations: {sys.platform}"
         )
     return os.path.abspath(d)
 
@@ -140,15 +140,14 @@ def appdata_dir():
         # return the path of the user that used sudo instead of ~root
         try:
             d = os.path.join(
-                os.path.expanduser("~%s" % os.environ["USER"]),
+                os.path.expanduser("~{}".format(os.environ["USER"])),
                 ".bauble",
                 "3.1",
             )
         except Exception:
             raise Exception(
                 "Could not get path for user settings: "
-                "could not expand $HOME for user %(username)s"
-                % dict(username=os.environ["USER"])
+                "could not expand $HOME for user {username}".format(**dict(username=os.environ["USER"]))
             )
     else:
         raise Exception("Could not get path for user settings: " "unsupported platform")

@@ -49,7 +49,7 @@ bauble.gettext_windows.setup_env()
 __all__ = ["_"]
 
 version_tuple = tuple(__version__.split("."))
-TEXT_DOMAIN = "ghini-%s" % ".".join(version_tuple[0:2])
+TEXT_DOMAIN = "ghini-{}".format(".".join(version_tuple[0:2]))
 
 #
 # most of the following code was adapted from:

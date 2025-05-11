@@ -548,7 +548,7 @@ class TestJSONExport:
         for obj in target:
             assert obj in result
 
-    def test_when_selection_huge_ask(populate_database):
+    def test_when_selection_huge_ask(self):
         """
         Test that the export process prompts the user when the selection is too large.
         """
@@ -562,7 +562,7 @@ class TestJSONExport:
         assert "run_yes_no_dialog" in getattr(view, "invoked", [])
         assert view.reply_yes_no_dialog == []
 
-    def test_writes_full_taxonomic_info(populate_database, temp_file, db_session):
+    def test_writes_full_taxonomic_info(self, temp_file, db_session):
         """
         Test exporting one family with full taxonomic information below family level.
         """
@@ -586,7 +586,7 @@ class TestJSONExport:
         assert result[0]["rank"] == "familia"
         assert result[0]["epithet"] == "Orchidaceae"
 
-    def test_writes_partial_taxonomic_info(populate_database, temp_file, db_session):
+    def test_writes_partial_taxonomic_info(self, temp_file, db_session):
         """
         Test exporting one genus with all species below genus level.
         """
@@ -613,7 +613,7 @@ class TestJSONExport:
         assert result[0]["author"] == "R. Br."
 
     def test_writes_partial_taxonomic_info_species(
-        populate_database, temp_file, db_session
+        self, temp_file, db_session
     ):
         """
         Test exporting one species and ensuring all species below genus level are exported.
@@ -643,7 +643,7 @@ class TestJSONExport:
         assert result[0]["ht-epithet"] == "Calopogon"
         assert result[0]["hybrid"] is False
 
-    def test_export_single_species_with_notes(populate_database, temp_file, db_session):
+    def test_export_single_species_with_notes(self, temp_file, db_session):
         """
         Test exporting a single species with associated notes.
         """
@@ -693,7 +693,7 @@ class TestJSONExport:
         assert set(date_dict.keys()) == {"millis", "__class__"}
 
     def test_export_single_species_with_vernacular_name(
-        populate_database, temp_file, db_session
+        self, temp_file, db_session
     ):
         """
         Test exporting a single species with a vernacular name.
@@ -741,7 +741,7 @@ class TestJSONExport:
             "species": "Calopogon tuberosus",
         }
 
-    def test_partial_taxonomic_with_synonymy(populate_database, temp_file, db_session):
+    def test_partial_taxonomic_with_synonymy(self, temp_file, db_session):
         """
         Test exporting one genus that is a synonym with its accepted name.
         """
@@ -786,13 +786,13 @@ class TestJSONExport:
         assert accepted["ht-rank"] == "familia"
         assert accepted["ht-epithet"] == "Orchidaceae"
 
-    def test_export_ignores_private_if_sbo_selection(populate_database, temp_file):
+    def test_export_ignores_private_if_sbo_selection(self, temp_file):
         """
         Test exporting accessions ignoring private entries when `include_private` is False.
         """
         # Select all accessions
         exporter = JSONExporter(MockView())
-        selection = [obj for obj in populate_database if isinstance(obj, Accession)]
+        selection = [obj for obj in self if isinstance(obj, Accession)]
         non_private = [acc for acc in selection if not acc.private]
 
         # Assertions on selection
@@ -812,7 +812,7 @@ class TestJSONExport:
 
         assert len(result) == 3
 
-    def test_export_non_private_if_sbo_accessions(temp_file, populate_database):
+    def test_export_non_private_if_sbo_accessions(self, populate_database):
         """
         Test exporting non-private accessions when `include_private` is False.
         """
@@ -820,15 +820,15 @@ class TestJSONExport:
         exporter.view.selection = None
         exporter.selection_based_on = "sbo_accessions"
         exporter.include_private = False
-        exporter.filename = temp_file
+        exporter.filename = self
         exporter.run()
 
-        with open(temp_file) as f:
+        with open(self) as f:
             result = json.load(f)
 
         assert len(result) == 5
 
-    def test_export_private_if_sbo_accessions(temp_file, populate_database):
+    def test_export_private_if_sbo_accessions(self, populate_database):
         """
         Test exporting all accessions, including private, when `include_private` is True.
         """
@@ -836,15 +836,15 @@ class TestJSONExport:
         exporter.view.selection = None
         exporter.selection_based_on = "sbo_accessions"
         exporter.include_private = True
-        exporter.filename = temp_file
+        exporter.filename = self
         exporter.run()
 
-        with open(temp_file) as f:
+        with open(self) as f:
             result = json.load(f)
 
         assert len(result) == 6
 
-    def test_export_non_private_if_sbo_plants(temp_file, populate_database):
+    def test_export_non_private_if_sbo_plants(self, populate_database):
         """
         Test exporting non-private plants when `include_private` is False.
         """
@@ -852,15 +852,15 @@ class TestJSONExport:
         exporter.view.selection = None
         exporter.selection_based_on = "sbo_plants"
         exporter.include_private = False
-        exporter.filename = temp_file
+        exporter.filename = self
         exporter.run()
 
-        with open(temp_file) as f:
+        with open(self) as f:
             result = json.load(f)
 
         assert len(result) == 6
 
-    def test_export_private_if_sbo_plants(temp_file, populate_database):
+    def test_export_private_if_sbo_plants(self, populate_database):
         """
         Test exporting all plants, including private, when `include_private` is True.
         """
@@ -868,15 +868,15 @@ class TestJSONExport:
         exporter.view.selection = None
         exporter.selection_based_on = "sbo_plants"
         exporter.include_private = True
-        exporter.filename = temp_file
+        exporter.filename = self
         exporter.run()
 
-        with open(temp_file) as f:
+        with open(self) as f:
             result = json.load(f)
 
         assert len(result) == 8
 
-    def test_export_with_vernacular(temp_file, db_session):
+    def test_export_with_vernacular(self, db_session):
         """
         Test exporting a genus with a vernacular name.
         """
@@ -894,11 +894,11 @@ class TestJSONExport:
         exporter.view.selection = None
         exporter.selection_based_on = "sbo_taxa"
         exporter.include_private = False
-        exporter.filename = temp_file
+        exporter.filename = self
         exporter.run()
 
         # Validate
-        with open(temp_file) as f:
+        with open(self) as f:
             result = json.load(f)
 
         vern_from_json = [
@@ -919,7 +919,7 @@ class TestJSONExport:
         assert exporter.filename == "/tmp/test.json"
         assert JSONExporter.last_folder == "/tmp"
 
-    def test_includes_sources(temp_file, db_session):
+    def test_includes_sources(self, db_session):
         """
         Test exporting accessions with source details included.
         """
@@ -946,11 +946,11 @@ class TestJSONExport:
         exporter.view.selection = None
         exporter.selection_based_on = "sbo_accessions"
         exporter.include_private = True
-        exporter.filename = temp_file
+        exporter.filename = self
         exporter.run()
 
         # Validate
-        with open(temp_file) as f:
+        with open(self) as f:
             result = json.load(f)
 
         contacts_from_json = [

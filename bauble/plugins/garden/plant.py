@@ -566,19 +566,12 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         sp_str = self.accession.species_str(markup=True, authors=True)
         dead_color = "#9900ff"
         if self.quantity <= 0:
-            dead_markup = '<span foreground="%s">%s</span>' % (
-                dead_color,
-                utils.xml_safe(self),
-            )
+            dead_markup = f'<span foreground="{dead_color}">{utils.xml_safe(self)}</span>'
             return dead_markup, sp_str
         else:
             located_counted = (
-                '%s <span foreground="#555555" size="small" '
-                'weight="light">- %s alive in %s</span>'
-            ) % (
-                utils.xml_safe(self),
-                self.quantity,
-                utils.xml_safe(self.location),
+                f'{utils.xml_safe(self)} <span foreground="#555555" size="small" '
+                f'weight="light">- {self.quantity} alive in {utils.xml_safe(self.location)}</span>'
             )
             return located_counted, sp_str
 
@@ -885,7 +878,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
 
             query = self.session.execute(
                 select(Accession)
-                .where(Accession.code.like(str("%s%%" % text)))
+                .where(Accession.code.like(str(f"{text}%")))
                 .order_by(Accession.code)
             ).scalars()
             return query
@@ -1340,7 +1333,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
         if self.branched_plant:
             # set title if in branch mode
             current_title = self.presenter.view.get_window().get_title()
-            new_title = current_title + utils.utf8(" - %s" % _("Split Mode"))
+            new_title = current_title + utils.utf8(" - {}".format(_("Split Mode")))
             self.presenter.view.get_window().set_title(new_title)
             message_box_parent = self.presenter.view.widgets.message_box_parent
             list(
@@ -1409,12 +1402,12 @@ class GeneralPlantExpander(InfoExpander):
 
         self.widget_set_value(
             "acc_code_data",
-            "<big>%s</big>" % utils.xml_safe(str(head)),
+            f"<big>{utils.xml_safe(str(head))}</big>",
             markup=True,
         )
         self.widget_set_value(
             "plant_code_data",
-            "<big>%s</big>" % utils.xml_safe(str(tail)),
+            f"<big>{utils.xml_safe(str(tail))}</big>",
             markup=True,
         )
         self.widget_set_value(
@@ -1483,27 +1476,27 @@ class ChangesExpander(InfoExpander):
                 divided_plant = None
 
             date = change.date.strftime(date_format)
-            label = Gtk.Label(label="%s:" % date)
+            label = Gtk.Label(label=f"{date}:")
             label.set_alignment(0, 0)
             self.table.attach(label, 0, current_row, 1, 1)
             if change.to_location and change.from_location:
-                s = "%(quantity)s Transferred from %(from_loc)s to %(to)s" % dict(
+                s = "{quantity} Transferred from {from_loc} to {to}".format(**dict(
                     quantity=change.quantity,
                     from_loc=change.from_location,
                     to=change.to_location,
-                )
+                ))
             elif change.quantity < 0:
-                s = "%(quantity)s Removed from %(location)s" % dict(
+                s = "{quantity} Removed from {location}".format(**dict(
                     quantity=-change.quantity, location=change.from_location
-                )
+                ))
             elif change.quantity > 0:
-                s = "%(quantity)s Added to %(location)s" % dict(
+                s = "{quantity} Added to {location}".format(**dict(
                     quantity=change.quantity, location=change.to_location
-                )
+                ))
             else:
                 s = f"{change.quantity}: {change.from_location} -> {change.to_location}"
             if change.reason is not None:
-                s += "\n%s" % change_reasons[change.reason]
+                s += f"\n{change_reasons[change.reason]}"
             label = Gtk.Label(label=s)
             label.set_alignment(0, 0.5)
             self.table.attach(label, 1, current_row, 1, 1)
@@ -1593,7 +1586,7 @@ class PropagationExpander(InfoExpander):
 
             # Date Label
             date_lbl = Gtk.Label()
-            date_lbl.set_markup("<b>%s</b>" % prop.date.strftime(date_format))
+            date_lbl.set_markup(f"<b>{prop.date.strftime(date_format)}</b>")
             date_lbl.set_xalign(0.0)  # Align left
             v1.pack_start(date_lbl, False, False, 0)
 

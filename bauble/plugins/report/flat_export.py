@@ -74,11 +74,13 @@ class FlatFileExporter(GenericEditorPresenter):
         }
 
     def set_model_fields(
-        self, output_file=None, domain=None, exported_fields=[], **kwargs
+        self, output_file=None, domain=None, exported_fields=None, **kwargs
     ):
+        if exported_fields is None:
+            exported_fields = []
         if kwargs:
             self.logger.warning(
-                "set_model_fields received extra parameters %s" % kwargs
+                f"set_model_fields received extra parameters {kwargs}"
             )
 
         self.view.widget_set_value("output_file", output_file)

@@ -210,7 +210,7 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
         species = lookup(session, Species, genus=genus, infrasp1="sp")
     elif len(epithets) >= 2:
         if len(epithets) > 2:
-            logger.info("ignoring infraspecific epithets ›%s‹" % scientific_name)
+            logger.info(f"ignoring infraspecific epithets ›{scientific_name}‹")
         genus = lookup(session, Genus, epithet=epithets[0])
         species = lookup(session, Species, genus=genus, epithet=epithets[1])
 
@@ -296,7 +296,7 @@ def process_line(session, line, baseline):
         timestamp, category, trailer = re.split(r" :(?:([A-Z_]*):) ", line)
         timestamp = parse(timestamp.replace("_", "T") + "Z")
     except:
-        logger.error("some serious error in your pocket data line ›%s‹" % line)
+        logger.error(f"some serious error in your pocket data line ›{line}‹")
         return None
     parameters = re.split(r" : ", trailer)
     if category == "INVENTORY":
@@ -304,7 +304,7 @@ def process_line(session, line, baseline):
     elif category == "PENDING_EDIT":
         process_pending_edit_line(session, baseline, timestamp, parameters)
     else:
-        logger.error("unhandled category in your pocket data line ›%s‹" % line)
+        logger.error(f"unhandled category in your pocket data line ›{line}‹")
 
 
 # if False:

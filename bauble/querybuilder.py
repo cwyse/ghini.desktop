@@ -72,8 +72,10 @@ class SchemaMenu:
         mapper,
         activate_cb=None,
         relation_filter=lambda c, p: True,
-        leading_items=[],
+        leading_items=None,
     ):
+        if leading_items is None:
+            leading_items = []
         self.mapper = mapper
         self.activate_cb = activate_cb
         self.relation_filter = relation_filter
