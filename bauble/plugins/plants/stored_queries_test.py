@@ -32,12 +32,16 @@ class TestStoredQueriesInitialize:
     def test_initialize_model(self):
         model = StoredQueriesModel()
         for i in range(1, 9):
-            assert model[i] == "::", f"Expected default empty value for model[{i}], but got: {model[i]}"
+            assert (
+                model[i] == "::"
+            ), f"Expected default empty value for model[{i}], but got: {model[i]}"
 
     def test_initialize_has_defaults(self):
         model = StoredQueriesModel()
         for i in range(1, 9):
-            assert model[i] == "::", f"Expected default empty value for model[{i}], but got: {model[i]}"
+            assert (
+                model[i] == "::"
+            ), f"Expected default empty value for model[{i}], but got: {model[i]}"
 
 
 @pytest.mark.usefixtures("db_session")
@@ -147,7 +151,10 @@ class TestStoredQueriesPresenter:
         presenter.refresh_view()
         for i in range(1, 11):
             bname = f"stqr_{i:02d}_button"
-            assert ("widget_set_active", (bname, i == model.page)) in presenter.view.invoked_detailed
+            assert (
+                "widget_set_active",
+                (bname, i == model.page),
+            ) in presenter.view.invoked_detailed
             lname = f"stqr_{i:02d}_label"
             assert (
                 "widget_set_attributes",
@@ -183,7 +190,10 @@ class TestStoredQueriesPresenter:
         presenter.on_button_clicked(bname)
         assert model.page == 5
         assert ("widget_set_active", (bname, True)) in presenter.view.invoked_detailed
-        assert ("widget_set_active", ("stqr_01_button", False)) in presenter.view.invoked_detailed
+        assert (
+            "widget_set_active",
+            ("stqr_01_button", False),
+        ) in presenter.view.invoked_detailed
 
     def test_label_entry_change(self):
         view = MockView()
@@ -195,8 +205,14 @@ class TestStoredQueriesPresenter:
         presenter.view.values["stqr_label_entry"] = "abc"
         presenter.on_label_entry_changed("stqr_label_entry")
         assert model.label == "abc"
-        assert ("widget_set_text", ("stqr_04_label", "abc")) in presenter.view.invoked_detailed
+        assert (
+            "widget_set_text",
+            ("stqr_04_label", "abc"),
+        ) in presenter.view.invoked_detailed
         presenter.view.values["stqr_label_entry"] = ""
         presenter.on_label_entry_changed("stqr_label_entry")
         assert model.label == ""
-        assert ("widget_set_text", ("stqr_04_label", "<empty>")) in presenter.view.invoked_detailed
+        assert (
+            "widget_set_text",
+            ("stqr_04_label", "<empty>"),
+        ) in presenter.view.invoked_detailed

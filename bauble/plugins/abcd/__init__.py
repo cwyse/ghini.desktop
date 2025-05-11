@@ -64,9 +64,7 @@ def validate_xml(root):
     :param root: root of an XML tree to validate against
     :returns: True or False depending if root validates correctly
     """
-    schema_file = os.path.join(
-        paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd"
-    )
+    schema_file = os.path.join(paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd")
     xmlschema_doc = etree.parse(schema_file)
     abcd_schema = etree.XMLSchema(xmlschema_doc)
     return abcd_schema.validate(root)
@@ -110,12 +108,12 @@ def ABCDElement(parent, name, text=None, attrib=None):
         attrib = {}
     # Ensure text is a string and encoded properly
     if text is None:
-        text = ''
+        text = ""
     elif isinstance(text, bytes):
-        text = text.decode('utf-8', errors='replace')
+        text = text.decode("utf-8", errors="replace")
     else:
         text = str(text)
-    
+
     el = SubElement(
         parent,
         "{{{}}}{}".format(namespaces["abcd"], name),
@@ -279,12 +277,8 @@ def create_abcd(decorated_objects, authors=True, validate=True):
 
         # TODO: ABCDDecorator should provide an iterator so that we can
         # have multiple HigherTaxonName's
-        ABCDElement(
-            higher_taxon, "HigherTaxonName", text=obj.get_family()
-        )
-        ABCDElement(
-            higher_taxon, "HigherTaxonRank", text="familia"
-        )
+        ABCDElement(higher_taxon, "HigherTaxonName", text=obj.get_family())
+        ABCDElement(higher_taxon, "HigherTaxonRank", text="familia")
 
         scientific_name = ABCDElement(taxon_identified, "ScientificName")
         ABCDElement(
@@ -295,9 +289,7 @@ def create_abcd(decorated_objects, authors=True, validate=True):
 
         name_atomised = ABCDElement(scientific_name, "NameAtomised")
         botanical = ABCDElement(name_atomised, "Botanical")
-        ABCDElement(
-            botanical, "GenusOrMonomial", text=obj.get_GenusOrMonomial()
-        )
+        ABCDElement(botanical, "GenusOrMonomial", text=obj.get_GenusOrMonomial())
         ABCDElement(botanical, "FirstEpithet", text=obj.get_FirstEpithet())
         if obj.get_InfraspecificEpithet():
             ABCDElement(
@@ -323,17 +315,13 @@ def create_abcd(decorated_objects, authors=True, validate=True):
             identification = ABCDElement(identifications, "Identification")
             result = ABCDElement(identification, "Result")
             taxon_identified = ABCDElement(result, "TaxonIdentified")
-            ABCDElement(
-                taxon_identified, "InformalNameString", text=vernacular_name
-            )
+            ABCDElement(taxon_identified, "InformalNameString", text=vernacular_name)
         if obj.get_IdentificationQualifier():
             ABCDElement(
                 scientific_name,
                 "IdentificationQualifier",
                 text=obj.get_IdentificationQualifier(),
-                attrib={
-                    "insertionpoint": obj.get_IdentificationQualifierRank()
-                },
+                attrib={"insertionpoint": obj.get_IdentificationQualifierRank()},
             )
         # add all the extra non standard elements
         obj.extra_elements(unit)
@@ -394,7 +382,6 @@ class ABCDExporter:
             stmt = select(func.count()).select_from(Plant)
             nplants = db.Session().execute(stmt).scalar_one()
 
-
         if nplants > 3000:
             msg = _(
                 "You are exporting %(nplants)s plants to ABCD format.  "
@@ -410,9 +397,7 @@ class ABCDExporter:
             raise ValueError("filename can not be None")
 
         if os.path.exists(filename) and not os.path.isfile(filename):
-            raise ValueError(
-                "%s exists and is not a a regular file" % filename
-            )
+            raise ValueError("%s exists and is not a a regular file" % filename)
 
         # if plants is None then export all plants, this could be huge
         # TODO: do something about this, like list the number of plants

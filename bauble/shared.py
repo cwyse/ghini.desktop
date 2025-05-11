@@ -5,10 +5,10 @@ import logging
 import gi
 
 gi.require_version("Gtk", "3.0")
-#from bauble.utils import safe_set_text
+# from bauble.utils import safe_set_text
 from bauble import prefs
 
-#from gi.repository import Pango
+# from gi.repository import Pango
 from bauble.utils import set_widget_value
 from gi.repository import Gio, Gtk
 
@@ -19,6 +19,7 @@ import logging
 from gi.repository import Gtk
 
 logger = logging.getLogger(__name__)
+
 
 class InfoExpander:
     """
@@ -99,11 +100,13 @@ class InfoExpander:
 class Action:
     """
     Represents an action with a callback and optional visibility toggles.
-    
+
     Uses `Gio.SimpleAction`, as `Gtk.Action` is deprecated in GTK 4.
     """
 
-    def __init__(self, name, label, tooltip=None, stock_id=None, callback=None, app=None):
+    def __init__(
+        self, name, label, tooltip=None, stock_id=None, callback=None, app=None
+    ):
         """
         :param name: Unique action name (e.g., "open").
         :param label: The action label.
@@ -146,4 +149,3 @@ class Action:
     def execute(self, *args):
         """Manually trigger the action execution."""
         self._on_activate(None, None)
-

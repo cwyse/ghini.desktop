@@ -26,7 +26,8 @@ from bauble.prefs import prefs
 
 prefs.testing = True
 
-#db.sqlalchemy_debug(True)
+# db.sqlalchemy_debug(True)
+
 
 # Tests
 def test_class_of_object_genus():

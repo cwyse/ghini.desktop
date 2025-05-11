@@ -31,12 +31,12 @@ import logging
 import os
 import re
 
-#import shutil
+# import shutil
 import sys
 import tempfile
 from gettext import gettext as _
 
-#import bauble.db as db
+# import bauble.db as db
 import bauble.paths as bpaths
 import bauble.prefs as prefs
 import bauble.utils as butils
@@ -265,9 +265,7 @@ class AccessionABCDAdapter(SpeciesABCDAdapter):
             gathering = ABCDElement(unit, "Gathering")
 
             if collection.collectors_code:
-                ABCDElement(
-                    gathering, "Code", text=utf8(collection.collectors_code)
-                )
+                ABCDElement(gathering, "Code", text=utf8(collection.collectors_code))
 
             # TODO: get date pref for DayNumberBegin
             if collection.date:
@@ -281,26 +279,18 @@ class AccessionABCDAdapter(SpeciesABCDAdapter):
             if collection.collector:
                 agents = ABCDElement(gathering, "Agents")
                 agent = ABCDElement(agents, "GatheringAgent")
-                ABCDElement(
-                    agent, "AgentText", text=utf8(collection.collector)
-                )
+                ABCDElement(agent, "AgentText", text=utf8(collection.collector))
 
             if collection.locale:
-                ABCDElement(
-                    gathering, "LocalityText", text=utf8(collection.locale)
-                )
+                ABCDElement(gathering, "LocalityText", text=utf8(collection.locale))
 
             if collection.region:
                 named_areas = ABCDElement(gathering, "NamedAreas")
                 named_area = ABCDElement(named_areas, "NamedArea")
-                ABCDElement(
-                    named_area, "AreaName", text=utf8(collection.region)
-                )
+                ABCDElement(named_area, "AreaName", text=utf8(collection.region))
 
             if collection.habitat:
-                ABCDElement(
-                    gathering, "AreaDetail", text=utf8(collection.habitat)
-                )
+                ABCDElement(gathering, "AreaDetail", text=utf8(collection.habitat))
 
             if collection.longitude or collection.latitude:
                 site_coords = ABCDElement(gathering, "SiteCoordinateSets")
@@ -311,9 +301,7 @@ class AccessionABCDAdapter(SpeciesABCDAdapter):
                     "LongitudeDecimal",
                     text=utf8(collection.longitude),
                 )
-                ABCDElement(
-                    lat_long, "LatitudeDecimal", text=utf8(collection.latitude)
-                )
+                ABCDElement(lat_long, "LatitudeDecimal", text=utf8(collection.latitude))
                 if collection.gps_datum:
                     ABCDElement(
                         lat_long,
@@ -425,9 +413,7 @@ class XSLFormatterPlugin(FormatterPlugin):
         stylesheet = cls.get_template(name).filename
         authors = kwargs.get("authors", False)
         renderer = kwargs.get("renderer", "Apache FOP")
-        source_type = (
-            kwargs.get("domain", "plant").replace("(", "").replace(")", "")
-        )
+        source_type = kwargs.get("domain", "plant").replace("(", "").replace(")", "")
         use_private = kwargs.get("private", True)
         error_msg = None
         if not stylesheet:
@@ -482,9 +468,7 @@ class XSLFormatterPlugin(FormatterPlugin):
 
         # run the report to produce the pdf file, the command has to be
         # on the path for this to work
-        fo_cmd = fo_cmd % (
-            {"fo_filename": fo_filename, "out_filename": filename}
-        )
+        fo_cmd = fo_cmd % ({"fo_filename": fo_filename, "out_filename": filename})
         logger.debug(fo_cmd)
 
         from subprocess import call

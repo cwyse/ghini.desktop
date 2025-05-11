@@ -16,6 +16,7 @@ from bauble.pluginmgr import (
 
 logger = logging.getLogger(__name__)
 
+
 class A(Plugin):
     depends = []
     initialized = False
@@ -58,6 +59,7 @@ class C(Plugin):
     def install(cls, *args, **kwargs):
         cls.installed = True
 
+
 class FailingInitPlugin(Plugin):
     initialized = False
     installed = False
@@ -73,7 +75,7 @@ class FailingInitPlugin(Plugin):
 
 
 class DependsOnFailingInitPlugin(Plugin):
-    depends = ['FailingInitPlugin']
+    depends = ["FailingInitPlugin"]
     initialized = False
     installed = False
 
@@ -101,7 +103,7 @@ class FailingInstallPlugin(Plugin):
 
 
 class DependsOnFailingInstallPlugin(Plugin):
-    depends = ['FailingInstallPlugin']
+    depends = ["FailingInstallPlugin"]
     initialized = False
     installed = False
 
@@ -123,6 +125,7 @@ class PluginMgrTests:
         """
         Test importing default data from a plugin.
         """
+
         # this emulates the PlantsPlugin install() method but only
         # imports the family.txt file...if PlantsPlugin.install()
         # changes we should change this method as well
@@ -137,13 +140,15 @@ class PluginMgrTests:
                 Mimic the PlantsPlugin install method but only import the family.txt file.
                 """
                 import bauble.paths as paths
+
                 if not import_defaults:
                     return
 
                 # Construct path to family.txt
                 path = os.path.join(paths.lib_dir(), "plugins", "plants", "default")
-                filenames = os.path.join(path, 'family.txt')
+                filenames = os.path.join(path, "family.txt")
                 from bauble.plugins.imex.csv_ import CSVImporter
+
                 csv = CSVImporter()
 
                 try:
@@ -156,6 +161,7 @@ class PluginMgrTests:
                 # Verify the expected record count
                 from bauble.plugins.plants import Family
                 from sqlalchemy import func, select
+
                 stmt = select(func.count()).select_from(Family)
                 count = db_session.execute(stmt).scalar_one()
                 assert count == 1387, f"Expected 1387 records in Family, found {count}"
@@ -166,7 +172,6 @@ class PluginMgrTests:
 
         # Ensure the plugin installed successfully
         assert Dummy.installed, "Dummy plugin was not installed successfully."
-
 
 
 class LocalFunctions:
@@ -219,7 +224,6 @@ class LocalFunctions:
         # Assert dependencies and unmet dependencies
         assert dep == [(b, c)], f"Unexpected dependency pairs: {dep}"
         assert unmet == {"B": ["A"]}, f"Unexpected unmet dependencies: {unmet}"
-
 
 
 class StandalonePluginMgrTests:
@@ -278,8 +282,12 @@ class StandalonePluginMgrTests:
 
         init(force=True)
 
-        assert mock_message_dialog["status"], "Expected dialog invocation for initialization failure"
-        assert not DependsOnFailingInitPlugin.initialized, "DependsOnFailingInitPlugin should not be initialized"
+        assert mock_message_dialog[
+            "status"
+        ], "Expected dialog invocation for initialization failure"
+        assert (
+            not DependsOnFailingInitPlugin.initialized
+        ), "DependsOnFailingInitPlugin should not be initialized"
 
     def test_install_with_problem(self, db_session):
         """
@@ -289,7 +297,9 @@ class StandalonePluginMgrTests:
         plugins["DependsOnFailingInstallPlugin"] = DependsOnFailingInstallPlugin()
 
         with pytest.raises(BaubleError, match="can't install"):
-            install([FailingInstallPlugin(), DependsOnFailingInstallPlugin()], force=True)
+            install(
+                [FailingInstallPlugin(), DependsOnFailingInstallPlugin()], force=True
+            )
 
     def test_install(self, db_session):
         """
@@ -356,10 +366,12 @@ class PluginRegistryTests:
 
         # Add the plugin to the registry
         PluginRegistry.add(plugin_instance)
-        assert PluginRegistry.exists(plugin_instance), "Plugin was not added to the registry"
+        assert PluginRegistry.exists(
+            plugin_instance
+        ), "Plugin was not added to the registry"
 
         # Remove the plugin from the registry
         PluginRegistry.remove(plugin_instance)
-        assert not PluginRegistry.exists(plugin_instance), "Plugin was not removed from the registry"
-
-                
+        assert not PluginRegistry.exists(
+            plugin_instance
+        ), "Plugin was not removed from the registry"

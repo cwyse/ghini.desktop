@@ -57,11 +57,12 @@ def test_create_message_dialog():
     dialog.destroy()
 
 
-
 def test_search_tree_model():
     import gi
+
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk
+
     model = Gtk.TreeStore(str)
 
     # The rows that should be found
@@ -85,7 +86,10 @@ def test_search_tree_model():
     found_paths = sorted([model.get_path(r).to_string() for r in results])
     expected_paths = sorted([model.get_path(r).to_string() for r in to_find])
 
-    assert found_paths == expected_paths, f"Expected paths: {expected_paths}, but found: {found_paths}"
+    assert (
+        found_paths == expected_paths
+    ), f"Expected paths: {expected_paths}, but found: {found_paths}"
+
 
 def test_xml_safe():
     class Test:
@@ -94,8 +98,9 @@ def test_xml_safe():
 
         def __unicode__(self):
             return repr(self)
+
     import re
-    
+
     assert re.match(r"&lt;.*?&gt;", utils.xml_safe(str(Test())))
     assert utils.xml_safe("test string") == "test string"
     assert utils.xml_safe("test< string") == "test&lt; string"
@@ -156,9 +161,7 @@ def dependent_tables_metadata(db_session):
     metadata = db_session.bind.metadata
 
     # table1 does not depend on any tables
-    table1 = Table(
-        "table1", metadata, Column("id", Integer, primary_key=True)
-    )
+    table1 = Table("table1", metadata, Column("id", Integer, primary_key=True))
 
     # table2 depends on table1
     table2 = Table(
@@ -201,7 +204,11 @@ def test_find_dependent_tables(db_session, dependent_tables_metadata):
 
     # Tables that depend on table1: table2, table4, table3
     depends = list(utils.find_dependent_tables(table1, metadata))
-    assert depends == [table2, table4, table3], f"Expected [table2, table4, table3], got {depends}"
+    assert depends == [
+        table2,
+        table4,
+        table3,
+    ], f"Expected [table2, table4, table3], got {depends}"
 
     # Tables that depend on table2: table4, table3
     depends = list(utils.find_dependent_tables(table2, metadata))
@@ -302,13 +309,17 @@ def test_with_col_sequence(db_session, test_table_with_sequence):
 
     # Verify the sequence has been reset
     currval = get_currval(db_session, test_table_with_sequence.c.id)
-    assert currval > rangemax, f"Sequence value {currval} is not greater than {rangemax}."
+    assert (
+        currval > rangemax
+    ), f"Sequence value {currval} is not greater than {rangemax}."
+
 
 def test_empty_dependencies():
     r = topological_sort(["a", "b", "c"], [])
     assert "a" in r
     assert "b" in r
     assert "c" in r
+
 
 def test_full_dependencies():
     r = topological_sort(["a", "b", "c"], [("a", "b"), ("b", "c")])
@@ -319,6 +330,7 @@ def test_full_dependencies():
     assert r.pop() == "b"
     assert r.pop() == "a"
 
+
 def test_partial_dependencies():
     r = topological_sort(["b", "e"], [("a", "b"), ("b", "c"), ("b", "d")])
     print(r)
@@ -328,6 +340,7 @@ def test_partial_dependencies():
     assert any_set == {"c", "d"}
     assert r.pop() == "b"
     # assert r == []  # This assertion is commented in the original
+
 
 def test_empty_input_full_dependencies():
     r = topological_sort([], [("a", "b"), ("b", "c"), ("b", "d")])

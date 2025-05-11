@@ -38,7 +38,7 @@ class AskTPL(threading.Thread):
         gui=False,
         group=None,
         verbose=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(group=group, target=None, name=None)
         logger.debug(
@@ -82,8 +82,8 @@ class AskTPL(threading.Thread):
             parts = parts[0].split("/")
             if len(parts) > 3:
                 return parts[-3]  # Third-to-last element
-            return None        
-        
+            return None
+
         def extract_species(wfo_path):
             parts = wfo_path.split("$")
             parts = parts[0].split("/")
@@ -92,8 +92,8 @@ class AskTPL(threading.Thread):
             return None
 
         def query_wfo_api(input_string):
-            url = 'https://list.worldfloraonline.org/gql.php'
-            query = '''
+            url = "https://list.worldfloraonline.org/gql.php"
+            query = """
             query ($inputString: String!) {
                 taxonNameMatch(inputString: $inputString) {
                     inputString
@@ -132,70 +132,120 @@ class AskTPL(threading.Thread):
                     }
                 }
             }
-            '''
-            variables = {'inputString': input_string}
-            response = requests.post(url, json={'query': query, 'variables': variables})
+            """
+            variables = {"inputString": input_string}
+            response = requests.post(url, json={"query": query, "variables": variables})
             return response.json()
 
         def ask_wfo(name):
             result = query_wfo_api(name)
-            data = result.get('data', {}).get('taxonNameMatch', {})
+            data = result.get("data", {}).get("taxonNameMatch", {})
 
-            if 'match' in data and data['match']:
-                match = data['match']
-                family = extract_family(match['wfoPath'])
-                species = extract_species(match['wfoPath'])
-                return [{
-                        'ID': match['id'],
-                        'FullName': match['fullNameStringPlain'],
-                        'Genus': match['genusString'],
-                        'Species': ( species if match['speciesString'] is None else match['speciesString'] ),
-                        'role': match['role'],  # accepted, synonym, unplaced, deprecated
-                        'Accepted ID': (
-                            match['id'] if match.get('currentPreferredUsage') and 
-                                        match['currentPreferredUsage']['hasName']['id'] == match['id'] 
-                            else None
-                            ),  
-                        'Taxonomic status': (
-                            "Accepted" if match.get('currentPreferredUsage') and 
-                                        match['currentPreferredUsage']['hasName']['id'] == match['id']
-                            else "Synonym" if match.get('currentPreferredUsage') 
-                            else "Unplaced"
+            if "match" in data and data["match"]:
+                match = data["match"]
+                family = extract_family(match["wfoPath"])
+                species = extract_species(match["wfoPath"])
+                return [
+                    {
+                        "ID": match["id"],
+                        "FullName": match["fullNameStringPlain"],
+                        "Genus": match["genusString"],
+                        "Species": (
+                            species
+                            if match["speciesString"] is None
+                            else match["speciesString"]
                         ),
-                        'Genus hybrid marker': ('×' if match['fullNameStringPlain'].startswith('×') and match['genusString'] == "null" else ''),
-                        'Species hybrid marker': ('× ' if ' × ' in match['fullNameStringPlain'] and match['speciesString'] == "null" else ''),
-                        'Authorship': match['authorsString'],
-                        'Family': family,
-                        'Title': match['title']
-                }]
-            elif 'candidates' in data and data['candidates']:
+                        "role": match[
+                            "role"
+                        ],  # accepted, synonym, unplaced, deprecated
+                        "Accepted ID": (
+                            match["id"]
+                            if match.get("currentPreferredUsage")
+                            and match["currentPreferredUsage"]["hasName"]["id"]
+                            == match["id"]
+                            else None
+                        ),
+                        "Taxonomic status": (
+                            "Accepted"
+                            if match.get("currentPreferredUsage")
+                            and match["currentPreferredUsage"]["hasName"]["id"]
+                            == match["id"]
+                            else (
+                                "Synonym"
+                                if match.get("currentPreferredUsage")
+                                else "Unplaced"
+                            )
+                        ),
+                        "Genus hybrid marker": (
+                            "×"
+                            if match["fullNameStringPlain"].startswith("×")
+                            and match["genusString"] == "null"
+                            else ""
+                        ),
+                        "Species hybrid marker": (
+                            "× "
+                            if " × " in match["fullNameStringPlain"]
+                            and match["speciesString"] == "null"
+                            else ""
+                        ),
+                        "Authorship": match["authorsString"],
+                        "Family": family,
+                        "Title": match["title"],
+                    }
+                ]
+            elif "candidates" in data and data["candidates"]:
                 candidates = []
-                for candidate in data['candidates']:
-                    family = extract_family(candidate['wfoPath'])
-                    species = extract_species(candidate['wfoPath'])
-                    candidates.append({
-                        'ID': candidate['id'],
-                        'FullName': candidate['fullNameStringPlain'],
-                        'Genus': candidate['genusString'],
-                        'Species': ( species if candidate['speciesString'] is None else candidate['speciesString'] ),
-                        'role': candidate['role'],  # accepted, synonym, unplaced, deprecated
-                        'Accepted ID': (
-                            candidate['id'] if candidate.get('currentPreferredUsage') and 
-                                        candidate['currentPreferredUsage']['hasName']['id'] == candidate['id'] 
-                            else None
-                            ), 
-                        'Taxonomic status': (
-                            "Accepted" if candidate.get('currentPreferredUsage') and 
-                                        candidate['currentPreferredUsage']['hasName']['id'] == candidate['id']
-                            else "Synonym" if candidate.get('currentPreferredUsage') 
-                            else "Unplaced"
-                        ),
-                        'Genus hybrid marker': ('×' if candidate['fullNameStringPlain'].startswith('×') and candidate['genusString'] == "null" else ''),
-                        'Species hybrid marker': ('×' if ' × ' in candidate['fullNameStringPlain'] and candidate['speciesString'] == "null" else ''),
-                        'Authorship': candidate['authorsString'],
-                        'Family': family,
-                        'Title': candidate['title']
-                    })
+                for candidate in data["candidates"]:
+                    family = extract_family(candidate["wfoPath"])
+                    species = extract_species(candidate["wfoPath"])
+                    candidates.append(
+                        {
+                            "ID": candidate["id"],
+                            "FullName": candidate["fullNameStringPlain"],
+                            "Genus": candidate["genusString"],
+                            "Species": (
+                                species
+                                if candidate["speciesString"] is None
+                                else candidate["speciesString"]
+                            ),
+                            "role": candidate[
+                                "role"
+                            ],  # accepted, synonym, unplaced, deprecated
+                            "Accepted ID": (
+                                candidate["id"]
+                                if candidate.get("currentPreferredUsage")
+                                and candidate["currentPreferredUsage"]["hasName"]["id"]
+                                == candidate["id"]
+                                else None
+                            ),
+                            "Taxonomic status": (
+                                "Accepted"
+                                if candidate.get("currentPreferredUsage")
+                                and candidate["currentPreferredUsage"]["hasName"]["id"]
+                                == candidate["id"]
+                                else (
+                                    "Synonym"
+                                    if candidate.get("currentPreferredUsage")
+                                    else "Unplaced"
+                                )
+                            ),
+                            "Genus hybrid marker": (
+                                "×"
+                                if candidate["fullNameStringPlain"].startswith("×")
+                                and candidate["genusString"] == "null"
+                                else ""
+                            ),
+                            "Species hybrid marker": (
+                                "×"
+                                if " × " in candidate["fullNameStringPlain"]
+                                and candidate["speciesString"] == "null"
+                                else ""
+                            ),
+                            "Authorship": candidate["authorsString"],
+                            "Family": family,
+                            "Title": candidate["title"],
+                        }
+                    )
                 return candidates
             else:
                 return None
@@ -240,7 +290,7 @@ class AskTPL(threading.Thread):
                 raise NoResult
             logger.debug("found this: %s", str(found))
             if found["Accepted ID"]:
-                #accepted = found
+                # accepted = found
                 accepted = ask_wfo(found["FullName"])
                 logger.debug("ask_tpl on the Accepted ID returns %s", accepted)
                 if accepted:
@@ -276,6 +326,7 @@ class AskTPL(threading.Thread):
         logger.debug("%s before invoking callback" % self.name)
         if self.gui:
             import gi
+
             gi.require_version("Gtk", "3.0")
             from gi.repository import GLib
 
@@ -292,6 +343,7 @@ def citation(d):
     #     "%(Authorship)s (%(Family)s)" % d
     # ).replace("   ", " ")
     return ("%(Title)s (%(Family)s)" % d).replace("   ", " ")
+
 
 def what_to_do_with_it(found, accepted):
     if found is None and accepted is None:

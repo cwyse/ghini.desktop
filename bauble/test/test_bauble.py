@@ -58,17 +58,19 @@ prefs.testing = True
 #     metadata = db.Base.metadata
 #     if "test_enum_type" in metadata.tables:
 #         metadata.remove(_TestEnum.__table__)
-        
+
 #     _TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
 #     _TestEnum.__table__.create(bind=db_session.bind)
 
 #     yield _TestEnum
+
 
 #     _TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
 class _TestEnum(db.Base):
     __tablename__ = "test_enum_type"
     id = Column(Integer, primary_key=True)
     value = Column(types.Enum(values=["1", "2", ""], omit_aliases=False), default="")
+
 
 @pytest.fixture
 def clean_enum_table(db_session):
@@ -105,7 +107,6 @@ def clean_enum_table(db_session):
         db_session.commit()
 
 
-
 class TestEnumModel:
     """
     Tests for Enum-based SQLAlchemy model.
@@ -114,19 +115,23 @@ class TestEnumModel:
     def test_insert_low_level(self, db_session, clean_enum_table):
         # ✅ Get database dialect (SQLite, PostgreSQL, etc.)
         dialect_name = db_session.bind.dialect.name
-        
+
         # Check if the table exists before inserting
         if dialect_name == "sqlite":
             query = text("SELECT name FROM sqlite_master WHERE type='table';")
         else:
-            query = text("SELECT table_name FROM information_schema.tables WHERE table_schema='public';")
+            query = text(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema='public';"
+            )
 
         table_names = db_session.execute(query).all()
         print(f"Existing tables: {table_names}")
         # Debug: Ensure the row does not already exist
-        existing_row = db_session.execute(
-            select(clean_enum_table).where(clean_enum_table.id == 1)
-        ).scalars().first()
+        existing_row = (
+            db_session.execute(select(clean_enum_table).where(clean_enum_table.id == 1))
+            .scalars()
+            .first()
+        )
         if existing_row:
             print(f"Row already exists before test: {existing_row}")
         else:
@@ -143,9 +148,11 @@ class TestEnumModel:
             db_session.commit()
 
         # Verify the row was inserted
-        inserted_row = db_session.execute(
-            select(clean_enum_table).where(clean_enum_table.id == 1)
-        ).scalars().first()
+        inserted_row = (
+            db_session.execute(select(clean_enum_table).where(clean_enum_table.id == 1))
+            .scalars()
+            .first()
+        )
         assert inserted_row is not None, "Row was not inserted properly!"
 
     def test_insert_alchemic(self, db_session, clean_enum_table):
@@ -167,7 +174,7 @@ class TestEnumModel:
             db_session.flush()
         # ✅ Ensure rollback after the test runs
         if db_session.in_transaction():
-            db_session.rollback()   
+            db_session.rollback()
 
     def function_creating_enum(self, name, values, **kwargs):
         """
@@ -179,7 +186,9 @@ class TestEnumModel:
             {
                 "__tablename__": f"test_enum_type_{name}",
                 "id": Column(Integer, primary_key=True),
-                "value": Column(types.Enum(values=values, omit_aliases=False, **kwargs), default=""),
+                "value": Column(
+                    types.Enum(values=values, omit_aliases=False, **kwargs), default=""
+                ),
             },
         )
         table_class.__table__.create(bind=db.engine, checkfirst=True)
@@ -210,16 +219,20 @@ class TestEnumModel:
             self.function_creating_enum("five", ["1", [], None])  # Invalid types
 
         with pytest.raises(types.EnumError):
-            self.function_creating_enum("six", ["1", "2"], empty_to_none=True)  # empty_to_none with empty string
+            self.function_creating_enum(
+                "six", ["1", "2"], empty_to_none=True
+            )  # empty_to_none with empty string
         # ✅ Ensure rollback after the test runs
         if db_session.in_transaction():
-            db_session.rollback() 
+            db_session.rollback()
 
     def test_empty_to_none(self, db_session):
         """
         Test the `empty_to_none` functionality for Enums.
         """
-        _TestEnum = self.function_creating_enum("seven", ["1", None], empty_to_none=True)
+        _TestEnum = self.function_creating_enum(
+            "seven", ["1", None], empty_to_none=True
+        )
 
         # Insert rows into the table
         row1 = _TestEnum(value="1")
@@ -228,11 +241,15 @@ class TestEnumModel:
         db_session.flush()
 
         # Query for empty string (should return nothing)
-        query = db_session.execute(select(_TestEnum).where(_TestEnum.value == "")).scalars()
+        query = db_session.execute(
+            select(_TestEnum).where(_TestEnum.value == "")
+        ).scalars()
         assert query.all() == []
 
         # Query for None (should return row2)
-        query = db_session.execute(select(_TestEnum).where(_TestEnum.value == None)).scalars()
+        query = db_session.execute(
+            select(_TestEnum).where(_TestEnum.value == None)
+        ).scalars()
         assert query.all() == [row2]
 
     def test_function_creating_enum_with_fixture(self, db_session, clean_enum_table):
@@ -244,7 +261,9 @@ class TestEnumModel:
         db_session.add(row)
         db_session.flush()
 
-        query = db_session.execute(select(clean_enum_table).where(clean_enum_table.value == "1")).scalars()
+        query = db_session.execute(
+            select(clean_enum_table).where(clean_enum_table.value == "1")
+        ).scalars()
         assert query.first() == row
 
 
@@ -320,13 +339,19 @@ class TestDateTypes:
             db_session.commit()
 
         # Query the record back
-        m = db_session.execute(
-            select(meta.BaubleMeta).where(meta.BaubleMeta.name == "name")
-        ).scalars().first()
+        m = (
+            db_session.execute(
+                select(meta.BaubleMeta).where(meta.BaubleMeta.name == "name")
+            )
+            .scalars()
+            .first()
+        )
 
         # Assert `_created` and `_last_updated` are properly created
         assert hasattr(m, "_created") and isinstance(m._created, datetime.datetime)
-        assert hasattr(m, "_last_updated") and isinstance(m._last_updated, datetime.datetime)
+        assert hasattr(m, "_last_updated") and isinstance(
+            m._last_updated, datetime.datetime
+        )
 
         # Save the timestamps for comparison
         created = m._created
@@ -344,7 +369,6 @@ class TestDateTypes:
         assert m._created == created
         assert isinstance(m._last_updated, datetime.datetime)
         assert m._last_updated != last_updated
-
 
     def test_duplicate_ids(self):
         """
@@ -365,6 +389,7 @@ class TestDateTypes:
             ids = check_dupids(f)
             assert ids == [], f"{f} has duplicate IDs: {ids}"
 
+
 @pytest.mark.usefixtures("clean_db")
 class TestHistory:
     """
@@ -378,9 +403,11 @@ class TestHistory:
             db_session.commit()
 
         # Insert operation
-        history = db_session.execute(
-            select(db.History).order_by(db.History.timestamp.desc())
-        ).scalars().first()
+        history = (
+            db_session.execute(select(db.History).order_by(db.History.timestamp.desc()))
+            .scalars()
+            .first()
+        )
         assert history.table_name == "family"
         assert history.operation == "insert"
 
@@ -388,9 +415,11 @@ class TestHistory:
         f.family = "Family2"
         if db_session.in_transaction():
             db_session.commit()
-        history = db_session.execute(
-            select(db.History).order_by(db.History.timestamp.desc())
-        ).scalars().first()
+        history = (
+            db_session.execute(select(db.History).order_by(db.History.timestamp.desc()))
+            .scalars()
+            .first()
+        )
         assert history.table_name == "family"
         assert history.operation == "update"
 
@@ -398,35 +427,41 @@ class TestHistory:
         db_session.delete(f)
         if db_session.in_transaction():
             db_session.commit()
-        history = db_session.execute(
-            select(db.History).order_by(db.History.timestamp.desc())
-        ).scalars().first()
+        history = (
+            db_session.execute(select(db.History).order_by(db.History.timestamp.desc()))
+            .scalars()
+            .first()
+        )
         assert history.table_name == "family"
         assert history.operation == "delete"
-
 
     def verify_base_and_session(self):
         """
         Verify that the Base, session, and engine configurations are correct.
         """
         from bauble.plugins.plants import Family
+
         print(f"Family Base: {Family.__bases__}")
         print(f"db.Base class: {db.Base.__class__}")
         print(f"Family table: {Family.__table__}")
         print(f"Base metadata tables: {db.Base.metadata.tables.keys()}")
         print(f"Engine metadata bind: {db.Base.metadata.bind}")
         # Verify Base metadata binding
-        assert db.Base.metadata.bind == db.engine, "Base metadata is not bound to the correct engine!"
+        assert (
+            db.Base.metadata.bind == db.engine
+        ), "Base metadata is not bound to the correct engine!"
 
         # Verify session binding
-        assert self.session.bind == db.engine, "Session is not bound to the correct engine!"
+        assert (
+            self.session.bind == db.engine
+        ), "Session is not bound to the correct engine!"
 
         # Verify the model's Base
 
-        assert issubclass(Family, db.Base), "Family is not derived from the correct Base!"
+        assert issubclass(
+            Family, db.Base
+        ), "Family is not derived from the correct Base!"
         logger.info("All Base and session checks passed.")
-
-
 
 
 from bauble.editor import GenericEditorPresenter, GenericEditorView
@@ -465,9 +500,7 @@ class TestMVP:
         view = GenericEditorView(fn, None, "handler-defining-view")
         presenter = HandlerDefiningPresenter(model, view)
 
-        initial_signal_count = len(
-            presenter.view._GenericEditorView__attached_signals
-        )
+        initial_signal_count = len(presenter.view._GenericEditorView__attached_signals)
 
         # Step 2: Add a text buffer with a signal attached
         handle, fn = tempfile.mkstemp()
@@ -513,6 +546,7 @@ def test_newer_version_on_github(version_stream, expected_result):
     Test parsing and evaluation of version strings for newer versions on GitHub.
     """
     from bauble.connmgr import newer_version_on_github
+
     if logger.isEnabledFor(logging.INFO):
         logger.info("running unreleased version")
     result = newer_version_on_github(version_stream)
@@ -520,4 +554,3 @@ def test_newer_version_on_github(version_stream, expected_result):
         assert bool(result) is expected_result
     else:
         assert result == expected_result
-

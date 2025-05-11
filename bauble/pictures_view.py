@@ -27,16 +27,16 @@ from gi.repository import Gtk
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 class PicturesView:
     """Displays pictures corresponding to selection."""
 
     def __init__(self, parent=None, fake=False):
         logger.debug(
-            "entering PicturesView.__init__(parent=%s, fake=%s)"
-            % (parent, fake)
+            "entering PicturesView.__init__(parent=%s, fake=%s)" % (parent, fake)
         )
         self.fake = fake
-        
+
         if self.fake:
             return
 
@@ -59,7 +59,7 @@ class PicturesView:
     def set_selection(self, selection):
         """
         Updates the view based on the current selection.
-        If an object in the selection contains a `pictures` property, 
+        If an object in the selection contains a `pictures` property,
         its pictures will be displayed.
         """
         logger.debug(f"Setting selection: {selection}")
@@ -106,6 +106,7 @@ class PicturesView:
     def get_widget(self):
         """Returns the main widget (Gtk.Box) containing the pictures."""
         return self.pictures_box
+
 
 floating_window = None
 

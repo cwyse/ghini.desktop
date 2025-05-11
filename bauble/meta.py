@@ -21,7 +21,7 @@
 #
 import bauble.db as db
 
-#import bauble.utils as utils
+# import bauble.utils as utils
 from sqlalchemy import Column, Integer, Unicode, UnicodeText, select
 
 VERSION_KEY = "version"
@@ -50,15 +50,15 @@ def get_default(name, default=None, session=None):
     if not isinstance(name, str):
         raise TypeError(f"'name' must be a string, got {type(name).__name__}.")
     if session and not hasattr(session, "execute"):
-        raise TypeError(f"'session' must be a valid SQLAlchemy session, got {type(session).__name__}.")
+        raise TypeError(
+            f"'session' must be a valid SQLAlchemy session, got {type(session).__name__}."
+        )
 
     commit = False
     if not session:
         session = db.Session()
         commit = True
-    query = session.execute(
-        select(BaubleMeta).where(BaubleMeta.name == name)
-    ).scalars()
+    query = session.execute(select(BaubleMeta).where(BaubleMeta.name == name)).scalars()
     meta = query.first()
 
     # If no result and default is provided, create a new entry

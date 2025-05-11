@@ -37,12 +37,13 @@ from bauble.prefs import prefs
 from bauble.test import check_dupids
 from gi.repository import Gtk
 
-logger = logging.getLogger('bauble.connmgr')
+logger = logging.getLogger("bauble.connmgr")
 logger._cache.clear()
 logger.setLevel(logging.INFO)
 
 # Create a global thread lock
 prefs_lock = threading.Lock()
+
 
 @pytest.fixture(scope="function")
 def mock_prefs():
@@ -62,12 +63,15 @@ def mock_prefs():
         test_prefs.prefs[bauble.conn_default_pref] = None
 
         # Add necessary attributes and keys
-        object.__setattr__(test_prefs, "picture_root_pref", "bauble.picture_root")  # Attribute for the test
+        object.__setattr__(
+            test_prefs, "picture_root_pref", "bauble.picture_root"
+        )  # Attribute for the test
         test_prefs.prefs[test_prefs.picture_root_pref] = "/tmp"
 
     yield test_prefs  # Provide the isolated copy to the test
 
     # After the test, no need to restore `prefs` as it's untouched.
+
 
 @pytest.fixture(autouse=True)
 def reset_prefs(mock_prefs):
@@ -79,6 +83,7 @@ def reset_prefs(mock_prefs):
     mock_prefs.init(prefs=mock_prefs)  # Reinitialize prefs to default state
     mock_prefs.prefs[bauble.conn_list_pref] = {}
     mock_prefs.prefs[bauble.conn_default_pref] = None
+
 
 @pytest.fixture
 def mock_view():
@@ -123,7 +128,7 @@ class TestConnMgrPresenter:
 
         # Now create the presenter, which will read the updated prefs
         mock_presenter = ConnMgrPresenter(mock_view, prefs=mock_prefs)
-        
+
         mock_presenter.refresh_view()
         assert not mock_presenter.view.widget_get_visible("expander")
         assert mock_presenter.view.widget_get_visible("noconnectionlabel")
@@ -143,7 +148,7 @@ class TestConnMgrPresenter:
         mock_presenter = ConnMgrPresenter(mock_view, prefs=mock_prefs)
 
         # Refresh the presenter view to reflect the new preferences
-        #mock_presenter.refresh_view()
+        # mock_presenter.refresh_view()
 
         # Assertions before removal
         assert mock_presenter.view.widget_get_visible("expander")
@@ -181,11 +186,17 @@ class TestConnMgrPresenter:
         mock_presenter.on_remove_button_clicked("button")
 
         # Ensure that the UI elements remain unchanged
-        assert mock_presenter.view.widget_get_visible("expander"), "Expander should remain visible."
-        assert not mock_presenter.view.widget_get_visible("noconnectionlabel"), "No connection label should remain hidden."
+        assert mock_presenter.view.widget_get_visible(
+            "expander"
+        ), "Expander should remain visible."
+        assert not mock_presenter.view.widget_get_visible(
+            "noconnectionlabel"
+        ), "No connection label should remain hidden."
 
         # Ensure the connection still exists in prefs
-        assert "nugkui" in mock_presenter.connections, "Connection should not have been removed."
+        assert (
+            "nugkui" in mock_presenter.connections
+        ), "Connection should not have been removed."
 
     def test_one_connection_on_remove_confirm_positive(self, mock_view, mock_prefs):
         mock_prefs.prefs[bauble.conn_list_pref] = {
@@ -203,7 +214,6 @@ class TestConnMgrPresenter:
         # Assert visibility changes
         assert not mock_presenter.view.widget_get_visible("expander")
         assert mock_presenter.view.widget_get_visible("noconnectionlabel")
-
 
     def test_two_connection_initialize_default_first(self, mock_view, mock_prefs):
         mock_prefs.prefs[bauble.conn_list_pref] = {
@@ -252,7 +262,6 @@ class TestConnMgrPresenter:
         params = mock_presenter.connections[mock_presenter.connection_name]
         assert params["default"] is False
         assert not mock_view.widget_get_value("usedefaults_chkbx")
-
 
     def test_two_connection_on_remove_confirm_positive(self, mock_view, mock_prefs):
         mock_prefs.prefs[bauble.conn_list_pref] = {
@@ -364,7 +373,6 @@ class TestConnMgrPresenter:
         as_list = mock_presenter.connection_names
         assert mock_presenter.connection_name == as_list[0]
 
-
     def test_when_user_selects_different_type(self, mock_view, mock_prefs):
         # Configure preferences
         mock_prefs.prefs[bauble.conn_default_pref] = "nugkui"
@@ -402,7 +410,6 @@ class TestConnMgrPresenter:
         presenter.refresh_view()
         assert presenter.dbtype == "PostgreSQL"
         assert presenter.view.widget_get_visible("dbms_parambox")
-
 
     def test_set_default_toggles_sensitivity(self, mock_view, mock_prefs):
         # Configure preferences
@@ -502,22 +509,35 @@ class TestConnMgrPresenter:
             "host": "localhost",
             "user": "pg",
         }
-        assert presenter.parameters_to_uri(params) == "postgresql://pg@localhost/quisquis"
+        assert (
+            presenter.parameters_to_uri(params) == "postgresql://pg@localhost/quisquis"
+        )
 
         # Case 3: PostgreSQL with password
         params["passwd"] = True
         mock_view.reply_entry_dialog.append("secret")  # Simulate user entering password
-        assert presenter.parameters_to_uri(params) == "postgresql://pg:secret@localhost/quisquis"
+        assert (
+            presenter.parameters_to_uri(params)
+            == "postgresql://pg:secret@localhost/quisquis"
+        )
 
         # Case 4: PostgreSQL with port specified
         params["passwd"] = False
         params["port"] = "9876"
-        assert presenter.parameters_to_uri(params) == "postgresql://pg@localhost:9876/quisquis"
+        assert (
+            presenter.parameters_to_uri(params)
+            == "postgresql://pg@localhost:9876/quisquis"
+        )
 
         # Case 5: PostgreSQL with password and port specified
         params["passwd"] = True
-        mock_view.reply_entry_dialog.append("another_secret")  # Simulate another password entry
-        assert presenter.parameters_to_uri(params) == "postgresql://pg:another_secret@localhost:9876/quisquis"
+        mock_view.reply_entry_dialog.append(
+            "another_secret"
+        )  # Simulate another password entry
+        assert (
+            presenter.parameters_to_uri(params)
+            == "postgresql://pg:another_secret@localhost:9876/quisquis"
+        )
 
         # Case 6: PostgreSQL with additional options
         params["passwd"] = False
@@ -529,12 +549,13 @@ class TestConnMgrPresenter:
 
         # Case 7: PostgreSQL with password, port, and options
         params["passwd"] = True
-        mock_view.reply_entry_dialog.append("final_secret")  # Simulate final password entry
+        mock_view.reply_entry_dialog.append(
+            "final_secret"
+        )  # Simulate final password entry
         assert presenter.parameters_to_uri(params) == (
             "postgresql://pg:final_secret@localhost:9876/quisquis?"
             "is_this_possible=no&why_do_we_test=because"
         )
-
 
     def test_connection_uri_property(self, mock_view, mock_prefs):
         # Configure preferences
@@ -619,8 +640,14 @@ class TestAddConnection:
         presenter.refresh_view()  # GTK would trigger this
 
         # Assert that the new connection is prepended to the combo box
-        assert ("combobox_prepend_text", ["name_combo", "new_conn"]) in presenter.view.invoked_detailed
-        assert ("widget_set_value", ["name_combo", "new_conn", ()]) in presenter.view.invoked_detailed
+        assert (
+            "combobox_prepend_text",
+            ["name_combo", "new_conn"],
+        ) in presenter.view.invoked_detailed
+        assert (
+            "widget_set_value",
+            ["name_combo", "new_conn", ()],
+        ) in presenter.view.invoked_detailed
 
         # Simulate unresolved issue (Skipping test)
         pytest.skip("related to issue #194")
@@ -629,11 +656,13 @@ class TestAddConnection:
 @pytest.fixture
 def mock_renderer():
     """Provide a mock renderer."""
+
     class MockRenderer(dict):
         def set_property(self, key, value):
             self[key] = value
 
     return MockRenderer()
+
 
 class GlobalFunctionsTests:
     def test_combo_cell_data_func(self, mock_renderer):
@@ -647,17 +676,19 @@ class GlobalFunctionsTests:
             bauble.connmgr.type_combo_cell_data_func(
                 None, mock_renderer, bauble.connmgr.dbtypes, index
             )
-            assert mock_renderer["sensitive"] == (name in bauble.connmgr.working_dbtypes)
+            assert mock_renderer["sensitive"] == (
+                name in bauble.connmgr.working_dbtypes
+            )
             assert mock_renderer["text"] == name
 
         bauble.connmgr.working_dbtypes, bauble.connmgr.dbtypes = wt, at
-
 
     def test_is_package_name(self):
         from bauble.connmgr import is_package_name
 
         assert is_package_name("sqlite3")
         assert not is_package_name("sqlheavy42")
+
 
 class ButtonBrowseButtons:
     def test_file_chosen(self, mock_view, mock_prefs):
@@ -666,7 +697,6 @@ class ButtonBrowseButtons:
         presenter.on_file_btnbrowse_clicked()
         presenter.on_text_entry_changed("file_entry")
         assert presenter.filename == "chosen"
-
 
     def test_file_not_chosen(self, mock_view):
         mock_view.reply_file_chooser_dialog = []
@@ -689,7 +719,6 @@ class ButtonBrowseButtons:
         # Assert that pictureroot remains the same
         assert presenter.pictureroot == "previously"
 
-
     def test_pictureroot2_chosen(self, mock_view):
         """
         Test that the pictureroot is updated when a valid selection is made.
@@ -703,7 +732,6 @@ class ButtonBrowseButtons:
 
         # Assert that pictureroot is updated to the chosen value
         assert presenter.pictureroot == "chosen"
-
 
     def test_pictureroot2_not_chosen(self, mock_view):
         """
@@ -719,6 +747,7 @@ class ButtonBrowseButtons:
         # Assert that pictureroot remains the same
         assert presenter.pictureroot == "previously"
 
+
 class OnDialogResponseTests:
     def test_on_dialog_response_ok_invalid_params(self, mock_view, mock_prefs):
         mock_prefs.prefs[bauble.conn_list_pref] = {}
@@ -727,7 +756,6 @@ class OnDialogResponseTests:
         presenter.on_dialog_response(dialog, Gtk.ResponseType.OK)
         assert "run_message_dialog" in mock_view.invoked
         assert dialog.hidden
-
 
     def test_on_dialog_response_ok_valid_params(self, mock_view, mock_prefs):
         mock_prefs.prefs[bauble.conn_list_pref] = {
@@ -747,6 +775,7 @@ class OnDialogResponseTests:
         assert dialog.hidden
         assert mock_prefs.prefs[bauble.prefs.picture_root_pref] == "/tmp/nugkui"
 
+
 class TestButtonBrowseButtons:
     """
     Tests for file and picture root browse buttons.
@@ -756,7 +785,9 @@ class TestButtonBrowseButtons:
         """
         Test that the file path is updated when a valid file is chosen.
         """
-        mock_view.reply_file_chooser_dialog.append("chosen")  # Simulate a file selection
+        mock_view.reply_file_chooser_dialog.append(
+            "chosen"
+        )  # Simulate a file selection
         presenter = ConnMgrPresenter(mock_view, prefs=mock_prefs)
 
         # Simulate clicking the "browse" button and updating the entry
@@ -784,7 +815,9 @@ class TestButtonBrowseButtons:
         """
         Test that the pictureroot is updated when a valid directory is chosen.
         """
-        mock_view.reply_file_chooser_dialog.append("chosen")  # Simulate a directory selection
+        mock_view.reply_file_chooser_dialog.append(
+            "chosen"
+        )  # Simulate a directory selection
         presenter = ConnMgrPresenter(mock_view, prefs=mock_prefs)
 
         # Simulate clicking the "browse" button and updating the entry
@@ -812,7 +845,9 @@ class TestButtonBrowseButtons:
         """
         Test that the pictureroot2 is updated when a valid directory is chosen.
         """
-        mock_view.reply_file_chooser_dialog.append("chosen")  # Simulate a directory selection
+        mock_view.reply_file_chooser_dialog.append(
+            "chosen"
+        )  # Simulate a directory selection
         presenter = ConnMgrPresenter(mock_view, prefs=mock_prefs)
 
         # Simulate clicking the "browse" button and updating the entry
@@ -928,7 +963,6 @@ class TestOnDialogResponse:
         assert dialog.hidden
 
 
-
 @pytest.fixture
 def temp_picture_folder():
     """
@@ -937,8 +971,9 @@ def temp_picture_folder():
     path = tempfile.mkdtemp()  # Create the temporary directory
     yield path
     if os.path.exists(path):
-        shutil.rmtree(path, ignore_errors=True)  # Recursively remove directory and contents
-
+        shutil.rmtree(
+            path, ignore_errors=True
+        )  # Recursively remove directory and contents
 
 
 class TestDialogResponseAndFolders:
@@ -951,7 +986,9 @@ class TestDialogResponseAndFolders:
         presenter.on_dialog_close_or_delete("widget")
         assert mock_view.get_window().hidden  # After closing
 
-    def test_on_dialog_response_ok_creates_picture_folders_exist(self, mock_view, mock_prefs, temp_picture_folder):
+    def test_on_dialog_response_ok_creates_picture_folders_exist(
+        self, mock_view, mock_prefs, temp_picture_folder
+    ):
         """
         Test that existing pictures and thumbs folders do not trigger redundant actions.
         """
@@ -977,7 +1014,9 @@ class TestDialogResponseAndFolders:
         assert os.path.isdir(thumbs_path)
         assert dialog.hidden
 
-    def test_on_dialog_response_ok_creates_picture_folders_half_exist(self, mock_view, mock_prefs, temp_picture_folder):
+    def test_on_dialog_response_ok_creates_picture_folders_half_exist(
+        self, mock_view, mock_prefs, temp_picture_folder
+    ):
         """
         Test that only missing folders (thumbs) are created when pictures folder exists.
         """
@@ -999,10 +1038,14 @@ class TestDialogResponseAndFolders:
         presenter.on_dialog_response(dialog, Gtk.ResponseType.OK, prefs=mock_prefs)
 
         assert os.path.isdir(pictures_path)
-        assert os.path.isdir(os.path.join(pictures_path, "thumbs"))  # Thumbs folder is created.
+        assert os.path.isdir(
+            os.path.join(pictures_path, "thumbs")
+        )  # Thumbs folder is created.
         assert dialog.hidden
 
-    def test_on_dialog_response_ok_creates_picture_folders_no_exist(self, mock_view, mock_prefs, temp_picture_folder):
+    def test_on_dialog_response_ok_creates_picture_folders_no_exist(
+        self, mock_view, mock_prefs, temp_picture_folder
+    ):
         """
         Test that missing pictures and thumbs folders are created.
         """
@@ -1018,17 +1061,21 @@ class TestDialogResponseAndFolders:
         }
         # Configure picture root and default connection preference
         mock_prefs.prefs[mock_prefs.picture_root_pref] = pictures_path
-        mock_prefs.prefs[bauble.conn_default_pref] = 'nugkui'
+        mock_prefs.prefs[bauble.conn_default_pref] = "nugkui"
         presenter = ConnMgrPresenter(mock_view, prefs=mock_prefs)
         dialog = MockDialog()
 
         presenter.on_dialog_response(dialog, Gtk.ResponseType.OK, prefs=mock_prefs)
 
         assert os.path.isdir(pictures_path)  # Pictures folder is created.
-        assert os.path.isdir(os.path.join(pictures_path, "thumbs"))  # Thumbs folder is created.
+        assert os.path.isdir(
+            os.path.join(pictures_path, "thumbs")
+        )  # Thumbs folder is created.
         assert dialog.hidden
 
-    def test_on_dialog_response_ok_creates_picture_folders_occupied(self, mock_view, mock_prefs, temp_picture_folder):
+    def test_on_dialog_response_ok_creates_picture_folders_occupied(
+        self, mock_view, mock_prefs, temp_picture_folder
+    ):
         """
         Test that no folders are created when thumbnails or pictures are files.
         """
@@ -1054,4 +1101,3 @@ class TestDialogResponseAndFolders:
 
         assert os.path.isdir(pictures_path)
         assert os.path.isfile(thumbs_path)  # Thumbs file is not replaced.
-

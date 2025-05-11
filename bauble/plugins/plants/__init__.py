@@ -29,7 +29,7 @@
 import logging
 import os
 
-#import sys
+# import sys
 from functools import partial
 from gettext import gettext as _
 from threading import Thread
@@ -80,7 +80,7 @@ from bauble.view import SearchView
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 
-#from gi.repository import Gtk
+# from gi.repository import Gtk
 from sqlalchemy import select, text
 
 from .stored_queries import StoredQueryEditorTool
@@ -125,25 +125,19 @@ class SplashInfoBox(pluginmgr.View):
         """ """
         logger.debug("SplashInfoBox::__init__")
         super().__init__()
-        filename = os.path.join(
-            paths.lib_dir(), "plugins", "plants", "infoboxes.glade"
-        )
+        filename = os.path.join(paths.lib_dir(), "plugins", "plants", "infoboxes.glade")
         self.widgets = utils.BuilderWidgets(filename)
         self.widgets.remove_parent(self.widgets.splash_vbox)
         self.pack_start(self.widgets.splash_vbox, True, False, 8)
 
         utils.make_label_clickable(
             self.widgets.splash_nfamuse,
-            lambda *a: bauble.gui.send_command(
-                "family where genera.species.id != 0"
-            ),
+            lambda *a: bauble.gui.send_command("family where genera.species.id != 0"),
         )
 
         utils.make_label_clickable(
             self.widgets.splash_ngenuse,
-            lambda *a: bauble.gui.send_command(
-                "genus where species.accessions.id!=0"
-            ),
+            lambda *a: bauble.gui.send_command("genus where species.accessions.id!=0"),
         )
 
         utils.make_label_clickable(
@@ -153,16 +147,12 @@ class SplashInfoBox(pluginmgr.View):
 
         utils.make_label_clickable(
             self.widgets.splash_nspcuse,
-            lambda *a: bauble.gui.send_command(
-                "species where not accessions = Empty"
-            ),
+            lambda *a: bauble.gui.send_command("species where not accessions = Empty"),
         )
 
         utils.make_label_clickable(
             self.widgets.splash_nspcnot,
-            lambda *a: bauble.gui.send_command(
-                "species where accessions = Empty"
-            ),
+            lambda *a: bauble.gui.send_command("species where accessions = Empty"),
         )
 
         utils.make_label_clickable(
@@ -206,9 +196,7 @@ class SplashInfoBox(pluginmgr.View):
 
         utils.make_label_clickable(
             self.widgets.splash_nlocuse,
-            lambda *a: bauble.gui.send_command(
-                "location where sum(plants.quantity)>0"
-            ),
+            lambda *a: bauble.gui.send_command("location where sum(plants.quantity)>0"),
         )
 
         utils.make_label_clickable(
@@ -235,21 +223,18 @@ class SplashInfoBox(pluginmgr.View):
         safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), "")
 
         ssn = db.Session()
-        stmt = select(bauble.meta.BaubleMeta).where(bauble.meta.BaubleMeta.name.startswith('stqr'))
+        stmt = select(bauble.meta.BaubleMeta).where(
+            bauble.meta.BaubleMeta.name.startswith("stqr")
+        )
         records = ssn.execute(stmt).scalars().all()
         ssn.close()
 
-        name_tooltip_query = {
-            int(i.name[5:]): (i.value.split(':', 2))
-            for i in records
-        }
+        name_tooltip_query = {int(i.name[5:]): (i.value.split(":", 2)) for i in records}
 
         for i in range(1, 11):
             wname = "stqr_%02d_button" % i
             widget = getattr(self.widgets, wname)
-            name, tooltip, query = name_tooltip_query.get(
-                i, (_("<empty>"), "", "")
-            )
+            name, tooltip, query = name_tooltip_query.get(i, (_("<empty>"), "", ""))
             widget.set_label(name)
             widget.set_tooltip_text(tooltip)
 
@@ -258,9 +243,7 @@ class SplashInfoBox(pluginmgr.View):
         # LabelUpdater objects **can** run in a thread.
         if "GardenPlugin" in pluginmgr.plugins:
             self.start_thread(
-                LabelUpdater(
-                    self.widgets.splash_nplttot, "select count(*) from plant"
-                )
+                LabelUpdater(self.widgets.splash_nplttot, "select count(*) from plant")
             )
             self.start_thread(
                 LabelUpdater(
@@ -350,19 +333,13 @@ class SplashInfoBox(pluginmgr.View):
             )
         )
         self.start_thread(
-            LabelUpdater(
-                self.widgets.splash_nspctot, "select count(*) from species"
-            )
+            LabelUpdater(self.widgets.splash_nspctot, "select count(*) from species")
         )
         self.start_thread(
-            LabelUpdater(
-                self.widgets.splash_ngentot, "select count(*) from genus"
-            )
+            LabelUpdater(self.widgets.splash_ngentot, "select count(*) from genus")
         )
         self.start_thread(
-            LabelUpdater(
-                self.widgets.splash_nfamtot, "select count(*) from family"
-            )
+            LabelUpdater(self.widgets.splash_nfamtot, "select count(*) from family")
         )
         self.start_thread(
             LabelUpdater(
@@ -398,9 +375,7 @@ class SplashInfoBox(pluginmgr.View):
     def on_sqb_clicked(self, btn_no, *args):
         try:
             query = self.name_tooltip_query[btn_no][2]
-            safe_set_text(
-                bauble.gui.widgets.main_comboentry.get_child(), query
-            )
+            safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), query)
             bauble.gui.widgets.go_button.emit("clicked")
         except:
             pass
@@ -494,9 +469,7 @@ class PlantsPlugin(pluginmgr.Plugin):
 
         # GeographicArea meta
         mapper_search.add_meta(("geography", "geo"), GeographicArea, ["name"])
-        SearchView.row_meta[GeographicArea].set(
-            children=get_species_in_geographic_area
-        )
+        SearchView.row_meta[GeographicArea].set(children=get_species_in_geographic_area)
 
     @classmethod
     def _setup_gui_menus(cls):
@@ -520,9 +493,7 @@ class PlantsPlugin(pluginmgr.Plugin):
         bauble.gui.add_to_insert_menu(
             FamilyEditor, _("Family"), "wiki-family.png", base
         )
-        bauble.gui.add_to_insert_menu(
-            GenusEditor, _("Genus"), "wiki-genus.png", base
-        )
+        bauble.gui.add_to_insert_menu(GenusEditor, _("Genus"), "wiki-genus.png", base)
         bauble.gui.add_to_insert_menu(
             SpeciesEditor, _("Species"), "wiki-species.png", base
         )
@@ -537,7 +508,9 @@ class PlantsPlugin(pluginmgr.Plugin):
         session = db.Session()
         default = "false"
         q = session.execute(
-            select(bauble.meta.BaubleMeta).where(bauble.meta.BaubleMeta.name.startswith("stqr-"))
+            select(bauble.meta.BaubleMeta).where(
+                bauble.meta.BaubleMeta.name.startswith("stqr-")
+            )
         ).scalars()
         for i in q.all():
             default = i.name
@@ -591,5 +564,6 @@ class PlantsPlugin(pluginmgr.Plugin):
 
         csv = CSVImporter()
         csv.start(filenames, metadata=db.metadata, force=True)
+
 
 plugin = PlantsPlugin

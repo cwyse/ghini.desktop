@@ -39,8 +39,10 @@ def setup_generic_view():
     """
     Fixture to create a GenericEditorView instance.
     """
+
     def _setup(filename, root_widget_name=None):
         return GenericEditorView(filename, root_widget_name=root_widget_name)
+
     return _setup
 
 
@@ -93,6 +95,7 @@ def test_add_widget(setup_generic_view):
     Test adding a widget to the view.
     """
     import gi
+
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk
 
@@ -141,10 +144,18 @@ def test_date_parser_ambiguous():
     Test parsing ambiguous date formats with different settings.
     """
     assert parse_date("5 1 4") == datetime.datetime(2004, 1, 5, 0, 0)
-    assert parse_date("5 1 4", dayfirst=False, yearfirst=False) == datetime.datetime(2004, 5, 1, 0, 0)
-    assert parse_date("5 1 4", dayfirst=True, yearfirst=False) == datetime.datetime(2004, 1, 5, 0, 0)
-    assert parse_date("5 1 4", dayfirst=False, yearfirst=True) == datetime.datetime(2005, 1, 4, 0, 0)
-    assert parse_date("5 1 4", dayfirst=True, yearfirst=True) == datetime.datetime(2005, 4, 1, 0, 0)
+    assert parse_date("5 1 4", dayfirst=False, yearfirst=False) == datetime.datetime(
+        2004, 5, 1, 0, 0
+    )
+    assert parse_date("5 1 4", dayfirst=True, yearfirst=False) == datetime.datetime(
+        2004, 1, 5, 0, 0
+    )
+    assert parse_date("5 1 4", dayfirst=False, yearfirst=True) == datetime.datetime(
+        2005, 1, 4, 0, 0
+    )
+    assert parse_date("5 1 4", dayfirst=True, yearfirst=True) == datetime.datetime(
+        2005, 4, 1, 0, 0
+    )
 
 
 def test_date_parser_365():

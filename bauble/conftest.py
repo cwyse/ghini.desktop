@@ -35,6 +35,7 @@ SQLITE_URI = "sqlite:////tmp/sqlite_test_db"
 POSTGRESQL_URI = "postgresql://ghini:9yuzebes@192.168.40.32/pytest_db"  # ⚠️ Update this!
 URI = SQLITE_URI
 
+
 # Fixtures for Pytest
 @pytest.fixture(scope="session")
 def init_bauble():
@@ -54,7 +55,8 @@ def init_bauble():
     pluginmgr.load()
     db.metadata.create_all(bind=db.engine)  # Ensure all tables exist
     pluginmgr.init(force=True)
-    
+
+
 @pytest.fixture(scope="function")
 def db_session(init_bauble):
     """
@@ -82,8 +84,9 @@ def db_session(init_bauble):
 @pytest.fixture(autouse=True)
 def clean_db(db_session):
     """Drops and recreates all tables for a fully clean database before each test."""
-    db.metadata.drop_all(bind=db.engine)   # 🔥 Drop all tables
+    db.metadata.drop_all(bind=db.engine)  # 🔥 Drop all tables
     db.metadata.create_all(bind=db.engine)  # 🔄 Recreate schema
+
 
 @pytest.fixture
 def mock_logger(request):
@@ -92,20 +95,29 @@ def mock_logger(request):
     name unless overridden by the test class or function.
     """
     from bauble.test import MockLoggingHandler
+
     handler = MockLoggingHandler()
-    
+
     # Default to the test module's dotted path (e.g., bauble.test.test_asktpl)
-    long_test_module_path = request.node.fspath.dirname.replace("/", ".")  # Convert to dotted path
-    test_module_name = request.node.fspath.basename.rsplit(".", 1)[0]  # Remove .py extension
-    test_module_path = long_test_module_path.removeprefix(".app.")  # Remove .app. suffix
+    long_test_module_path = request.node.fspath.dirname.replace(
+        "/", "."
+    )  # Convert to dotted path
+    test_module_name = request.node.fspath.basename.rsplit(".", 1)[
+        0
+    ]  # Remove .py extension
+    test_module_path = long_test_module_path.removeprefix(
+        ".app."
+    )  # Remove .app. suffix
     default_logger_name = f"{test_module_path}.{test_module_name}"
 
     # Check if the test class or function has a logger_name attribute
     test_class = request.cls
     test_func = request.function
-    logger_name = getattr(test_class, "logger_name", None) or \
-                  getattr(test_func, "logger_name", None) or \
-                  default_logger_name
+    logger_name = (
+        getattr(test_class, "logger_name", None)
+        or getattr(test_func, "logger_name", None)
+        or default_logger_name
+    )
 
     # Set up the logger
     logger = logging.getLogger(logger_name)

@@ -21,12 +21,12 @@
 #
 import logging
 
-#import math
+# import math
 import os
 import re
 
-#import shutil
-#import tempfile
+# import shutil
+# import tempfile
 from gettext import gettext as _
 
 import gi
@@ -71,9 +71,7 @@ class Jinja2FormatterPlugin(TemplateFormatterPlugin):
                 loader=ChoiceLoader(
                     [
                         FileSystemLoader(path),
-                        FileSystemLoader(
-                            os.path.join(paths.user_dir(), "templates")
-                        ),
+                        FileSystemLoader(os.path.join(paths.user_dir(), "templates")),
                         PackageLoader("bauble.plugins.report", "templates"),
                     ]
                 )

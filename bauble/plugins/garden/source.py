@@ -41,8 +41,8 @@ from bauble.utils import safe_set_text
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
 
-#from bauble.shared import InfoExpander
-#from sqlalchemy import text
+# from bauble.shared import InfoExpander
+# from sqlalchemy import text
 from sqlalchemy import (
     Column,
     Float,
@@ -55,12 +55,13 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
-#from bauble.plugins.garden.propagation import Propagation
-#from sqlalchemy.orm import configure_mappers
-#from sqlalchemy.ext.declarative import declared_attr
+# from bauble.plugins.garden.propagation import Propagation
+# from sqlalchemy.orm import configure_mappers
+# from sqlalchemy.ext.declarative import declared_attr
 
 view = importlib.import_module("bauble.view")
 logger = logging.getLogger(__name__)
+
 
 def collection_edit_callback(coll):
     from bauble.plugins.garden.accession import edit_callback
@@ -110,15 +111,15 @@ collection_context_menu = [
 class SourceBase:
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        
-        # This propagation relationship links a Source to a specific 
-        # Propagation that is not tied to a Plant. It likely represents 
-        # a propagation trial or source-related propagation activity 
+
+        # This propagation relationship links a Source to a specific
+        # Propagation that is not tied to a Plant. It likely represents
+        # a propagation trial or source-related propagation activity
         # independent of the plant hierarchy.
-        
+
         # Add the propagation_id column dynamically to the subclass
         cls.propagation_id = Column(Integer, ForeignKey("propagation.id"))
-        
+
         # Add the propagation relationship dynamically to the subclass
         cls.propagation = relationship(
             "Propagation",
@@ -127,8 +128,9 @@ class SourceBase:
             cascade="all, delete-orphan",
             single_parent=True,
             foreign_keys=[cls.propagation_id],
-            active_history=True
+            active_history=True,
         )
+
 
 class Source(db.Base):
     """connected 1-1 to Accession.
@@ -157,7 +159,7 @@ class Source(db.Base):
         back_populates="sources",
         cascade="all, delete-orphan",
         single_parent=True,
-        active_history=True
+        active_history=True,
     )
 
     collection = relationship(
@@ -165,12 +167,12 @@ class Source(db.Base):
         uselist=False,
         back_populates="source",
         single_parent=True,
-        active_history=True
+        active_history=True,
     )
 
-    # This propagation relationship links a Source to a specific 
-    # Propagation that is not tied to a Plant. It likely represents 
-    # a propagation trial or source-related propagation activity 
+    # This propagation relationship links a Source to a specific
+    # Propagation that is not tied to a Plant. It likely represents
+    # a propagation trial or source-related propagation activity
     # independent of the plant hierarchy.
     propagation_id = Column(Integer, ForeignKey("propagation.id"))
     propagation = relationship(
@@ -180,7 +182,7 @@ class Source(db.Base):
         cascade="all, delete-orphan",
         single_parent=True,
         foreign_keys=[propagation_id],
-        active_history=True
+        active_history=True,
     )
 
     plant_propagation_id = Column(Integer, ForeignKey("propagation.id"))
@@ -191,20 +193,21 @@ class Source(db.Base):
         uselist=True,
         foreign_keys=[plant_propagation_id],
     )
-    
+
     # an Accession of known Source (what we are describing here) may be in
     # relation to a successful Plant Propagation trial. In this case, the
     # Propagation points back to all Accessions that resulted from it, via
     # `used_source[i].accession`. Arguably not practical.
     plant_propagation_id = Column(Integer, ForeignKey("propagation.id"))
-    
+
     plant_propagation = relationship(
-            "Propagation",
-            primaryjoin="Source.plant_propagation_id==Propagation.id",
-            back_populates="used_source",
-            uselist=True,
-            foreign_keys=[plant_propagation_id],
-        )
+        "Propagation",
+        primaryjoin="Source.plant_propagation_id==Propagation.id",
+        back_populates="used_source",
+        uselist=True,
+        foreign_keys=[plant_propagation_id],
+    )
+
 
 source_type_values = [
     ("Expedition", _("Expedition")),
@@ -325,9 +328,7 @@ class Collection(db.Base):
         acc = self.source.accession
         safe = utils.xml_safe
         return (
-            "{} - <small>{}</small>".format(
-                safe(acc), safe(acc.species_str())
-            ),
+            "{} - <small>{}</small>".format(safe(acc), safe(acc.species_str())),
             safe(self),
         )
 
@@ -417,9 +418,7 @@ class CollectionPresenter(editor.ChildPresenter):
         self.view.connect("lat_entry", "changed", self.on_lat_entry_changed)
         self.view.connect("lon_entry", "changed", self.on_lon_entry_changed)
 
-        self.view.connect(
-            "coll_date_entry", "changed", self.on_date_entry_changed
-        )
+        self.view.connect("coll_date_entry", "changed", self.on_date_entry_changed)
 
         utils.setup_date_button(view, "coll_date_entry", "coll_date_button")
 
@@ -436,7 +435,12 @@ class CollectionPresenter(editor.ChildPresenter):
 
         def on_add_button_pressed(button, event):
             self.geo_menu.popup(
-                None, None, None, None, event.get_button(), event.time  # 1. issue_gdkevent_structs
+                None,
+                None,
+                None,
+                None,
+                event.get_button(),
+                event.time,  # 1. issue_gdkevent_structs
             )
 
         self.view.connect(
@@ -472,8 +476,7 @@ class CollectionPresenter(editor.ChildPresenter):
 
         if field in ("longitude", "latitude"):
             sensitive = (
-                self.model.latitude is not None
-                and self.model.longitude is not None
+                self.model.latitude is not None and self.model.longitude is not None
             )
             self.view.widgets.geoacc_entry.set_sensitive(sensitive)
             self.view.widgets.datum_entry.set_sensitive(sensitive)
@@ -500,14 +503,12 @@ class CollectionPresenter(editor.ChildPresenter):
             value = getattr(self.model, field)
             logger.debug("{}, {}, {}".format(widget, field, value))
             if value is not None and field == "date":
-                value = "{}/{}/{}".format(
-                    value.day, value.month, "%04d" % value.year
-                )
+                value = "{}/{}/{}".format(value.day, value.month, "%04d" % value.year)
             self.view.widget_set_value(widget, value)
 
         latitude = self.model.latitude
         if latitude is not None:
-            dms_string = "%s %s\u00B0%s'%s\"" % latitude_to_dms(latitude)
+            dms_string = "%s %s\u00b0%s'%s\"" % latitude_to_dms(latitude)
             safe_set_text(self.view.widgets.lat_dms_label, dms_string)
             if float(latitude) < 0:
                 self.view.widgets.south_radio.set_active(True)
@@ -519,7 +520,7 @@ class CollectionPresenter(editor.ChildPresenter):
 
         longitude = self.model.longitude
         if longitude is not None:
-            dms_string = "%s %s\u00B0%s'%s\"" % longitude_to_dms(longitude)
+            dms_string = "%s %s\u00b0%s'%s\"" % longitude_to_dms(longitude)
             safe_set_text(self.view.widgets.lon_dms_label, dms_string)
             if float(longitude) < 0:
                 self.view.widgets.west_radio.set_active(True)
@@ -613,9 +614,7 @@ class CollectionPresenter(editor.ChildPresenter):
         elif len(parts) == 3:
             dec = dms_to_decimal(direction, *list(map(Decimal, parts)))
         else:
-            raise ValueError(
-                _("_parse_lat_lon() -- incorrect format: %s") % text
-            )
+            raise ValueError(_("_parse_lat_lon() -- incorrect format: %s") % text)
         return dec
 
     def _get_lat_direction(self):
@@ -659,19 +658,15 @@ class CollectionPresenter(editor.ChildPresenter):
                 direction = self._get_lat_direction()
                 latitude = CollectionPresenter._parse_lat_lon(direction, text)
                 # u"\N{DEGREE SIGN}"
-                dms_string = "%s %s\u00B0%s'%s\"" % latitude_to_dms(latitude)
+                dms_string = "%s %s\u00b0%s'%s\"" % latitude_to_dms(latitude)
         except Exception:
             logger.debug(traceback.format_exc())
             rgba = Gdk.RGBA()
-            rgba.parse("red") 
+            rgba.parse("red")
             color = rgba
-            self.add_problem(
-                self.PROBLEM_BAD_LATITUDE, self.view.widgets.lat_entry
-            )
+            self.add_problem(self.PROBLEM_BAD_LATITUDE, self.view.widgets.lat_entry)
         else:
-            self.remove_problem(
-                self.PROBLEM_BAD_LATITUDE, self.view.widgets.lat_entry
-            )
+            self.remove_problem(self.PROBLEM_BAD_LATITUDE, self.view.widgets.lat_entry)
 
         safe_set_text(self.view.widgets.lat_dms_label, dms_string)
         if text is None or text.strip() == "":
@@ -696,19 +691,15 @@ class CollectionPresenter(editor.ChildPresenter):
                 east_radio.handler_unblock(self.east_toggle_signal_id)
                 direction = self._get_lon_direction()
                 longitude = CollectionPresenter._parse_lat_lon(direction, text)
-                dms_string = "%s %s\u00B0%s'%s\"" % longitude_to_dms(longitude)
+                dms_string = "%s %s\u00b0%s'%s\"" % longitude_to_dms(longitude)
         except Exception:
             logger.debug(traceback.format_exc())
             rgba = Gdk.RGBA()
-            rgba.parse("red") 
+            rgba.parse("red")
             color = rgba
-            self.add_problem(
-                self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry
-            )
+            self.add_problem(self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry)
         else:
-            self.remove_problem(
-                self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry
-            )
+            self.remove_problem(self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry)
 
         safe_set_text(self.view.widgets.lon_dms_label, dms_string)
         # self.set_model_attr('longitude', utils.utf8(longitude))
@@ -818,9 +809,11 @@ class PropagationChooserPresenter(editor.ChildPresenter):
             from bauble.plugins.garden.plant import Plant
 
             plant = (
-                self.session.execute(select(Plant)
-                .where(Plant.id == model[matches[0]][1])
-                ).scalars().one()
+                self.session.execute(
+                    select(Plant).where(Plant.id == model[matches[0]][1])
+                )
+                .scalars()
+                .one()
             )
             # populate the propagation browser
             treeview = self.view.widgets.source_prop_treeview
@@ -850,9 +843,7 @@ class PropagationChooserPresenter(editor.ChildPresenter):
 
         parent_plant = self.model.plant_propagation.plant
         # set the parent accession
-        self.view.widget_set_value(
-            "source_prop_plant_combo", str(parent_plant)
-        )
+        self.view.widget_set_value("source_prop_plant_combo", str(parent_plant))
 
         if not parent_plant.propagations:
             treeview.set_sensitive = False
@@ -892,9 +883,7 @@ def create_contact(parent=None):
 
 
 def source_detail_edit_callback(details, parent=None):
-    glade_path = os.path.join(
-        paths.lib_dir(), "plugins", "garden", "contact.glade"
-    )
+    glade_path = os.path.join(paths.lib_dir(), "plugins", "garden", "contact.glade")
     view = editor.GenericEditorView(
         glade_path, parent=parent, root_widget_name="source_details_dialog"
     )
@@ -953,16 +942,13 @@ def compute_serializable_fields(cls, session, keys):
     result = {"contact": None}
 
     parent_keys = {"name": keys["contact"]}
-    result["contact"] = Contact.retrieve_or_create(
-        session, parent_keys, create=False
-    )
+    result["contact"] = Contact.retrieve_or_create(session, parent_keys, create=False)
 
     return result
 
 
 class Contact(db.Base, db.Serializable, db.WithNotes):
     __tablename__ = "contact"
-
 
     # ITF2 - E6 - Donor
     id = Column(Integer, primary_key=True)
@@ -973,7 +959,8 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     source_type = Column(
         types.Enum(
             values=[i[0] for i in source_type_values],
-            translations=dict(source_type_values), omit_aliases=False
+            translations=dict(source_type_values),
+            omit_aliases=False,
         ),
         default=None,
     )
@@ -985,7 +972,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
         back_populates="source_detail",
         cascade="all, delete-orphan",
         single_parent=True,
-        active_history=True
+        active_history=True,
     )
 
     def __str__(self):
@@ -999,14 +986,16 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.execute(select(cls).where(cls.name == keys["name"])).scalars().one()
+            return (
+                session.execute(select(cls).where(cls.name == keys["name"]))
+                .scalars()
+                .one()
+            )
         except:
             return None
 
 
-ContactNote = db.make_note_class(
-    "Contact", Contact, compute_serializable_fields
-)
+ContactNote = db.make_note_class("Contact", Contact, compute_serializable_fields)
 Contact.notes = relationship(
     "ContactNote",
     back_populates="contact",
@@ -1074,8 +1063,10 @@ class GeneralSourceDetailExpander(view.InfoExpander):
         source = Source.__table__
 
         # Create the query to count the number of associated sources
-        stmt = select(func.count(source.c.id)).where(source.c.source_detail_id == row.id)
-        
+        stmt = select(func.count(source.c.id)).where(
+            source.c.source_detail_id == row.id
+        )
+
         # Execute the query using the session
         nacc = self.session.execute(stmt).scalar()
 

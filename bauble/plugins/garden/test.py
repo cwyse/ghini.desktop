@@ -45,9 +45,7 @@ plant_test_data = (
     {"id": 3, "code": "2", "accession_id": 2, "location_id": 1, "quantity": 1},
 )
 
-location_test_data = (
-    {"id": 1, "name": "Somewhere Over The Rainbow", "code": "RBW"},
-)
+location_test_data = ({"id": 1, "name": "Somewhere Over The Rainbow", "code": "RBW"},)
 
 geographic_area_test_data = [{"id": 1, "name": "Somewhere"}]
 
@@ -59,6 +57,7 @@ collection_test_data = (
         "geographic_area_id": 1,
     },
 )
+
 
 # Fixtures for test data setup
 @pytest.fixture(scope="module")
@@ -139,9 +138,7 @@ def plant_data(db_session, garden_data):
     species = garden_data["species"]
     accession = Accession(species=species, code="1")
     location = Location(name="site", code="STE")
-    plant = Plant(
-        accession=accession, location=location, code="1", quantity=1
-    )
+    plant = Plant(accession=accession, location=location, code="1", quantity=1)
     db_session.add_all([accession, location, plant])
     if db_session.in_transaction():
         db_session.commit()
@@ -172,14 +169,10 @@ def test_plant_duplicate(db_session, plant_data):
     location = plant_data["location"]
 
     # Create a new plant
-    new_plant = Plant(
-        accession=accession, location=location, code="2", quantity=52
-    )
+    new_plant = Plant(accession=accession, location=location, code="2", quantity=52)
     note = PlantNote(note="some note", date=datetime.date.today())
     note.plant = new_plant
-    change = PlantChange(
-        from_location=location, to_location=location, quantity=1
-    )
+    change = PlantChange(from_location=location, to_location=location, quantity=1)
     change.plant = new_plant
     db_session.add(new_plant)
     if db_session.in_transaction():
@@ -199,9 +192,7 @@ def test_search_view_markup_pair(db_session, plant_data):
     location = plant_data["location"]
 
     # Living plant
-    living_plant = Plant(
-        accession=accession, location=location, code="2", quantity=52
-    )
+    living_plant = Plant(accession=accession, location=location, code="2", quantity=52)
     db_session.add(living_plant)
     assert living_plant.search_view_markup_pair() == (
         '1.2 <span foreground="#555555" size="small" weight="light">- 52 alive in (STE) site</span>',
@@ -209,9 +200,7 @@ def test_search_view_markup_pair(db_session, plant_data):
     )
 
     # Dead plant
-    dead_plant = Plant(
-        accession=accession, location=location, code="2", quantity=0
-    )
+    dead_plant = Plant(accession=accession, location=location, code="2", quantity=0)
     db_session.add(dead_plant)
     assert dead_plant.search_view_markup_pair() == (
         '<span foreground="#9900ff">1.2</span>',
@@ -225,16 +214,16 @@ def test_branch_callback(db_session, plant_data):
     accession = plant_data["accession"]
 
     # Initial plant
-    plant = Plant(
-        accession=accession, code="1", location=location, quantity=5
-    )
+    plant = Plant(accession=accession, code="1", location=location, quantity=5)
     db_session.add(plant)
     if db_session.in_transaction():
         db_session.commit()
 
     # Branch plant
     branch_callback([plant])
-    branched_plant = db_session.execute(select(Plant).where(Plant.code != "1")).scalars().first()
+    branched_plant = (
+        db_session.execute(select(Plant).where(Plant.code != "1")).scalars().first()
+    )
 
     db_session.refresh(plant)
     assert plant.quantity == 5 - branched_plant.quantity
@@ -269,6 +258,7 @@ def test_setting_quantity_to_zero_defines_date_of_death(db_session, plant_data):
     plant.quantity = 0
     db_session.flush()
     assert plant.date_of_death is not None
+
 
 import datetime
 
@@ -383,8 +373,16 @@ def test_cutting_property(db_session, setup_plants):
     if db_session.in_transaction():
         db_session.commit()
 
-    assert not db_session.execute(select(PropCutting).filter_by(id=cutting_id)).scalars().first()
-    assert not db_session.execute(select(PropCuttingRooted).filter_by(id=rooted_id)).scalars().first()
+    assert (
+        not db_session.execute(select(PropCutting).filter_by(id=cutting_id))
+        .scalars()
+        .first()
+    )
+    assert (
+        not db_session.execute(select(PropCuttingRooted).filter_by(id=rooted_id))
+        .scalars()
+        .first()
+    )
 
 
 def test_voucher_management(db_session, setup_accession):
@@ -400,7 +398,11 @@ def test_voucher_management(db_session, setup_accession):
     accession.vouchers.remove(voucher)
     if db_session.in_transaction():
         db_session.commit()
-    assert not db_session.execute(select(Voucher).filter_by(id=voucher_id)).scalars().first()
+    assert (
+        not db_session.execute(select(Voucher).filter_by(id=voucher_id))
+        .scalars()
+        .first()
+    )
 
     # Test voucher deletion when disassociated
     voucher = Voucher(herbarium="ABC", code="1234567", accession=accession)
@@ -412,7 +414,11 @@ def test_voucher_management(db_session, setup_accession):
     voucher.accession = None
     if db_session.in_transaction():
         db_session.commit()
-    assert not db_session.execute(select(Voucher).filter_by(id=voucher_id)).scalars().first()
+    assert (
+        not db_session.execute(select(Voucher).filter_by(id=voucher_id))
+        .scalars()
+        .first()
+    )
     assert db_session.execute(select(Accession).filter_by(id=acc_id)).scalars().first()
 
 
@@ -427,12 +433,13 @@ def test_propagation_get_summary_cutting(db_session, setup_plants):
 
     summary = prop.get_summary()
     expected = (
-        'Cutting; Cutting type: Nodal; Length: 2mm; Tip: Intact; Leaves: Intact; '
-        'Flower buds: None; Wounded: Singled; Fungal soak: Physan; Hormone treatment: Auxin powder; '
+        "Cutting; Cutting type: Nodal; Length: 2mm; Tip: Intact; Leaves: Intact; "
+        "Flower buds: None; Wounded: Singled; Fungal soak: Physan; Hormone treatment: Auxin powder; "
         'Bottom heat: 65°F; Container: 4" pot; Media: standard mix; Location: Mist frame; '
-        'Cover: Poly cover; Rooted: 90%'
+        "Cover: Poly cover; Rooted: 90%"
     )
     assert summary == expected
+
 
 import datetime
 
@@ -478,7 +485,9 @@ def test_source_propagation_cleanup(db_session, setup_accession):
     accession = setup_accession["accession"]
     source = Source(accession=accession)
     propagation = Propagation(prop_type="Seed", source=source)
-    seed = PropSeed(nseeds=30, date_sown=datetime.date(2023, 1, 1), propagation=propagation)
+    seed = PropSeed(
+        nseeds=30, date_sown=datetime.date(2023, 1, 1), propagation=propagation
+    )
     cutting = PropCutting(cutting_type="Nodal", propagation=propagation)
 
     db_session.add_all([source, propagation, seed, cutting])
@@ -494,9 +503,14 @@ def test_source_propagation_cleanup(db_session, setup_accession):
     source.propagation = None
     if db_session.in_transaction():
         db_session.commit()
-    assert db_session.execute(select(Propagation).filter_by(id=propagation.id)).first() is None
+    assert (
+        db_session.execute(select(Propagation).filter_by(id=propagation.id)).first()
+        is None
+    )
     assert db_session.execute(select(PropSeed).filter_by(id=seed.id)).first() is None
-    assert db_session.execute(select(PropCutting).filter_by(id=cutting.id)).first() is None
+    assert (
+        db_session.execute(select(PropCutting).filter_by(id=cutting.id)).first() is None
+    )
 
 
 def test_accession_species_str(db_session, setup_accession):
@@ -588,6 +602,7 @@ def test_location_editor_interactions(db_session, setup_location):
     editor.handle_response(Gtk.ResponseType.OK)
     editor.session.close()
 
+
 import pytest
 from bauble.meta import BaubleMeta
 from bauble.plugins.garden.accession import Accession
@@ -664,10 +679,9 @@ def test_institution_initialization(db_session):
         db_session.commit()
 
     fields = (
-        db_session.execute(select(BaubleMeta)
-        .where(ilike(BaubleMeta.name, "inst_%"))
-        )
-        .scalars().all()
+        db_session.execute(select(BaubleMeta).where(ilike(BaubleMeta.name, "inst_%")))
+        .scalars()
+        .all()
     )
     assert len(fields) == 13  # 13 properties define the institution
 
@@ -680,10 +694,9 @@ def test_institution_write_none_stays_none(db_session):
         db_session.commit()
 
     fields = (
-        db_session.execute(select(BaubleMeta)
-        .where(ilike(BaubleMeta.name, "inst_%"))
-        )
-        .scalars().all()
+        db_session.execute(select(BaubleMeta).where(ilike(BaubleMeta.name, "inst_%")))
+        .scalars()
+        .all()
     )
     field_values = {f.name[5:]: f.value for f in fields if f.value is not None}
     assert field_values["name"] == "Ghini"
@@ -750,6 +763,7 @@ def test_institution_presenter_registration_logs_info():
 
     assert "desktop.open" in invoked
 
+
 from datetime import datetime
 from decimal import Decimal
 
@@ -772,7 +786,10 @@ def conversion_test_data():
         # (DMS, DEG_MIN_DEC, DEG_DEC, UTM)
         (
             (("N", 17, 21, Decimal(59)), ("W", 89, 1, 41)),
-            ((Decimal(17), Decimal("21.98333333")), (Decimal(-89), Decimal("1.68333333"))),
+            (
+                (Decimal(17), Decimal("21.98333333")),
+                (Decimal(-89), Decimal("1.68333333")),
+            ),
             (Decimal("17.366389"), Decimal("-89.028056")),
         ),
     )
@@ -843,7 +860,12 @@ def test_accession_note_retrieve_or_create(db_session, setup_accession):
     acc = setup_accession
     note = AccessionNote.retrieve_or_create(
         db_session,
-        {"accession": acc.code, "category": "factura", "date": "2022-01-01", "note": "Test note"},
+        {
+            "accession": acc.code,
+            "category": "factura",
+            "date": "2022-01-01",
+            "note": "Test note",
+        },
     )
     assert note.accession == acc
     assert note.note == "Test note"
@@ -862,11 +884,10 @@ def test_plant_search_strategy(db_session):
 
 def test_location_retrieve_or_create_with_timestamps(db_session):
     """Test retrieving or creating locations with timestamp fields."""
-    Location.retrieve_or_create(
-        db_session, {"code": "1", "_created": "2001-12-10"}
-    )
+    Location.retrieve_or_create(db_session, {"code": "1", "_created": "2001-12-10"})
     location = Location.retrieve_or_create(db_session, {"code": "1"})
     assert location._created == datetime(2001, 12, 10)
+
 
 import os
 import sqlite3

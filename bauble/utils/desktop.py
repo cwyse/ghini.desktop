@@ -117,7 +117,7 @@ except ImportError:
         return opener.poll() == 0
 
 
-#import subprocess
+# import subprocess
 
 #
 # Private functions.
@@ -158,8 +158,7 @@ def get_desktop():
     if "KDE_FULL_SESSION" in os.environ or "KDE_MULTIHEAD" in os.environ:
         return "KDE"
     elif (
-        "GNOME_DESKTOP_SESSION_ID" in os.environ
-        or "GNOME_KEYRING_SOCKET" in os.environ
+        "GNOME_DESKTOP_SESSION_ID" in os.environ or "GNOME_KEYRING_SOCKET" in os.environ
     ):
         return "GNOME"
     elif sys.platform == "darwin":
@@ -229,6 +228,7 @@ def open(url, desktop=None, wait=0, dialog_on_error=False):
     """Open the 'url' in the current desktop's preferred client."""
 
     import gi
+
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gdk, Gtk
 

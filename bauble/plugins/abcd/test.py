@@ -44,9 +44,7 @@ def abcd_schema():
     """
     Fixture to load and parse the ABCD schema for XML validation.
     """
-    schema_file = os.path.join(
-        paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd"
-    )
+    schema_file = os.path.join(paths.lib_dir(), "plugins", "abcd", "abcd_2.06.xsd")
     xmlschema_doc = etree.parse(schema_file)
     return etree.XMLSchema(xmlschema_doc)
 
@@ -105,6 +103,7 @@ def test_abcd_export(db_session, setup_test_data):
     Test the ABCDExporter functionality.
     """
     from sqlalchemy import func
+
     plants_count = db_session.execute(select(func.count())).select_from(Plant)
     assert plants_count > 0, "No plants available for export."
 

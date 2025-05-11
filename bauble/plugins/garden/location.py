@@ -42,7 +42,7 @@ from bauble.view import Action, InfoBox, MapInfoExpander, PropertiesExpander
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-#from sqlalchemy import text
+# from sqlalchemy import text
 from sqlalchemy import Column, Integer, Unicode, UnicodeText, asc, select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship, validates
@@ -73,8 +73,7 @@ def remove_callback(locations):
     s = "{}: {}".format(loc.__class__.__name__, str(loc))
     if len(loc.plants) > 0:
         msg = _(
-            "Please remove the plants from <b>%(location)s</b> "
-            "before deleting it."
+            "Please remove the plants from <b>%(location)s</b> " "before deleting it."
         ) % {"location": loc}
         utils.message_dialog(msg, Gtk.MessageType.WARNING)
         return
@@ -183,7 +182,11 @@ class Location(db.Base, db.Serializable, db.WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         try:
-            return session.execute(select(cls).where(cls.code == keys["code"])).scalars().one()
+            return (
+                session.execute(select(cls).where(cls.code == keys["code"]))
+                .scalars()
+                .one()
+            )
         except:
             return None
 
@@ -207,9 +210,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
         }
 
 
-LocationNote = db.make_note_class(
-    "Location", Location, compute_serializable_fields
-)
+LocationNote = db.make_note_class("Location", Location, compute_serializable_fields)
 Location.notes = relationship(
     "LocationNote",
     back_populates="location",
@@ -246,9 +247,7 @@ class LocationEditorView(GenericEditorView):
 
     def __init__(self, parent=None):
         super().__init__(
-            os.path.join(
-                paths.lib_dir(), "plugins", "garden", "loc_editor.glade"
-            ),
+            os.path.join(paths.lib_dir(), "plugins", "garden", "loc_editor.glade"),
             parent=parent,
         )
         self.use_ok_and_add = True
@@ -300,12 +299,8 @@ class LocationEditorPresenter(GenericEditorPresenter):
         self.refresh_view()  # put model values in view
 
         # connect signals
-        self.assign_simple_handler(
-            "loc_name_entry", "name", UnicodeOrNoneValidator()
-        )
-        self.assign_simple_handler(
-            "loc_code_entry", "code", UnicodeOrNoneValidator()
-        )
+        self.assign_simple_handler("loc_name_entry", "name", UnicodeOrNoneValidator())
+        self.assign_simple_handler("loc_code_entry", "code", UnicodeOrNoneValidator())
         self.assign_simple_handler(
             "loc_desc_textview", "description", UnicodeOrNoneValidator()
         )
@@ -333,8 +328,7 @@ class LocationEditorPresenter(GenericEditorPresenter):
         entry_widget = self.view.widgets.loc_merge_entry
         if self.has_problems(entry_widget):
             logger.warning(
-                "'%s' does not identify a valid location"
-                % entry_widget.get_text()
+                "'%s' does not identify a valid location" % entry_widget.get_text()
             )
             return
         logger.debug(
@@ -350,7 +344,8 @@ class LocationEditorPresenter(GenericEditorPresenter):
             modal=True,
             message_type=Gtk.MessageType.QUESTION,
             buttons=Gtk.ButtonsType.YES_NO,
-            text=_("Please confirm merging %(1)s into %(2)s") % {
+            text=_("Please confirm merging %(1)s into %(2)s")
+            % {
                 "1": self.model,
                 "2": self.merger_candidate,
             },
@@ -378,29 +373,37 @@ class LocationEditorPresenter(GenericEditorPresenter):
         from bauble.plugins.garden.plant import Plant, PlantChange
 
         for p in (
-            self.session.execute(select(Plant)
-            .where(Plant.location == self.merger_candidate)
-            ).scalars().all()
+            self.session.execute(
+                select(Plant).where(Plant.location == self.merger_candidate)
+            )
+            .scalars()
+            .all()
         ):
             p.location = self.model
         for p in (
-            self.session.execute(select(PlantChange)
-            .where(PlantChange.from_location == self.merger_candidate)
-            ).scalars().all()
+            self.session.execute(
+                select(PlantChange).where(
+                    PlantChange.from_location == self.merger_candidate
+                )
+            )
+            .scalars()
+            .all()
         ):
             p.from_location = self.model
         for p in (
-            self.session.execute(select(PlantChange)
-            .where(PlantChange.to_location == self.merger_candidate)
-            ).scalars().all()
+            self.session.execute(
+                select(PlantChange).where(
+                    PlantChange.to_location == self.merger_candidate
+                )
+            )
+            .scalars()
+            .all()
         ):
             p.to_location = self.model
 
         # step 2: merge model and merger_candidate  `description` and `name`
         # fields, mark there's a problem to solve there.
-        self.view.widget_set_value(
-            "loc_code_entry", getattr(self.model, "code")
-        )
+        self.view.widget_set_value("loc_code_entry", getattr(self.model, "code"))
 
         buf = self.view.widgets.loc_desc_textview.get_buffer()
         self.view.widget_set_value(
@@ -492,12 +495,8 @@ class LocationEditor(GenericModelViewPresenterEditor):
                     self.commit_changes()
                 self._committed.append(self.model)
             except DBAPIError as e:
-                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(
-                    e.orig
-                )
-                utils.message_details_dialog(
-                    msg, str(e), Gtk.MessageType.ERROR
-                )
+                msg = _("Error committing changes.\n\n%s") % utils.xml_safe(e.orig)
+                utils.message_details_dialog(msg, str(e), Gtk.MessageType.ERROR)
                 if self.session.in_transaction():
                     self.session.rollback()
                 return False
@@ -570,9 +569,7 @@ class GeneralLocationExpander(InfoExpander):
             cmd = 'plant where location.code="%s"' % self.current_obj.code
             bauble.gui.send_command(cmd)
 
-        utils.make_label_clickable(
-            self.widgets.loc_nplants_data, on_nplants_clicked
-        )
+        utils.make_label_clickable(self.widgets.loc_nplants_data, on_nplants_clicked)
 
     def update(self, row):
         """ """
@@ -586,7 +583,12 @@ class GeneralLocationExpander(InfoExpander):
         )
         session = object_session(row)
         from sqlalchemy import func
-        nplants = session.execute(select(func.count())).select_from(Plant).where(location_id=row.id)
+
+        nplants = (
+            session.execute(select(func.count()))
+            .select_from(Plant)
+            .where(location_id=row.id)
+        )
         self.widget_set_value("loc_nplants_data", nplants)
 
 
@@ -647,4 +649,4 @@ class LocationInfoBox(InfoBox):
         self.general.update(row)
         self.description.update(row)
         self.mapinfo.update(row)
-        self.properties_expander.update(row)  
+        self.properties_expander.update(row)

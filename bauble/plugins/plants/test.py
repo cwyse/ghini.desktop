@@ -53,6 +53,7 @@ from sqlalchemy.exc import IntegrityError, NoResultFound
 def setup_plant_data():
     """Fixture to populate the database with test data."""
     from bauble.plugins.plants.test import setUp_data
+
     setUp_data()
     yield
     db.metadata.drop_all(bind=db.engine)
@@ -126,7 +127,13 @@ class TestFamily:
             session.commit()
         assert len(family.synonyms) == 0
         from sqlalchemy import func
-        assert session.execute(select(func.count()).select_from(FamilySynonym)).scalar_one() == 0
+
+        assert (
+            session.execute(
+                select(func.count()).select_from(FamilySynonym)
+            ).scalar_one()
+            == 0
+        )
 
         # Delete a family with synonyms
         family.synonyms.append(family2)
@@ -135,7 +142,12 @@ class TestFamily:
         session.delete(family2)
         if session.in_transaction():
             session.commit()
-        assert session.execute(select(func.count()).select_from(FamilySynonym)).scalar_one() == 0
+        assert (
+            session.execute(
+                select(func.count()).select_from(FamilySynonym)
+            ).scalar_one()
+            == 0
+        )
 
     def test_constraints(self, session):
         values = [
@@ -186,8 +198,12 @@ class TestRemoveCallback:
             session.commit()
         invoked = []
 
-        utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=False)
-        utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
+        utils.yes_no_dialog = partial(
+            mockfunc, name="yes_no_dialog", caller=invoked, result=False
+        )
+        utils.message_details_dialog = partial(
+            mockfunc, name="message_details_dialog", caller=invoked
+        )
 
         result = remove_callback([family])
         if session.in_transaction():
@@ -207,8 +223,12 @@ class TestRemoveCallback:
             session.commit()
         invoked = []
 
-        utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=True)
-        utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
+        utils.yes_no_dialog = partial(
+            mockfunc, name="yes_no_dialog", caller=invoked, result=True
+        )
+        utils.message_details_dialog = partial(
+            mockfunc, name="message_details_dialog", caller=invoked
+        )
 
         result = remove_callback([family])
         if session.in_transaction():
@@ -229,9 +249,15 @@ class TestRemoveCallback:
             session.commit()
         invoked = []
 
-        utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=True)
-        utils.message_dialog = partial(mockfunc, name="message_dialog", caller=invoked, result=True)
-        utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
+        utils.yes_no_dialog = partial(
+            mockfunc, name="yes_no_dialog", caller=invoked, result=True
+        )
+        utils.message_dialog = partial(
+            mockfunc, name="message_dialog", caller=invoked, result=True
+        )
+        utils.message_details_dialog = partial(
+            mockfunc, name="message_details_dialog", caller=invoked
+        )
 
         remove_callback([family])
         if session.in_transaction():
@@ -242,7 +268,6 @@ class TestRemoveCallback:
             "message_dialog",
             "The family <i>Arecaceae</i> has 1 genera.\n\nYou cannot remove a family with genera.",
         ) in invoked
-
 
 
 @pytest.mark.usefixtures("setup_plant_data")
@@ -315,7 +340,12 @@ class TestGenus:
             {"family": family, "epithet": "genus"},
             {"family": family, "epithet": "genus", "author": "author"},
             {"family": family, "epithet": "genus", "qualifier": "s. lat."},
-            {"family": family, "epithet": "genus", "qualifier": "s. lat.", "author": "author"},
+            {
+                "family": family,
+                "epithet": "genus",
+                "qualifier": "s. lat.",
+                "author": "author",
+            },
         ]
 
         for value in values:
@@ -337,8 +367,12 @@ class TestGenus:
         invoked = []
 
         # Mock confirmation dialogs
-        utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=False)
-        utils.message_details_dialog = partial(mockfunc, name="message_details_dialog", caller=invoked)
+        utils.yes_no_dialog = partial(
+            mockfunc, name="yes_no_dialog", caller=invoked, result=False
+        )
+        utils.message_details_dialog = partial(
+            mockfunc, name="message_details_dialog", caller=invoked
+        )
 
         result = remove_callback([genus])
         if session.in_transaction():
@@ -361,7 +395,9 @@ class TestGenus:
         invoked = []
 
         # Mock confirmation dialogs
-        utils.yes_no_dialog = partial(mockfunc, name="yes_no_dialog", caller=invoked, result=True)
+        utils.yes_no_dialog = partial(
+            mockfunc, name="yes_no_dialog", caller=invoked, result=True
+        )
         utils.message_dialog = partial(mockfunc, name="message_dialog", caller=invoked)
 
         remove_callback([genus])
@@ -435,6 +471,7 @@ class TestGenusSynonymy:
 
         assert genus_alta.accepted == genus_sedum
 
+
 from unittest.mock import patch
 
 import pytest
@@ -458,7 +495,10 @@ class TestSpecies:
         # Step 1: Mock CSV Importer for importing default data
         with patch("bauble.paths.lib_dir", return_value="/mock/path/to/lib"):
             default_path = "/mock/path/to/lib/plugins/plants/default"
-            filenames = [f"{default_path}/geographic_area.txt", f"{default_path}/habit.txt"]
+            filenames = [
+                f"{default_path}/geographic_area.txt",
+                f"{default_path}/habit.txt",
+            ]
 
             importer = CSVImporter()
             importer.start(filenames, force=True)
@@ -502,15 +542,15 @@ class TestSpecies:
 
             # Verify basic string output
             printable_name = remove_zws(str(species))
-            assert printable_name == expected_string, (
-                f"Mismatch in string representation for species ID {species_id}."
-            )
+            assert (
+                printable_name == expected_string
+            ), f"Mismatch in string representation for species ID {species_id}."
 
             # Verify helper function output
             species_string = get_species_string(species_id)
-            assert remove_zws(species_string) == expected_string, (
-                f"Helper function string mismatch for species ID {species_id}."
-            )
+            assert (
+                remove_zws(species_string) == expected_string
+            ), f"Helper function string mismatch for species ID {species_id}."
 
     def test_species_string_with_authors(self, session, species_str_authors_map):
         """
@@ -524,9 +564,9 @@ class TestSpecies:
 
         for species_id, expected_string in species_str_authors_map.items():
             species_string = get_species_string(species_id, authors=True)
-            assert remove_zws(species_string) == expected_string, (
-                f"Mismatch in string representation with authors for species ID {species_id}."
-            )
+            assert (
+                remove_zws(species_string) == expected_string
+            ), f"Mismatch in string representation with authors for species ID {species_id}."
 
     def test_species_string_with_markup(self, session, species_markup_map):
         """
@@ -540,11 +580,13 @@ class TestSpecies:
 
         for species_id, expected_string in species_markup_map.items():
             species_string = get_species_string(species_id, markup=True)
-            assert remove_zws(species_string) == expected_string, (
-                f"Markup mismatch for species ID {species_id}."
-            )
+            assert (
+                remove_zws(species_string) == expected_string
+            ), f"Markup mismatch for species ID {species_id}."
 
-    def test_species_string_with_markup_and_authors(self, session, species_markup_authors_map):
+    def test_species_string_with_markup_and_authors(
+        self, session, species_markup_authors_map
+    ):
         """
         Test the string representation of Species with markup and authors enabled.
         """
@@ -556,9 +598,9 @@ class TestSpecies:
 
         for species_id, expected_string in species_markup_authors_map.items():
             species_string = get_species_string(species_id, markup=True, authors=True)
-            assert remove_zws(species_string) == expected_string, (
-                f"Markup and authors mismatch for species ID {species_id}."
-            )
+            assert (
+                remove_zws(species_string) == expected_string
+            ), f"Markup and authors mismatch for species ID {species_id}."
 
     def test_unspecified_precedes_specified(self, session):
         """
@@ -589,7 +631,6 @@ class TestSpecies:
                 f"'{lower_str}' (ID: {lower_id}) in lexicographic order."
             )
 
-
     # def test_dirty_string(self, session):
     #     """
     #     Test that the cached string representation of a Species object
@@ -615,7 +656,6 @@ class TestSpecies:
 
     #     # Step 5: Verify that the string representation has changed
     #     assert sp.str() != str1, "String cache was not invalidated after modification."
-
 
     def test_vernacular_name(self, session):
         """Test the `Species.vernacular_name` property."""
@@ -695,13 +735,14 @@ class TestSpecies:
         assert sp.default_vernacular_name is None
         with pytest.raises(NoResultFound):
             session.execute(
-                select(DefaultVernacularName).where(DefaultVernacularName.species_id == sp.id)
+                select(DefaultVernacularName).where(
+                    DefaultVernacularName.species_id == sp.id
+                )
             ).scalars().one()
         with pytest.raises(NoResultFound):
             session.execute(
                 select(DefaultVernacularName).where(DefaultVernacularName.id == dvid)
             ).scalars().one()
-
 
         # Step 6: Reset `default_vernacular_name` and verify orphan handling
         sp.vernacular_names.append(vn)
@@ -716,13 +757,14 @@ class TestSpecies:
         # Verify orphaned objects are properly removed
         with pytest.raises(NoResultFound):
             session.execute(
-                select(DefaultVernacularName).where(DefaultVernacularName.species_id == sp.id)
+                select(DefaultVernacularName).where(
+                    DefaultVernacularName.species_id == sp.id
+                )
             ).scalars().one()
         with pytest.raises(NoResultFound):
             session.execute(
                 select(DefaultVernacularName).where(DefaultVernacularName.id == dvid)
             ).scalars().one()
-
 
         # Step 7: Use `__del__` to delete `default_vernacular_name`
         sp.default_vernacular_name = vn
@@ -736,13 +778,14 @@ class TestSpecies:
         assert sp.default_vernacular_name is None
         with pytest.raises(NoResultFound):
             session.execute(
-                select(DefaultVernacularName).where(DefaultVernacularName.species_id == sp.id)
+                select(DefaultVernacularName).where(
+                    DefaultVernacularName.species_id == sp.id
+                )
             ).scalars().one()
         with pytest.raises(NoResultFound):
             session.execute(
                 select(DefaultVernacularName).where(DefaultVernacularName.id == dvid)
             ).scalars().one()
-
 
         # Step 8: Test for regression in Launchpad Bug #123286
         vn1 = VernacularName(name="vn1")
@@ -756,7 +799,6 @@ class TestSpecies:
         assert sp.default_vernacular_name == vn2
         assert vn1 in sp.vernacular_names
         assert vn2 in sp.vernacular_names
-
 
     def test_synonyms_low_level(self):
         """
@@ -911,9 +953,7 @@ class TestSpecies:
         self.session.flush()
 
         # effect
-        self.assertFalse(
-            "message_details_dialog" in [f for (f, m) in self.invoked]
-        )
+        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
         print(self.invoked)
         self.assertTrue(
             (
@@ -950,9 +990,7 @@ class TestSpecies:
 
         # effect
         print(self.invoked)
-        self.assertFalse(
-            "message_details_dialog" in [f for (f, m) in self.invoked]
-        )
+        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
         self.assertTrue(
             (
                 "yes_no_dialog",
@@ -995,9 +1033,7 @@ class TestSpecies:
 
         # effect
         print(self.invoked)
-        self.assertFalse(
-            "message_details_dialog" in [f for (f, m) in self.invoked]
-        )
+        self.assertFalse("message_details_dialog" in [f for (f, m) in self.invoked])
         self.assertTrue(
             (
                 "message_dialog",
@@ -1011,6 +1047,7 @@ class TestSpecies:
         q = self.session.execute(select(Accession).where(species=sp)).scalars()
         matching = q.all()
         self.assertEqual(matching, [acc])
+
 
 from unittest.mock import patch
 
@@ -1058,13 +1095,17 @@ class TestGeographicArea:
 
         # Create species with distributions
         sp1 = Species(genus=self.genus, epithet="sp1")
-        sp1.distribution.append(SpeciesDistribution(geographic_area_id=mexico_central_id))
+        sp1.distribution.append(
+            SpeciesDistribution(geographic_area_id=mexico_central_id)
+        )
 
         sp2 = Species(genus=self.genus, epithet="sp2")
         sp2.distribution.append(SpeciesDistribution(geographic_area_id=oaxaca_id))
 
         sp3 = Species(genus=self.genus, epithet="sp3")
-        sp3.distribution.append(SpeciesDistribution(geographic_area_id=western_canada_id))
+        sp3.distribution.append(
+            SpeciesDistribution(geographic_area_id=western_canada_id)
+        )
 
         if self.session.in_transaction():
             self.session.commit()
@@ -1082,7 +1123,11 @@ class TestGeographicArea:
         # Test North America
         north_america = self.session.get(GeographicArea, northern_america_id)
         species = get_species_in_geographic_area(north_america)
-        assert [s.id for s in species] == [sp1.id, sp2.id, sp3.id], "North America species mismatch"
+        assert [s.id for s in species] == [
+            sp1.id,
+            sp2.id,
+            sp3.id,
+        ], "North America species mismatch"
 
     def test_species_distribution_str(self):
         """Test the string representation of species distribution."""
@@ -1090,12 +1135,18 @@ class TestGeographicArea:
         dist_1 = SpeciesDistribution(geographic_area_id=267)  # Mexico Central
         sp1.distribution.append(dist_1)
         self.session.flush()
-        assert sp1.distribution_str() == "Mexico Central", "Distribution string mismatch for one area"
+        assert (
+            sp1.distribution_str() == "Mexico Central"
+        ), "Distribution string mismatch for one area"
 
         dist_2 = SpeciesDistribution(geographic_area_id=45)  # Western Canada
         sp1.distribution.append(dist_2)
         self.session.flush()
-        assert sp1.distribution_str() == "Mexico Central, Western Canada", "Distribution string mismatch for multiple areas"
+        assert (
+            sp1.distribution_str() == "Mexico Central, Western Canada"
+        ), "Distribution string mismatch for multiple areas"
+
+
 import pytest
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
@@ -1109,22 +1160,41 @@ class TestFromAndToDict:
     def test_can_grab_existing_families(self, session):
         """Test retrieving existing families."""
         all_families = session.execute(select(Family)).scalars().all()
-        orc = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Orchidaceae"})
-        leg = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Leguminosae"})
-        pol = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Polypodiaceae"})
-        sol = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Solanaceae"})
-        assert set(all_families) == {orc, pol, leg, sol}, "Mismatch in retrieved families."
+        orc = Family.retrieve_or_create(
+            session, {"rank": "family", "epithet": "Orchidaceae"}
+        )
+        leg = Family.retrieve_or_create(
+            session, {"rank": "family", "epithet": "Leguminosae"}
+        )
+        pol = Family.retrieve_or_create(
+            session, {"rank": "family", "epithet": "Polypodiaceae"}
+        )
+        sol = Family.retrieve_or_create(
+            session, {"rank": "family", "epithet": "Solanaceae"}
+        )
+        assert set(all_families) == {
+            orc,
+            pol,
+            leg,
+            sol,
+        }, "Mismatch in retrieved families."
 
     def test_grabbing_same_params_same_output_existing(self, session):
         """Test that retrieving the same family parameters returns the same object."""
-        orc1 = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Orchidaceae"})
-        orc2 = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Orchidaceae"})
+        orc1 = Family.retrieve_or_create(
+            session, {"rank": "family", "epithet": "Orchidaceae"}
+        )
+        orc2 = Family.retrieve_or_create(
+            session, {"rank": "family", "epithet": "Orchidaceae"}
+        )
         assert orc1 is orc2, "Different objects returned for identical parameters."
 
     def test_can_create_family(self, session):
         """Test creating a new family."""
         all_families = session.execute(select(Family)).scalars().all()
-        fab = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Fabaceae"})
+        fab = Family.retrieve_or_create(
+            session, {"rank": "family", "epithet": "Fabaceae"}
+        )
         assert fab in session, "Family not in session after creation."
         assert fab not in all_families, "Family unexpectedly in initial families list."
         session_families = session.execute(select(Family)).scalars().all()
@@ -1133,7 +1203,9 @@ class TestFromAndToDict:
     @pytest.mark.skip(reason="Not Implemented")
     def test_where_can_object_be_found_before_commit(self, db_session):
         """Test visibility of created objects in other sessions before commit."""
-        fab = Family.retrieve_or_create(db_session, {"rank": "family", "epithet": "Fabaceae"})
+        fab = Family.retrieve_or_create(
+            db_session, {"rank": "family", "epithet": "Fabaceae"}
+        )
 
         # Use a new session bound to same connection with SAVEPOINT
         nested_transaction = db_session.connection().begin_nested()
@@ -1151,7 +1223,9 @@ class TestFromAndToDict:
 
     def test_where_can_object_be_found_after_commit(self, db_session):
         """Test visibility of created objects in other sessions after commit."""
-        fab = Family.retrieve_or_create(db_session, {"rank": "family", "epithet": "Fabaceae"})
+        fab = Family.retrieve_or_create(
+            db_session, {"rank": "family", "epithet": "Fabaceae"}
+        )
         if db_session.in_transaction():
             db_session.commit()
 
@@ -1161,20 +1235,27 @@ class TestFromAndToDict:
             fab_in_other_session = Family.retrieve_or_create(
                 other_session, {"rank": "family", "epithet": "Fabaceae"}
             )
-            assert fab in all_families, "Family not found in other session after commit."
+            assert (
+                fab in all_families
+            ), "Family not found in other session after commit."
         finally:
             other_session.close()
 
-
     def test_grabbing_same_params_same_output_new(self, session):
         """Test that retrieving the same parameters returns the same new object."""
-        fab1 = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Fabaceae"})
-        fab2 = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Fabaceae"})
+        fab1 = Family.retrieve_or_create(
+            session, {"rank": "family", "epithet": "Fabaceae"}
+        )
+        fab2 = Family.retrieve_or_create(
+            session, {"rank": "family", "epithet": "Fabaceae"}
+        )
         assert fab1 is fab2, "Different objects returned for identical parameters."
 
     def test_can_grab_existing_genera(self, session):
         """Test retrieving existing genera under a specific family."""
-        orc = Family.retrieve_or_create(session, {"rank": "family", "epithet": "Orchidaceae"})
+        orc = Family.retrieve_or_create(
+            session, {"rank": "family", "epithet": "Orchidaceae"}
+        )
         all_genera_orc = (
             session.execute(select(Genus).where(Genus.family == orc)).scalars().all()
         )
@@ -1198,6 +1279,8 @@ class TestFromAndToDict:
         )
         assert mxl in set(all_genera_orc), "Maxillaria not found in retrieved genera."
         assert enc in set(all_genera_orc), "Encyclia not found in retrieved genera."
+
+
 import pytest
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
@@ -1345,10 +1428,13 @@ class TestFromAndToDictCreateUpdate:
         bra = get_first_or_none(session, select(Species).where(Species.id == 21))
         assert bra is not None
         vn_bra = (
-            session.execute(select(VernacularName)
-            .where(VernacularName.language == "agr", VernacularName.species == bra)
+            session.execute(
+                select(VernacularName).where(
+                    VernacularName.language == "agr", VernacularName.species == bra
+                )
             )
-            .scalars().all()
+            .scalars()
+            .all()
         )
         assert vn_bra[0].as_dict() == {
             "object": "vernacular_name",
@@ -1358,10 +1444,13 @@ class TestFromAndToDictCreateUpdate:
         }
 
         vn_bra = (
-            session.execute(select(VernacularName)
-            .where(VernacularName.language == "es", VernacularName.species == bra)
+            session.execute(
+                select(VernacularName).where(
+                    VernacularName.language == "es", VernacularName.species == bra
+                )
             )
-            .scalars().all()
+            .scalars()
+            .all()
         )
         assert vn_bra[0].as_dict() == {
             "object": "vernacular_name",
@@ -1427,6 +1516,7 @@ class TestFromAndToDictCreateUpdate:
             update=True,
         )
         assert obj.name == "wrong"
+
 
 import pytest
 from bauble.plugins.plants.genus import Genus
@@ -1566,6 +1656,8 @@ class TestGenusHybridMarker:
         )
         assert gen.hybrid_marker == "+"
         assert gen.hybrid_epithet == "Crataegomespilus"
+
+
 import pytest
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
@@ -1784,7 +1876,11 @@ class TestSpeciesProperties:
     def test_species_note_nocreate_noupdate_noexisting(self, session):
         obj = SpeciesNote.retrieve_or_create(
             session,
-            {"object": "species_note", "category": "IUCN", "species": "Laelia grandiflora"},
+            {
+                "object": "species_note",
+                "category": "IUCN",
+                "species": "Laelia grandiflora",
+            },
             create=False,
         )
         assert obj is None
@@ -1792,7 +1888,11 @@ class TestSpeciesProperties:
     def test_species_note_nocreate_noupdateeq_existing(self, session):
         obj = SpeciesNote.retrieve_or_create(
             session,
-            {"object": "species_note", "category": "IUCN", "species": "Encyclia fragrans"},
+            {
+                "object": "species_note",
+                "category": "IUCN",
+                "species": "Encyclia fragrans",
+            },
             create=False,
             update=False,
         )
@@ -1950,6 +2050,7 @@ class TestConservationStatus:
         )
         assert obj.conservation == "LC"
 
+
 @pytest.mark.usefixtures("setup_plant_data")
 class TestPresenter:
     def test_can_reedit_object(self, session):
@@ -1994,6 +2095,7 @@ class TestPresenter:
         # Implementation skipped
         pass
 
+
 @pytest.mark.usefixtures("setup_plant_data")
 class TestGlobalFunctions:
     def test_species_markup_func(self, session):
@@ -2033,7 +2135,10 @@ class TestGlobalFunctions:
         assert second == "Orchidaceae -- SomeName, SomeName 2"
 
         first, second = model.search_view_markup_pair()
-        assert remove_zws(first) == '<i>Laelia</i> <i>lobata</i> <span weight="light">H.J. Veitch</span>'
+        assert (
+            remove_zws(first)
+            == '<i>Laelia</i> <i>lobata</i> <span weight="light">H.J. Veitch</span>'
+        )
         assert second == "Orchidaceae"
 
     def test_vername_markup_func(self, session):
@@ -2049,6 +2154,7 @@ class TestGlobalFunctions:
     def test_vernname_get_kids(self, session):
         vName = session.execute(select(VernacularName).where(id=1)).scalars().one()
         assert partial(db.natsort, "species.accessions")(vName) == []
+
 
 @pytest.mark.usefixtures("setup_bauble_data")
 class TestBaubleSearch:
@@ -2066,4 +2172,3 @@ class TestBaubleSearch:
         caplog.clear()
         bauble.search.search("So ha", session)
         assert 'SearchStrategy "So ha"(SynonymSearch)' in caplog.text
-

@@ -37,6 +37,7 @@ def setup_data(db_session):
         db_session.commit()
     return db_session
 
+
 @pytest.fixture(autouse=True)
 def clear_family_table(db_session):
     """
@@ -46,6 +47,7 @@ def clear_family_table(db_session):
     db_session.execute(text("DELETE FROM family"))
     if db_session.in_transaction():
         db_session.commit()
+
 
 @pytest.mark.usefixtures("db_session", "setup_data")
 class TestTaxonomyCheck:

@@ -64,4 +64,3 @@ hormone_values = {"Liquid": _("Liquid"), "Powder": _("Powder"), "No": _("No")}
 bottom_heat_unit_values = {"F": _("°F"), "C": _("°C"), None: ""}
 
 length_unit_values = {"mm": _("mm"), "cm": _("cm"), "in": _("in"), None: ""}
-

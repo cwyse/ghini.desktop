@@ -98,9 +98,7 @@ def test_format_all_templates(session):
     templates_dir = os.path.join(
         os.path.dirname(os.path.dirname(__file__)), "templates"
     )
-    template_files = filter(
-        lambda x: x.endswith(".jj2"), os.listdir(templates_dir)
-    )
+    template_files = filter(lambda x: x.endswith(".jj2"), os.listdir(templates_dir))
 
     for template_name in template_files:
         template_path = os.path.join(templates_dir, template_name)
@@ -118,9 +116,7 @@ def test_format_all_templates(session):
         }.get(domain, Plant)
 
         if cls:
-            todo = sorted(
-                get_pertinent_objects(cls, selection), key=natsort_key
-            )
+            todo = sorted(get_pertinent_objects(cls, selection), key=natsort_key)
         else:
             todo = selection
 
@@ -128,4 +124,3 @@ def test_format_all_templates(session):
         report = Jinja2FormatterPlugin.format(todo, template=template_path)
 
         assert isinstance(report, bytes)
-

@@ -31,7 +31,7 @@ import textwrap
 import threading
 import traceback
 
-#import xml.sax.saxutils as saxutils
+# import xml.sax.saxutils as saxutils
 from gettext import gettext as _
 
 import bauble
@@ -45,7 +45,7 @@ gi.require_version("Gtk", "3.0")
 from bauble import utils
 from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk
 
-#from sqlalchemy.exc import DBAPIError
+# from sqlalchemy.exc import DBAPIError
 from sqlalchemy import distinct, select
 from sqlalchemy.orm.session import object_session
 
@@ -86,19 +86,23 @@ def sorted_relationship(relationship, key):
     """Return a sorted list of a relationship by a specific key."""
     return sorted(relationship, key=lambda x: getattr(x, key, None))
 
+
 def handle_deletion_error(e):
     """Handle errors specific to deletion."""
     if isinstance(e, sqlalchemy.exc.IntegrityError):
-        message = _("Could not delete: The item is referenced elsewhere (foreign key constraint).")
+        message = _(
+            "Could not delete: The item is referenced elsewhere (foreign key constraint)."
+        )
     elif isinstance(e, sqlalchemy.orm.exc.UnmappedInstanceError):
         message = _("Could not delete: The item is not managed by the session.")
     elif isinstance(e, sqlalchemy.exc.InvalidRequestError):
         message = _("Could not delete: The request was invalid.")
     else:
         message = _("Could not delete the item. Unknown error.")
-    
+
     details = traceback.format_exc()
     utils.message_details_dialog(message, details, Gtk.MessageType.ERROR)
+
 
 def handle_generic_error(e):
     """Handle database-specific errors."""
@@ -110,9 +114,10 @@ def handle_generic_error(e):
         message = _("Programming error: Syntax or command issue.")
     else:
         message = _("Database error occurred.")
-    
+
     details = traceback.format_exc()
     utils.message_details_dialog(message, details, Gtk.MessageType.ERROR)
+
 
 def handle_db_error(exception, context="database operation"):
     """
@@ -124,7 +129,9 @@ def handle_db_error(exception, context="database operation"):
     import traceback
 
     if isinstance(exception, sqlalchemy.exc.IntegrityError):
-        message = _(f"Integrity error during {context}: Check constraints or data conflicts.")
+        message = _(
+            f"Integrity error during {context}: Check constraints or data conflicts."
+        )
     elif isinstance(exception, sqlalchemy.exc.OperationalError):
         message = _(f"Operational error during {context}: Database operation failed.")
     elif isinstance(exception, sqlalchemy.exc.ProgrammingError):
@@ -135,6 +142,7 @@ def handle_db_error(exception, context="database operation"):
     details = traceback.format_exc()
     utils.message_details_dialog(message, details, Gtk.MessageType.ERROR)
 
+
 def count_relationship_items(obj, relationship_name):
     """Count the number of items in a relationship."""
     relationship = getattr(obj, relationship_name, None)
@@ -142,9 +150,10 @@ def count_relationship_items(obj, relationship_name):
         return len(relationship)
     return 0
 
+
 def safe_set_text(gtk_widget, text):
     """
-    Sets the text of a Gtk widget, replacing None with an empty string 
+    Sets the text of a Gtk widget, replacing None with an empty string
     and converting bytes to UTF-8 strings.
 
     :param gtk_widget: Instance of a Gtk widget
@@ -152,9 +161,9 @@ def safe_set_text(gtk_widget, text):
     """
     try:
         if text is None:
-            text = ''
+            text = ""
         elif isinstance(text, bytes):
-            text = text.decode('utf-8', errors='replace')  # Safely decode bytes
+            text = text.decode("utf-8", errors="replace")  # Safely decode bytes
         elif not isinstance(text, str):
             text = str(text)  # Ensure it's a string
         gtk_widget.set_text(text)
@@ -172,12 +181,11 @@ def safe_set_props(widget, prop, value):
         value: The value to set, can be a string, bytes, or None.
     """
     if value is None:
-        value = ''
+        value = ""
     elif isinstance(value, bytes):
-        value = value.decode('utf-8', errors='replace')
+        value = value.decode("utf-8", errors="replace")
     else:
         value = str(value)
-
 
     # Check if the widget has a specific method for the property
     setter_method = f"set_{prop}"
@@ -318,9 +326,7 @@ class ImageLoader(threading.Thread):
             scale = max(scale_x, scale_y, 1)
             x = int(pixbuf.get_width() / scale)
             y = int(pixbuf.get_height() / scale)
-            scaled_buf = pixbuf.scale_simple(
-                x, y, GdkPixbuf.InterpType.BILINEAR
-            )
+            scaled_buf = pixbuf.scale_simple(x, y, GdkPixbuf.InterpType.BILINEAR)
             if self.box.get_children():
                 image = self.box.get_children()[0]
             else:
@@ -328,17 +334,13 @@ class ImageLoader(threading.Thread):
                 self.box.add(image)
             image.set_from_pixbuf(scaled_buf)
         except (GLib.GError, AttributeError) as e:
-            logger.debug(
-                "picture %s caused %s %s" % (self.url, type(e).__name__, e)
-            )
+            logger.debug("picture %s caused %s %s" % (self.url, type(e).__name__, e))
             text = _("picture file %s not found.") % self.url
             label = Gtk.Label()
             safe_set_text(label, text)
             self.box.add(label)
         except Exception as e:
-            logger.warning(
-                "picture %s caused Exception %s:%s" % (self.url, type(e), e)
-            )
+            logger.warning("picture %s caused Exception %s:%s" % (self.url, type(e), e))
             label = Gtk.Label()
             safe_set_text(label, "%s" % e)
             self.box.add(label)
@@ -349,9 +351,7 @@ class ImageLoader(threading.Thread):
 
     def run(self):
         self.loader.connect("closed", self.loader_notified)
-        self.cache.get(
-            self.url, self.reader_function, on_hit=self.loader.write
-        )
+        self.cache.get(self.url, self.reader_function, on_hit=self.loader.write)
         try:
             self.loader.close()
         except GLib.GError:
@@ -388,9 +388,7 @@ class ImageLoader(threading.Thread):
                     self.loader.write(piece)
                     pieces.append(piece)
         except FileNotFoundError as e:
-            logger.debug(
-                "picture %s caused FileNotFoundError %s" % (self.url, e)
-            )
+            logger.debug("picture %s caused FileNotFoundError %s" % (self.url, e))
         return b"".join(pieces)
 
 
@@ -421,11 +419,7 @@ def find_dependent_tables(table, metadata=None):
     def _impl(t2):
         for tbl in metadata.sorted_tables:
             for fk in tbl.foreign_keys:
-                if (
-                    fk.column.table == t2
-                    and tbl not in tables
-                    and tbl is not table
-                ):
+                if fk.column.table == t2 and tbl not in tables and tbl is not table:
                     tables.append(tbl)
                     _impl(tbl)
 
@@ -560,8 +554,7 @@ def set_combo_from_value(combo, value, cmp=lambda row, value: row[0] == value):
     matches = search_tree_model(model, value, cmp)
     if len(matches) == 0:
         raise ValueError(
-            "set_combo_from_value() - could not find value in "
-            "combo: %s" % value
+            "set_combo_from_value() - could not find value in " "combo: %s" % value
         )
     combo.set_active_iter(matches[0])
     combo.emit("changed")
@@ -601,8 +594,8 @@ def get_widget_value(w, index=0):
     elif isinstance(w, Gtk.TextView):
         textbuffer = w.get_buffer()
         return textbuffer.get_text(
-                textbuffer.get_start_iter(), textbuffer.get_end_iter(), ""
-            )
+            textbuffer.get_start_iter(), textbuffer.get_end_iter(), ""
+        )
     elif isinstance(w, Gtk.Entry):
         text = w.get_text()
         if isinstance(text, bytes):
@@ -644,10 +637,7 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
     )
 
     if value is None:  # set the value from the default
-        if (
-            isinstance(widget, (Gtk.Label, Gtk.TextView, Gtk.Entry))
-            and default is None
-        ):
+        if isinstance(widget, (Gtk.Label, Gtk.TextView, Gtk.Entry)) and default is None:
             value = ""
         else:
             value = default
@@ -698,9 +688,7 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
                 widget.set_active(-1)
         if widget.get_child():
             widget.get_child().text = value or ""
-    elif isinstance(
-        widget, (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)
-    ):
+    elif isinstance(widget, (Gtk.ToggleButton, Gtk.CheckButton, Gtk.RadioButton)):
         if isinstance(widget, Gtk.CheckButton) and isinstance(value, str):
             value = value == Gtk.Buildable.get_name(widget)
         if value is True:
@@ -853,7 +841,10 @@ def create_yes_no_dialog(msg, parent=None, buttons=Gtk.ButtonsType.YES_NO):
     d.show_all()
     return d
 
-def yes_no_cancel_dialog(msg, yes_label, no_label, cancel_label, parent=None, callback=None):
+
+def yes_no_cancel_dialog(
+    msg, yes_label, no_label, cancel_label, parent=None, callback=None
+):
     """
     Displays a dialog with Yes, No, and Cancel options.
     Returns a DialogResponse enum value.
@@ -889,7 +880,8 @@ def yes_no_cancel_dialog(msg, yes_label, no_label, cancel_label, parent=None, ca
 
     dialog.connect("response", on_response)
     dialog.show_all()
-    
+
+
 def yes_no_dialog(msg, parent=None, yes_delay=-1):
     """
     Create and run a yes/no dialog.
@@ -916,6 +908,7 @@ def yes_no_dialog(msg, parent=None, yes_delay=-1):
     r = d.run()
     d.destroy()
     return r == Gtk.ResponseType.YES
+
 
 def create_message_details_dialog(
     msg,
@@ -1115,7 +1108,10 @@ def today_str(format=None):
     today = datetime.date.today()
     return today.strftime(format)
 
-def set_button_contents(button, label_text=None, icon_name=None, orientation=Gtk.Orientation.HORIZONTAL):
+
+def set_button_contents(
+    button, label_text=None, icon_name=None, orientation=Gtk.Orientation.HORIZONTAL
+):
     """
     Set button contents with optional icon and label.
     Works in both GTK 3 and GTK 4.
@@ -1137,6 +1133,7 @@ def set_button_contents(button, label_text=None, icon_name=None, orientation=Gtk
     else:  # GTK 3
         button.add(box)
         button.show_all()
+
 
 def setup_date_button(view, entry, button, date_func=None):
     """
@@ -1214,10 +1211,11 @@ def utf8(obj):
     """
     try:
         # Ensure the input is a Unicode string, then encode it to bytes
-        return to_unicode(obj).encode('utf-8', errors='replace')
+        return to_unicode(obj).encode("utf-8", errors="replace")
     except Exception as e:
         logger.error(f"Failed to encode object to UTF-8: {obj} ({e})")
         raise
+
 
 def xml_safe(obj):
     """
@@ -1233,6 +1231,7 @@ def xml_safe(obj):
     except Exception as e:
         logger.error(f"Failed to escape XML characters: {obj} ({e})")
         return str(obj)  # Fallback to plain string
+
 
 def safe_numeric(s):
     "evaluate the string as a number, or return zero"
@@ -1330,9 +1329,10 @@ def reset_sequence(column):
     elif (
         isinstance(column.type, Integer)
         and column.autoincrement
-        and (column.default is None or (
-            isinstance(column.default, schema.Sequence) and column.default.optional
-        ))
+        and (
+            column.default is None
+            or (isinstance(column.default, schema.Sequence) and column.default.optional)
+        )
         and not column.foreign_keys
     ):
         sequence_name = f"{column.table.name}_{column.name}_seq"
@@ -1358,14 +1358,16 @@ def reset_sequence(column):
 class WidgetStyler:
     def __init__(self):
         self.css_provider = Gtk.CssProvider()
-        self.css_provider.load_from_data(b"""
+        self.css_provider.load_from_data(
+            b"""
             .background-set {
                 background-color: #FAF8F7;
             }
             .foreground-set {
                 color: blue;
             }
-        """)
+        """
+        )
 
     def apply_styles(self, widget, label):
         """Apply the CSS styles for background and foreground."""
@@ -1373,12 +1375,16 @@ class WidgetStyler:
         label_style_context = label.get_style_context()
 
         # Apply the CSS provider once to the widget and label's style context
-        widget_style_context.add_provider(self.css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        label_style_context.add_provider(self.css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        widget_style_context.add_provider(
+            self.css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+        label_style_context.add_provider(
+            self.css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
 
         # Add the respective CSS classes
-        widget_style_context.add_class('background-set')
-        label_style_context.add_class('foreground-set')
+        widget_style_context.add_class("background-set")
+        label_style_context.add_class("foreground-set")
 
     def reset_styles(self, widget, label):
         """Reset the applied CSS classes."""
@@ -1386,11 +1392,13 @@ class WidgetStyler:
         label_style_context = label.get_style_context()
 
         # Remove the CSS classes
-        widget_style_context.remove_class('background-set')
-        label_style_context.remove_class('foreground-set')
+        widget_style_context.remove_class("background-set")
+        label_style_context.remove_class("foreground-set")
+
 
 # Example usage:
 styler = WidgetStyler()
+
 
 def make_label_clickable(label, on_clicked, *args):
     """
@@ -1412,26 +1420,26 @@ def make_label_clickable(label, on_clicked, *args):
         """Handles mouse entering the widget, changing background and foreground colors."""
 
         # Use Gdk.RGBA instead of deprecated Gdk.Color
-        #bg_color = Gdk.RGBA()
-        #fg_color = Gdk.RGBA()
+        # bg_color = Gdk.RGBA()
+        # fg_color = Gdk.RGBA()
 
         # Parse colors correctly
-        #bg_color.parse("#FAF8F7")
-        #fg_color.parse("blue")
+        # bg_color.parse("#FAF8F7")
+        # fg_color.parse("blue")
         styler.apply_styles(widget, label)
 
         # Apply background and foreground colors
-        #idget.get_style_context().add_class('background-set')  # This will add the CSS class
-        #widget.override_color(bg_color)  
-        #label.get_style_context().add_class('foreground-set')  # This will add the CSS class
-        #label.override_color(Gtk.StateFlags.NORMAL, fg_color)  # For text color
-        
+        # idget.get_style_context().add_class('background-set')  # This will add the CSS class
+        # widget.override_color(bg_color)
+        # label.get_style_context().add_class('foreground-set')  # This will add the CSS class
+        # label.override_color(Gtk.StateFlags.NORMAL, fg_color)  # For text color
+
     def on_leave_notify(widget, event, label, *args):
         # Get the widget's style context
-        #widget.get_style_context().add_class('background-set')  # This will add the CSS class
-        #widget.override_color(Gdk.RGBA())  
-      
-        #label.override_color(Gtk.StateFlags.NORMAL, None)
+        # widget.get_style_context().add_class('background-set')  # This will add the CSS class
+        # widget.override_color(Gdk.RGBA())
+
+        # label.override_color(Gtk.StateFlags.NORMAL, None)
         styler.reset_styles(widget, label)
         label.__pressed = False
 
@@ -1441,7 +1449,7 @@ def make_label_clickable(label, on_clicked, *args):
     def on_release(widget, event, label, *args):
         if label.__pressed:
             label.__pressed = False
-            label.set_property('color', None)
+            label.set_property("color", None)
             label.__on_clicked(label, event, *args)
 
     try:
@@ -1495,10 +1503,11 @@ def ilike(col, val, engine=None):
     """
     from sqlalchemy import func
 
-    #from sqlalchemy.engine import Engine
+    # from sqlalchemy.engine import Engine
 
     if not engine:
         from bauble.db import engine as default_engine
+
         engine = default_engine
 
     if engine.url.get_dialect().name == "postgresql":
@@ -1561,9 +1570,7 @@ def mem(size="rss"):
     """Generalization; memory sizes: rss, rsz, vsz."""
     import os
 
-    return int(
-        os.popen("ps -p %d -o %s | tail -1" % (os.getpid(), size)).read()
-    )
+    return int(os.popen("ps -p %d -o %s | tail -1" % (os.getpid(), size)).read())
 
 
 def topological_sort(items, partial_order):
@@ -1621,9 +1628,7 @@ def topological_sort(items, partial_order):
 
     # Step 2 - find all roots (nodes with zero incoming arcs).
 
-    roots = [
-        node for (node, nodeinfo) in list(graph.items()) if nodeinfo[0] == 0
-    ]
+    roots = [node for (node, nodeinfo) in list(graph.items()) if nodeinfo[0] == 0]
 
     # step 3 - repeatedly emit a root and remove it from the graph. Removing
     # a node may convert some of the node's direct children into roots.
@@ -1659,13 +1664,14 @@ def topological_sort(items, partial_order):
 
     return sorted
 
+
 import gi
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, Gtk, Pango
 
 
-class GenericMessageBox():  # identify_subclassing_issues (Consider using composition instead of subclassing GtkWidget)
+class GenericMessageBox:  # identify_subclassing_issues (Consider using composition instead of subclassing GtkWidget)
     """
     Abstract class for showing a message box at the top of an editor.
     """
@@ -1708,11 +1714,10 @@ class GenericMessageBox():  # identify_subclassing_issues (Consider using compos
 
     def show(self):
         self.show_all()
-    
+
     def get_widget(self):
         """Returns the event box widget."""
         return self.event_box
-
 
 
 class MessageBox(GenericMessageBox):
@@ -1738,7 +1743,9 @@ class MessageBox(GenericMessageBox):
         button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.box.pack_start(button_box, False, False, 0)
         button = Gtk.Button()
-        image = Gtk.Image.new_from_icon_name("window-close", Gtk.IconSize.BUTTON)# Pack the Gtk.Image manually inside Gtk.Button
+        image = Gtk.Image.new_from_icon_name(
+            "window-close", Gtk.IconSize.BUTTON
+        )  # Pack the Gtk.Image manually inside Gtk.Button
         button.set_image(image)
         button.set_relief(Gtk.ReliefStyle.NONE)
         button_box.pack_start(button, False, False, 0)
@@ -1759,11 +1766,11 @@ class MessageBox(GenericMessageBox):
         self.details_label.set_ellipsize(Pango.EllipsizeMode.END)
         viewport.add(self.details_label)
 
-        self.details = (details or '')[:4096]
+        self.details = (details or "")[:4096]
         self.details_expander.add(sw)
 
         # Connect expanded signal
-        self.details_expander.connect('notify::expanded', self.on_expanded)
+        self.details_expander.connect("notify::expanded", self.on_expanded)
 
         # Button Close Handler
         def on_close(*args):
@@ -1771,12 +1778,12 @@ class MessageBox(GenericMessageBox):
             if parent is not None:
                 parent.remove(self)
 
-        button.connect('clicked', on_close, True)
+        button.connect("clicked", on_close, True)
 
         # Color setup
         colors = [
             ("background-color", "normal", Gdk.RGBA()),
-            ("background-color", "prelight", Gdk.RGBA())
+            ("background-color", "prelight", Gdk.RGBA()),
         ]
 
         colors[0][2].parse("#FFFFFF")
@@ -1801,11 +1808,13 @@ class MessageBox(GenericMessageBox):
 
     @property
     def message(self):
-        return self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
+        return self.buffer.get_text(
+            self.buffer.get_start_iter(), self.buffer.get_end_iter(), True
+        )
 
     @message.setter
     def message(self, msg):
-        self.buffer.set_text(msg or '')
+        self.buffer.set_text(msg or "")
 
     @property
     def details(self):
@@ -1821,7 +1830,7 @@ class MessageBox(GenericMessageBox):
     def get_widget(self):
         # Return the box containing all the widgets
         return self.box
-    
+
 
 class YesNoMessageBox(GenericMessageBox):
     """
@@ -1880,6 +1889,7 @@ class YesNoMessageBox(GenericMessageBox):
     def get_widget(self):
         # Return the box containing all the widgets
         return self.box
+
 
 MESSAGE_BOX_INFO = 1
 MESSAGE_BOX_ERROR = 2
@@ -1963,9 +1973,11 @@ def parse_date(value, dayfirst=True, yearfirst=False, **kwargs):
         value, dayfirst=dayfirst, yearfirst=yearfirst, **kwargs
     )
 
+
 def safe_rollback(session):
     if session.in_transaction():
         session.rollback()
+
 
 def safe_commit(session):
     if session.in_transaction():

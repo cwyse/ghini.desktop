@@ -30,7 +30,7 @@ import bauble
 import gi
 import sqlalchemy.orm.exc as orm_exc
 
-#from bauble import ui
+# from bauble import ui
 from bauble import db, editor, paths, pluginmgr, search, utils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.shared import InfoExpander
@@ -44,7 +44,7 @@ from typing import TYPE_CHECKING, Optional
 from bauble.plugins.garden.propagation import Propagation
 from gi.repository import Gdk, Gtk
 
-#from sqlalchemy import text
+# from sqlalchemy import text
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -57,12 +57,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import DBAPIError
 
-#from sqlalchemy.exc import InvalidRequestError
+# from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import Session as SASession
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 
-#from sqlalchemy.orm.exc import NoResultFound
+# from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import object_session
 
 if TYPE_CHECKING:
@@ -70,6 +70,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
 
 @contextmanager
 def session_scope():
@@ -79,6 +80,7 @@ def session_scope():
         yield session
     finally:
         session.close()
+
 
 class TagsMenuManager:
     def __init__(self):
@@ -112,7 +114,7 @@ class TagsMenuManager:
             elif hasattr(widget, "set_image"):
                 # GTK3
                 widget.set_image(None)
-        
+
         # Get the currently active tag widget
         widget = self.item_list.get(self.active_tag_name)
 
@@ -163,7 +165,7 @@ class TagsMenuManager:
             parent_menu = submenu_dict[full_path][1]
             full_path += "/"
         return parent_menu
-        
+
     def build_menu(self):
         """Build tags Gtk.Menu based on current data."""
         self.item_list = {}
@@ -190,10 +192,19 @@ class TagsMenuManager:
         if bauble.gui:
             accel_group = Gtk.AccelGroup()
             bauble.gui.window.add_accel_group(accel_group)
-            self.register_accelerators(add_tag_menu_item, accel_group, ord("T"), Gdk.ModifierType.CONTROL_MASK)
-            self.register_accelerators(self.apply_active_tag_menu_item, accel_group, ord("Y"), Gdk.ModifierType.CONTROL_MASK)
+            self.register_accelerators(
+                add_tag_menu_item, accel_group, ord("T"), Gdk.ModifierType.CONTROL_MASK
+            )
+            self.register_accelerators(
+                self.apply_active_tag_menu_item,
+                accel_group,
+                ord("Y"),
+                Gdk.ModifierType.CONTROL_MASK,
+            )
             key, mask = Gtk.accelerator_parse("<Control><Shift>y")
-            self.register_accelerators(self.remove_active_tag_menu_item, accel_group, key, mask)
+            self.register_accelerators(
+                self.remove_active_tag_menu_item, accel_group, key, mask
+            )
 
         tags_menu.append(add_tag_menu_item)
 
@@ -225,7 +236,7 @@ class TagsMenuManager:
             self.remove_active_tag_menu_item.set_sensitive(False)
 
         # Make sure all items and the menu are visible
-        tags_menu.show_all()            
+        tags_menu.show_all()
         return tags_menu
 
     def register_accelerators(self, menu_item, accel_group, accel_key, modifiers):
@@ -235,7 +246,9 @@ class TagsMenuManager:
                 "activate", accel_group, accel_key, modifiers, Gtk.AccelFlags.VISIBLE
             )
         except Exception as e:
-            logger.error(f"Failed to register accelerator for {menu_item.get_label()}: {e}")
+            logger.error(
+                f"Failed to register accelerator for {menu_item.get_label()}: {e}"
+            )
 
     def toggle_tag(self, applying):
         view = bauble.gui.get_view()
@@ -360,9 +373,7 @@ class TagEditorPresenter(GenericEditorPresenter):
             self.last_entry = entry
         else:
             tv, path = tree.get_selection().get_selected()
-            self.view.widgets.notes_list[path][
-                self.column
-            ] = self.last_entry.get_text()
+            self.view.widgets.notes_list[path][self.column] = self.last_entry.get_text()
 
     def on_cell_editing_started_col0(self, *args):
         self.column = 2
@@ -373,16 +384,12 @@ class TagEditorPresenter(GenericEditorPresenter):
     def on_toggle_row(self, tree, path, column):
         store = self.view.widgets.notes_list
         store[path][5] = not store[path][5]
-        store[path][3] = {True: "gtk-apply", False: "gtk-cancel"}[
-            store[path][5]
-        ]
+        store[path][3] = {True: "gtk-apply", False: "gtk-cancel"}[store[path][5]]
 
     def on_add_a_note_clicked(self, *args):
         #            name --> type --> content --> icon-name --> id --> keep
         #               0        1           2             3      4        5
-        self.view.widgets.notes_list.append(
-            ("", "str", "", "gtk-apply", -1, True)
-        )
+        self.view.widgets.notes_list.append(("", "str", "", "gtk-apply", -1, True))
 
     def on_tag_desc_textbuffer_changed(self, widget, value=None):
         return GenericEditorPresenter.on_textbuffer_changed(
@@ -405,7 +412,11 @@ class TagEditorPresenter(GenericEditorPresenter):
                     self.session.add(note)
             else:
                 # retrieve and update existing note
-                note = self.session.execute(select(TagNote).where(id=note_id)).scalars().one()
+                note = (
+                    self.session.execute(select(TagNote).where(id=note_id))
+                    .scalars()
+                    .one()
+                )
                 if keep is False:
                     self.session.delete(note)
                 else:
@@ -425,12 +436,8 @@ class TagItemGUI(editor.GenericEditorView):
         super().__init__(filename)
         self.item_data_label = self.widgets.items_data
         self.values = values
-        safe_set_text(
-            self.item_data_label, ", ".join([str(s) for s in self.values])
-        )
-        self.connect(
-            self.widgets.new_button, "clicked", self.on_new_button_clicked
-        )
+        safe_set_text(self.item_data_label, ", ".join([str(s) for s in self.values]))
+        self.connect(self.widgets.new_button, "clicked", self.on_new_button_clicked)
 
     def get_window(self):
         return self.widgets.tag_item_dialog
@@ -495,9 +502,7 @@ class TagItemGUI(editor.GenericEditorView):
             return
         session = db.Session()
         try:
-            tag = session.scalars(
-                select(Tag).where(Tag.tag == str(tag_name))
-            ).one()
+            tag = session.scalars(select(Tag).where(Tag.tag == str(tag_name))).one()
             session.delete(tag)
             if session.in_transaction():
                 session.commit()
@@ -584,7 +589,7 @@ class Tag(db.Base, db.WithNotes):
     @staticmethod
     def order_by():
         return [Tag.tag]
-    
+
     def __str__(self) -> str:
         try:
             return str(self.tag)
@@ -604,7 +609,10 @@ class Tag(db.Base, db.WithNotes):
                     TaggedObj.tag_id == self.id,
                 )
                 from sqlalchemy import func
-                ntagged = session.execute(select(func.count()).select_from(TaggedObj).where(cls))
+
+                ntagged = session.execute(
+                    select(func.count()).select_from(TaggedObj).where(cls)
+                )
                 if ntagged == 0:
                     tagged_obj = TaggedObj(
                         obj_class=type(obj).__name__, obj_id=obj.id, tag=self
@@ -618,10 +626,12 @@ class Tag(db.Base, db.WithNotes):
         if self.__my_own_timestamp is not None:
             with db.Session() as session:
                 last_history = (
-                    session.execute(select(db.History.timestamp)
-                    .order_by(db.History.timestamp.desc())
-                    .limit(1)
-                )).scalars()
+                    session.execute(
+                        select(db.History.timestamp)
+                        .order_by(db.History.timestamp.desc())
+                        .limit(1)
+                    )
+                ).scalars()
                 if last_history and last_history > self.__my_own_timestamp:
                     # Invalidate the cache if the database has changed
                     self.__last_objects = None
@@ -629,8 +639,11 @@ class Tag(db.Base, db.WithNotes):
         # If the cache is invalid or uninitialized, update it
         if self.__last_objects is None:
             from datetime import datetime
+
             self.__my_own_timestamp = datetime.now()  # Update the timestamp
-            self.__last_objects = self.get_tagged_objects()  # Refresh the cached objects
+            self.__last_objects = (
+                self.get_tagged_objects()
+            )  # Refresh the cached objects
 
         # Return the cached objects
         return self.__last_objects
@@ -659,21 +672,26 @@ class Tag(db.Base, db.WithNotes):
 
         # Query objects for each mapper in a single query
         for mapper, ids in mapper_to_ids.items():
-            objects = session.execute(select(mapper).where(mapper.id.in_(ids))).scalars().all()
+            objects = (
+                session.execute(select(mapper).where(mapper.id.in_(ids)))
+                .scalars()
+                .all()
+            )
             results.extend(objects)
 
         # Filter out None references (orphans)
         return [obj for obj in results if obj is not None]
 
-
     @classmethod
     def attached_to(cls, obj: "BaseModelProtocol") -> list:
         """Return the list of tags attached to the given object."""
         with db.Session() as session:
-            qto = session.execute(select(TaggedObj).where(
-                TaggedObj.obj_class == type(obj).__name__,
-                TaggedObj.obj_id == obj.id,
-            )).scalars()
+            qto = session.execute(
+                select(TaggedObj).where(
+                    TaggedObj.obj_class == type(obj).__name__,
+                    TaggedObj.obj_id == obj.id,
+                )
+            ).scalars()
             return [i.tag for i in qto.all()]
 
     def search_view_markup_pair(self):
@@ -695,16 +713,12 @@ class Tag(db.Base, db.WithNotes):
         elif len(classes) == 0:
             fine_prints = _("tagging nothing")
         else:
-            fine_prints = _(
-                "tagging %(1)s objects of %(2)s different types"
-            ) % {
+            fine_prints = _("tagging %(1)s objects of %(2)s different types") % {
                 "1": len(objects),
                 "2": len(classes),
             }
             if len(classes) < 4:
-                fine_prints += ": " + (
-                    ", ".join(sorted(t.__name__ for t in classes))
-                )
+                fine_prints += ": " + (", ".join(sorted(t.__name__ for t in classes)))
         first = '{} - <span weight="light">{}</span>'.format(
             utils.xml_safe(self), fine_prints
         )
@@ -771,14 +785,10 @@ def _get_tagged_object_pairs(tag):
             cls = getattr(module, cls_name)
             kids.append((cls, obj.obj_id))
         except KeyError as e:
-            logger.warning(
-                "KeyError -- tag.get_tagged_objects(%s): %s" % (tag, e)
-            )
+            logger.warning("KeyError -- tag.get_tagged_objects(%s): %s" % (tag, e))
             continue
         except DBAPIError as e:
-            logger.warning(
-                "DBAPIError -- tag.get_tagged_objects(%s): %s" % (tag, e)
-            )
+            logger.warning("DBAPIError -- tag.get_tagged_objects(%s): %s" % (tag, e))
             continue
         except AttributeError as e:
             logger.warning(
@@ -812,7 +822,6 @@ def create_named_empty_tag(name: str) -> None:
                 session.commit()
         except Exception as e:
             logger.error(f"An error occurred while creating tag '{name}': {e}")
-
 
 
 def untag_objects(name: str, objs: list) -> None:
@@ -902,7 +911,6 @@ def tag_objects(name: str, objects: list) -> None:
                 session.rollback()
 
 
-
 def get_tag_ids(objs):
     """
     Return a 3-tuple describing which tags apply to objs.
@@ -924,7 +932,6 @@ def get_tag_ids(objs):
     # Fetch all tag IDs at once
     all_tag_ids = set(session.scalars(select(Tag.id)))
 
-
     # Initialize sets for tags
     s_all = None
     s_some = set()
@@ -938,10 +945,7 @@ def get_tag_ids(objs):
             session.scalars(
                 select(Tag.id)
                 .join(TaggedObj, TaggedObj.tag_id == Tag.id)
-                .where(
-                    TaggedObj.obj_class == obj_classname,
-                    TaggedObj.obj_id == obj.id
-                )
+                .where(TaggedObj.obj_class == obj_classname, TaggedObj.obj_id == obj.id)
             )
         )
 
@@ -957,7 +961,6 @@ def get_tag_ids(objs):
     s_some.difference_update(s_all)
 
     return s_all, s_some, s_none
-
 
 
 def _on_add_tag_activated(*args, **kwargs):
@@ -1027,9 +1030,7 @@ class GeneralTagExpander(InfoExpander):
             utils.make_label_clickable(
                 leb,
                 on_label_clicked,
-                "{} where id in {}".format(
-                    c.__name__.lower(), ", ".join(obj_ids)
-                ),
+                "{} where id in {}".format(c.__name__.lower(), ", ".join(obj_ids)),
             )
 
             self.table_cells.append(lab)
@@ -1076,9 +1077,7 @@ class TagPlugin(pluginmgr.Plugin):
         SearchView.bottom_info[Tag] = {
             "page_widget": "taginfo_scrolledwindow",
             "fields_used": ["tag", "description"],
-            "glade_name": os.path.join(
-                paths.lib_dir(), "plugins/tag/tag.glade"
-            ),
+            "glade_name": os.path.join(paths.lib_dir(), "plugins/tag/tag.glade"),
             "name": _("Tags"),
         }
         if bauble.gui is not None:
