@@ -24,11 +24,12 @@ import os
 import traceback
 from gettext import gettext as _
 
+import gi
+
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.utils as utils
-import gi
 from bauble.editor import (
     GenericEditorPresenter,
     GenericEditorView,
@@ -70,7 +71,7 @@ def add_plants_callback(locations):
 
 def remove_callback(locations):
     loc = locations[0]
-    s = "{}: {}".format(loc.__class__.__name__, str(loc))
+    s = f"{loc.__class__.__name__}: {str(loc)}"
     if len(loc.plants) > 0:
         msg = _(
             "Please remove the plants from <b>%(location)s</b> " "before deleting it."
@@ -170,7 +171,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
 
     def __str__(self):
         if self.name:
-            return "({}) {}".format(self.code, self.name)
+            return f"({self.code}) {self.name}"
         else:
             return str(self.code)
 
@@ -403,14 +404,14 @@ class LocationEditorPresenter(GenericEditorPresenter):
 
         # step 2: merge model and merger_candidate  `description` and `name`
         # fields, mark there's a problem to solve there.
-        self.view.widget_set_value("loc_code_entry", getattr(self.model, "code"))
+        self.view.widget_set_value("loc_code_entry", self.model.code)
 
         buf = self.view.widgets.loc_desc_textview.get_buffer()
         self.view.widget_set_value(
             "loc_desc_textview",
             mergevalues(
                 buf.get_text(*buf.get_bounds()),
-                getattr(self.merger_candidate, "description"),
+                self.merger_candidate.description,
                 "%s\n---------\n%s",
             ),
         )
@@ -418,7 +419,7 @@ class LocationEditorPresenter(GenericEditorPresenter):
             "loc_name_entry",
             mergevalues(
                 self.view.widgets.loc_name_entry.get_text(),
-                getattr(self.merger_candidate, "name"),
+                self.merger_candidate.name,
                 "%s\n---------\n%s",
             ),
         )

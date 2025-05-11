@@ -21,13 +21,14 @@
 #
 from operator import itemgetter
 
-import bauble.db as db
 import gi
+
+import bauble.db as db
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import Column, ForeignKey, Integer, String, Unicode, select
-from sqlalchemy.orm import Session, object_session, relationship
+from sqlalchemy.orm import object_session, relationship
 
 
 def get_species_in_geographic_area(geo):

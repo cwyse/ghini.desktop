@@ -28,12 +28,13 @@ import tempfile
 import time
 from io import BytesIO
 
-import bauble.btypes as types
 import pytest
+from sqlalchemy import Column, Integer, select, text
+
+import bauble.btypes as types
 from bauble import db, meta, prefs
 from bauble.plugins.plants import Family
 from bauble.test import check_dupids
-from sqlalchemy import Column, Integer, select, text
 
 logger = logging.getLogger(__name__)
 logger._cache.clear()

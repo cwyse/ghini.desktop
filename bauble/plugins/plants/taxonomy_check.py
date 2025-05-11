@@ -21,6 +21,7 @@ from functools import reduce
 from gettext import gettext as _
 
 import gi
+
 from bauble import paths, pluginmgr, utils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.plugins.plants import Species

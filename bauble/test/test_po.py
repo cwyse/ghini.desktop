@@ -20,7 +20,6 @@ import glob
 import logging
 import os
 import re
-import unittest
 
 import pytest
 from babel.messages.pofile import read_po
@@ -53,7 +52,7 @@ def test_same_keys(po_files, translation_pattern):
     Test that keys in the original message and translations match for all .po files.
     """
     for filename in po_files:
-        with open(filename, "r", encoding="utf-8") as po_file:
+        with open(filename, encoding="utf-8") as po_file:
             catalog = read_po(po_file)
             for msg in catalog:
                 if not msg.id or not msg.string:

@@ -24,8 +24,9 @@ from datetime import datetime, timezone
 from gettext import gettext as _
 from threading import Lock
 
-import bauble.error as error
 import sqlalchemy.types as types
+
+import bauble.error as error
 from bauble.utils import parse_date
 
 _prefs_lock = Lock()  # ✅ Add this at the module level

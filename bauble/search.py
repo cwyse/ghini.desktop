@@ -20,15 +20,14 @@
 import logging
 from gettext import gettext as _
 
-import bauble.utils as utils
 import gi
+
+import bauble.utils as utils
 
 # from bauble.db import get_orm_entity_by_name
 from bauble.error import check
-from sqlalchemy import Unicode, UnicodeText
 
 gi.require_version("Gtk", "3.0")
-from abc import ABC, abstractmethod
 from datetime import date, datetime, timedelta
 
 from gi.repository import Gtk
@@ -82,19 +81,19 @@ from pyparsing import (
 # from pyparsing import WordEnd
 # from pyparsing import WordStart
 # from pyparsing import ZeroOrMore
-from sqlalchemy import and_, except_, or_, select, union_all
-from sqlalchemy.exc import NoInspectionAvailable, NoResultFound
+from sqlalchemy import and_, or_, select
+from sqlalchemy.exc import NoResultFound
 
 # from sqlalchemy import Unicode
 # from sqlalchemy import UnicodeText
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import Session  # ✅ Add this import
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import (
+    Session,  # ✅ Add this import
+    aliased,
+)
 from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
 from sqlalchemy.orm.util import AliasedClass
-from sqlalchemy.sql import Alias, Select, Subquery, func, text
-from sqlalchemy.sql.expression import ColumnElement, exists
-from sqlalchemy.sql.selectable import CompoundSelect
+from sqlalchemy.sql import func
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -168,7 +167,7 @@ def search(text, session=None):
     return list(results)
 
 
-class NoneToken(object):
+class NoneToken:
     def __init__(self, t=None):
         pass
 
@@ -179,7 +178,7 @@ class NoneToken(object):
         return None
 
 
-class EmptyToken(object):
+class EmptyToken:
     def __init__(self, t=None):
         pass
 
@@ -197,14 +196,14 @@ class EmptyToken(object):
         return NotImplemented
 
 
-class ValueABC(object):
+class ValueABC:
     # abstract base class.
 
     def express(self):
         return self.value
 
 
-class ValueToken(object):
+class ValueToken:
 
     def __init__(self, t):
         self.value = t[0]
@@ -240,7 +239,7 @@ def smartdatetime(year_or_offset, *args):
     arguments, it just behaves as datetime.datetime.
 
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime
 
     if not args:
         return datetime.today().replace(
@@ -285,12 +284,9 @@ class TypedValueToken(ValueABC):
         return "%s" % (self.value)
 
 
-from sqlalchemy import select
-from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import aliased
 
 
-class IdentifierAction(object):
+class IdentifierAction:
     def __init__(self, t):
         logger.debug("IdentifierAction::__init__(%s)" % t)
         self.steps = t[0][:-2:2]
@@ -443,7 +439,7 @@ class IdentifierAction(object):
 #         return self.steps or []
 
 
-class FilteredIdentifierAction(object):
+class FilteredIdentifierAction:
     def __init__(self, t):
         logger.debug("FilteredIdentifierAction::__init__(%s)" % t)
         self.steps = t[0][:-7:2]
@@ -514,7 +510,7 @@ class FilteredIdentifierAction(object):
         return self.steps
 
 
-class IdentExpression(object):
+class IdentExpression:
     def __init__(self, t):
         logger.debug("IdentExpression::__init__(%s)" % t)
         self.op = t[0][1]
@@ -543,7 +539,7 @@ class IdentExpression(object):
         self.operands = t[0][0::2]  # every second object is an operand
 
     def __repr__(self):
-        return "({} {} {})".format(self.operands[0], self.op, self.operands[1])
+        return f"({self.operands[0]} {self.op} {self.operands[1]})"
 
     from sqlalchemy.orm import ColumnProperty, RelationshipProperty
     from sqlalchemy.sql.elements import ColumnElement
@@ -781,7 +777,7 @@ class AggregatedExpression(IdentExpression):
         return stmt, attr  # Ensure both statement and attribute are returned
 
 
-class BetweenExpressionAction(object):
+class BetweenExpressionAction:
     def __init__(self, t):
         self.operands = t[0][0::2]  # every second object is an operand
 
@@ -815,7 +811,7 @@ class BetweenExpressionAction(object):
         return [self.operands[0].needs_join(env)]
 
 
-class UnaryLogical(object):
+class UnaryLogical:
     ## abstract base class. `name` is defined in derived classes
 
     name = "UNARY"
@@ -835,7 +831,7 @@ class UnaryLogical(object):
         return []
 
 
-class BinaryLogical(object):
+class BinaryLogical:
     ## abstract base class. `name` is defined in derived classes
     def __init__(self, t):
         self.op = t[0][1]
@@ -948,7 +944,7 @@ class SearchNotAction(UnaryLogical):
         return stmt, attr
 
 
-class ParenthesisedQuery(object):
+class ParenthesisedQuery:
     def __init__(self, t):
         self.content = t[1]
 
@@ -962,7 +958,7 @@ class ParenthesisedQuery(object):
         return self.content.needs_join(env)
 
 
-class QueryAction(object):
+class QueryAction:
     """
     Represents a structured database query action that interacts with a search strategy.
 
@@ -1078,7 +1074,7 @@ class QueryAction(object):
         return result
 
 
-class StatementAction(object):
+class StatementAction:
     """
     A wrapper class representing a parsed statement in the search query.
 
@@ -1185,7 +1181,7 @@ class StatementAction(object):
             raise RuntimeError(f"Statement execution failed: {e}")
 
 
-class BinomialNameAction(object):
+class BinomialNameAction:
     """created when the parser hits a binomial_name token.
 
     Searching using binomial names returns one or more species objects.
@@ -1243,7 +1239,7 @@ class BinomialNameAction(object):
         return result
 
 
-class DomainExpressionAction(object):
+class DomainExpressionAction:
     """created when the parser hits a domain_expression token.
 
     Searching using domain expressions is a little more magical than an
@@ -1404,7 +1400,7 @@ class DomainExpressionAction(object):
         return result_set
 
 
-class AggregatingAction(object):
+class AggregatingAction:
 
     def __init__(self, t):
         logger.debug("AggregatingAction::__init__(%s)" % t)
@@ -1430,7 +1426,7 @@ class AggregatingAction(object):
         return q, a
 
 
-class ValueListAction(object):
+class ValueListAction:
 
     def __init__(self, t):
         logger.debug("ValueListAction::__init__(%s)" % t)
@@ -1688,7 +1684,7 @@ class SearchParser:
         return result
 
 
-class SearchStrategy(object):
+class SearchStrategy:
     """
     Interface for adding search strategies to a view.
     """
@@ -1701,7 +1697,7 @@ class SearchStrategy(object):
         Return an iterator that iterates over mapped classes retrieved
         from the search.
         """
-        logger.debug('SearchStrategy "{}"({})'.format(text, self.__class__.__name__))
+        logger.debug(f'SearchStrategy "{text}"({self.__class__.__name__})')
 
 
 class MapperSearch(SearchStrategy):
@@ -1804,7 +1800,7 @@ class MapperSearch(SearchStrategy):
             text
         )  # Convert search text into an actionable statement
         statement = parse_result.statement  # Extract the parsed statement object
-        logger.debug("statement : {}({})".format(type(statement), statement))
+        logger.debug(f"statement : {type(statement)}({statement})")
         print(
             f"DEBUG: MapperSearch.search() - Parsed statement type: {type(statement)}"
         )
@@ -1813,7 +1809,7 @@ class MapperSearch(SearchStrategy):
         # select_stmt, attr = statement.invoke(self)
         # Invoke the parsed statement and retrieve raw results (likely a set of IDs or objects)
         raw_results = statement.invoke(self)
-        logger.debug("raw_results : {}".format(raw_results))
+        logger.debug(f"raw_results : {raw_results}")
 
         # ✅ Ensure raw_results is a fresh set to prevent shared state issues
         if raw_results:

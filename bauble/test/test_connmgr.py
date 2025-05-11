@@ -30,12 +30,13 @@ import shutil
 import tempfile
 import threading
 
+from gi.repository import Gtk
+
 import bauble
 from bauble.connmgr import ConnMgrPresenter
 from bauble.editor import MockDialog, MockView
 from bauble.prefs import prefs
 from bauble.test import check_dupids
-from gi.repository import Gtk
 
 logger = logging.getLogger("bauble.connmgr")
 logger._cache.clear()

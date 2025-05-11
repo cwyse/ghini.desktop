@@ -24,6 +24,9 @@ import glob
 import os
 from functools import partial
 
+from gi.repository import Gtk
+from sqlalchemy import delete, select
+
 import bauble.plugins.tag as tag_plugin
 import bauble.utils as utils
 from bauble.editor import GenericEditorView, MockView
@@ -38,8 +41,6 @@ from bauble.plugins.tag import (
     untag_objects,
 )
 from bauble.test import check_dupids, mockfunc
-from gi.repository import Gtk
-from sqlalchemy import delete, select
 
 
 @pytest.fixture

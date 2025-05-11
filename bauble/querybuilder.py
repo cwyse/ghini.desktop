@@ -20,8 +20,9 @@
 import logging
 from gettext import gettext as _
 
-import bauble
 import gi
+
+import bauble
 from bauble.editor import GenericEditorPresenter
 from bauble.utils import safe_set_text
 
@@ -484,7 +485,7 @@ class QueryBuilder(GenericEditorPresenter):
         try:
             index = sorted(self.domain_map.keys()).index(parsed.domain)
         except ValueError as e:
-            logger.debug("cannot restore query, {}({})".format(type(e), e))
+            logger.debug(f"cannot restore query, {type(e)}({e})")
             return
         # and set the domain_combo correspondently
         self.view.widgets.domain_combo.set_active(index)

@@ -24,6 +24,7 @@ import os
 
 import gi
 import pytest
+
 from bauble.test import check_dupids
 
 gi.require_version("Gtk", "3.0")
@@ -98,9 +99,11 @@ def test_duplicate_ids():
         assert not check_dupids(file), f"Duplicate IDs found in file: {file}"
 
 
-import datetime
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.plant import (
@@ -114,9 +117,6 @@ from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species_model import Species
 from bauble.utils import update_gui
-from sqlalchemy import and_, select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import object_session
 
 
 @pytest.fixture
@@ -260,21 +260,16 @@ def test_setting_quantity_to_zero_defines_date_of_death(db_session, plant_data):
     assert plant.date_of_death is not None
 
 
-import datetime
 
 import pytest
-from bauble.plugins.garden.accession import Accession, AccessionEditorView, Voucher
-from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.plant import Plant
+
+from bauble.plugins.garden.accession import Voucher
 from bauble.plugins.garden.propagation import (
     Propagation,
     PropCutting,
     PropCuttingRooted,
     PropSeed,
 )
-from bauble.plugins.plants.species_model import Species
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 
 # Constants for test data
 default_cutting_values = {
@@ -444,19 +439,8 @@ def test_propagation_get_summary_cutting(db_session, setup_plants):
 import datetime
 
 import pytest
-from bauble.plugins.garden.accession import Accession, Voucher
-from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.plant import Plant
-from bauble.plugins.garden.propagation import (
-    Propagation,
-    PropCutting,
-    PropCuttingRooted,
-    PropSeed,
-)
-from bauble.plugins.plants.species_model import Species
+
 from bauble.utils import remove_zws
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 
 
 @pytest.fixture
@@ -604,15 +588,12 @@ def test_location_editor_interactions(db_session, setup_location):
 
 
 import pytest
+
 from bauble.meta import BaubleMeta
-from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.collection import Collection
 from bauble.plugins.garden.institution import Institution, InstitutionPresenter
 from bauble.plugins.garden.source import Source
-from bauble.plugins.plants.species_model import Species
 from bauble.utils import ilike
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 
 
 @pytest.fixture
@@ -767,17 +748,9 @@ def test_institution_presenter_registration_logs_info():
 from datetime import datetime
 from decimal import Decimal
 
-import bauble.search as search
-import bauble.utils as utils
 import pytest
-from bauble.plugins.garden.accession import Accession, AccessionNote
-from bauble.plugins.garden.collection import Collection
-from bauble.plugins.garden.institution import Institution
-from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.plant import Plant, PlantNote
-from bauble.plugins.garden.propagation import Propagation, PropCutting, PropSeed
-from bauble.test import setUp_data
-from sqlalchemy import select
+
+from bauble.plugins.garden.accession import AccessionNote
 
 
 @pytest.fixture
@@ -889,15 +862,12 @@ def test_location_retrieve_or_create_with_timestamps(db_session):
     assert location._created == datetime(2001, 12, 10)
 
 
-import os
 import sqlite3
 import tempfile
 
 import pytest
-from bauble.plugins.garden.accession import Accession
+
 from bauble.plugins.garden.exporttopocket import ExportToPocketThread, create_pocket
-from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.plant import Plant
 
 
 @pytest.fixture

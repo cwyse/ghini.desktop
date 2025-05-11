@@ -1,8 +1,8 @@
 import logging
 import os
 
-import bauble.utils as utils
 import pytest
+
 from bauble import db
 from bauble.error import BaubleError
 from bauble.pluginmgr import (
@@ -159,8 +159,9 @@ class PluginMgrTests:
                     raise
 
                 # Verify the expected record count
-                from bauble.plugins.plants import Family
                 from sqlalchemy import func, select
+
+                from bauble.plugins.plants import Family
 
                 stmt = select(func.count()).select_from(Family)
                 count = db_session.execute(stmt).scalar_one()

@@ -20,14 +20,15 @@ import logging
 import os
 from gettext import gettext as _
 
-import bauble.task
 import gi
+from sqlalchemy import bindparam
+
+import bauble.task
 from bauble import db, editor, paths, pb_set_fraction, pluginmgr
 from bauble.plugins.garden.accession import Accession, AccessionNote
 from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.plant import Plant, PlantNote
 from bauble.plugins.plants import Familia, Genus, Species, SpeciesNote, VernacularName
-from sqlalchemy import bindparam
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

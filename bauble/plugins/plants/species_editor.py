@@ -25,11 +25,12 @@ import traceback
 import weakref
 from gettext import gettext as _
 
+import gi
+
 import bauble
 import bauble.editor as editor
 import bauble.paths as paths
 import bauble.utils as utils
-import gi
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus, GenusSynonym
 from bauble.plugins.plants.geography import GeographicAreaMenu
@@ -312,7 +313,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
                 kid = self.species_check_messages.pop()
                 self.view.widgets.remove_parent(kid)
 
-            binomial = "{} {}".format(self.model.genus, self.model.epithet)
+            binomial = f"{self.model.genus} {self.model.epithet}"
             timeout = prefs.get("network_timeout", 4)
             AskTPL(binomial, sp_species_TPL_callback, timeout=timeout, gui=True).start()
             b0 = self.view.add_message_box(utils.MESSAGE_BOX_INFO)
@@ -757,7 +758,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             self.presenter.parent_ref().refresh_sensitivity()
 
         def on_rank_combo_changed(self, combo, *args):
-            logger.info("on_rank_combo_changed({}, {})".format(combo, args))
+            logger.info(f"on_rank_combo_changed({combo}, {args})")
             model = combo.get_model()
             it = combo.get_active_iter()
             value = model[it][0]
@@ -767,7 +768,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
                 self.set_model_attr("rank", None)
 
         def on_epithet_entry_changed(self, entry, *args):
-            logger.info("on_epithet_entry_changed({}, {})".format(entry, args))
+            logger.info(f"on_epithet_entry_changed({entry}, {args})")
             value = entry.get_text()
             if not value:  # if None or ''
                 value = None
@@ -775,7 +776,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             # now warn if same binomial is already in database
 
         def on_author_entry_changed(self, entry, *args):
-            logger.info("on_author_entry_changed({}, {})".format(entry, args))
+            logger.info(f"on_author_entry_changed({entry}, {args})")
             value = entry.get_text()
             if not value:  # if None or ''
                 value = None
@@ -850,7 +851,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
         )
 
     def on_activate_add_menu_item(self, widget, geoid=None):
-        logger.debug("on_activate_add_menu_item {} {}".format(widget, geoid))
+        logger.debug(f"on_activate_add_menu_item {widget} {geoid}")
         from bauble.plugins.plants.geography import GeographicArea
 
         geo = (
@@ -858,7 +859,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
         )
         # check that this geography isn't already in the distributions
         if geo in [d.geographic_area for d in self.model.distribution]:
-            logger.debug("{} already in {}".format(geo, self.model))
+            logger.debug(f"{geo} already in {self.model}")
             return
         dist = SpeciesDistribution(geographic_area=geo)
         self.model.distribution.append(dist)
@@ -937,7 +938,7 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
         ) % utils.xml_safe(vn.name)
         if (
             vn.name
-            and not vn in self.session.new
+            and vn not in self.session.new
             and not utils.yes_no_dialog(msg, parent=self.view.get_window())
         ):
             return
@@ -1322,7 +1323,7 @@ class SpeciesEditorView(editor.GenericEditorView):
         """ """
         v = model[treeiter][0]
         renderer.set_property(
-            "text", "{} ({})".format(Genus.str(v), Family.str(v.family))
+            "text", f"{Genus.str(v)} ({Family.str(v.family)})"
         )
 
     @staticmethod

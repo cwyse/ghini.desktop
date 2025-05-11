@@ -25,17 +25,17 @@ import os
 import re
 from gettext import gettext as __
 
+import gi
+import sqlalchemy.orm as orm
+from sqlalchemy import asc
+
 import bauble.btypes as types
 import bauble.error as error
 import bauble.utils as utils
-import gi
-import sqlalchemy.orm as orm
 from bauble.utils import parse_date
-from sqlalchemy import asc
 
 gi.require_version("Gtk", "3.0")
 # from sqlalchemy.orm import Query
-from bauble import version, version_tuple
 from gi.repository import Gtk
 from sqlalchemy import event, insert, inspect, select
 
@@ -78,7 +78,6 @@ def sqlalchemy_debug(verbose):
 
 SQLALCHEMY_DEBUG = False
 sqlalchemy_debug(SQLALCHEMY_DEBUG)
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
@@ -154,8 +153,9 @@ def get_orm_entity_by_name(entity_name):
     :return: The ORM entity class or aliased entity if applicable.
     :raises ValueError: If the entity cannot be resolved.
     """
-    from bauble.db import MapperBase  # Ensure you're using the correct base
     from sqlalchemy.orm import aliased
+
+    from bauble.db import MapperBase  # Ensure you're using the correct base
 
     # Normalize the entity name to lowercase for case-insensitive matching
     entity_name = entity_name.lower()
@@ -382,10 +382,11 @@ def open(uri, verify=True, show_error_dialogs=False):
     :type show_error_dialogs: bool
     """
     logger.debug(f"db.open({uri})")
-    import bauble.prefs
     from sqlalchemy.exc import SQLAlchemyError
-    from sqlalchemy.orm import scoped_session, sessionmaker
+    from sqlalchemy.orm import scoped_session
     from sqlalchemy.pool import NullPool, SingletonThreadPool
+
+    import bauble.prefs
 
     global engine, Session
 
@@ -445,7 +446,7 @@ def open(uri, verify=True, show_error_dialogs=False):
     return engine
 
 
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 
 
 def create_triggers(connection):
@@ -916,7 +917,7 @@ class WithNotes:
                 r"(\w+)[ ]*(?=:)", r'"\g<1>"', text.replace(";", ",")
             )
             return json.loads(normalized_text)
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             pass
 
         try:
@@ -1048,7 +1049,7 @@ class Serializable:
                 return None
             else:
                 extradict = {}
-        except Exception as e:
+        except Exception:
             logger.exception("Unexpected error during serialization field computation")
             raise
 

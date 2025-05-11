@@ -16,6 +16,7 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
+
 from bauble.editor import MockView
 from bauble.plugins.plants.stored_queries import (
     StoredQueriesModel,

@@ -22,6 +22,8 @@ import logging
 import os
 
 import pytest
+from sqlalchemy import select
+
 from bauble import utils
 from bauble.plugins.garden import Accession, Location, Plant
 from bauble.plugins.plants import (
@@ -35,7 +37,6 @@ from bauble.plugins.plants import (
 from bauble.plugins.report import SVG, get_pertinent_objects
 from bauble.plugins.report.mako import MakoFormatterPlugin
 from bauble.plugins.report.utils import Code39
-from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -430,7 +431,6 @@ class TestCode39:
         assert y == 0
         assert x == expected_x
         assert g == expected_g
-        import pytest
 
 
 class TestQRCode:

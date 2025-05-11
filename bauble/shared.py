@@ -6,17 +6,16 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 # from bauble.utils import safe_set_text
+from gi.repository import Gio, Gtk
+
 from bauble import prefs
 
 # from gi.repository import Pango
 from bauble.utils import set_widget_value
-from gi.repository import Gio, Gtk
 
 logger = logging.getLogger(__name__)
 
 import logging
-
-from gi.repository import Gtk
 
 logger = logging.getLogger(__name__)
 

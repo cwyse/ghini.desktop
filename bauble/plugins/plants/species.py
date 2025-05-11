@@ -23,6 +23,8 @@ import os
 import traceback
 from gettext import gettext as _
 
+import gi
+
 import bauble
 import bauble.db as db
 import bauble.paths as paths
@@ -30,7 +32,6 @@ import bauble.pluginmgr as pluginmgr
 import bauble.search as search
 import bauble.utils as utils
 import bauble.view as view
-import gi
 from bauble.plugins.plants.genus import Genus, GenusSynonym
 from bauble.plugins.plants.species_editor import (
     SpeciesDistribution,
@@ -617,7 +618,7 @@ class VernacularNameInfoBox(SpeciesInfoBox):
 
     def update(self, row):
         logger.info(
-            "VernacularNameInfoBox.update {}({})".format(row.__class__.__name__, row)
+            f"VernacularNameInfoBox.update {row.__class__.__name__}({row})"
         )
         if isinstance(row, VernacularName):
             super().update(row.species)

@@ -26,11 +26,14 @@ import os
 from functools import partial
 
 import pytest
+from editor import GenericModelViewPresenterEditor
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, NoResultFound
+
 from bauble import db, utils
 from bauble.editor import MockView
 from bauble.plugins.plants.family import (
     Family,
-    FamilyEditor,
     FamilySynonym,
     remove_callback,
 )
@@ -44,9 +47,6 @@ from bauble.plugins.plants.species import (
 from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
 from bauble.plugins.plants.species_model import _remove_zws as remove_zws
 from bauble.test import check_dupids, mockfunc
-from editor import GenericModelViewPresenterEditor
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError, NoResultFound
 
 
 @pytest.fixture
@@ -475,12 +475,9 @@ class TestGenusSynonymy:
 from unittest.mock import patch
 
 import pytest
-from bauble import utils
+
 from bauble.plugins.imex.csv_ import CSVImporter
-from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.species import Species, edit_species
-from sqlalchemy import select
+from bauble.plugins.plants.species import edit_species
 
 
 @pytest.mark.usefixtures("setup_plant_data")
@@ -707,7 +704,7 @@ class TestSpecies:
 
         # Step 3: Test `setattr` works for setting default vernacular name
         default_vn = VernacularName(name="default_vn")
-        setattr(sp, "default_vernacular_name", default_vn)
+        sp.default_vernacular_name = default_vn
         if session.in_transaction():
             session.commit()
 
@@ -1049,19 +1046,14 @@ class TestSpecies:
         self.assertEqual(matching, [acc])
 
 
-from unittest.mock import patch
 
 import pytest
-from bauble.plugins.imex.csv_ import CSVImporter
-from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.genus import Genus
+
 from bauble.plugins.plants.geography import (
     GeographicArea,
     get_species_in_geographic_area,
 )
-from bauble.plugins.plants.species import Species
 from bauble.plugins.plants.species_distribution import SpeciesDistribution
-from sqlalchemy import select
 
 
 @pytest.mark.usefixtures("setup_plant_data")
@@ -1148,9 +1140,6 @@ class TestGeographicArea:
 
 
 import pytest
-from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.genus import Genus
-from sqlalchemy import select
 
 
 @pytest.mark.usefixtures("setup_plant_data")
@@ -1282,11 +1271,8 @@ class TestFromAndToDict:
 
 
 import pytest
-from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.species import Species
+
 from bauble.plugins.plants.vernacular_name import VernacularName
-from sqlalchemy import select
 
 
 def get_first_or_none(session, stmt):
@@ -1519,9 +1505,6 @@ class TestFromAndToDictCreateUpdate:
 
 
 import pytest
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.species import Species
-from sqlalchemy import select
 
 
 @pytest.mark.usefixtures("setup_plant_data")
@@ -1659,10 +1642,6 @@ class TestGenusHybridMarker:
 
 
 import pytest
-from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.species import Species
-from sqlalchemy import select
 
 
 @pytest.mark.usefixtures("setup_plant_data")

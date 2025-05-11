@@ -26,6 +26,7 @@ import re
 from gettext import gettext as _
 
 import gi
+
 from bauble import paths as bpaths
 from bauble import utils as butils
 from bauble.plugins.report import TemplateFormatterPlugin
@@ -80,9 +81,7 @@ class MakoFormatterPlugin(TemplateFormatterPlugin):
             import traceback
 
             butils.idle_message(
-                "Reading template {}\n{}({})\n{}".format(
-                    name, type(e).__name__, e, traceback.format_exc()
-                ),
+                f"Reading template {name}\n{type(e).__name__}({e})\n{traceback.format_exc()}",
                 type=Gtk.MessageType.ERROR,
             )
             logger.error(f"Failed to load template {name}: {e}")

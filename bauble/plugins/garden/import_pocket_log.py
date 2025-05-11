@@ -25,11 +25,12 @@ import logging
 import os.path
 import sys
 
+from dateutil.parser import parse
+from sqlalchemy import delete, select
+
 from bauble import db
 from bauble.plugins.garden import Accession, Location, Plant, PlantNote, Verification
 from bauble.plugins.plants import Family, Genus, Species
-from dateutil.parser import parse
-from sqlalchemy import delete, select
 
 logger = logging.getLogger(__name__)
 
@@ -273,7 +274,7 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
 
         # add new one
         lat, lon = (float(i) for i in coordinates[1:-1].split(";"))
-        value = "{{lat:{:0.6f},lon:{:0.6f}}}".format(lat, lon)
+        value = f"{{lat:{lat:0.6f},lon:{lon:0.6f}}}"
         lookup(session, PlantNote, plant=plant, category="<coords>", note=value)
 
     for picture in pictures:

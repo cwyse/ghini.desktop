@@ -26,10 +26,12 @@ import shutil
 import tempfile
 from tempfile import mkdtemp
 
+import pytest
+from sqlalchemy import Boolean, Column, Integer, select
+
 import bauble.db as db
 import bauble.plugins.garden.test as garden_test
 import bauble.plugins.plants.test as plants_test
-import pytest
 from bauble.editor import MockView
 from bauble.plugins.garden import (
     Accession,
@@ -46,7 +48,6 @@ from bauble.plugins.imex.csv_ import (
 )
 from bauble.plugins.imex.iojson import JSONExporter, JSONImporter
 from bauble.plugins.plants import (
-    Familia,
     Family,
     Genus,
     Species,
@@ -54,7 +55,6 @@ from bauble.plugins.plants import (
     VernacularName,
 )
 from bauble.plugins.plants.geography import GeographicArea
-from sqlalchemy import Boolean, Column, Integer, select
 
 logger = logging.getLogger(__name__)
 
@@ -371,14 +371,11 @@ class MockExportView:
         return self.__selection
 
 
-import json
-import os
 from tempfile import mkstemp
 
 import pytest
-from bauble.plugins.garden import Accession, Family, Genus, Location, Plant, Species
-from bauble.plugins.imex.iojson import JSONExporter
-from sqlalchemy import select
+
+from bauble.plugins.garden import Family, Genus, Species
 
 
 @pytest.fixture
@@ -433,7 +430,7 @@ class TestJSONExport:
         exporter.run()
 
         # Verify the generated file
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 14
@@ -582,7 +579,7 @@ class TestJSONExport:
         exporter.filename = temp_file
         exporter.run()
 
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 1
@@ -605,7 +602,7 @@ class TestJSONExport:
         exporter.filename = temp_file
         exporter.run()
 
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 1
@@ -636,7 +633,7 @@ class TestJSONExport:
         exporter.filename = temp_file
         exporter.run()
 
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 1
@@ -674,7 +671,7 @@ class TestJSONExport:
         exporter.run()
 
         # Validate
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 2
@@ -725,7 +722,7 @@ class TestJSONExport:
         exporter.run()
 
         # Validate
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 2
@@ -774,7 +771,7 @@ class TestJSONExport:
         exporter.run()
 
         # Validate
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 1
@@ -810,7 +807,7 @@ class TestJSONExport:
         exporter.run()
 
         # Validate
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 3
@@ -826,7 +823,7 @@ class TestJSONExport:
         exporter.filename = temp_file
         exporter.run()
 
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 5
@@ -842,7 +839,7 @@ class TestJSONExport:
         exporter.filename = temp_file
         exporter.run()
 
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 6
@@ -858,7 +855,7 @@ class TestJSONExport:
         exporter.filename = temp_file
         exporter.run()
 
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 6
@@ -874,7 +871,7 @@ class TestJSONExport:
         exporter.filename = temp_file
         exporter.run()
 
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         assert len(result) == 8
@@ -901,7 +898,7 @@ class TestJSONExport:
         exporter.run()
 
         # Validate
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         vern_from_json = [
@@ -953,7 +950,7 @@ class TestJSONExport:
         exporter.run()
 
         # Validate
-        with open(temp_file, "r") as f:
+        with open(temp_file) as f:
             result = json.load(f)
 
         contacts_from_json = [

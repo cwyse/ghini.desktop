@@ -21,8 +21,9 @@ import logging
 import re
 from gettext import gettext as _
 
-import bauble.utils.desktop as desktop
 import gi
+
+import bauble.utils.desktop as desktop
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
@@ -34,14 +35,12 @@ logger.setLevel(logging.INFO)
 def _open_link(data=None, *args, **kwargs):
     """Open a web link"""
     logger.debug(
-        "_open_link received data={}, args={}, kwargs={}".format(data, args, kwargs)
+        f"_open_link received data={data}, args={args}, kwargs={kwargs}"
     )
     desktop.open(data)
 
 
-import re
 
-from gi.repository import Gtk
 
 
 class BaubleLinkButton:

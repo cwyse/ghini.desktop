@@ -26,28 +26,26 @@
 import csv
 import logging
 import os
-import sys
-import threading
 import traceback
 from gettext import gettext as _
 from queue import Queue
+
+import gi
 
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
 import bauble.task
 import bauble.utils as utils
-import gi
 from bauble import pb_set_fraction
 from bauble.error import BaubleError
 from bauble.plugins.imex.csv_processor import CSVProcessor
 from bauble.plugins.imex.unicode_utils import UnicodeWriter
 
 gi.require_version("Gtk", "3.0")
-import sqlalchemy as sa
 from gi.repository import Gtk
 
 # from sqlalchemy import Boolean
-from sqlalchemy import ColumnDefault, func, inspect
+from sqlalchemy import ColumnDefault, inspect
 from sqlalchemy.exc import IntegrityError
 
 # from sqlalchemy.exc import DataError
@@ -197,7 +195,7 @@ class CSVImporter(Importer):
         filesizes = {}
         for filename in filenames:
             try:
-                with open(filename, "r") as file:
+                with open(filename) as file:
                     nlines = len(file.readlines())
                     filesizes[filename] = nlines
                     total_lines += nlines
@@ -418,7 +416,7 @@ class CSVImporter(Importer):
                             sorted_tables.insert(
                                 0, (table, filename_dict.pop(table.name))
                             )
-                        except KeyError as e:
+                        except KeyError:
                             # table.name not in list of filenames
                             pass
 
@@ -688,7 +686,7 @@ class CSVExporter:
             # besides db.metadata
             bauble.task.queue(self.__export_task(path))
         except Exception as e:
-            logger.debug("{}({})".format(type(e).__name__, e))
+            logger.debug(f"{type(e).__name__}({e})")
 
     def __export_task(self, path):
         filename_template = os.path.join(path, "%s.txt")

@@ -23,13 +23,15 @@
 import datetime
 import logging
 import os
-import sys
 import traceback
 import weakref
 from decimal import ROUND_DOWN, Decimal
 from functools import reduce
 from gettext import gettext as _
 from random import random
+
+import gi
+import lxml.etree as etree
 
 import bauble
 import bauble.btypes as types
@@ -39,8 +41,6 @@ import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 import bauble.view as view
-import gi
-import lxml.etree as etree
 from bauble import meta
 from bauble.error import check
 from bauble.plugins.garden.source import (
@@ -192,7 +192,7 @@ def generic_taxon_add_action(
         presenter.session.add(committed)
         safe_set_text(taxon_entry, "%s" % committed)
         presenter.remove_problem(hash(Gtk.Buildable.get_name(taxon_entry)), None)
-        setattr(model, "species", committed)
+        model.species = committed
         presenter._dirty = True
         top_presenter.refresh_sensitivity()
     else:
@@ -913,9 +913,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         return sp_str
 
     def markup(self):
-        return "{} ({})".format(
-            self.code, self.accession.species_str(markup=True, authors=True)
-        )
+        return f"{self.code} ({self.accession.species_str(markup=True, authors=True)})"
 
     def as_dict(self):
         result = db.Serializable.as_dict(self)
@@ -1167,7 +1165,7 @@ class AccessionEditorView(editor.GenericEditorView):
     def species_cell_data_func(column, renderer, model, treeiter, data=None):
         v = model[treeiter][0]
         renderer.set_property(
-            "text", "{} ({})".format(v.str(authors=True), v.genus.family)
+            "text", f"{v.str(authors=True)} ({v.genus.family})"
         )
 
 
@@ -2305,7 +2303,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         self.initializing = False
 
     def populate_code_formats(self, entry_one=None, values=None):
-        logger.debug("populate_code_formats {} {}".format(entry_one, values))
+        logger.debug(f"populate_code_formats {entry_one} {values}")
         ls = self.view.widgets.acc_code_format_liststore
         if entry_one is None:
             entry_one = ls.get_value(ls.get_iter_first(), 0)
@@ -2773,8 +2771,9 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         return True
 
     def start(self):
-        from bauble.plugins.plants.species_model import Species
         from sqlalchemy import func
+
+        from bauble.plugins.plants.species_model import Species
 
         if self.session.execute(select(func.count()).select_from(Species)) == 0:
             msg = _(
@@ -2995,7 +2994,7 @@ class GeneralAccessionExpander(InfoExpander):
             if location:
                 set_count = True
                 if location.name and location.code:
-                    location_str = "{} ({})".format(location.name, location.code)
+                    location_str = f"{location.name} ({location.code})"
                 elif location.name and not location.code:
                     location_str = "%s" % location.name
                 elif not location.name and location.code:
@@ -3156,7 +3155,7 @@ class VouchersExpander(InfoExpander):
 
         parents = [v for v in row.vouchers if v.parent_material]
         for voucher in parents:
-            s = "{} {} (parent)".format(voucher.herbarium, voucher.code)
+            s = f"{voucher.herbarium} {voucher.code} (parent)"
             label = Gtk.Label(label=s)
             label.set_alignment(0.0, 0.5)
             self.vbox.pack_start(label, True, True, 0)
@@ -3164,7 +3163,7 @@ class VouchersExpander(InfoExpander):
 
         not_parents = [v for v in row.vouchers if not v.parent_material]
         for voucher in not_parents:
-            s = "{} {}".format(voucher.herbarium, voucher.code)
+            s = f"{voucher.herbarium} {voucher.code}"
             label = Gtk.Label(label=s)
             label.set_alignment(0.0, 0.5)
             self.vbox.pack_start(label, True, True, 0)

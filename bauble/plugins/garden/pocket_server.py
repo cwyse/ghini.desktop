@@ -27,6 +27,7 @@ from threading import Thread
 from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
 import gi
+
 from bauble import db, meta, paths, pluginmgr
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.utils import safe_set_text
@@ -102,7 +103,7 @@ class PocketServer(Thread):
             def register(self, client_id, user_name, security_code):
                 self.presenter._dirty = True
                 self.log.append(
-                    ("register ›{}‹ ›{}‹".format(client_id, security_code),)
+                    (f"register ›{client_id}‹ ›{security_code}‹",)
                 )
                 if not isinstance(client_id, str) or not isinstance(user_name, str):
                     return self.WRONG_TYPE_IN_PARAMETERS
@@ -124,9 +125,7 @@ class PocketServer(Thread):
             def get_snapshot(self, client_id):
                 self.log.append(
                     (
-                        "get_snapshot ›{}‹ ›{}‹".format(
-                            client_id, self.presenter.pocket_fn
-                        ),
+                        f"get_snapshot ›{client_id}‹ ›{self.presenter.pocket_fn}‹",
                     )
                 )
                 if self.presenter.is_exporting:
@@ -149,7 +148,7 @@ class PocketServer(Thread):
                 from .import_pocket_log import process_line
 
                 self.log.append(
-                    ("put_change ›{}‹ ›{}‹".format(client_id, len(log_lines)),)
+                    (f"put_change ›{client_id}‹ ›{len(log_lines)}‹",)
                 )
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
@@ -169,7 +168,7 @@ class PocketServer(Thread):
                 return self.OK
 
             def put_picture(self, client_id, name, base64_content):
-                self.log.append(("put_picture ›{}‹ ›{}‹".format(client_id, name),))
+                self.log.append((f"put_picture ›{client_id}‹ ›{name}‹",))
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
                 elif client_id not in {i[1] for i in self.clients}:
@@ -199,7 +198,7 @@ class PocketServer(Thread):
             def put_picture_chunk(
                 self, client_id, name, chunk_no, chunk_count, base64_content
             ):
-                self.log.append(("put_picture ›{}‹ ›{}‹".format(client_id, name),))
+                self.log.append((f"put_picture ›{client_id}‹ ›{name}‹",))
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
                 elif client_id not in {i[1] for i in self.clients}:

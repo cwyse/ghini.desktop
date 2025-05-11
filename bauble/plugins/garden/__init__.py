@@ -22,6 +22,9 @@ import logging
 import re
 from gettext import gettext as _
 
+from sqlalchemy import select
+from sqlalchemy.orm import object_session, selectinload
+
 import bauble
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
@@ -73,8 +76,6 @@ from bauble.plugins.garden.source import (
 )
 from bauble.utils import safe_set_props, safe_set_text
 from bauble.view import SearchView
-from sqlalchemy import select
-from sqlalchemy.orm import object_session, selectinload
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

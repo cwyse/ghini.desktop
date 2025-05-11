@@ -16,10 +16,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-import os
 from tempfile import NamedTemporaryFile
 
 import pytest
+
 from bauble import prefs, version_tuple
 
 prefs.testing = True
@@ -40,7 +40,7 @@ def test_create_does_not_save(temp_prefs_file):
     """
     p = prefs._prefs(temp_prefs_file)
     p.init()
-    with open(temp_prefs_file, "r") as f:
+    with open(temp_prefs_file) as f:
         assert f.read() == "", "Preferences file should be empty after creation"
 
 
@@ -71,7 +71,7 @@ def test_not_saved_while_testing(temp_prefs_file):
     p = prefs._prefs(temp_prefs_file)
     p.init()
     p.save()
-    with open(temp_prefs_file, "r") as f:
+    with open(temp_prefs_file) as f:
         assert f.read() == "", "Preferences file should not be saved during testing"
 
 
@@ -82,7 +82,7 @@ def test_can_force_save(temp_prefs_file):
     p = prefs._prefs(temp_prefs_file)
     p.init()
     p.save(force=True)
-    with open(temp_prefs_file, "r") as f:
+    with open(temp_prefs_file) as f:
         assert f.read() != "", "Preferences file should not be empty after forced save"
 
 
@@ -150,7 +150,7 @@ def test_saved_dictionary_like_ini_file(temp_prefs_file):
     p.init()
     p["test.not_there_yet-1"] = 1
     p.save(force=True)
-    with open(temp_prefs_file, "r") as f:
+    with open(temp_prefs_file) as f:
         content = f.read()
         assert (
             "not_there_yet-1 = 1" in content

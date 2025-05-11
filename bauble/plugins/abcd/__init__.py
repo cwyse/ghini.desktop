@@ -25,14 +25,15 @@
 import os
 from gettext import gettext as _
 
+import gi
+from sqlalchemy import select
+
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-import gi
 from bauble.error import check
 from bauble.plugins.garden.plant import Plant
-from sqlalchemy import select
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

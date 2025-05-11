@@ -20,8 +20,9 @@ import logging
 import os.path
 from gettext import gettext as _
 
-import bauble
 import gi
+
+import bauble
 from bauble import db, editor, meta, paths, pluginmgr
 
 gi.require_version("Gtk", "3.0")
@@ -96,9 +97,7 @@ class StoredQueriesModel:
             raise
 
     def __getitem__(self, index):
-        return "{}:{}:{}".format(
-            self._label[index], self._tooltip[index], self._query[index]
-        )
+        return f"{self._label[index]}:{self._tooltip[index]}:{self._query[index]}"
 
     def __setitem__(self, index, value):
         self.page = index

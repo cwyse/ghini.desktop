@@ -26,9 +26,10 @@ import os
 import traceback
 from gettext import gettext as _
 
-import bauble
 import gi
 import sqlalchemy.orm.exc as orm_exc
+
+import bauble
 
 # from bauble import ui
 from bauble import db, editor, paths, pluginmgr, search, utils
@@ -41,7 +42,6 @@ gi.require_version("Gtk", "3.0")
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Optional
 
-from bauble.plugins.garden.propagation import Propagation
 from gi.repository import Gdk, Gtk
 
 # from sqlalchemy import text
@@ -64,6 +64,8 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 
 # from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import object_session
+
+from bauble.plugins.garden.propagation import Propagation
 
 if TYPE_CHECKING:
     from bauble.types import BaseModelProtocol
@@ -318,7 +320,7 @@ def remove_callback(tags):
     :param tags: a list of :class:`Tag` objects.
     """
     tag = tags[0]
-    s = "{}: {}".format(tag.__class__.__name__, utils.xml_safe(tag))
+    s = f"{tag.__class__.__name__}: {utils.xml_safe(tag)}"
     msg = _("Are you sure you want to remove %s?") % s
     if not utils.yes_no_dialog(msg):
         return
@@ -699,9 +701,7 @@ class Tag(db.Base, db.WithNotes):
         import inspect
 
         logging.debug(
-            "entering search_view_markup_pair {}, {}".format(
-                self, str(inspect.stack()[1])
-            )
+            f"entering search_view_markup_pair {self}, {str(inspect.stack()[1])}"
         )
         objects = self.objects
         classes = {type(o) for o in objects}
@@ -719,9 +719,7 @@ class Tag(db.Base, db.WithNotes):
             }
             if len(classes) < 4:
                 fine_prints += ": " + (", ".join(sorted(t.__name__ for t in classes)))
-        first = '{} - <span weight="light">{}</span>'.format(
-            utils.xml_safe(self), fine_prints
-        )
+        first = f'{utils.xml_safe(self)} - <span weight="light">{fine_prints}</span>'
         second = '({}) - <span weight="light">{}</span>'.format(
             type(self).__name__,
             (self.description or "").replace("\n", " ")[:256],
@@ -766,7 +764,7 @@ class TaggedObj(db.Base):
     )
 
     def __str__(self):
-        return "{}: {}".format(self.obj_class, self.obj_id)
+        return f"{self.obj_class}: {self.obj_id}"
 
 
 def _get_tagged_object_pairs(tag):
@@ -874,7 +872,7 @@ def untag_objects(name: str, objs: list) -> None:
 
 # create the classname stored in the tagged_obj table
 def _classname(x):
-    return "{}.{}".format(type(x).__module__, type(x).__name__)
+    return f"{type(x).__module__}.{type(x).__name__}"
 
 
 def tag_objects(name: str, objects: list) -> None:

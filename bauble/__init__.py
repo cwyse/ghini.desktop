@@ -27,12 +27,12 @@ import sys
 import traceback
 from gettext import gettext as _
 
+# import debugpy
+import gi
+
 import bauble.error as err
 import bauble.i18n
 import bauble.paths as paths
-
-# import debugpy
-import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
@@ -58,8 +58,9 @@ release_date = match.group(1) if match else None
 installation_date = os.environ.get("BUILD_DATE", "1970-01-01T00:00:00Z")
 
 
+from gi.repository import Gdk, Gio, GLib
+
 from bauble.connmgr import start_connection_manager
-from gi.repository import Gdk, Gio, GLib, Gtk
 
 try:
     from gi.repository import GObject  # Ensures compatibility
@@ -212,7 +213,7 @@ def command_handler(cmd, arg):
     :param arg: The arg to pass to the command handler
     :type arg: list
     """
-    logger.debug("entering ui.command_handler {} {}".format(cmd, arg))
+    logger.debug(f"entering ui.command_handler {cmd} {arg}")
     # from gi.repository import Gtk
 
     import bauble.pluginmgr as pluginmgr
@@ -258,7 +259,6 @@ import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 from bauble.prefs import prefs, use_sentry_client_pref
 from bauble.view import DefaultCommandHandler
-from gi.repository import Gdk, Gio, GLib, Gtk
 
 
 class GhiniApp:
@@ -368,7 +368,7 @@ class GhiniApp:
                 else:
                     uri = conn_name = None
             except err.VersionError as e:
-                logger.warning("{}({})".format(type(e), e))
+                logger.warning(f"{type(e)}({e})")
                 db.open(uri, False)
                 break
             except (
@@ -378,7 +378,7 @@ class GhiniApp:
                 err.TimestampError,
                 err.RegistryError,
             ) as e:
-                logger.info("{}({})".format(type(e), e))
+                logger.info(f"{type(e)}({e})")
                 open_exc = e
                 try:
                     # reopen without verification so that db.Session and
@@ -391,7 +391,7 @@ class GhiniApp:
                     logger.error("Fallback open(uri, False) failed: %s", inner)
                     uri = conn_name = None
             except err.DatabaseError as e:
-                logger.debug("{}({})".format(type(e), e))
+                logger.debug(f"{type(e)}({e})")
                 # traceback.format_exc()
                 open_exc = e
                 # break

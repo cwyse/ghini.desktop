@@ -34,12 +34,13 @@ from functools import partial
 from gettext import gettext as _
 from threading import Thread
 
+import gi
+
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.search as search
-import gi
 from bauble import utils
 from bauble.plugins.plants.family import (
     Familia,
@@ -531,7 +532,7 @@ class PlantsPlugin(pluginmgr.Plugin):
             ]:
                 meta.get_default(
                     "stqr_%02d" % index,
-                    "{}:{}:{}".format(name, tooltip, query),
+                    f"{name}:{tooltip}:{query}",
                     session,
                 )
             if session.in_transaction():

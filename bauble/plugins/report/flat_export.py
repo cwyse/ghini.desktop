@@ -21,8 +21,9 @@ import os.path
 from gettext import gettext as _
 from os.path import dirname, isdir
 
-import bauble
 import gi
+
+import bauble
 from bauble import paths, pluginmgr
 from bauble import utils as butils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
@@ -245,8 +246,9 @@ class FlatFileExporter(GenericEditorPresenter):
     def do_export(self):
         import csv
 
-        from bauble import db
         from sqlalchemy.orm.collections import InstrumentedList
+
+        from bauble import db
 
         filename = self.view.widget_get_value("output_file")
         rows_count = 0

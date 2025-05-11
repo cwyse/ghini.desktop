@@ -30,9 +30,10 @@ import logging
 import os
 from gettext import gettext as _
 
-import bauble
 import gi
-from bauble import paths, prefs, version, version_tuple
+
+import bauble
+from bauble import paths, prefs
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 
 gi.require_version("Gtk", "3.0")
