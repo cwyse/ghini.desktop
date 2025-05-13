@@ -23,9 +23,6 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
-from pyparsing import ParseException
-from sqlalchemy.sql import select
-
 from bauble import db, prefs, search
 from bauble.editor import GenericEditorView
 from bauble.plugins.garden.accession import Accession
@@ -35,11 +32,9 @@ from bauble.plugins.garden.source import Collection, Contact
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus, GenusNote
 from bauble.plugins.plants.species_model import Species
-from bauble.search import (
-    EmptyToken,
-    NoneToken,
-    SearchParser,
-)
+from bauble.search import EmptyToken, NoneToken, SearchParser
+from pyparsing import ParseException
+from sqlalchemy.sql import select
 
 
 # Search Parser Fixture
@@ -299,10 +294,9 @@ class TestSearchParser:
 
 
 import pytest
-from sqlalchemy import select
-
 from bauble.plugins.plants.species_model import VernacularName
 from bauble.search import get_strategy
+from sqlalchemy import select
 
 
 @pytest.mark.usefixtures("db_session", "setup_test_data")
@@ -651,9 +645,8 @@ class TestSearch:
         mapper_search = search.get_strategy("MapperSearch")
         assert isinstance(mapper_search, search.MapperSearch)
 
-        from sqlalchemy import select
-
         from bauble.plugins.plants.genus import Genus
+        from sqlalchemy import select
 
         stmt_direct = select(Genus)
         direct_objs = db_session.scalars(stmt_direct).all()
@@ -1563,57 +1556,6 @@ class BuildingSQLStatements:
         results = search_parser.parse_string(query)
         assert str(results.statement) == expected
 
-
-import os
-
-import pytest
-
-from bauble import querybuilder
-from bauble.utils import paths
-
-
-@pytest.fixture(scope="function")
-def querybuilder_view():
-    """
-    Fixture to provide a GenericEditorView instance for QueryBuilder tests.
-    """
-    gladefilepath = os.path.join(paths.lib_dir(), "querybuilder.glade")
-    return GenericEditorView(gladefilepath, parent=None, root_widget_name="main_dialog")
-
-
-class QueryBuilderTests:
-    def test_can_create_querybuilder(self, querybuilder_view):
-        """
-        Test that a QueryBuilder instance can be created.
-        """
-        qb = querybuilder.QueryBuilder(querybuilder_view)
-        assert qb is not None
-
-    def test_empty_query_is_invalid(self, querybuilder_view):
-        """
-        Test that an empty QueryBuilder is invalid.
-        """
-        qb = querybuilder.QueryBuilder(querybuilder_view)
-        assert not qb.validate()
-
-    def test_can_set_query(self, querybuilder_view):
-        """
-        Test that a query can be set in the QueryBuilder.
-        """
-        qb = querybuilder.QueryBuilder(querybuilder_view)
-        qb.set_query("plant where id=0 or id=1 or id>10")
-        assert len(qb.expression_rows) == 3
-
-    def test_can_set_enum_query(self, querybuilder_view):
-        """
-        Test that an enum query can be set in the QueryBuilder.
-        """
-        qb = querybuilder.QueryBuilder(querybuilder_view)
-        qb.set_query("accession where recvd_type = 'BBIL'")
-        assert len(qb.expression_rows) == 1
-
-
-class BuildingSQLStatements:
     SearchParser = SearchParser
 
     def test_can_find_species_from_genus(self):
@@ -1770,6 +1712,54 @@ class BuildingSQLStatements:
         )
 
 
+import os
+
+import pytest
+from bauble import querybuilder
+from bauble.utils import paths
+
+
+@pytest.fixture(scope="function")
+def querybuilder_view():
+    """
+    Fixture to provide a GenericEditorView instance for QueryBuilder tests.
+    """
+    gladefilepath = os.path.join(paths.lib_dir(), "querybuilder.glade")
+    return GenericEditorView(gladefilepath, parent=None, root_widget_name="main_dialog")
+
+
+class QueryBuilderTests:
+    def test_can_create_querybuilder(self, querybuilder_view):
+        """
+        Test that a QueryBuilder instance can be created.
+        """
+        qb = querybuilder.QueryBuilder(querybuilder_view)
+        assert qb is not None
+
+    def test_empty_query_is_invalid(self, querybuilder_view):
+        """
+        Test that an empty QueryBuilder is invalid.
+        """
+        qb = querybuilder.QueryBuilder(querybuilder_view)
+        assert not qb.validate()
+
+    def test_can_set_query(self, querybuilder_view):
+        """
+        Test that a query can be set in the QueryBuilder.
+        """
+        qb = querybuilder.QueryBuilder(querybuilder_view)
+        qb.set_query("plant where id=0 or id=1 or id>10")
+        assert len(qb.expression_rows) == 3
+
+    def test_can_set_enum_query(self, querybuilder_view):
+        """
+        Test that an enum query can be set in the QueryBuilder.
+        """
+        qb = querybuilder.QueryBuilder(querybuilder_view)
+        qb.set_query("accession where recvd_type = 'BBIL'")
+        assert len(qb.expression_rows) == 1
+
+
 # Fixtures for shared setup
 @pytest.fixture(scope="function")
 def setup_filter_then_match(db_session):
@@ -1907,9 +1897,8 @@ class EmptySetEqualityTest:
 
 
 import pytest
-from sqlalchemy import text
-
 from bauble.plugins.plants import Family, Genus, Species
+from sqlalchemy import text
 
 
 @pytest.fixture(scope="function")
