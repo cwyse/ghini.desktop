@@ -24,9 +24,6 @@ import glob
 import os
 from functools import partial
 
-from gi.repository import Gtk
-from sqlalchemy import delete, select
-
 import bauble.plugins.tag as tag_plugin
 import bauble.utils as utils
 from bauble.editor import GenericEditorView, MockView
@@ -41,6 +38,8 @@ from bauble.plugins.tag import (
     untag_objects,
 )
 from bauble.test import check_dupids, mockfunc
+from gi.repository import Gtk
+from sqlalchemy import delete, select
 
 
 @pytest.fixture
@@ -203,8 +202,6 @@ class TestTag:
         assert tag.is_tagging(setup_family_and_tags)
 
 
-@pytest.mark.usefixtures("setup_family_and_tags")
-class TestTag:
     def test_search_view_markup_pair(self, session, setup_family_and_tags):
         """Test the search view markup for tagged objects."""
         family2 = Family(family="family2")
@@ -528,39 +525,6 @@ class TestAttachedTo:
         for t in tags:
             tag_plugin.tag_objects(t, [fam])
         assert Tag.attached_to(fam) == tags
-
-
-@pytest.mark.usefixtures("setup_session")
-class TestAttachedTo:
-    @pytest.fixture(autouse=True)
-    def setup(self, session):
-        obj1 = Tag(tag="medicinal")
-        obj2 = Tag(tag="maderable")
-        obj3 = Tag(tag="frutal")
-        fam = Family(family="Solanaceae")
-        session.add_all([obj1, obj2, obj3, fam])
-        if session.in_transaction():
-            session.commit()
-
-    def test_attached_tags_empty(self, session):
-        fam = session.execute(select(Family)).scalars().one()
-        assert Tag.attached_to(fam) == []
-
-    def test_attached_tags_singleton(self, session):
-        fam = session.execute(select(Family)).scalars().one()
-        obj2 = (
-            session.execute(select(Tag).where(Tag.tag == "maderable")).scalars().one()
-        )
-        tag_plugin.tag_objects(obj2, [fam])
-        assert Tag.attached_to(fam) == [obj2]
-
-    def test_attached_tags_many(self, session):
-        fam = session.execute(select(Family)).scalars().one()
-        tags = session.execute(select(Tag)).scalars().all()
-        for t in tags:
-            tag_plugin.tag_objects(t, [fam])
-        assert Tag.attached_to(fam) == tags
-
 
 class FakeGui:
     def __init__(self):

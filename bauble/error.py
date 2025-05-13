@@ -19,13 +19,14 @@
 #
 # all bauble exceptions and errors
 #
+from typing import Any, Optional
 
 
 class BaubleError(Exception):
-    def __init__(self, msg=None):
+    def __init__(self, msg: Optional[str] = None) -> None:
         self.msg = msg
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.msg is None:
             return str(type(self).__name__)
         else:
@@ -35,11 +36,11 @@ class BaubleError(Exception):
 
 class CommitException(Exception):
 
-    def __init__(self, exc, row):
+    def __init__(self, exc: Exception, row: Any) -> None:
         self.row = row  # the model we were trying to commit
         self.exc = exc  # the exception thrown while committing
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.exc)
 
 
@@ -70,7 +71,7 @@ class RegistryError(DatabaseError):
 
 class VersionError(DatabaseError):
 
-    def __init__(self, version):
+    def __init__(self, version: Any) -> None:
         super().__init__()
         self.version = version
 
@@ -83,7 +84,7 @@ class CheckConditionError(BaubleError):
     pass
 
 
-def check(condition, msg=None):
+def check(condition: bool, msg: Optional[str] = None) -> None:
     """
     Check that condition is true.  If not then raise
     CheckConditionError(msg)

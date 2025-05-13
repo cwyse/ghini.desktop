@@ -20,9 +20,8 @@
 import logging
 from gettext import gettext as _
 
-import gi
-
 import bauble.utils as utils
+import gi
 
 # from bauble.db import get_orm_entity_by_name
 from bauble.error import check
@@ -87,10 +86,8 @@ from sqlalchemy.exc import NoResultFound
 # from sqlalchemy import Unicode
 # from sqlalchemy import UnicodeText
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import (
-    Session,  # ✅ Add this import
-    aliased,
-)
+from sqlalchemy.orm import Session  # ✅ Add this import
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
 from sqlalchemy.orm.util import AliasedClass
 from sqlalchemy.sql import func
@@ -1283,7 +1280,6 @@ class DomainExpressionAction:
     #         logger.debug(f"Wildcard search on {cls.__name__}, retrieving all records.")
     #         self.stmt = stmt
     #         return set(search_strategy._session.execute(stmt).scalars().all())
-
     #     # Step 4: Build the filtering logic
     #     try:
     #         mapper = inspect(cls).mapper  # Use inspect to get mapper
@@ -1318,7 +1314,6 @@ class DomainExpressionAction:
     #         raise ValueError("No valid filters could be constructed.")
     #     stmt = stmt.filter(or_(*filters))
     #     self.stmt = stmt
-
     #     # Step 6: Execute query and return results
     #     results = search_strategy._session.execute(stmt).scalars().all()
     #     result_set = {item for item in results if item is not None}
@@ -1919,14 +1914,6 @@ class SchemaBrowser:
         sw.add(self.prop_tree)
         frame.add(sw)
         self.container.pack_start(frame, True, True, 0)
-
-    def on_table_combo_changed(self, combo):
-        """Handle table combo box selection change."""
-        pass  # Implement this function as needed
-
-    def on_row_expanded(self, tree_view, tree_iter, path):
-        """Handle row expansion event."""
-        pass  # Implement this function as needed
 
     def _insert_props(self, mapper, model, treeiter):
         """

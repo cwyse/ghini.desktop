@@ -26,10 +26,9 @@ import os
 import traceback
 from gettext import gettext as _
 
+import bauble
 import gi
 import sqlalchemy.orm.exc as orm_exc
-
-import bauble
 
 # from bauble import ui
 from bauble import db, editor, paths, pluginmgr, search, utils
@@ -42,6 +41,7 @@ gi.require_version("Gtk", "3.0")
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Optional
 
+from bauble.plugins.garden.propagation import Propagation
 from gi.repository import Gdk, Gtk
 
 # from sqlalchemy import text
@@ -58,14 +58,12 @@ from sqlalchemy import (
 from sqlalchemy.exc import DBAPIError
 
 # from sqlalchemy.exc import InvalidRequestError
-from sqlalchemy.orm import Session as SASession
+#from sqlalchemy.orm import Session as SASession
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 # from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import object_session
-
-from bauble.plugins.garden.propagation import Propagation
 
 if TYPE_CHECKING:
     from bauble.types import BaseModelProtocol
@@ -654,7 +652,7 @@ class Tag(db.Base, db.WithNotes):
         """tell whether self tags obj"""
         return obj in self.objects
 
-    def get_tagged_objects(self, session: Optional[SASession] = None) -> list:
+    def get_tagged_objects(self, session: Optional[sqlalchemy.orm.Session] = None) -> list:
         """
         Return all objects tagged with this tag.
 
