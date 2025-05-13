@@ -24,6 +24,7 @@ from bauble.plugins.plants.genus import Genus
 from .taxonomy_check import species_to_fix
 
 
+from .taxonomy_check import species_to_fix as species_to_fix
 @pytest.fixture(scope="function")
 def setup_data(db_session):
     """
@@ -40,7 +41,7 @@ def setup_data(db_session):
 
 
 @pytest.fixture(autouse=True)
-def clear_family_table(db_session):
+def clear_family_table(db_session) -> None:
     """
     Ensure the family table is cleared before each test.
     """
@@ -53,7 +54,7 @@ def clear_family_table(db_session):
 @pytest.mark.usefixtures("db_session", "setup_data")
 class TestTaxonomyCheck:
 
-    def test_species_author(self, db_session):
+    def test_species_author(self, db_session) -> None:
         """
         Test that the species author is correctly handled.
         """
@@ -65,7 +66,7 @@ class TestTaxonomyCheck:
         assert s.infraspecific_epithet == ""
         assert s.infraspecific_author == ""
 
-    def test_subspecies_author(self, db_session):
+    def test_subspecies_author(self, db_session) -> None:
         """
         Test that the subspecies author is correctly handled.
         """

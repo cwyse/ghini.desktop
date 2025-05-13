@@ -78,6 +78,15 @@ from bauble.ui import DefaultView
 from bauble.utils import safe_set_text
 from bauble.view import SearchView
 
+from bauble import pluginmgr
+from .stored_queries import StoredQueryEditorTool as StoredQueryEditorTool
+from .taxonomy_check import TaxonomyCheckTool as TaxonomyCheckTool
+from _typeshed import Incomplete
+from bauble.plugins.plants.family import Familia as Familia, Family as Family, FamilyEditor as FamilyEditor, FamilyInfoBox as FamilyInfoBox, FamilyNote as FamilyNote, family_context_menu as family_context_menu
+from bauble.plugins.plants.genus import Genus as Genus, GenusEditor as GenusEditor, GenusInfoBox as GenusInfoBox, GenusNote as GenusNote, genus_context_menu as genus_context_menu
+from bauble.plugins.plants.geography import GeographicArea as GeographicArea, get_species_in_geographic_area as get_species_in_geographic_area
+from bauble.plugins.plants.species import Species as Species, SpeciesDistribution as SpeciesDistribution, SpeciesEditor as SpeciesEditor, SpeciesInfoBox as SpeciesInfoBox, SpeciesNote as SpeciesNote, SynonymSearch as SynonymSearch, VernacularName as VernacularName, VernacularNameInfoBox as VernacularNameInfoBox, add_accession_action as add_accession_action, species_context_menu as species_context_menu, vernname_context_menu as vernname_context_menu
+logger: Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 
@@ -99,12 +108,14 @@ Familia, SpeciesDistribution,
 
 
 class LabelUpdater(Thread):
-    def __init__(self, widget, query, *args, **kwargs):
+    query: Incomplete
+    widget: Incomplete
+    def __init__(self, widget, query, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.query = query
         self.widget = widget
 
-    def run(self):
+    def run(self) -> None:
         try:
             with db.Session() as session:  # Use a context manager for the session
                 # Wrap the raw SQL string in text()
@@ -121,8 +132,9 @@ class LabelUpdater(Thread):
 
 class SplashInfoBox(pluginmgr.View):
     """info box shown in the initial splash screen."""
-
-    def __init__(self):
+    widgets: Incomplete
+    name_tooltip_query: Incomplete
+    def __init__(self) -> None:
         """ """
         logger.debug("SplashInfoBox::__init__")
         super().__init__()
@@ -215,7 +227,7 @@ class SplashInfoBox(pluginmgr.View):
         widget = getattr(self.widgets, wname)
         widget.connect("clicked", self.on_splash_stqr_button_clicked)
 
-    def update(self):
+    def update(self) -> None:
         """ """
         logger.debug("SplashInfoBox::update")
         statusbar = bauble.gui.widgets.statusbar
@@ -373,7 +385,7 @@ class SplashInfoBox(pluginmgr.View):
             )
         )
 
-    def on_sqb_clicked(self, btn_no, *args):
+    def on_sqb_clicked(self, btn_no, *args) -> None:
         try:
             query = self.name_tooltip_query[btn_no][2]
             safe_set_text(bauble.gui.widgets.main_comboentry.get_child(), query)
@@ -381,15 +393,15 @@ class SplashInfoBox(pluginmgr.View):
         except:
             pass
 
-    def on_splash_stqr_button_clicked(self, *args):
+    def on_splash_stqr_button_clicked(self, *args) -> None:
         from .stored_queries import edit_callback
 
         edit_callback()
 
 
 class PlantsPlugin(pluginmgr.Plugin):
-    tools = [TaxonomyCheckTool, StoredQueryEditorTool]
-    provides = {
+    tools: Incomplete = [TaxonomyCheckTool, StoredQueryEditorTool]
+    provides: Incomplete = {
         "Family": Family,
         "FamilyNote": FamilyNote,
         "Genus": Genus,
@@ -401,7 +413,7 @@ class PlantsPlugin(pluginmgr.Plugin):
     }
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         pluginmgr.provided.update(cls.provides)
 
         # Check for GardenPlugin and modify menus accordingly
@@ -423,7 +435,7 @@ class PlantsPlugin(pluginmgr.Plugin):
         cls._initialize_default_stored_queries()
 
     @staticmethod
-    def _setup_search_metas():
+    def _setup_search_metas() -> None:
         """Configure search strategies and row metadata."""
         mapper_search = search.get_strategy("MapperSearch")
 
@@ -473,7 +485,7 @@ class PlantsPlugin(pluginmgr.Plugin):
         SearchView.row_meta[GeographicArea].set(children=get_species_in_geographic_area)
 
     @classmethod
-    def _setup_gui_menus(cls):
+    def _setup_gui_menus(cls) -> None:
         """Set up GUI menus dynamically."""
         if bauble.gui is None:
             return
@@ -502,7 +514,7 @@ class PlantsPlugin(pluginmgr.Plugin):
         insert_menu.show_all()
 
     @classmethod
-    def _initialize_default_stored_queries(cls):
+    def _initialize_default_stored_queries(cls) -> None:
         """Set up default stored queries if not already initialized."""
         import bauble.meta as meta
 
@@ -540,7 +552,7 @@ class PlantsPlugin(pluginmgr.Plugin):
         session.close()
 
     @classmethod
-    def install(cls, import_defaults=True):
+    def install(cls, import_defaults: bool = True) -> None:
         """
         Do any setup and configuration required by this plugin like
         creating tables, etc...

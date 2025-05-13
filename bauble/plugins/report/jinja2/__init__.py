@@ -34,18 +34,19 @@ import gi
 from bauble import paths, utils
 from bauble.plugins.report import PS, SVG, TemplateFormatterPlugin
 
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 
 class Jinja2FormatterPlugin(TemplateFormatterPlugin):
 
-    title = "Jinja2"
-    extension = ".jj2"
-    domain_pattern = re.compile(r"^\{#\s*DOMAIN\s+([a-z_]*)\s*#\}$")
-    option_pattern = re.compile(
+    title: str = "Jinja2"
+    extension: str = ".jj2"
+    domain_pattern: Incomplete = re.compile(r"^\{#\s*DOMAIN\s+([a-z_]*)\s*#\}$")
+    option_pattern: Incomplete = re.compile(
         r"^{#\s*OPTION ([a-z_]*): \("
         r"type: ([a-z_]*), "
         r"default: '(.*)', "

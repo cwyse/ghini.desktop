@@ -22,17 +22,22 @@ import gi
 
 import bauble.utils as utils
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 class PicturesView:
     """Displays pictures corresponding to selection."""
-
-    def __init__(self, parent=None, fake=False):
+    fake: Incomplete
+    widgets: Incomplete
+    pictures_box: Incomplete
+    ghini_box: Incomplete
+    def __init__(self, parent: Optional[Incomplete] = None, fake: bool = False) -> None:
         logger.debug(
             f"entering PicturesView.__init__(parent={parent}, fake={fake})"
         )
@@ -57,7 +62,7 @@ class PicturesView:
         parent.show_all()
         self.widgets.scrolledwindow2.show()
 
-    def set_selection(self, selection):
+    def set_selection(self, selection) -> None:
         """
         Updates the view based on the current selection.
         If an object in the selection contains a `pictures` property,
@@ -86,7 +91,7 @@ class PicturesView:
 
         self.ghini_box.show_all()
 
-    def add_picture(self, picture=None):
+    def add_picture(self, picture: Optional[Incomplete] = None):
         """
         Adds a new picture to the model.
         """
@@ -109,10 +114,10 @@ class PicturesView:
         return self.pictures_box
 
 
-floating_window = None
+floating_window: Incomplete = None
 
 
-def show_pictures_callback(selection):
+def show_pictures_callback(selection) -> None:
     """activate a modal window showing plant pictures.
 
     the current selection defines what pictures should be shown. it

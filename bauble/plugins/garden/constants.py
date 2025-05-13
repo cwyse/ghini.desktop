@@ -19,39 +19,40 @@
 #
 from gettext import gettext as _
 
-prop_type_values = {
+from _typeshed import Incomplete
+prop_type_values: Incomplete = {
     "Seed": _("Seed"),
     "UnrootedCutting": _("Unrooted cutting"),
 }
 
-prop_type_results = {
+prop_type_results: Incomplete = {
     "Seed": "SEDL",
     "UnrootedCutting": "RCUT",
 }
 
-cutting_type_values = {
+cutting_type_values: Incomplete = {
     "Nodal": _("Nodal"),
     "InterNodal": _("Internodal"),
     "Other": _("Other"),
 }
 
-tip_values = {
+tip_values: Incomplete = {
     "Intact": _("Intact"),
     "Removed": _("Removed"),
     "None": _("None"),
     None: "",
 }
 
-leaves_values = {
+leaves_values: Incomplete = {
     "Intact": _("Intact"),
     "Removed": _("Removed"),
     "None": _("None"),
     None: "",
 }
 
-flower_buds_values = {"Removed": _("Removed"), "None": _("None"), None: ""}
+flower_buds_values: Incomplete = {"Removed": _("Removed"), "None": _("None"), None: ""}
 
-wound_values = {
+wound_values: Incomplete = {
     "No": _("No"),
     "Single": _("Singled"),
     "Double": _("Double"),
@@ -59,8 +60,8 @@ wound_values = {
     None: "",
 }
 
-hormone_values = {"Liquid": _("Liquid"), "Powder": _("Powder"), "No": _("No")}
+hormone_values: Incomplete = {"Liquid": _("Liquid"), "Powder": _("Powder"), "No": _("No")}
 
-bottom_heat_unit_values = {"F": _("°F"), "C": _("°C"), None: ""}
+bottom_heat_unit_values: Incomplete = {"F": _("°F"), "C": _("°C"), None: ""}
 
-length_unit_values = {"mm": _("mm"), "cm": _("cm"), "in": _("in"), None: ""}
+length_unit_values: Incomplete = {"mm": _("mm"), "cm": _("cm"), "in": _("in"), None: ""}

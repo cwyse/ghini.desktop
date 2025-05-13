@@ -56,35 +56,41 @@ from bauble.plugins.plants import (
 )
 from bauble.plugins.plants.geography import GeographicArea
 
-logger = logging.getLogger(__name__)
+from _typeshed import Incomplete
+from bauble.plugins.garden import Accession as Accession, Contact as Contact, Family as Family, Genus as Genus, Location as Location, Plant as Plant, Source as Source, Species as Species
+from bauble.plugins.imex.csv_ import CSVExporter as CSVExporter, CSVImporter as CSVImporter, QUOTE_CHAR as QUOTE_CHAR, QUOTE_STYLE as QUOTE_STYLE
+from bauble.plugins.plants import SpeciesNote as SpeciesNote, VernacularName as VernacularName
+from collections.abc import Generator
+family_data: Incomplete
+logger: Incomplete = logging.getLogger(__name__)
 
 # Test Data Definitions
 family_data = [
     {"id": 1, "epithet": "Orchidaceae", "qualifier": None},
     {"id": 2, "epithet": "Myrtaceae"},
 ]
-genus_data = [
+genus_data: Incomplete = [
     {"id": 1, "epithet": "Calopogon", "family_id": 1, "author": "R. Br."},
     {"id": 2, "epithet": "Panisea", "family_id": 1},
 ]
-species_data = [
+species_data: Incomplete = [
     {"id": 1, "epithet": "tuberosus", "genus_id": 1, "author": None},
     {"id": 2, "epithet": "albiflora", "genus_id": 2, "author": "(Ridl.) Seidenf."},
     {"id": 3, "epithet": "distelidia", "genus_id": 2, "author": "I.D.Lund"},
     {"id": 4, "epithet": "zeylanica", "genus_id": 2, "author": "(Hook.f.) Aver."},
 ]
-species_note_test_data = [
+species_note_test_data: Incomplete = [
     {"id": 1, "species_id": 18, "category": "CITES", "note": "I"},
     {"id": 2, "species_id": 20, "category": "IUCN", "note": "LC"},
     {"id": 3, "species_id": 18, "category": "<price>", "note": "19.50"},
 ]
-accession_data = [
+accession_data: Incomplete = [
     {"id": 1, "species_id": 1, "code": "2015.0001"},
     {"id": 2, "species_id": 1, "code": "2015.0002"},
     {"id": 3, "species_id": 1, "code": "2015.0003", "private": True},
 ]
-location_data = [{"id": 1, "code": "1"}]
-plant_data = [
+location_data: Incomplete = [{"id": 1, "code": "1"}]
+plant_data: Incomplete = [
     {"id": 1, "accession_id": 1, "location_id": 1, "code": "1", "quantity": 1},
     {"id": 2, "accession_id": 3, "location_id": 1, "code": "1", "quantity": 1},
 ]
@@ -95,7 +101,7 @@ class TestImporter(CSVImporter):
     Custom CSVImporter with enhanced error handling.
     """
 
-    def on_error(self, exc):
+    def on_error(self, exc) -> None:
         """
         Logs and raises any exceptions encountered during import.
         """
@@ -104,7 +110,7 @@ class TestImporter(CSVImporter):
 
 
 @pytest.fixture
-def test_directory():
+def test_directory() -> Generator[Incomplete, None, None]:
     """
     Fixture for setting up and tearing down a temporary directory for tests.
     """
@@ -114,7 +120,7 @@ def test_directory():
 
 
 @pytest.fixture
-def setup_database():
+def setup_database() -> None:
     """
     Fixture for setting up test data in the database.
     """
@@ -151,7 +157,7 @@ class TestCSV:
 
     def test_import_self_referential_table(
         self, db_session, test_directory, setup_test_files
-    ):
+    ) -> None:
         """
         Test tables with self-referential relationships are imported in order.
         """
@@ -166,7 +172,7 @@ class TestCSV:
         importer = TestImporter()
         importer.start([filename], force=True)
 
-    def test_import_bool_column(self, db_session, test_directory, setup_test_files):
+    def test_import_bool_column(self, db_session, test_directory, setup_test_files) -> None:
         """
         Test importing CSV data with a boolean column.
         """
@@ -200,7 +206,7 @@ class TestCSV:
 
         BoolTest.__table__.drop(bind=db.engine)
 
-    def test_with_open_connection(self, db_session, test_directory, setup_test_files):
+    def test_with_open_connection(self, db_session, test_directory, setup_test_files) -> None:
         """
         Test that imports don't stall if a connection is open to the same table.
         """
@@ -218,7 +224,7 @@ class TestCSV:
 
         db_session.execute(select(Family)).scalars()
 
-    def test_import_use_default(self, db_session, test_directory, setup_test_files):
+    def test_import_use_default(self, db_session, test_directory, setup_test_files) -> None:
         """
         Test importing a CSV file applies default values to missing columns.
         """
@@ -237,7 +243,7 @@ class TestCSV:
         )
         assert family.qualifier == ""
 
-    def test_export_none_is_empty(self, db_session, test_directory):
+    def test_export_none_is_empty(self, db_session, test_directory) -> None:
         """
         Test exporting a CSV file where None values are represented as empty.
         """
@@ -261,7 +267,7 @@ class TestCSV2:
     Test suite for CSV import/export and additional edge cases.
     """
 
-    def test_sequences(self, db_session):
+    def test_sequences(self, db_session) -> None:
         """
         Test that sequences are correctly updated after imports.
         """
@@ -293,7 +299,7 @@ class TestCSV2:
             nextval > highest_id
         ), f"Bad sequence: highest_id({highest_id}) > nextval({nextval}) -- {maxid}"
 
-    def test_import(self, temp_directory):
+    def test_import(self, temp_directory) -> None:
         """
         Test import functionality by exporting and re-importing test data.
         """
@@ -313,7 +319,7 @@ class TestCSV2:
             [os.path.join(temp_directory, name) for name in filenames], force=True
         )
 
-    def test_unicode(self, db_session):
+    def test_unicode(self, db_session) -> None:
         """
         Test importing and handling Unicode strings.
         """
@@ -327,7 +333,7 @@ class TestCSV2:
         row_name = [r.name for r in query.all() if r.name.startswith("Gal")][0]
         assert row_name == geo_data["name"]
 
-    def test_export(self, temp_directory, db_session):
+    def test_export(self, temp_directory, db_session) -> None:
         """
         Test export functionality to ensure data integrity.
         """
@@ -351,20 +357,20 @@ class MockExportView:
     """
     Mock class for simulating export view interactions.
     """
-
-    def widget_set_value(self, *args):
+    __selection: Incomplete
+    def widget_set_value(self, *args) -> None:
         pass
 
-    def widget_get_value(self, *args):
+    def widget_get_value(self, *args) -> None:
         pass
 
-    def connect_signals(self, *args):
+    def connect_signals(self, *args) -> None:
         pass
 
-    def connect(self, *args):
+    def connect(self, *args) -> None:
         pass
 
-    def set_selection(self, a):
+    def set_selection(self, a) -> None:
         self.__selection = a
 
     def get_selection(self):
@@ -379,7 +385,7 @@ from bauble.plugins.garden import Family, Genus, Species
 
 
 @pytest.fixture
-def temp_file():
+def temp_file() -> Generator[Incomplete, None, None]:
     """
     Fixture to create and clean up a temporary file for tests.
     """
@@ -421,7 +427,7 @@ class TestJSONExport:
 
     def test_export_empty_selection_writes_complete_database(
         self, temp_file, populate_database
-    ):
+    ) -> None:
         exporter = JSONExporter(MockView())
         exporter.view.selection = None
         exporter.selection_based_on = "sbo_selection"
@@ -548,7 +554,7 @@ class TestJSONExport:
         for obj in target:
             assert obj in result
 
-    def test_when_selection_huge_ask(self):
+    def test_when_selection_huge_ask(self) -> None:
         """
         Test that the export process prompts the user when the selection is too large.
         """
@@ -562,7 +568,7 @@ class TestJSONExport:
         assert "run_yes_no_dialog" in getattr(view, "invoked", [])
         assert view.reply_yes_no_dialog == []
 
-    def test_writes_full_taxonomic_info(self, temp_file, db_session):
+    def test_writes_full_taxonomic_info(self, temp_file, db_session) -> None:
         """
         Test exporting one family with full taxonomic information below family level.
         """
@@ -586,7 +592,7 @@ class TestJSONExport:
         assert result[0]["rank"] == "familia"
         assert result[0]["epithet"] == "Orchidaceae"
 
-    def test_writes_partial_taxonomic_info(self, temp_file, db_session):
+    def test_writes_partial_taxonomic_info(self, temp_file, db_session) -> None:
         """
         Test exporting one genus with all species below genus level.
         """
@@ -614,7 +620,7 @@ class TestJSONExport:
 
     def test_writes_partial_taxonomic_info_species(
         self, temp_file, db_session
-    ):
+    ) -> None:
         """
         Test exporting one species and ensuring all species below genus level are exported.
         """
@@ -643,7 +649,7 @@ class TestJSONExport:
         assert result[0]["ht-epithet"] == "Calopogon"
         assert result[0]["hybrid"] is False
 
-    def test_export_single_species_with_notes(self, temp_file, db_session):
+    def test_export_single_species_with_notes(self, temp_file, db_session) -> None:
         """
         Test exporting a single species with associated notes.
         """
@@ -694,7 +700,7 @@ class TestJSONExport:
 
     def test_export_single_species_with_vernacular_name(
         self, temp_file, db_session
-    ):
+    ) -> None:
         """
         Test exporting a single species with a vernacular name.
         """
@@ -741,7 +747,7 @@ class TestJSONExport:
             "species": "Calopogon tuberosus",
         }
 
-    def test_partial_taxonomic_with_synonymy(self, temp_file, db_session):
+    def test_partial_taxonomic_with_synonymy(self, temp_file, db_session) -> None:
         """
         Test exporting one genus that is a synonym with its accepted name.
         """
@@ -786,7 +792,7 @@ class TestJSONExport:
         assert accepted["ht-rank"] == "familia"
         assert accepted["ht-epithet"] == "Orchidaceae"
 
-    def test_export_ignores_private_if_sbo_selection(self, temp_file):
+    def test_export_ignores_private_if_sbo_selection(self, temp_file) -> None:
         """
         Test exporting accessions ignoring private entries when `include_private` is False.
         """
@@ -812,7 +818,7 @@ class TestJSONExport:
 
         assert len(result) == 3
 
-    def test_export_non_private_if_sbo_accessions(self, populate_database):
+    def test_export_non_private_if_sbo_accessions(self, populate_database) -> None:
         """
         Test exporting non-private accessions when `include_private` is False.
         """
@@ -828,7 +834,7 @@ class TestJSONExport:
 
         assert len(result) == 5
 
-    def test_export_private_if_sbo_accessions(self, populate_database):
+    def test_export_private_if_sbo_accessions(self, populate_database) -> None:
         """
         Test exporting all accessions, including private, when `include_private` is True.
         """
@@ -844,7 +850,7 @@ class TestJSONExport:
 
         assert len(result) == 6
 
-    def test_export_non_private_if_sbo_plants(self, populate_database):
+    def test_export_non_private_if_sbo_plants(self, populate_database) -> None:
         """
         Test exporting non-private plants when `include_private` is False.
         """
@@ -860,7 +866,7 @@ class TestJSONExport:
 
         assert len(result) == 6
 
-    def test_export_private_if_sbo_plants(self, populate_database):
+    def test_export_private_if_sbo_plants(self, populate_database) -> None:
         """
         Test exporting all plants, including private, when `include_private` is True.
         """
@@ -876,7 +882,7 @@ class TestJSONExport:
 
         assert len(result) == 8
 
-    def test_export_with_vernacular(self, db_session):
+    def test_export_with_vernacular(self, db_session) -> None:
         """
         Test exporting a genus with a vernacular name.
         """
@@ -907,7 +913,7 @@ class TestJSONExport:
         assert len(vern_from_json) == 1
         assert vern_from_json[0]["language"] == "es"
 
-    def test_on_btnbrowse_clicked():
+    def test_on_btnbrowse_clicked() -> None:
         """
         Test browse button updates the filename correctly.
         """
@@ -919,7 +925,7 @@ class TestJSONExport:
         assert exporter.filename == "/tmp/test.json"
         assert JSONExporter.last_folder == "/tmp"
 
-    def test_includes_sources(self, db_session):
+    def test_includes_sources(self, db_session) -> None:
         """
         Test exporting accessions with source details included.
         """
@@ -980,7 +986,7 @@ def temp_file():
     os.remove(path)
 
 
-def test_import_new_inserts(temp_file, db_session):
+def test_import_new_inserts(temp_file, db_session) -> None:
     """Test importing a new taxon adds it to the database."""
     json_string = (
         '[{"rank": "Genus", "epithet": "Neogyna", '
@@ -1000,7 +1006,7 @@ def test_import_new_inserts(temp_file, db_session):
     assert db_session.execute(stmt).scalars().first() is not None
 
 
-def test_import_new_inserts_lowercase(temp_file, db_session):
+def test_import_new_inserts_lowercase(temp_file, db_session) -> None:
     """Test importing a new taxon adds it to the database with lowercase rank."""
     json_string = (
         '[{"rank": "genus", "epithet": "Neogyna", "ht-rank"'
@@ -1019,7 +1025,7 @@ def test_import_new_inserts_lowercase(temp_file, db_session):
     assert db_session.execute(stmt).scalars().first() is not None
 
 
-def test_import_new_with_non_timestamped_note(temp_file, db_session):
+def test_import_new_with_non_timestamped_note(temp_file, db_session) -> None:
     """Test importing a new taxon with a non-timestamped note."""
     json_string = (
         '[{"ht-epithet": "Calopogon", "epithet": "pallidus", "author": "Chapm.", '
@@ -1040,7 +1046,7 @@ def test_import_new_with_non_timestamped_note(temp_file, db_session):
     assert len(species.notes) == 1
 
 
-def test_import_new_with_three_array_notes(temp_file, db_session):
+def test_import_new_with_three_array_notes(temp_file, db_session) -> None:
     """Test importing a new taxon with three identical notes."""
     json_string = (
         '[{"ht-epithet": "Calopogon", "epithet": "pallidus", "author": "Chapm.", '
@@ -1063,7 +1069,7 @@ def test_import_new_with_three_array_notes(temp_file, db_session):
     assert len(species.notes) == 3
 
 
-def test_import_existing_updates(temp_file, db_session):
+def test_import_existing_updates(temp_file, db_session) -> None:
     """Test importing an existing taxon updates it."""
     json_string = (
         '[{"rank": "Species", "epithet": "tuberosus", "ht-rank"'
@@ -1088,7 +1094,7 @@ def test_import_existing_updates(temp_file, db_session):
     assert species.author == "Britton et al."
 
 
-def test_import_ignores_id_new(temp_file, db_session):
+def test_import_ignores_id_new(temp_file, db_session) -> None:
     """Test importing a new taxon disregards the provided ID."""
     json_string = (
         '[{"rank": "Genus", "epithet": "Neogyna", '
@@ -1106,7 +1112,7 @@ def test_import_ignores_id_new(temp_file, db_session):
     assert genus.id != 1
 
 
-def test_import_ignores_id_updating(temp_file, db_session):
+def test_import_ignores_id_updating(temp_file, db_session) -> None:
     """Test importing an existing taxon disregards the provided ID."""
     species = Species.retrieve_or_create(
         db_session, {"ht-epithet": "Calopogon", "epithet": "tuberosus"}
@@ -1139,7 +1145,7 @@ def temp_file():
     os.remove(path)
 
 
-def test_import_species_to_new_genus_fails(temp_file, db_session):
+def test_import_species_to_new_genus_fails(temp_file, db_session) -> None:
     """Test importing new species referring to a non-existing genus logs a warning."""
     json_string = (
         '[{"rank": "Species", "epithet": "lawrenceae", '
@@ -1165,7 +1171,7 @@ def test_import_species_to_new_genus_fails(temp_file, db_session):
     assert sp == []
 
 
-def test_import_species_to_new_genus_and_family(temp_file, db_session):
+def test_import_species_to_new_genus_and_family(temp_file, db_session) -> None:
     """Test importing a species referring to a non-existing genus with a specified family."""
     sp = (
         db_session.execute(
@@ -1220,7 +1226,7 @@ def test_import_species_to_new_genus_and_family(temp_file, db_session):
     assert genus.family == family
 
 
-def test_import_with_synonym(temp_file, db_session):
+def test_import_with_synonym(temp_file, db_session) -> None:
     """Test importing a taxon with an `accepted` field imports both taxa."""
     json_string = (
         '[{"rank": "Genus", "epithet": "Zygoglossum", '
@@ -1254,7 +1260,7 @@ def test_import_with_synonym(temp_file, db_session):
     assert accepted is not None
 
 
-def test_use_author_to_break_ties(temp_file, db_session):
+def test_use_author_to_break_ties(temp_file, db_session) -> None:
     """Test importing homonym taxa is possible if authorship breaks ties."""
     ataceae = Family(epithet="Anacampserotaceae")
     linnaeus = Genus(family=ataceae, epithet="Anacampseros", author="L.")
@@ -1286,7 +1292,7 @@ def test_use_author_to_break_ties(temp_file, db_session):
     assert miller.accepted == accepted
 
 
-def test_import_create_update(temp_file, db_session):
+def test_import_create_update(temp_file, db_session) -> None:
     """Test that existing records are updated and new records are created."""
     ataceae = Family(epithet="Anacampserotaceae")
     linnaeus = Genus(family=ataceae, epithet="Anacampseros")
@@ -1332,7 +1338,7 @@ def temp_file():
     os.remove(path)
 
 
-def test_import_no_create_update(temp_file, db_session):
+def test_import_no_create_update(temp_file, db_session) -> None:
     """Existing records get updated; non-existing records are not created."""
     # Setup
     ataceae = Family(epithet="Anacampserotaceae")
@@ -1371,7 +1377,7 @@ def test_import_no_create_update(temp_file, db_session):
     assert anacampseros.author == "L."
 
 
-def test_import_create_no_update(temp_file, db_session):
+def test_import_create_no_update(temp_file, db_session) -> None:
     """Existing records remain untouched; non-existing records are created."""
     # Setup
     ataceae = Family(epithet="Anacampserotaceae")
@@ -1417,7 +1423,7 @@ def test_import_create_no_update(temp_file, db_session):
     assert anacampseros.author == ""
 
 
-def test_on_btnbrowse_clicked():
+def test_on_btnbrowse_clicked() -> None:
     """Test that file browsing works as expected."""
     view = MockView()
     importer = JSONImporter(view)
@@ -1429,7 +1435,7 @@ def test_on_btnbrowse_clicked():
     assert JSONImporter.last_folder == "/tmp"
 
 
-def test_import_contact(temp_file, db_session):
+def test_import_contact(temp_file, db_session) -> None:
     """Test importing a contact object."""
     json_string = '[{"name": "Summit", "object": "contact"}]'
     with open(temp_file, "w") as f:
@@ -1448,7 +1454,7 @@ def test_import_contact(temp_file, db_session):
     assert summit is not None
 
 
-def test_json_serializer_datetime():
+def test_json_serializer_datetime() -> None:
     """Test JSON serialization of datetime objects."""
     import datetime
 

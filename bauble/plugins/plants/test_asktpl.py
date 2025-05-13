@@ -29,8 +29,10 @@ import pytest
 from bauble.plugins.plants.ask_tpl import AskTPL, what_to_do_with_it
 
 
+from _typeshed import Incomplete
+from collections.abc import Generator
 @pytest.fixture
-def mock_requests():
+def mock_requests() -> Generator[None, None, Incomplete]:
     """
     Mock the `requests.get` function to simulate API responses.
     """
@@ -83,10 +85,10 @@ class TestAskTPL:
     Tests for the AskTPL class and its interactions.
     """
 
-    logger_name = "bauble.plugins.plants.ask_tpl"
-    logger = logging.getLogger(logger_name)
+    logger_name: str = "bauble.plugins.plants.ask_tpl"
+    logger: Incomplete = logging.getLogger(logger_name)
 
-    def test_simple_answer(self, mock_logger):
+    def test_simple_answer(self, mock_logger) -> None:
         self.logger.setLevel(logging.INFO)
         binomial = "Rhopalocarpus alternifolium"
         AskTPL(binomial, what_to_do_with_it, timeout=2).run()
@@ -98,7 +100,7 @@ class TestAskTPL:
             == "Rhopalocarpus alternifolius var. sambiranensis Capuron (Sphaerosepalaceae)"
         )
 
-    def test_taxon_is_synonym(self, mock_logger):
+    def test_taxon_is_synonym(self, mock_logger) -> None:
         self.logger.setLevel(logging.INFO)
         binomial = "Iris florentina"
         AskTPL(binomial, what_to_do_with_it, timeout=2).run()
@@ -109,7 +111,7 @@ class TestAskTPL:
         assert infolog[1] == "Iris × florentina L. (Iridaceae) - is its accepted form"
 
     @pytest.mark.skip(reason="Skipping this needs more work and is non-critical")
-    def test_empty_answer(self, mock_logger):
+    def test_empty_answer(self, mock_logger) -> None:
         self.logger.setLevel(logging.INFO)
         binomial = "Manducaria italica"
         AskTPL(binomial, what_to_do_with_it, timeout=2).run()
@@ -118,7 +120,7 @@ class TestAskTPL:
         assert len(infolog) == 1
         assert infolog[0] == "nothing matches"
 
-    def test_do_not_run_same_query_twice(self, mock_logger):
+    def test_do_not_run_same_query_twice(self, mock_logger) -> None:
         self.logger.setLevel(logging.DEBUG)
         binomial = "Iris florentina"
         obj = AskTPL(binomial, what_to_do_with_it, timeout=2)
@@ -131,7 +133,7 @@ class TestAskTPL:
             "already requesting Iris florentina, ignoring repeated request" in debuglog
         )
 
-    def test_do_not_run_two_requests_at_same_time(self, mock_logger):
+    def test_do_not_run_two_requests_at_same_time(self, mock_logger) -> None:
         self.logger.setLevel(logging.DEBUG)
         obj = AskTPL("Iris florentina", what_to_do_with_it, timeout=2)
         obj.start()

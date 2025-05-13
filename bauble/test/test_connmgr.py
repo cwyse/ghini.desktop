@@ -23,6 +23,9 @@ import os
 import gi
 import pytest
 
+from _typeshed import Incomplete
+from collections.abc import Generator
+prefs_lock: Incomplete
 gi.require_version("Gtk", "3.0")
 import copy
 import logging
@@ -38,7 +41,7 @@ from bauble.editor import MockDialog, MockView
 from bauble.prefs import prefs
 from bauble.test import check_dupids
 
-logger = logging.getLogger("bauble.connmgr")
+logger: Incomplete = logging.getLogger("bauble.connmgr")
 logger._cache.clear()
 logger.setLevel(logging.INFO)
 
@@ -47,7 +50,7 @@ prefs_lock = threading.Lock()
 
 
 @pytest.fixture(scope="function")
-def mock_prefs():
+def mock_prefs() -> Generator[Incomplete, None, None]:
     """
     Create an independent, thread-safe copy of the global `prefs` object for each test.
     """
@@ -75,7 +78,7 @@ def mock_prefs():
 
 
 @pytest.fixture(autouse=True)
-def reset_prefs(mock_prefs):
+def reset_prefs(mock_prefs) -> None:
     """
     Reset preferences state before each test.
     Ensures the reset uses the mock_prefs fixture.
@@ -106,7 +109,7 @@ def mock_presenter(mock_view, mock_prefs):
     return ConnMgrPresenter(mock_view, prefs=mock_prefs)
 
 
-def test_duplicate_ids():
+def test_duplicate_ids() -> None:
     """
     Test for duplicate ids for all .glade files in the tag plugin.
     """
@@ -121,10 +124,10 @@ class TestConnMgrPresenter:
     Tests for the ConnMgrPresenter class.
     """
 
-    def test_can_create_presenter(self, mock_presenter, mock_view):
+    def test_can_create_presenter(self, mock_presenter, mock_view) -> None:
         assert mock_presenter.view == mock_view
 
-    def test_no_connections_then_message(self, mock_view, mock_prefs):
+    def test_no_connections_then_message(self, mock_view, mock_prefs) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {}
 
         # Now create the presenter, which will read the updated prefs
@@ -134,7 +137,7 @@ class TestConnMgrPresenter:
         assert not mock_presenter.view.widget_get_visible("expander")
         assert mock_presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_one_connection_shown_removed_message(self, mock_view, mock_prefs):
+    def test_one_connection_shown_removed_message(self, mock_view, mock_prefs) -> None:
         # Configure the mock_prefs before instantiating the presenter
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
@@ -163,7 +166,7 @@ class TestConnMgrPresenter:
         assert mock_presenter.view.widget_get_visible("noconnectionlabel")
         assert not mock_presenter.view.widget_get_visible("expander")
 
-    def test_one_connection_on_remove_confirm_negative(self, mock_view, mock_prefs):
+    def test_one_connection_on_remove_confirm_negative(self, mock_view, mock_prefs) -> None:
         """
         Test that the connection remains when the user confirms "No" on remove.
         """
@@ -199,7 +202,7 @@ class TestConnMgrPresenter:
             "nugkui" in mock_presenter.connections
         ), "Connection should not have been removed."
 
-    def test_one_connection_on_remove_confirm_positive(self, mock_view, mock_prefs):
+    def test_one_connection_on_remove_confirm_positive(self, mock_view, mock_prefs) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -216,7 +219,7 @@ class TestConnMgrPresenter:
         assert not mock_presenter.view.widget_get_visible("expander")
         assert mock_presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_two_connection_initialize_default_first(self, mock_view, mock_prefs):
+    def test_two_connection_initialize_default_first(self, mock_view, mock_prefs) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -240,7 +243,7 @@ class TestConnMgrPresenter:
         assert params["default"] is True
         assert mock_view.widget_get_value("usedefaults_chkbx")
 
-    def test_two_connection_initialize_default_second(self, mock_view, mock_prefs):
+    def test_two_connection_initialize_default_second(self, mock_view, mock_prefs) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -264,7 +267,7 @@ class TestConnMgrPresenter:
         assert params["default"] is False
         assert not mock_view.widget_get_value("usedefaults_chkbx")
 
-    def test_two_connection_on_remove_confirm_positive(self, mock_view, mock_prefs):
+    def test_two_connection_on_remove_confirm_positive(self, mock_view, mock_prefs) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -288,7 +291,7 @@ class TestConnMgrPresenter:
         assert not mock_presenter.view.widget_get_visible("noconnectionlabel")
         assert "combobox_set_active" in mock_view.invoked
 
-    def test_one_connection_shown_and_selected_sqlite(self, mock_view, mock_prefs):
+    def test_one_connection_shown_and_selected_sqlite(self, mock_view, mock_prefs) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -305,7 +308,7 @@ class TestConnMgrPresenter:
         assert mock_presenter.view.widget_get_visible("expander")
         assert not mock_presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_one_connection_shown_and_selected_postgresql(self, mock_view, mock_prefs):
+    def test_one_connection_shown_and_selected_postgresql(self, mock_view, mock_prefs) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "quisquis": {
                 "passwd": False,
@@ -326,7 +329,7 @@ class TestConnMgrPresenter:
         assert not mock_presenter.view.widget_get_visible("sqlite_parambox")
         assert not mock_presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_one_connection_shown_and_selected_oracle(self, mock_view, mock_prefs):
+    def test_one_connection_shown_and_selected_oracle(self, mock_view, mock_prefs) -> None:
         # Set up the mock preferences for the test
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "quisquis": {
@@ -350,7 +353,7 @@ class TestConnMgrPresenter:
         assert not mock_presenter.view.widget_get_visible("sqlite_parambox")
         assert not mock_presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_two_connections_wrong_default_use_first_one(self, mock_view, mock_prefs):
+    def test_two_connections_wrong_default_use_first_one(self, mock_view, mock_prefs) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -374,7 +377,7 @@ class TestConnMgrPresenter:
         as_list = mock_presenter.connection_names
         assert mock_presenter.connection_name == as_list[0]
 
-    def test_when_user_selects_different_type(self, mock_view, mock_prefs):
+    def test_when_user_selects_different_type(self, mock_view, mock_prefs) -> None:
         # Configure preferences
         mock_prefs.prefs[bauble.conn_default_pref] = "nugkui"
         mock_prefs.prefs[bauble.conn_list_pref] = {
@@ -412,7 +415,7 @@ class TestConnMgrPresenter:
         assert presenter.dbtype == "PostgreSQL"
         assert presenter.view.widget_get_visible("dbms_parambox")
 
-    def test_set_default_toggles_sensitivity(self, mock_view, mock_prefs):
+    def test_set_default_toggles_sensitivity(self, mock_view, mock_prefs) -> None:
         # Configure preferences
         mock_prefs.prefs[bauble.conn_default_pref] = "nugkui"
         mock_prefs.prefs[bauble.conn_list_pref] = {
@@ -434,7 +437,7 @@ class TestConnMgrPresenter:
         # Assert that file input sensitivity is toggled correctly
         assert not mock_view.widget_get_sensitive("file_entry")
 
-    def test_check_parameters_valid(self, mock_view, mock_prefs):
+    def test_check_parameters_valid(self, mock_view, mock_prefs) -> None:
         import copy
 
         # Configure preferences
@@ -484,7 +487,7 @@ class TestConnMgrPresenter:
         valid, message = presenter.check_parameters_valid(sqlite_params)
         assert not valid
 
-    def test_parameters_to_uri_sqlite(self, mock_view, mock_prefs):
+    def test_parameters_to_uri_sqlite(self, mock_view, mock_prefs) -> None:
         # Initialize preferences
         mock_prefs.prefs[bauble.conn_default_pref] = None
         mock_prefs.prefs[bauble.conn_list_pref] = {}
@@ -558,7 +561,7 @@ class TestConnMgrPresenter:
             "is_this_possible=no&why_do_we_test=because"
         )
 
-    def test_connection_uri_property(self, mock_view, mock_prefs):
+    def test_connection_uri_property(self, mock_view, mock_prefs) -> None:
         # Configure preferences
         mock_prefs.prefs[bauble.conn_default_pref] = "quisquis"
         mock_prefs.prefs[bauble.conn_list_pref] = {
@@ -593,7 +596,7 @@ class TestConnMgrPresenter:
 
 
 class TestAddConnection:
-    def test_no_connection_on_add_confirm_negative(self, mock_view, mock_prefs):
+    def test_no_connection_on_add_confirm_negative(self, mock_view, mock_prefs) -> None:
         # Setup empty connection list
         mock_prefs.prefs[bauble.conn_list_pref] = {}
         presenter = ConnMgrPresenter(mock_view, prefs=mock_prefs)
@@ -607,7 +610,7 @@ class TestAddConnection:
         assert not presenter.view.widget_get_sensitive("connect_button")
         assert presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_no_connection_on_add_confirm_positive(self, mock_view, mock_prefs):
+    def test_no_connection_on_add_confirm_positive(self, mock_view, mock_prefs) -> None:
         # Setup empty connection list
         mock_prefs.prefs[bauble.conn_list_pref] = {}
         presenter = ConnMgrPresenter(mock_view, prefs=mock_prefs)
@@ -622,7 +625,7 @@ class TestAddConnection:
         assert presenter.view.widget_get_sensitive("connect_button")
         assert not presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_one_connection_on_add_confirm_positive(self, mock_view, mock_prefs):
+    def test_one_connection_on_add_confirm_positive(self, mock_view, mock_prefs) -> None:
         # Setup initial connection in preferences
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
@@ -666,7 +669,7 @@ def mock_renderer():
 
 
 class GlobalFunctionsTests:
-    def test_combo_cell_data_func(self, mock_renderer):
+    def test_combo_cell_data_func(self, mock_renderer) -> None:
         import bauble.connmgr
 
         wt, at = bauble.connmgr.working_dbtypes, bauble.connmgr.dbtypes
@@ -684,7 +687,7 @@ class GlobalFunctionsTests:
 
         bauble.connmgr.working_dbtypes, bauble.connmgr.dbtypes = wt, at
 
-    def test_is_package_name(self):
+    def test_is_package_name(self) -> None:
         from bauble.connmgr import is_package_name
 
         assert is_package_name("sqlite3")
@@ -692,21 +695,21 @@ class GlobalFunctionsTests:
 
 
 class ButtonBrowseButtons:
-    def test_file_chosen(self, mock_view, mock_prefs):
+    def test_file_chosen(self, mock_view, mock_prefs) -> None:
         mock_view.reply_file_chooser_dialog.append("chosen")
         presenter = ConnMgrPresenter(mock_view, prefs=mock_prefs)
         presenter.on_file_btnbrowse_clicked()
         presenter.on_text_entry_changed("file_entry")
         assert presenter.filename == "chosen"
 
-    def test_file_not_chosen(self, mock_view):
+    def test_file_not_chosen(self, mock_view) -> None:
         mock_view.reply_file_chooser_dialog = []
         presenter = ConnMgrPresenter(mock_view, prefs=mock_prefs)
         presenter.filename = "previously"
         presenter.on_file_btnbrowse_clicked()
         assert presenter.filename == "previously"
 
-    def test_pictureroot_not_chosen(self, mock_view):
+    def test_pictureroot_not_chosen(self, mock_view) -> None:
         """
         Test that the pictureroot remains unchanged when no selection is made.
         """
@@ -720,7 +723,7 @@ class ButtonBrowseButtons:
         # Assert that pictureroot remains the same
         assert presenter.pictureroot == "previously"
 
-    def test_pictureroot2_chosen(self, mock_view):
+    def test_pictureroot2_chosen(self, mock_view) -> None:
         """
         Test that the pictureroot is updated when a valid selection is made.
         """
@@ -734,7 +737,7 @@ class ButtonBrowseButtons:
         # Assert that pictureroot is updated to the chosen value
         assert presenter.pictureroot == "chosen"
 
-    def test_pictureroot2_not_chosen(self, mock_view):
+    def test_pictureroot2_not_chosen(self, mock_view) -> None:
         """
         Test that the pictureroot remains unchanged when no selection is made.
         """
@@ -750,7 +753,7 @@ class ButtonBrowseButtons:
 
 
 class OnDialogResponseTests:
-    def test_on_dialog_response_ok_invalid_params(self, mock_view, mock_prefs):
+    def test_on_dialog_response_ok_invalid_params(self, mock_view, mock_prefs) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {}
         presenter = ConnMgrPresenter(mock_view, prefs=mock_prefs)
         dialog = MockDialog()
@@ -758,7 +761,7 @@ class OnDialogResponseTests:
         assert "run_message_dialog" in mock_view.invoked
         assert dialog.hidden
 
-    def test_on_dialog_response_ok_valid_params(self, mock_view, mock_prefs):
+    def test_on_dialog_response_ok_valid_params(self, mock_view, mock_prefs) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": False,
@@ -782,7 +785,7 @@ class TestButtonBrowseButtons:
     Tests for file and picture root browse buttons.
     """
 
-    def test_file_chosen(self, mock_view, mock_prefs):
+    def test_file_chosen(self, mock_view, mock_prefs) -> None:
         """
         Test that the file path is updated when a valid file is chosen.
         """
@@ -798,7 +801,7 @@ class TestButtonBrowseButtons:
         # Assert that the filename is updated to the chosen value
         assert presenter.filename == "chosen"
 
-    def test_file_not_chosen(self, mock_view, mock_prefs):
+    def test_file_not_chosen(self, mock_view, mock_prefs) -> None:
         """
         Test that the file path remains unchanged when no file is chosen.
         """
@@ -812,7 +815,7 @@ class TestButtonBrowseButtons:
         # Assert that the filename remains the same
         assert presenter.filename == "previously"
 
-    def test_pictureroot_chosen(self, mock_view, mock_prefs):
+    def test_pictureroot_chosen(self, mock_view, mock_prefs) -> None:
         """
         Test that the pictureroot is updated when a valid directory is chosen.
         """
@@ -828,7 +831,7 @@ class TestButtonBrowseButtons:
         # Assert that the pictureroot is updated to the chosen value
         assert presenter.pictureroot == "chosen"
 
-    def test_pictureroot_not_chosen(self, mock_view, mock_prefs):
+    def test_pictureroot_not_chosen(self, mock_view, mock_prefs) -> None:
         """
         Test that the pictureroot remains unchanged when no directory is chosen.
         """
@@ -842,7 +845,7 @@ class TestButtonBrowseButtons:
         # Assert that the pictureroot remains the same
         assert presenter.pictureroot == "previously"
 
-    def test_pictureroot2_chosen(self, mock_view, mock_prefs):
+    def test_pictureroot2_chosen(self, mock_view, mock_prefs) -> None:
         """
         Test that the pictureroot2 is updated when a valid directory is chosen.
         """
@@ -858,7 +861,7 @@ class TestButtonBrowseButtons:
         # Assert that the pictureroot is updated to the chosen value
         assert presenter.pictureroot == "chosen"
 
-    def test_pictureroot2_not_chosen(self, mock_view, mock_prefs):
+    def test_pictureroot2_not_chosen(self, mock_view, mock_prefs) -> None:
         """
         Test that the pictureroot2 remains unchanged when no directory is chosen.
         """
@@ -878,7 +881,7 @@ class TestOnDialogResponse:
     Tests for the `on_dialog_response` method in `ConnMgrPresenter`.
     """
 
-    def test_on_dialog_response_ok_invalid_params(self, mock_view, mock_prefs):
+    def test_on_dialog_response_ok_invalid_params(self, mock_view, mock_prefs) -> None:
         """
         Test that a message dialog is displayed when invalid parameters are submitted.
         """
@@ -892,7 +895,7 @@ class TestOnDialogResponse:
         assert "run_message_dialog" in mock_view.invoked
         assert dialog.hidden
 
-    def test_on_dialog_response_ok_valid_params(self, mock_view, mock_prefs):
+    def test_on_dialog_response_ok_valid_params(self, mock_view, mock_prefs) -> None:
         """
         Test that valid parameters are accepted, and preferences are updated.
         """
@@ -917,7 +920,7 @@ class TestOnDialogResponse:
         assert dialog.hidden
         assert mock_prefs.prefs[bauble.prefs.picture_root_pref] == "/tmp/nugkui"
 
-    def test_on_dialog_response_cancel(self, mock_view, mock_prefs):
+    def test_on_dialog_response_cancel(self, mock_view, mock_prefs) -> None:
         """
         Test that canceling the dialog hides it without further action.
         """
@@ -931,7 +934,7 @@ class TestOnDialogResponse:
         assert "run_message_dialog" not in mock_view.invoked
         assert dialog.hidden
 
-    def test_on_dialog_response_cancel_params_changed(self, mock_view, mock_prefs):
+    def test_on_dialog_response_cancel_params_changed(self, mock_view, mock_prefs) -> None:
         """
         Test that canceling the dialog after changes prompts a save confirmation.
         """
@@ -965,7 +968,7 @@ class TestOnDialogResponse:
 
 
 @pytest.fixture
-def temp_picture_folder():
+def temp_picture_folder() -> Generator[Incomplete, None, None]:
     """
     Fixture to create a temporary directory and clean it up after the test.
     """
@@ -978,7 +981,7 @@ def temp_picture_folder():
 
 
 class TestDialogResponseAndFolders:
-    def test_on_dialog_close_or_delete(self, mock_view, mock_prefs):
+    def test_on_dialog_close_or_delete(self, mock_view, mock_prefs) -> None:
         """
         Test that closing or deleting the dialog hides the window.
         """
@@ -989,7 +992,7 @@ class TestDialogResponseAndFolders:
 
     def test_on_dialog_response_ok_creates_picture_folders_exist(
         self, mock_view, mock_prefs, temp_picture_folder
-    ):
+    ) -> None:
         """
         Test that existing pictures and thumbs folders do not trigger redundant actions.
         """
@@ -1017,7 +1020,7 @@ class TestDialogResponseAndFolders:
 
     def test_on_dialog_response_ok_creates_picture_folders_half_exist(
         self, mock_view, mock_prefs, temp_picture_folder
-    ):
+    ) -> None:
         """
         Test that only missing folders (thumbs) are created when pictures folder exists.
         """
@@ -1046,7 +1049,7 @@ class TestDialogResponseAndFolders:
 
     def test_on_dialog_response_ok_creates_picture_folders_no_exist(
         self, mock_view, mock_prefs, temp_picture_folder
-    ):
+    ) -> None:
         """
         Test that missing pictures and thumbs folders are created.
         """
@@ -1076,7 +1079,7 @@ class TestDialogResponseAndFolders:
 
     def test_on_dialog_response_ok_creates_picture_folders_occupied(
         self, mock_view, mock_prefs, temp_picture_folder
-    ):
+    ) -> None:
         """
         Test that no folders are created when thumbnails or pictures are files.
         """

@@ -39,6 +39,13 @@ from bauble.prefs import prefs
 
 # from gi.repository import Gdk
 
+from bauble import pluginmgr
+from .flat_export import FlatFileExportTool as FlatFileExportTool
+from .utils import PS as PS, SVG as SVG
+from _typeshed import Incomplete
+logger: Incomplete
+config_list_pref: str
+default_config_pref: str
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 from sqlalchemy import select, union
@@ -61,10 +68,10 @@ config_list_pref = "report.options"
 
 # the default report generator to select on start
 default_config_pref = "report.xsl"
-formatter_settings_expanded_pref = "report.settings.expanded"
+formatter_settings_expanded_pref: str = "report.settings.expanded"
 
 
-def safe_set_text(gtk_widget, text):
+def safe_set_text(gtk_widget, text) -> None:
     """
     Sets the text of a Gtk widget replacing None with an empty string.
 
@@ -341,19 +348,19 @@ class SettingsBox:
     implement this interface and return it from the formatter's get_settings
     method.
     """
-
-    def __init__(self):
+    vbox: Incomplete
+    def __init__(self) -> None:
         # Create an instance of Gtk.VBox instead of subclassing it
         self.vbox = Gtk.VBox()
 
-    def get_settings(self):
+    def get_settings(self) -> None:
         """
         Should be implemented by subclasses or other classes to retrieve
         the settings.
         """
         raise NotImplementedError
 
-    def update(self, settings):
+    def update(self, settings) -> None:
         """
         Should be implemented by subclasses or other classes to update
         the settings with the given data.
@@ -375,10 +382,10 @@ class FormatterPlugin(pluginmgr.Plugin):
     NOTE: the title class attribute must be a unique string
     """
 
-    title = ""
+    title: str = ""
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         """inform report presenter that this plugin is available
 
         (extend in derived classes)
@@ -387,7 +394,7 @@ class FormatterPlugin(pluginmgr.Plugin):
         ReportToolDialogPresenter.formatter_class_map[cls.title] = cls
 
     @staticmethod
-    def format(objs, **kwargs):
+    def format(objs, **kwargs) -> None:
         """
         called when the use clicks on OK, this is the worker
         """
@@ -497,7 +504,7 @@ class TemplateFormatterPlugin(FormatterPlugin):
     """
 
     @classmethod
-    def install(cls, import_defaults=True):
+    def install(cls, import_defaults: bool = True) -> None:
         "create templates dir on plugin installation"
         logger.debug(f"installing {cls.title} plugin")
         container_dir = os.path.join(bpaths.appdata_dir(), "templates")
@@ -505,7 +512,7 @@ class TemplateFormatterPlugin(FormatterPlugin):
             os.mkdir(container_dir)
 
     @classmethod
-    def get_template(cls, filename):
+    def get_template(cls, filename) -> None:
         raise NotImplementedError
 
     @classmethod
@@ -553,11 +560,18 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
     function, and die.
 
     """
-
     # to be populated by template plugins
+    formatter_class_map: Incomplete
+    hard_coded_options: Incomplete
+    options: Incomplete
+    defaults: Incomplete
+    selection: Incomplete
+    session: Incomplete
+    work_thread: Incomplete
+    running: bool
     formatter_class_map = {}  # title->class
 
-    def __init__(self, view):
+    def __init__(self, view) -> None:
         super().__init__(model=self, view=view, refresh_view=False)
         self.start_thread(Thread(target=self.populate_names_combo))
 
@@ -573,7 +587,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         # remove them when selecting a different template.
         self.hard_coded_options = set(self.view.widgets.options_box.get_children())
 
-    def set_prefs_for(self, name, settings):
+    def set_prefs_for(self, name, settings) -> None:
         """
         This will overwrite any other report settings with name
         """
@@ -581,7 +595,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         template_options[name] = settings
         prefs[config_list_pref] = template_options
 
-    def thaw_templates(self, *args):
+    def thaw_templates(self, *args) -> None:
         template_options = prefs[config_list_pref] or {}
         thawn = 0
         for key in template_options:
@@ -594,7 +608,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         self.start_thread(Thread(target=self.populate_names_combo))
         logger.debug(f"thawn {thawn} templates")
 
-    def on_new_button_clicked(self, *args):
+    def on_new_button_clicked(self, *args) -> None:
         filename = os.path.join(bpaths.lib_dir(), "plugins", "report", "report.glade")
         view = GenericEditorView(filename, root_widget_name="choose_dialog")
         GenericEditorPresenter(model=self, view=view)
@@ -645,7 +659,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         signaller.disconnect(handler_id)
         view.cleanup()
 
-    def on_remove_button_clicked(self, *args):
+    def on_remove_button_clicked(self, *args) -> None:
         """remove user-template, or mark package-template as hidden"""
         # remove the file if it's a user template
         index = self.view.widgets.names_combo.get_active()
@@ -674,7 +688,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             # we deleted the last, so we move back
             self.view.widgets.names_combo.set_active_iter(previous_iter)
 
-    def on_names_combo_changed(self, combo, *args):
+    def on_names_combo_changed(self, combo, *args) -> None:
         self.options = {}  # reset options before idle action
         index = self.view.widgets.names_combo.get_active()
         if index != -1:
@@ -683,7 +697,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             prefs[default_config_pref] = name  # set the default to the new name
         GLib.idle_add(self._names_combo_changed_idle, combo)
 
-    def _names_combo_changed_idle(self, combo):
+    def _names_combo_changed_idle(self, combo) -> None:
         index = self.view.widgets.names_combo.get_active()
         self.view.widget_set_sensitive("details_box", (index != -1))
         if index != -1:
@@ -780,20 +794,20 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
 
         options_box.show_all()
 
-    def reset_options(self, widget):
+    def reset_options(self, widget) -> None:
         for entry, value in self.defaults:
             if isinstance(value, bool):
                 entry.set_active(value)
             else:
                 safe_set_text(entry, value)
 
-    def set_option(self, widget, fname):
+    def set_option(self, widget, fname) -> None:
         self.options[fname] = widget.get_text()
 
-    def set_bool_option(self, widget, fname):
+    def set_bool_option(self, widget, fname) -> None:
         self.options[fname] = widget.get_active()
 
-    def add_name_to_combo_and_select_it(self, name, plugin, is_package_template):
+    def add_name_to_combo_and_select_it(self, name, plugin, is_package_template) -> None:
         """the names tells it all
 
         scan through the names_ls, first compare with column:1, which holds
@@ -825,7 +839,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             item = names_ls.append(new_row)
         GLib.idle_add(butils.none, self.view.widgets.names_combo.set_active_iter, item)
 
-    def populate_names_combo(self):
+    def populate_names_combo(self) -> None:
         """populate names_ls from package- and user-templates
 
         please note: prefs[config_list_pref] are just user defined settings.
@@ -875,7 +889,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
                     logger.debug(f"{title} refuses {candidate}")
         GLib.idle_add(butils.none, self.view.widget_set_sensitive, "names_combo", True)
 
-    def save_formatter_settings(self):
+    def save_formatter_settings(self) -> None:
         template_options = prefs[config_list_pref]
         name = self.view.widget_get_value("names_combo")
         template_options[name] = self.options
@@ -910,7 +924,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         except KeyError:
             return self.selection
 
-    def start(self):
+    def start(self) -> None:
         """collect user choices, invokes formatter, repeat."""
         results_model = bauble.gui.get_results_model()  # guaranteed not empty
         self.selection = [row[0] for row in results_model]  # only top level selected
@@ -968,7 +982,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
             self.view.widgets.progressbar.pulse()
         return self.running
 
-    def run_thread(self, formatter, todo, settings):
+    def run_thread(self, formatter, todo, settings) -> None:
         from bauble import db
 
         session = db.Session()
@@ -984,7 +998,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
         session.close()
         GLib.idle_add(self.stop_progress)
 
-    def stop_progress(self):
+    def stop_progress(self) -> None:
         self.running = False
         self.work_thread.join()
         self.view.widgets.main_grid.set_sensitive(True)
@@ -994,12 +1008,12 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
 
 
 class ReportTool(pluginmgr.Tool):
-    category = (_("Report"), "plugins/report/tool-report.png")
-    label = _("From Template")
-    icon_name = "text-x-generic-template"
+    category: Incomplete = (_("Report"), "plugins/report/tool-report.png")
+    label: Incomplete = _("From Template")
+    icon_name: str = "text-x-generic-template"
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         """ """
         # is anything selected?  if not, refuse even considering
         if not bauble.gui.get_results_model():
@@ -1040,7 +1054,7 @@ class ReportTool(pluginmgr.Tool):
 class ReportToolPlugin(pluginmgr.Plugin):
     """ """
 
-    tools = [
+    tools: Incomplete = [
         ReportTool,
         FlatFileExportTool,
     ]

@@ -28,7 +28,8 @@ from bauble.plugins.report import get_pertinent_objects
 from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
 from bauble.utils import natsort_key
 
-logger = logging.getLogger(__name__)
+from _typeshed import Incomplete
+logger: Incomplete = logging.getLogger(__name__)
 
 
 # Centralize delayed imports
@@ -38,7 +39,7 @@ def dynamic_import(module_name, class_name):
 
 
 @pytest.fixture(scope="module")
-def populate_test_data(session):
+def populate_test_data(session) -> None:
     """
     Populates the database with test data.
     """

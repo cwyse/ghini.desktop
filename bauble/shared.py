@@ -4,6 +4,8 @@ import logging
 
 import gi
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 # from bauble.utils import safe_set_text
 from gi.repository import Gio, Gtk
@@ -13,7 +15,7 @@ from bauble import prefs
 # from gi.repository import Pango
 from bauble.utils import set_widget_value
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 import logging
 
@@ -26,11 +28,14 @@ class InfoExpander:
 
     To extend this, implement the `update()` method.
     """
-
     # Preference for storing the expanded state
+    expanded_pref: Incomplete
+    expander: Incomplete
+    vbox: Incomplete
+    widgets: Incomplete
     expanded_pref = None
 
-    def __init__(self, label, widgets=None):
+    def __init__(self, label, widgets: Optional[Incomplete] = None) -> None:
         """
         :param label: The name of this info expander, displayed on the expander.
         :param widgets: A bauble.utils.BuilderWidgets instance.
@@ -50,7 +55,7 @@ class InfoExpander:
         """Return the main widget (Gtk.Expander) for integration in UI layouts."""
         return self.expander
 
-    def on_expanded(self, expander, *args):
+    def on_expanded(self, expander, *args) -> None:
         """
         Save the expanded state in preferences, if specified.
         """
@@ -58,7 +63,7 @@ class InfoExpander:
             prefs.prefs[self.expanded_pref] = expander.get_expanded()
             prefs.prefs.save()
 
-    def set_labeled_value(self, prefix, value):
+    def set_labeled_value(self, prefix, value) -> None:
         """
         Toggle visibility of a labeled field and set its value.
 
@@ -82,14 +87,14 @@ class InfoExpander:
         else:
             logger.warning(f"Widgets for prefix '{prefix}' not found.")
 
-    def widget_set_value(self, widget_name, value, markup=False, default=None):
+    def widget_set_value(self, widget_name, value, markup: bool = False, default: Optional[Incomplete] = None) -> None:
         """
         A shorthand for L{bauble.utils.set_widget_value()}
         """
         if widget_name in self.widgets:
             set_widget_value(self.widgets[widget_name], value, markup, default)
 
-    def update(self, value):
+    def update(self, value) -> None:
         """
         This method should be implemented by classes that extend InfoExpander.
         """
@@ -102,10 +107,16 @@ class Action:
 
     Uses `Gio.SimpleAction`, as `Gtk.Action` is deprecated in GTK 4.
     """
-
+    name: Incomplete
+    label: Incomplete
+    tooltip: Incomplete
+    stock_id: Incomplete
+    callback: Incomplete
+    app: Incomplete
+    action: Incomplete
     def __init__(
-        self, name, label, tooltip=None, stock_id=None, callback=None, app=None
-    ):
+        self, name, label, tooltip: Optional[Incomplete] = None, stock_id: Optional[Incomplete] = None, callback: Optional[Incomplete] = None, app: Optional[Incomplete] = None
+    ) -> None:
         """
         :param name: Unique action name (e.g., "open").
         :param label: The action label.
@@ -130,12 +141,12 @@ class Action:
         if app:
             app.add_action(self.action)
 
-    def _on_activate(self, action, param):
+    def _on_activate(self, action, param) -> None:
         """Call the provided callback function when activated."""
         if self.callback:
             self.callback()
 
-    def set_enabled(self, enable):
+    def set_enabled(self, enable) -> None:
         """Enable or disable the action."""
         self.action.set_enabled(enable)
 
@@ -143,8 +154,8 @@ class Action:
         """Check if the action is enabled."""
         return self.action.get_enabled()
 
-    enabled = property(get_enabled, set_enabled)
+    enabled: Incomplete = property(get_enabled, set_enabled)
 
-    def execute(self, *args):
+    def execute(self, *args) -> None:
         """Manually trigger the action execution."""
         self._on_activate(None, None)

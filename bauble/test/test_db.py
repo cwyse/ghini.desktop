@@ -31,21 +31,21 @@ prefs.testing = True
 
 
 # Tests
-def test_class_of_object_genus():
+def test_class_of_object_genus() -> None:
     """
     Verify that db.class_of_object('genus') returns the correct Genus class.
     """
     assert db.class_of_object("genus") == Genus
 
 
-def test_class_of_object_accession_note():
+def test_class_of_object_accession_note() -> None:
     """
     Verify that db.class_of_object('accession_note') returns the correct AccessionNote class.
     """
     assert db.class_of_object("accession_note") == AccessionNote
 
 
-def test_class_of_object_not_existing():
+def test_class_of_object_not_existing() -> None:
     """
     Verify that db.class_of_object raises a ValueError for an invalid object type.
     """

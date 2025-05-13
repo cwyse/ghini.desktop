@@ -27,7 +27,8 @@ import logging
 import os
 import sys
 
-logger = logging.getLogger(__name__)
+from _typeshed import Incomplete
+logger: Incomplete = logging.getLogger(__name__)
 
 
 def main_is_frozen():

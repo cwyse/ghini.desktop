@@ -33,11 +33,14 @@ import bauble.pluginmgr as pluginmgr
 import bauble.task
 import bauble.utils as utils
 
+from typing import Union, Optional
+from bauble import pluginmgr
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import select
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -66,10 +69,13 @@ def ElementFactory(parent, name, **kwargs):
 
 class XMLExporter:
 
-    def __init__(self):
+    selected_path_label: Incomplete
+    progress_bar: Incomplete
+    selected_path: Incomplete
+    def __init__(self) -> None:
         pass
 
-    def start(self, path=None):
+    def start(self, path: Optional[Incomplete] = None) -> None:
 
         dialog = Gtk.Dialog(
             title=_("Ghini - XML Exporter"),
@@ -112,7 +118,7 @@ class XMLExporter:
         )
         dialog.show()
 
-    def on_open_file_chooser_dialog(self, button):
+    def on_open_file_chooser_dialog(self, button) -> None:
         chooser = Gtk.FileChooserDialog(
             title=_("Select a Directory"),
             parent=None,
@@ -130,7 +136,7 @@ class XMLExporter:
             self.selected_path_label.set_text(self.selected_path)
         chooser.destroy()
 
-    def on_dialog_response(self, dialog, response, file_chooser, check):
+    def on_dialog_response(self, dialog, response, file_chooser, check) -> None:
         filename = self.selected_path  # Use the selected path from the label
         one_file = check.get_active()  # Dynamically get the state of the checkbox
         if response == Gtk.ResponseType.ACCEPT:
@@ -141,7 +147,7 @@ class XMLExporter:
             self.__export_task(filename, one_file)
         dialog.destroy()
 
-    def __export_task(self, path, one_file=True):
+    def __export_task(self, path, one_file: bool = True) -> None:
         # Get all tables from metadata
         tables = list(db.metadata.tables.items())
         total_tables = len(tables)
@@ -203,9 +209,9 @@ class XMLExporter:
 
 class XMLExportCommandHandler(pluginmgr.CommandHandler):
 
-    command = "exxml"
+    command: str = "exxml"
 
-    def __call__(self, cmd, arg):
+    def __call__(self, cmd, arg) -> None:
         logger.debug(f"XMLExportCommandHandler({arg})")
         exporter = XMLExporter()
         logger.debug("starting")
@@ -214,19 +220,19 @@ class XMLExportCommandHandler(pluginmgr.CommandHandler):
 
 
 class XMLExportTool(pluginmgr.Tool):
-    category = _("Export")
-    label = _("XML")
-    icon_name = "new-xml.png"
+    category: Incomplete = _("Export")
+    label: Incomplete = _("XML")
+    icon_name: str = "new-xml.png"
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         c = XMLExporter()
         c.start()
 
 
 class XMLImexPlugin(pluginmgr.Plugin):
-    tools = [XMLExportTool]
-    commands = [XMLExportCommandHandler]
+    tools: Incomplete = [XMLExportTool]
+    commands: Incomplete = [XMLExportCommandHandler]
 
 
 try:

@@ -27,19 +27,22 @@ from bauble.error import BaubleError
 from bauble.prefs import prefs
 
 # Global configuration
-logger = logging.getLogger(__name__)
+from _typeshed import Incomplete
+from collections.abc import Generator
+SQLITE_URI: str
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 prefs.testing = True
 
 # 🔹 Configure Test Databases (SQLite & PostgreSQL)
 SQLITE_URI = "sqlite:////tmp/sqlite_test_db"
-POSTGRESQL_URI = "postgresql://ghini:9yuzebes@192.168.40.32/pytest_db"  # ⚠️ Update this!
+POSTGRESQL_URI: str = "postgresql://ghini:9yuzebes@192.168.40.32/pytest_db"  # ⚠️ Update this!
 URI = SQLITE_URI
 
 
 # Fixtures for Pytest
 @pytest.fixture(scope="session")
-def init_bauble():
+def init_bauble() -> None:
     """
     Initialize the database and plugins for testing.
     """
@@ -59,7 +62,7 @@ def init_bauble():
 
 
 @pytest.fixture(scope="function")
-def db_session(init_bauble):
+def db_session(init_bauble) -> Generator[None, None, None]:
     """
     Manages test-level transaction savepoint and cleanup.
     """
@@ -83,14 +86,14 @@ def db_session(init_bauble):
 
 
 @pytest.fixture(autouse=True)
-def clean_db(db_session):
+def clean_db(db_session) -> None:
     """Drops and recreates all tables for a fully clean database before each test."""
     db.metadata.drop_all(bind=db.engine)  # 🔥 Drop all tables
     db.metadata.create_all(bind=db.engine)  # 🔄 Recreate schema
 
 
 @pytest.fixture
-def mock_logger(request):
+def mock_logger(request) -> Generator[Incomplete, None, None]:
     """
     Capture logs during tests. Automatically detects the test module's logger
     name unless overridden by the test class or function.

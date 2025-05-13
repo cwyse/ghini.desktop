@@ -21,24 +21,32 @@ import threading
 
 import requests
 
-logger = logging.getLogger(__name__)
+from typing import Union, Optional
+from _typeshed import Incomplete
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 class AskTPL(threading.Thread):
-    running = None
+    _stop: bool
+    binomial: Incomplete
+    threshold: Incomplete
+    callback: Incomplete
+    timeout: Incomplete
+    gui: Incomplete
+    running: Incomplete = None
 
     def __init__(
         self,
         binomial,
         callback,
-        threshold=0.8,
-        timeout=4,
-        gui=False,
-        group=None,
-        verbose=None,
-        **kwargs,
-    ):
+        threshold: float = 0.8,
+        timeout: int = 4,
+        gui: bool = False,
+        group: Optional[Incomplete] = None,
+        verbose: Optional[Incomplete] = None,
+        **kwargs
+    ) -> None:
         super().__init__(group=group, target=None, name=None)
         logger.debug(
             "new %s, already running %s.",
@@ -68,7 +76,7 @@ class AskTPL(threading.Thread):
         self.timeout = timeout
         self.gui = gui
 
-    def stop(self):
+    def stop(self) -> None:
         self._stop = True
 
     def stopped(self):
@@ -344,7 +352,7 @@ def citation(d):
     return ("{Title} ({Family})".format(**d)).replace("   ", " ")
 
 
-def what_to_do_with_it(found, accepted):
+def what_to_do_with_it(found, accepted) -> None:
     if found is None and accepted is None:
         logger.info("nothing matches")
         return

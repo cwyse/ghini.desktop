@@ -55,6 +55,13 @@ from bauble.utils import (
     sorted_relationship,
 )
 
+from typing import Union, Optional
+from bauble import db
+from bauble import editor
+from _typeshed import Incomplete
+from bauble.plugins.garden.constants import bottom_heat_unit_values as bottom_heat_unit_values, cutting_type_values as cutting_type_values, flower_buds_values as flower_buds_values, leaves_values as leaves_values, length_unit_values as length_unit_values, prop_type_values as prop_type_values, tip_values as tip_values, wound_values as wound_values
+from bauble.utils import add_to_relationship as add_to_relationship, count_relationship_items as count_relationship_items, get_object_session as get_object_session, handle_db_error as handle_db_error, parse_date as parse_date, remove_from_relationship as remove_from_relationship, sorted_relationship as sorted_relationship
+logger: Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -71,7 +78,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-PlantPropagation = Table(
+PlantPropagation: Incomplete = Table(
     "plant_prop",
     db.Base.metadata,
     Column("plant_id", Integer, ForeignKey("plant.id"), primary_key=True),
@@ -102,10 +109,11 @@ class Propagation(db.Base, db.WithNotes):
     """
     Propagation
     """
-
-    __tablename__ = "propagation"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    prop_type = Column(
+    source: Incomplete
+    used_source: Incomplete
+    __tablename__: str = "propagation"
+    id: Incomplete = Column(Integer, primary_key=True, autoincrement=True)
+    prop_type: Incomplete = Column(
         types.Enum(
             values=list(prop_type_values.keys()),
             translations=prop_type_values,
@@ -113,9 +121,9 @@ class Propagation(db.Base, db.WithNotes):
         ),
         nullable=False,
     )
-    date = Column(types.Date)
+    date: Incomplete = Column(types.Date)
 
-    plants = relationship(
+    plants: Incomplete = relationship(
         "Plant",
         secondary="plant_prop",
         back_populates="propagations",
@@ -123,7 +131,7 @@ class Propagation(db.Base, db.WithNotes):
         single_parent=True,
     )
 
-    _cutting = relationship(
+    _cutting: Incomplete = relationship(
         "PropCutting",
         primaryjoin="Propagation.id == PropCutting.propagation_id",
         cascade="all, delete-orphan",
@@ -132,7 +140,7 @@ class Propagation(db.Base, db.WithNotes):
         back_populates="propagation",
         active_history=True,
     )
-    _seed = relationship(
+    _seed: Incomplete = relationship(
         "PropSeed",
         primaryjoin="Propagation.id == PropSeed.propagation_id",
         cascade="all, delete-orphan",
@@ -160,7 +168,7 @@ class Propagation(db.Base, db.WithNotes):
     )
 
     # Lazy import for Source
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     @property
@@ -198,7 +206,7 @@ class Propagation(db.Base, db.WithNotes):
         removethis = sum((a.quantity_recvd or 0) for a in self.accessions)
         return max(quantity - removethis, 0)
 
-    def get_summary(self, partial=False):
+    def get_summary(self, partial: bool = False):
         """compute a textual summary for this propagation
 
         a full description contains all fields, in `key:value;` format, plus
@@ -312,7 +320,7 @@ class Propagation(db.Base, db.WithNotes):
 
         return s
 
-    def clean(self):
+    def clean(self) -> None:
         if self.prop_type == "UnrootedCutting":
             utils.delete_or_expunge(self._seed)
             self._seed = None
@@ -325,7 +333,7 @@ class Propagation(db.Base, db.WithNotes):
             self._cutting = None
 
 
-PropagationNote = db.make_note_class("Propagation", Propagation)
+PropagationNote: Incomplete = db.make_note_class("Propagation", Propagation)
 Propagation.notes = relationship(
     "PropagationNote",
     back_populates="propagation",
@@ -338,14 +346,14 @@ class PropCuttingRooted(db.Base):
     """
     Rooting dates for cutting
     """
+    cutting: Incomplete
+    __tablename__: str = "prop_cutting_rooted"
 
-    __tablename__ = "prop_cutting_rooted"
-
-    id = Column(Integer, primary_key=True)
-    date = Column(types.Date)
-    quantity = Column(Integer, autoincrement=False, default=0, nullable=False)
-    cutting_id = Column(Integer, ForeignKey("prop_cutting.id"), nullable=False)
-    order_by = [asc(date)]
+    id: Incomplete = Column(Integer, primary_key=True)
+    date: Incomplete = Column(types.Date)
+    quantity: Incomplete = Column(Integer, autoincrement=False, default=0, nullable=False)
+    cutting_id: Incomplete = Column(Integer, ForeignKey("prop_cutting.id"), nullable=False)
+    order_by: Incomplete = [asc(date)]
 
     # Add the missing relationship
     cutting = relationship("PropCutting", back_populates="rooted")
@@ -355,10 +363,13 @@ class PropCutting(db.Base):
     """
     A cutting
     """
-
-    __tablename__ = "prop_cutting"
-    id = Column(Integer, primary_key=True)
-    cutting_type = Column(
+    wound: Incomplete
+    flower_buds: Incomplete
+    bottom_heat_temp: Incomplete
+    bottom_heat_unit: Incomplete
+    __tablename__: str = "prop_cutting"
+    id: Incomplete = Column(Integer, primary_key=True)
+    cutting_type: Incomplete = Column(
         types.Enum(
             values=list(cutting_type_values.keys()),
             translations=cutting_type_values,
@@ -366,21 +377,21 @@ class PropCutting(db.Base):
         ),
         default="Other",
     )
-    tip = Column(
+    tip: Incomplete = Column(
         types.Enum(
             values=list(tip_values.keys()), translations=tip_values, omit_aliases=False
         )
     )
-    leaves = Column(
+    leaves: Incomplete = Column(
         types.Enum(
             values=list(leaves_values.keys()),
             translations=leaves_values,
             omit_aliases=False,
         )
     )
-    leaves_reduced_pct = Column(Integer, autoincrement=False)
-    length = Column(Integer, autoincrement=False)
-    length_unit = Column(
+    leaves_reduced_pct: Incomplete = Column(Integer, autoincrement=False)
+    length: Incomplete = Column(Integer, autoincrement=False)
+    length_unit: Incomplete = Column(
         types.Enum(
             values=list(length_unit_values.keys()),
             translations=length_unit_values,
@@ -406,13 +417,13 @@ class PropCutting(db.Base):
         )
     )
 
-    fungicide = Column(UnicodeText)  # fungal soak
-    hormone = Column(UnicodeText)  # powder/liquid/None....solution
+    fungicide: Incomplete = Column(UnicodeText)  # fungal soak
+    hormone: Incomplete = Column(UnicodeText)  # powder/liquid/None....solution
 
-    media = Column(UnicodeText)
-    container = Column(UnicodeText)
-    location = Column(UnicodeText)
-    cover = Column(UnicodeText)  # vispore, poly, plastic dome, poly bag
+    media: Incomplete = Column(UnicodeText)
+    container: Incomplete = Column(UnicodeText)
+    location: Incomplete = Column(UnicodeText)
+    cover: Incomplete = Column(UnicodeText)  # vispore, poly, plastic dome, poly bag
 
     # temperature of bottom heat
     bottom_heat_temp = Column(Integer, autoincrement=False)
@@ -429,32 +440,34 @@ class PropCutting(db.Base):
         ),
         nullable=True,
     )
-    rooted_pct = Column(Integer, autoincrement=False)
+    rooted_pct: Incomplete = Column(Integer, autoincrement=False)
 
-    propagation_id = Column(Integer, ForeignKey("propagation.id"), nullable=False)
+    propagation_id: Incomplete = Column(Integer, ForeignKey("propagation.id"), nullable=False)
 
-    rooted = relationship(
+    rooted: Incomplete = relationship(
         "PropCuttingRooted",
         cascade="all, delete-orphan",
         primaryjoin="PropCutting.id == PropCuttingRooted.cutting_id",
         back_populates="cutting",
     )
 
-    propagation = relationship(
+    propagation: Incomplete = relationship(
         "Propagation", back_populates="_cutting", uselist=False, active_history=True
     )
 
 
 class PropSeed(db.Base):
     """ """
-
-    __tablename__ = "prop_seed"
-    id = Column(Integer, primary_key=True)
-    pretreatment = Column(UnicodeText)
-    nseeds = Column(Integer, nullable=False, autoincrement=False)
-    date_sown = Column(types.Date, nullable=False)
-    container = Column(UnicodeText)  # 4" pot plug tray, other
-    media = Column(UnicodeText)  # seedling media, sphagnum, other
+    covered: Incomplete
+    location: Incomplete
+    moved_from: Incomplete
+    __tablename__: str = "prop_seed"
+    id: Incomplete = Column(Integer, primary_key=True)
+    pretreatment: Incomplete = Column(UnicodeText)
+    nseeds: Incomplete = Column(Integer, nullable=False, autoincrement=False)
+    date_sown: Incomplete = Column(types.Date, nullable=False)
+    container: Incomplete = Column(UnicodeText)  # 4" pot plug tray, other
+    media: Incomplete = Column(UnicodeText)  # seedling media, sphagnum, other
 
     # covered with #2 granite grit: no, yes, lightly heavily
     covered = Column(UnicodeText)
@@ -465,22 +478,22 @@ class PropSeed(db.Base):
 
     # TODO: do we need multiple moved to->moved from and date fields
     moved_from = Column(UnicodeText)
-    moved_to = Column(UnicodeText)
-    moved_date = Column(types.Date)
+    moved_to: Incomplete = Column(UnicodeText)
+    moved_date: Incomplete = Column(types.Date)
 
-    germ_date = Column(types.Date)
+    germ_date: Incomplete = Column(types.Date)
 
-    nseedlings = Column(Integer, autoincrement=False)  # number of seedling
-    germ_pct = Column(Integer, autoincrement=False)  # % of germination
-    date_planted = Column(types.Date)
+    nseedlings: Incomplete = Column(Integer, autoincrement=False)  # number of seedling
+    germ_pct: Incomplete = Column(Integer, autoincrement=False)  # % of germination
+    date_planted: Incomplete = Column(types.Date)
 
-    propagation_id = Column(Integer, ForeignKey("propagation.id"), nullable=False)
+    propagation_id: Incomplete = Column(Integer, ForeignKey("propagation.id"), nullable=False)
 
-    propagation = relationship(
+    propagation: Incomplete = relationship(
         "Propagation", back_populates="_seed", uselist=False, active_history=True
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         # what would the string be...???
         # cuttings of self.accession.species_str() and accession number
         return repr(self)
@@ -494,8 +507,10 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
     :param view: an instance of PlantEditorView
     :param session:
     """
-
-    def __init__(self, parent, model, view, session):
+    parent_ref: Incomplete
+    session: Incomplete
+    _dirty: bool
+    def __init__(self, parent, model, view, session) -> None:
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
         self.session = session
@@ -512,7 +527,7 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
     def is_dirty(self):
         return self._dirty
 
-    def add_propagation(self):
+    def add_propagation(self) -> None:
         """
         Open the PropagationEditor and append the resulting
         propagation to self.model.propagations
@@ -544,6 +559,7 @@ gi.require_version("Gtk", "3.0")
 
 
 class PropagationHandler:
+    _dirty: bool
     def create_propagation_box(self, propagation):
         """
         Creates a propagation UI box with edit and remove buttons.
@@ -657,7 +673,7 @@ class PropagationHandler:
         hbox.show_all()
         return hbox
 
-    def on_add_button_clicked(self, *args):
+    def on_add_button_clicked(self, *args) -> None:
         """Handle add button click."""
         self.add_propagation()
         self.parent_ref().refresh_sensitivity()
@@ -666,9 +682,9 @@ class PropagationHandler:
 class PropagationEditorView(editor.GenericEditorView):
     """ """
 
-    _tooltips = {}
+    _tooltips: Incomplete = {}
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[Incomplete] = None) -> None:
         """ """
         super().__init__(
             os.path.join(paths.lib_dir(), "plugins", "garden", "prop_editor.glade"),
@@ -686,7 +702,12 @@ class PropagationEditorView(editor.GenericEditorView):
 
 class CuttingPresenter(editor.GenericEditorPresenter):
 
-    widget_to_field_map = {
+    parent_ref: Incomplete
+    session: Incomplete
+    _dirty: bool
+    propagation: Incomplete
+    model: Incomplete
+    widget_to_field_map: Incomplete = {
         "cutting_type_combo": "cutting_type",
         "cutting_length_entry": "length",
         "cutting_length_unit_combo": "length_unit",
@@ -706,7 +727,7 @@ class CuttingPresenter(editor.GenericEditorPresenter):
         "cutting_rooted_pct_entry": "rooted_pct",
     }
 
-    def __init__(self, parent, model, view, session):
+    def __init__(self, parent, model, view, session) -> None:
         """
         :param model: an instance of class Propagation
         :param view: an instance of PropagationEditorView
@@ -867,13 +888,13 @@ class CuttingPresenter(editor.GenericEditorPresenter):
     def is_dirty(self):
         return self._dirty
 
-    def set_model_attr(self, field, value, validator=None):
+    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
         logger.debug(f"{field} = {value}")
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 
-    def on_rooted_add_clicked(self, button, *args):
+    def on_rooted_add_clicked(self, button, *args) -> None:
         """ """
         tree = self.view.widgets.rooted_treeview
         rooted = PropCuttingRooted()
@@ -885,7 +906,7 @@ class CuttingPresenter(editor.GenericEditorPresenter):
         column = tree.get_column(0)
         tree.set_cursor(path, column, start_editing=True)
 
-    def on_rooted_remove_clicked(self, button, *args):
+    def on_rooted_remove_clicked(self, button, *args) -> None:
         """ """
         tree = self.view.widgets.rooted_treeview
         model, treeiter = tree.get_selection().get_selected()
@@ -897,7 +918,7 @@ class CuttingPresenter(editor.GenericEditorPresenter):
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         # TODO: not so sure. is this a 'refresh', or a 'init' view?
         for widget, attr in list(self.widget_to_field_map.items()):
             value = getattr(self.model, attr)
@@ -910,7 +931,12 @@ class CuttingPresenter(editor.GenericEditorPresenter):
 
 class SeedPresenter(editor.GenericEditorPresenter):
 
-    widget_to_field_map = {
+    _dirty: bool
+    parent_ref: Incomplete
+    session: Incomplete
+    propagation: Incomplete
+    model: Incomplete
+    widget_to_field_map: Incomplete = {
         "seed_pretreatment_textview": "pretreatment",
         "seed_nseeds_entry": "nseeds",
         "seed_sown_entry": "date_sown",
@@ -925,7 +951,7 @@ class SeedPresenter(editor.GenericEditorPresenter):
         "seed_date_planted_entry": "date_planted",
     }
 
-    def __init__(self, parent, model, view, session):
+    def __init__(self, parent, model, view, session) -> None:
         """
         :param model: an instance of class Propagation
         :param view: an instance of PropagationEditorView
@@ -1013,13 +1039,13 @@ class SeedPresenter(editor.GenericEditorPresenter):
     def is_dirty(self):
         return self._dirty
 
-    def set_model_attr(self, field, value, validator=None):
+    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
         # debug('%s = %s' % (field, value))
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         date_format = prefs.prefs[prefs.date_format_pref]
         for widget, attr in list(self.widget_to_field_map.items()):
             value = getattr(self.model, attr)
@@ -1033,13 +1059,16 @@ class PropagationPresenter(editor.ChildPresenter):
     PropagationEditorPresenter.
 
     """
-
-    widget_to_field_map = {
+    session: Incomplete
+    _cutting_presenter: Incomplete
+    _seed_presenter: Incomplete
+    _dirty: bool
+    widget_to_field_map: Incomplete = {
         "prop_type_combo": "prop_type",
         "prop_date_entry": "date",
     }
 
-    def __init__(self, model, view):
+    def __init__(self, model, view) -> None:
         """
         :param model: an instance of class Propagation
         :param view: an instance of PropagationEditorView
@@ -1071,7 +1100,7 @@ class PropagationPresenter(editor.ChildPresenter):
         self._dirty = False
         utils.setup_date_button(self.view, "prop_date_entry", "prop_date_button")
 
-    def on_prop_type_changed(self, combo, *args):
+    def on_prop_type_changed(self, combo, *args) -> None:
         it = combo.get_active_iter()
         prop_type = combo.get_model()[it][0]
         if self.model.prop_type != prop_type:
@@ -1098,7 +1127,7 @@ class PropagationPresenter(editor.ChildPresenter):
         else:
             return self._dirty
 
-    def set_model_attr(self, field, value, validator=None):
+    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
         """
         Set attributes on the model and update the GUI as expected.
         """
@@ -1107,14 +1136,14 @@ class PropagationPresenter(editor.ChildPresenter):
         self._dirty = True
         self.refresh_sensitivity()
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         self._cutting_presenter.cleanup()
         self._seed_presenter.cleanup()
 
-    def refresh_sensitivity(self):
+    def refresh_sensitivity(self) -> None:
         pass
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         pass
 
 
@@ -1129,8 +1158,10 @@ class SourcePropagationPresenter(PropagationPresenter):
     :param view:  AccessionEditorView
     :param session: sqlalchemy.orm.sesssion
     """
-
-    def __init__(self, parent, model, view, session):
+    parent_ref: Incomplete
+    parent_session: Incomplete
+    _dirty: bool
+    def __init__(self, parent, model, view, session) -> None:
         self.parent_ref = weakref.ref(parent)
         self.parent_session = session
         try:
@@ -1159,7 +1190,7 @@ class SourcePropagationPresenter(PropagationPresenter):
         self._dirty = False
         super().__init__(model, view)
 
-    def on_prop_type_changed(self, combo, *args):
+    def on_prop_type_changed(self, combo, *args) -> None:
         """
         Override PropagationPresenter.on_type_changed() to handle the
         None value in the prop_type_combo which is specific the
@@ -1175,13 +1206,13 @@ class SourcePropagationPresenter(PropagationPresenter):
             super().on_prop_type_changed(combo, *args)
         self._dirty = False
 
-    def set_model_attr(self, attr, value, validator=None):
+    def set_model_attr(self, attr, value, validator: Optional[Incomplete] = None) -> None:
         logger.debug(f"set_model_attr({attr}, {value})")
         super().set_model_attr(attr, value)
         self._dirty = True
         self.refresh_sensitivity()
 
-    def refresh_sensitivity(self):
+    def refresh_sensitivity(self) -> None:
         self.parent_ref().refresh_sensitivity()
 
     def is_dirty(self):
@@ -1190,7 +1221,7 @@ class SourcePropagationPresenter(PropagationPresenter):
 
 class PropagationEditorPresenter(PropagationPresenter):
 
-    def __init__(self, model, view):
+    def __init__(self, model, view) -> None:
         """
         :param model: an instance of class Propagation
         :param view: an instance of PropagationEditorView
@@ -1206,7 +1237,7 @@ class PropagationEditorPresenter(PropagationPresenter):
         r = self.view.start()
         return r
 
-    def refresh_sensitivity(self):
+    def refresh_sensitivity(self) -> None:
         super().refresh_sensitivity()
         sensitive = True
 
@@ -1234,11 +1265,17 @@ class PropagationEditorPresenter(PropagationPresenter):
 class PropagationEditor(editor.GenericModelViewPresenterEditor):
 
     # these have to correspond to the response values in the view
-    RESPONSE_OK_AND_ADD = 11
-    RESPONSE_NEXT = 22
-    ok_responses = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
+    view: Incomplete
+    presenter: Incomplete
+    session: Incomplete
+    model: Incomplete
+    parent: Incomplete
+    _return: Incomplete
+    RESPONSE_OK_AND_ADD: int = 11
+    RESPONSE_NEXT: int = 22
+    ok_responses: Incomplete = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model, parent=None):
+    def __init__(self, model, parent: Optional[Incomplete] = None) -> None:
         """
         :param prop_parent: an instance with a propagation relation
         :param model: Propagation instance
@@ -1265,7 +1302,7 @@ class PropagationEditor(editor.GenericModelViewPresenterEditor):
         view = PropagationEditorView(parent=self.parent)
         self.presenter = PropagationEditorPresenter(self.model, view)
 
-    def handle_response(self, response, commit=True):
+    def handle_response(self, response, commit: bool = True):
         """
         Handle the response from the presenter and manage database commits or rollbacks.
 
@@ -1312,7 +1349,7 @@ class PropagationEditor(editor.GenericModelViewPresenterEditor):
 
         return True
 
-    def __del__(self):
+    def __del__(self) -> None:
         # override the editor.GenericModelViewPresenterEditor since it
         # will close the session but since we are called with the
         # AccessionEditor's session we don't want that
@@ -1321,7 +1358,7 @@ class PropagationEditor(editor.GenericModelViewPresenterEditor):
         # is self.commit is True
         pass
 
-    def start(self, commit=True):
+    def start(self, commit: bool = True):
         while True:
             response = self.presenter.start()
             self.presenter.view.save_state()

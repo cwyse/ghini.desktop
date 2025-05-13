@@ -47,7 +47,7 @@ def setup_generic_view():
     return _setup
 
 
-def test_create_generic_view(setup_generic_view):
+def test_create_generic_view(setup_generic_view) -> None:
     """
     Test creating a GenericEditorView.
     """
@@ -56,7 +56,7 @@ def test_create_generic_view(setup_generic_view):
     assert isinstance(view.widgets, utils.BuilderWidgets)
 
 
-def test_set_title_ok(setup_generic_view):
+def test_set_title_ok(setup_generic_view) -> None:
     """
     Test setting the title with a root widget.
     """
@@ -67,7 +67,7 @@ def test_set_title_ok(setup_generic_view):
     assert view.get_window().get_title() == title
 
 
-def test_set_title_no_root(setup_generic_view):
+def test_set_title_no_root(setup_generic_view) -> None:
     """
     Test setting the title without a root widget.
     """
@@ -80,7 +80,7 @@ def test_set_title_no_root(setup_generic_view):
         view.get_window()
 
 
-def test_set_icon_no_root(setup_generic_view):
+def test_set_icon_no_root(setup_generic_view) -> None:
     """
     Test setting the icon without a root widget.
     """
@@ -91,7 +91,7 @@ def test_set_icon_no_root(setup_generic_view):
         view.set_icon(title)
 
 
-def test_add_widget(setup_generic_view):
+def test_add_widget(setup_generic_view) -> None:
     """
     Test adding a widget to the view.
     """
@@ -107,7 +107,7 @@ def test_add_widget(setup_generic_view):
 
 
 @pytest.mark.skip(reason="Cannot be tested in a non-windowed environment")
-def test_set_sensitive(setup_generic_view):
+def test_set_sensitive(setup_generic_view) -> None:
     """
     Test setting widget sensitivity.
     """
@@ -119,7 +119,7 @@ def test_set_sensitive(setup_generic_view):
     assert not view.widgets.cancel_button.get_sensitive()
 
 
-def test_date_parser_generic():
+def test_date_parser_generic() -> None:
     """
     Test parsing various date formats.
     """
@@ -140,7 +140,7 @@ def test_date_parser_generic():
     assert parse_date("18:20+0500, 18/1 2019") == target
 
 
-def test_date_parser_ambiguous():
+def test_date_parser_ambiguous() -> None:
     """
     Test parsing ambiguous date formats with different settings.
     """
@@ -159,7 +159,7 @@ def test_date_parser_ambiguous():
     )
 
 
-def test_date_parser_365():
+def test_date_parser_365() -> None:
     """
     Test parsing date with fewer components.
     """

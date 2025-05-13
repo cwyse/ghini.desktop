@@ -22,14 +22,16 @@ import math
 import os.path
 import re
 
-logger = logging.getLogger(__name__)
+from typing import Union, Optional
+from _typeshed import Incomplete
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 class SVG:
     """not a class, more a namespace - cfr PS"""
 
-    font = {
+    font: Incomplete = {
         "\\u200b": 0,
         "!": 20,
         "A": 36,
@@ -198,7 +200,7 @@ class SVG:
     }
 
     @classmethod
-    def add_text(cls, x, y, s, size, align=0, italic=False, strokes=1, rotate=0):
+    def add_text(cls, x, y, s, size, align: int = 0, italic: bool = False, strokes: int = 1, rotate: int = 0):
         """compute the `use` elements to be added and the width of the result
 
         align 0: left; align 1: right; align 0.5: centre
@@ -249,7 +251,7 @@ class SVG:
         )
 
     @classmethod
-    def add_code39(cls, x, y, s, unit=1, height=10, align=0, colour="#0000ff"):
+    def add_code39(cls, x, y, s, unit: int = 1, height: int = 10, align: int = 0, colour: str = "#0000ff"):
         """return svg code corresponding to barcode for string s"""
         result_list = []
         cumulative_x = 0
@@ -275,14 +277,14 @@ class SVG:
         return "".join(result_list), x + cumulative_x + shift, y
 
     @classmethod
-    def add_qr(cls, x, y, text, scale=1, side=None):
+    def add_qr(cls, x, y, text, scale: int = 1, side: Optional[Incomplete] = None):
         return add_qr(x, y, text, scale, side, format="svg")
 
 
 class PS:
     """not a class, more a namespace - cfr SVG"""
 
-    font = {
+    font: Incomplete = {
         "serif": {
             " ": ("5F", 12),
             "\u200b": ("5F", 0),
@@ -613,7 +615,7 @@ class PS:
 
     @classmethod
     def add_text(
-        cls, x, y, s, style="sans", size=12, align=0, stretch=1, maxwidth=None
+        cls, x, y, s, style: str = "sans", size: int = 12, align: int = 0, stretch: int = 1, maxwidth: Optional[Incomplete] = None
     ):
         pass
 
@@ -650,7 +652,7 @@ class PS:
         return "\n".join(result)
 
     @classmethod
-    def add_qr(cls, x, y, text, scale=1, side=None):
+    def add_qr(cls, x, y, text, scale: int = 1, side: Optional[Incomplete] = None):
         return add_qr(x, y, text, scale, side, format="ps")
 
     @classmethod
@@ -748,7 +750,7 @@ class Code39:
     # and end with a single special symbol (we call it '!') which isn't
     # included in the 45 encodable characters.
 
-    MAP = {
+    MAP: Incomplete = {
         "!": "b   b bbb bbb b",
         "7": "b b   b bbb bbb",
         "-": "b   b b bbb bbb",
@@ -814,7 +816,7 @@ class Code39:
         return format % d
 
     @classmethod
-    def letter(cls, letter, height, translate=None, colour="#0000ff"):
+    def letter(cls, letter, height, translate: Optional[Incomplete] = None, colour: str = "#0000ff"):
         if translate is not None:
             transform_text = ' transform="translate({},{})"'.format(*translate)
         else:
@@ -829,14 +831,15 @@ class add_qr_functor:
     """
 
     import pyqrcode
-
-    def __init__(self):
+    pattern: Incomplete
+    buffer: Incomplete
+    def __init__(self) -> None:
         self.pattern = {
             "svg": re.compile('<svg.*height="([0-9]*)".*>(<path.*>)</svg>'),
             "ps": re.compile(".* ([0-9]*).*(^/M.*)%%EOF.*", re.MULTILINE | re.DOTALL),
         }
 
-    def __call__(self, x, y, text, scale=1, side=None, format="svg"):
+    def __call__(self, x, y, text, scale: int = 1, side: Optional[Incomplete] = None, format: str = "svg"):
         import io
 
         qr = self.pyqrcode.create(text)
@@ -876,7 +879,7 @@ class add_qr_functor:
         return result
 
 
-add_qr = add_qr_functor()
+add_qr: Incomplete = add_qr_functor()
 
 
 def get_caller_template_location():

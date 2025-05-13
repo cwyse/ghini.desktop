@@ -24,9 +24,13 @@ from sqlalchemy import Column, Integer, Unicode, UnicodeText, select
 
 import bauble.db as db
 
-VERSION_KEY = "version"
-CREATED_KEY = "created"
-REGISTRY_KEY = "registry"
+from typing import Union, Optional
+from bauble import db
+from _typeshed import Incomplete
+DATE_FORMAT_KEY: str
+VERSION_KEY: str = "version"
+CREATED_KEY: str = "created"
+REGISTRY_KEY: str = "registry"
 
 # date format strings:
 # yy - short year
@@ -38,7 +42,7 @@ REGISTRY_KEY = "registry"
 DATE_FORMAT_KEY = "date_format"
 
 
-def get_default(name, default=None, session=None):
+def get_default(name, default: Optional[Incomplete] = None, session: Optional[Incomplete] = None):
     """
     Get a BaubleMeta object with name.  If the default value is not
     None then a BaubleMeta object is returned with name and the
@@ -98,7 +102,7 @@ class BaubleMeta(db.Base):
 
     """
 
-    __tablename__ = "bauble"
-    id = Column(Integer, primary_key=True)
-    name = Column(Unicode(64), unique=True)
-    value = Column(UnicodeText)
+    __tablename__: str = "bauble"
+    id: Incomplete = Column(Integer, primary_key=True)
+    name: Incomplete = Column(Unicode(64), unique=True)
+    value: Incomplete = Column(UnicodeText)

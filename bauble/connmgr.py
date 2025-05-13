@@ -36,10 +36,12 @@ import bauble
 from bauble import paths, prefs
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import GdkPixbuf, Gtk
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger._cache.clear()
 logger.setLevel(logging.INFO)
 
@@ -54,11 +56,11 @@ def is_package_name(name):
         return False
 
 
-working_dbtypes = []
-dbtypes = []
+working_dbtypes: Incomplete = []
+dbtypes: Incomplete = []
 
 
-def populate_dbtypes(package_list):
+def populate_dbtypes(package_list) -> None:
     """initialize dbtypes and working_dbtypes
 
     package_list is a list of pairs, in each pair, first is the package
@@ -83,7 +85,7 @@ populate_dbtypes(
 )
 
 
-def type_combo_cell_data_func(combo, renderer, model, iter, data=None):
+def type_combo_cell_data_func(combo, renderer, model, iter, data: Optional[Incomplete] = None) -> None:
     """passed to the gtk method set_cell_data_func
 
     item is sensitive iff in working_dbtypes
@@ -94,7 +96,7 @@ def type_combo_cell_data_func(combo, renderer, model, iter, data=None):
     renderer.set_property("text", dbtype)
 
 
-def newer_version_on_github(input_stream, force=False):
+def newer_version_on_github(input_stream, force: bool = False):
     """is there a new patch on github for this production line
 
     if the remote version is higher than the running one, return
@@ -125,7 +127,7 @@ def newer_version_on_github(input_stream, force=False):
     return False
 
 
-def retrieve_latest_release_date():
+def retrieve_latest_release_date() -> None:
     # retrieve remote information from github regarding the latest release.
     # this is executed in a different thread, and it will overwrite the
     # bauble.release_date text.
@@ -183,7 +185,7 @@ def retrieve_latest_release_date():
         )
 
 
-def check_and_notify_new_version(view):
+def check_and_notify_new_version(view) -> None:
     # check whether there's a newer version on github.  this is executed in
     # a different thread, which does nothing or terminates the program.
     version_on_github = (
@@ -244,8 +246,22 @@ class ConnMgrPresenter(GenericEditorPresenter):
     :param default: the name of the connection to select from the list
       of connection names
     """
-
-    widget_to_field_map = {
+    filename: Incomplete
+    use_defaults: bool
+    passwd: bool
+    model: Incomplete
+    view: Incomplete
+    connection_names: Incomplete
+    connections: Incomplete
+    connection_name: Incomplete
+    prev_connection_name: Incomplete
+    dbtype: Incomplete
+    pictureroot: Incomplete
+    database: Incomplete
+    host: Incomplete
+    port: Incomplete
+    user: Incomplete
+    widget_to_field_map: Incomplete = {
         "name_combo": "connection_name",  # and self.connection_names
         "usedefaults_chkbx": "use_defaults",
         "type_combo": "dbtype",
@@ -259,9 +275,9 @@ class ConnMgrPresenter(GenericEditorPresenter):
         "pictureroot_entry": "pictureroot",
     }
 
-    view_accept_buttons = ["cancel_button", "connect_button"]
+    view_accept_buttons: Incomplete = ["cancel_button", "connect_button"]
 
-    def __init__(self, view=None, prefs=None):
+    def __init__(self, view: Optional[Incomplete] = None, prefs: Optional[Incomplete] = None) -> None:
         self.filename = self.database = self.host = self.port = self.user = (
             self.pictureroot
         ) = self.connection_name = self.prev_connection_name = None
@@ -320,7 +336,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             self.start_thread(Thread(target=retrieve_latest_release_date))
         logger.debug(f"main_is_frozen = {main_is_frozen()}")
 
-    def on_file_btnbrowse_clicked(self, *args):
+    def on_file_btnbrowse_clicked(self, *args) -> None:
         previously = self.view.widget_get_value("file_entry")
         last_folder, bn = os.path.split(previously)
         # Use the window from self.view
@@ -339,7 +355,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         )
         self.replace_leading_appdata("file_entry")
 
-    def on_pictureroot_btnbrowse_clicked(self, *args):
+    def on_pictureroot_btnbrowse_clicked(self, *args) -> None:
         previously = self.view.widget_get_value("pictureroot_entry")
         last_folder, bn = os.path.split(previously)
 
@@ -359,7 +375,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         )
         self.replace_leading_appdata("pictureroot_entry")
 
-    def on_pictureroot2_btnbrowse_clicked(self, *args):
+    def on_pictureroot2_btnbrowse_clicked(self, *args) -> None:
         previously = self.view.widget_get_value("pictureroot2_entry")
         last_folder, bn = os.path.split(previously)
 
@@ -379,7 +395,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         )
         self.replace_leading_appdata("pictureroot2_entry")
 
-    def replace_leading_appdata(self, entry):
+    def replace_leading_appdata(self, entry) -> None:
         value = self.view.widget_get_value(entry).replace("\\", "/")
         if value.startswith(paths.appdata_dir().replace("\\", "/")):
             value = os.path.relpath(value, start=paths.appdata_dir())
@@ -388,7 +404,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             value = Path(value)
             self.view.widget_set_value(entry, value)
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         GenericEditorPresenter.refresh_view(self)
         conn_dict = self.connections
 
@@ -409,18 +425,18 @@ class ConnMgrPresenter(GenericEditorPresenter):
                 self.view.widget_set_visible("dbms_parambox", True)
                 self.view.widget_set_visible("sqlite_parambox", False)
 
-    def on_usedefaults_chkbx_toggled(self, widget, *args):
+    def on_usedefaults_chkbx_toggled(self, widget, *args) -> None:
         self.on_chkbx_toggled(widget, *args)
         self.refresh_entries_sensitive()
 
-    def refresh_entries_sensitive(self):
+    def refresh_entries_sensitive(self) -> None:
         x = not self.use_defaults
         self.view.widget_set_sensitive("file_entry", x)
         self.view.widget_set_sensitive("pictureroot_entry", x)
         self.view.widget_set_sensitive("file_btnbrowse", x)
         self.view.widget_set_sensitive("pictureroot_btnbrowse", x)
 
-    def on_dialog_response(self, dialog, response, data=None, mock_prefs=None):
+    def on_dialog_response(self, dialog, response, data: Optional[Incomplete] = None, mock_prefs: Optional[Incomplete] = None):
         """
         The dialog's response signal handler.
         """
@@ -454,11 +470,11 @@ class ConnMgrPresenter(GenericEditorPresenter):
 
         return response
 
-    def on_dialog_close_or_delete(self, widget, event=None):
+    def on_dialog_close_or_delete(self, widget, event: Optional[Incomplete] = None):
         self.view.get_window().hide()
         return True
 
-    def remove_connection(self, name):
+    def remove_connection(self, name) -> None:
         """remove named connection, from combobox and from self"""
         if name in self.connections:
             position = self.connection_names.index(name)
@@ -469,7 +485,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         prefs.prefs[bauble.conn_list_pref] = self.connections
         prefs.prefs.save()
 
-    def on_remove_button_clicked(self, button, data=None):
+    def on_remove_button_clicked(self, button, data: Optional[Incomplete] = None) -> None:
         """
         remove the connection from connection list, this does not affect
         the database or its data
@@ -489,7 +505,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         if self.connection_names:
             self.view.combobox_set_active("name_combo", 0)
 
-    def on_add_button_clicked(self, *args):
+    def on_add_button_clicked(self, *args) -> None:
         if not self.are_prefs_already_saved(self.prev_connection_name):
             msg = (
                 _("Do you want to save your changes to %s ?")
@@ -513,7 +529,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             self.view.widget_set_expanded("expander", True)
             self.view.combobox_set_active("name_combo", 0)
 
-    def save_current_to_prefs(self):
+    def save_current_to_prefs(self) -> None:
         """add current named params to saved connections"""
         if self.connection_name is None:
             return
@@ -536,7 +552,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         params = copy.copy(self.get_params())
         return params == stored_params
 
-    def on_name_combo_changed(self, combo, data=None):
+    def on_name_combo_changed(self, combo, data: Optional[Incomplete] = None) -> None:
         """
         the name changed so fill in everything else
         """
@@ -590,7 +606,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         self.replace_leading_appdata("pictureroot_entry")
         self.replace_leading_appdata("pictureroot2_entry")
 
-    def get_passwd(self, title=_("Enter your password"), before_main=False):
+    def get_passwd(self, title=_("Enter your password"), before_main: bool = False):
         """
         Show a dialog with and entry and return the value entered.
         """
@@ -730,7 +746,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             os.mkdir(thumbs)
         return valid, msg
 
-    def get_params(self, new=None):
+    def get_params(self, new: Optional[Incomplete] = None):
         if new is not None:
             self.dbtype = "SQLite"
             self.use_defaults = True
@@ -758,7 +774,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         result["type"] = self.dbtype
         return result
 
-    def set_params(self, params=None):
+    def set_params(self, params: Optional[Incomplete] = None) -> None:
         if params is None:
             params = self.connections[self.connection_name]
             self.dbtype = params["type"]
@@ -776,7 +792,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         self.refresh_view()
 
 
-def start_connection_manager(default_conn=None):
+def start_connection_manager(default_conn: Optional[Incomplete] = None):
     """activate connection manager and return connection name and uri"""
     glade_path = os.path.join(paths.lib_dir(), "connmgr.glade")
     view = GenericEditorView(glade_path, parent=None, root_widget_name="main_dialog")

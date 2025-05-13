@@ -19,7 +19,7 @@ import pytest
 from bauble.querybuilderparser import BuiltQuery
 
 
-def test_and_clauses():
+def test_and_clauses() -> None:
     query = BuiltQuery(
         'plant WHERE accession.species.genus.family.epithet=Fabaceae AND location.description="Block 10" and quantity > 0 and quantity == 0'
     )
@@ -32,7 +32,7 @@ def test_and_clauses():
         assert len(query.parsed[i]) == 4
 
 
-def test_or_clauses():
+def test_or_clauses() -> None:
     query = BuiltQuery(
         'plant WHERE accession.species.genus.family.epithet=Fabaceae OR location.description="Block 10" or quantity > 0 or quantity == 0'
     )
@@ -45,7 +45,7 @@ def test_or_clauses():
         assert len(query.parsed[i]) == 4
 
 
-def test_has_clauses():
+def test_has_clauses() -> None:
     query = BuiltQuery("genus WHERE epithet=Inga")
     assert len(query.clauses) == 1
 
@@ -53,12 +53,12 @@ def test_has_clauses():
     assert len(query.clauses) == 2
 
 
-def test_has_domain():
+def test_has_domain() -> None:
     query = BuiltQuery("plant WHERE accession.species.genus.epithet=Inga")
     assert query.domain == "plant"
 
 
-def test_clauses_have_fields():
+def test_clauses_have_fields() -> None:
     query = BuiltQuery("genus WHERE epithet=Inga or family.epithet=Poaceae")
     assert len(query.clauses) == 2
     assert query.clauses[0].connector is None
@@ -84,7 +84,7 @@ def test_clauses_have_fields():
     assert query.clauses[1].value == "2010%"
 
 
-def test_is_none_if_wrong():
+def test_is_none_if_wrong() -> None:
     query = BuiltQuery("'species WHERE genus.epithet=Inga")
     assert query.is_valid is False
 
@@ -105,7 +105,7 @@ def test_is_none_if_wrong():
         "species WHERE genus.epithet=Inga AND accessions.code LIKE '2010%'",
     ],
 )
-def test_is_case_insensitive(query_string):
+def test_is_case_insensitive(query_string) -> None:
     query = BuiltQuery(query_string)
     assert len(query.clauses) == 2
     assert query.clauses[0].connector is None
@@ -118,7 +118,7 @@ def test_is_case_insensitive(query_string):
     assert query.clauses[1].value == "2010%"
 
 
-def test_is_only_usable_clauses():
+def test_is_only_usable_clauses() -> None:
     query = BuiltQuery("species WHERE genus.epithet=Inga or count(accessions.id)>4")
     assert query.is_valid is True
     assert len(query.clauses) == 1
@@ -130,7 +130,7 @@ def test_is_only_usable_clauses():
     assert len(query.clauses) == 2
 
 
-def test_be_able_to_skip_first_query_if_invalid():
+def test_be_able_to_skip_first_query_if_invalid() -> None:
     """
     Skipped: Grammar rewriting is required to handle this case.
     """

@@ -33,6 +33,11 @@ import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 from bauble.error import check
 
+from typing import Union, Optional
+from bauble import editor
+from bauble import pluginmgr
+from _typeshed import Incomplete
+logger: Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -117,7 +122,7 @@ logger = logging.getLogger(__name__)
 #     return conn
 
 
-def safe_set_text(gtk_widget, text):
+def safe_set_text(gtk_widget, text) -> None:
     """
     Sets the text of a Gtk widget replacing None with an empty string.
 
@@ -141,7 +146,7 @@ def get_groups():
     return [r[0] for r in db.engine.execute(stmt)]
 
 
-def _create_role(name, password=None, login=False, admin=False):
+def _create_role(name, password: Optional[Incomplete] = None, login: bool = False, admin: bool = False) -> None:
     """Internal helper to create a role."""
     try:
         with db.engine.begin() as conn:
@@ -158,7 +163,7 @@ def _create_role(name, password=None, login=False, admin=False):
         raise
 
 
-def create_user(name, password=None, admin=False, groups=None):
+def create_user(name, password: Optional[Incomplete] = None, admin: bool = False, groups: Optional[Incomplete] = None) -> None:
     """Create a role that can login."""
     if groups is None:
         groups = []
@@ -181,14 +186,14 @@ def create_user(name, password=None, admin=False, groups=None):
         raise
 
 
-def create_group(name, admin=False):
+def create_group(name, admin: bool = False) -> None:
     """
     Create a role that can't login.
     """
     _create_role(name, login=False, password=None, admin=admin)
 
 
-def add_member(name, groups=None):
+def add_member(name, groups: Optional[Incomplete] = None) -> None:
     """Add name to groups."""
     if groups is None:
         groups = []
@@ -202,7 +207,7 @@ def add_member(name, groups=None):
         logger.error("users.add_member(): %s %s", type(e), utils.utf8(e))
 
 
-def remove_member(name, groups=None):
+def remove_member(name, groups: Optional[Incomplete] = None) -> None:
     """Remove name from groups."""
     if groups is None:
         groups = []
@@ -241,12 +246,12 @@ def get_members(group):
         return [r[0] for r in result.all()]
 
 
-def delete(role, revoke=False):
+def delete(role, revoke: bool = False) -> None:
     """See drop()"""
     drop(role, revoke)
 
 
-def drop(role, revoke=False):
+def drop(role, revoke: bool = False) -> None:
     """Drop a user from the database."""
     try:
         with db.engine.begin() as conn:
@@ -260,7 +265,7 @@ def drop(role, revoke=False):
         raise
 
 
-def get_privileges(role):
+def get_privileges(role) -> None:
     """Return the privileges the user has on the current database.
 
     Arguments:
@@ -272,7 +277,7 @@ def get_privileges(role):
     raise NotImplementedError
 
 
-_privileges = {
+_privileges: Incomplete = {
     "read": ["connect", "select"],
     "write": [
         "connect",
@@ -288,9 +293,9 @@ _privileges = {
     "admin": ["all"],
 }
 
-_database_privs = ["create", "temporary", "temp"]
+_database_privs: Incomplete = ["create", "temporary", "temp"]
 
-_table_privs = [
+_table_privs: Incomplete = [
     "select",
     "insert",
     "update",
@@ -300,7 +305,7 @@ _table_privs = [
     "all",
 ]
 
-__sequence_privs = ["usage", "select", "update", "all"]
+__sequence_privs: Incomplete = ["usage", "select", "update", "all"]
 
 
 def _parse_acl(acl):
@@ -387,7 +392,7 @@ def has_implicit_sequence(column):
     )
 
 
-def set_privilege(role, privilege):
+def set_privilege(role, privilege) -> None:
     """Set the role's privileges."""
     check(
         privilege in ("read", "write", "admin", None),
@@ -457,7 +462,7 @@ def current_user():
     return db.current_user()
 
 
-def set_password(password, user=None):
+def set_password(password, user: Optional[Incomplete] = None) -> None:
     """Set a user's password."""
     if not user:
         user = current_user()
@@ -474,8 +479,8 @@ class UsersEditor(editor.GenericEditorView):
     """ """
 
     def __init__(
-        self,
-    ):
+        self
+    ) -> None:
         """ """
         filename = os.path.join(paths.lib_dir(), "plugins", "users", "ui.glade")
         super().__init__(filename)
@@ -552,9 +557,9 @@ class UsersEditor(editor.GenericEditorView):
         path, column = tree.get_cursor()
         return tree.get_model()[path][0]
 
-    new_user_message = _("Enter a user name")
+    new_user_message: Incomplete = _("Enter a user name")
 
-    def on_add_button_clicked(self, button, *args):
+    def on_add_button_clicked(self, button, *args) -> None:
         tree = self.widgets.users_tree
         column = tree.get_column(0)
         column.get_cell_renderers()[0]
@@ -563,7 +568,7 @@ class UsersEditor(editor.GenericEditorView):
         path = model.get_path(treeiter)
         tree.set_cursor(path, column, start_editing=True)
 
-    def on_remove_button_clicked(self, button, *args):
+    def on_remove_button_clicked(self, button, *args) -> None:
         """ """
         user = self.get_selected_user()
         msg = _(
@@ -584,12 +589,12 @@ class UsersEditor(editor.GenericEditorView):
             active = self.widgets.filter_check.get_active()
             self.populate_users_tree(only_bauble=active)
 
-    def on_filter_check_toggled(self, button, *args):
+    def on_filter_check_toggled(self, button, *args) -> None:
         """ """
         active = button.get_active()
         self.populate_users_tree(active)
 
-    def populate_users_tree(self, only_bauble=True):
+    def populate_users_tree(self, only_bauble: bool = True) -> None:
         """
         Populate the users tree with the users from the database.
 
@@ -609,7 +614,7 @@ class UsersEditor(editor.GenericEditorView):
         if len(model) > 0:
             tree.set_cursor("0")
 
-    def on_pwd_button_clicked(self, button, *args):
+    def on_pwd_button_clicked(self, button, *args) -> None:
         dialog = self.widgets.pwd_dialog
         dialog.set_transient_for(self.get_window())
 
@@ -661,17 +666,17 @@ class UsersEditor(editor.GenericEditorView):
     def get_window(self):
         return self.widgets.main_dialog
 
-    def start(self):
+    def start(self) -> None:
         self.get_window().run()
         self.cleanup()
 
-    buttons = {
+    buttons: Incomplete = {
         "admin": "admin_button",
         "write": "write_button",
         "read": "read_button",
     }
 
-    def on_cursor_changed(self, tree):
+    def on_cursor_changed(self, tree) -> None:
         """ """
 
         def _set_buttons(mode):
@@ -701,7 +706,7 @@ class UsersEditor(editor.GenericEditorView):
         else:
             _set_buttons(None)
 
-    def on_cell_edited(self, cell, path, new_text, data=None):
+    def on_cell_edited(self, cell, path, new_text, data: Optional[Incomplete] = None):
         model = self.widgets.users_tree.get_model()
         user = new_text
         if user == self.new_user_message:
@@ -725,12 +730,12 @@ class UsersEditor(editor.GenericEditorView):
 
 
 class UsersTool(pluginmgr.Tool):
-    item_position = 5
-    label = _("Users")
-    icon_name = "system-users"
+    item_position: int = 5
+    label: Incomplete = _("Users")
+    icon_name: str = "system-users"
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         UsersEditor().start()
 
 
@@ -739,10 +744,10 @@ class UsersTool(pluginmgr.Tool):
 
 class UsersPlugin(pluginmgr.Plugin):
 
-    tools = []
+    tools: Incomplete = []
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         if bauble.db.engine.name != "postgresql":
             del cls.tools[:]
         elif bauble.db.engine.name == "postgresql" and not cls.tools:

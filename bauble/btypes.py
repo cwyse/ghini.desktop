@@ -29,9 +29,13 @@ import sqlalchemy.types as types
 import bauble.error as error
 from bauble.utils import parse_date
 
-_prefs_lock = Lock()  # ✅ Add this at the module level
+from typing import Union, Optional
+from bauble import error
+from sqlalchemy import types
+from _typeshed import Incomplete
+_prefs_lock: Incomplete = Lock()  # ✅ Add this at the module level
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 from typing import Protocol, runtime_checkable
 
@@ -43,55 +47,56 @@ class BaseModelProtocol(Protocol):
 
 # TODO: store all times as UTC or support timezones
 class FreezableList(list):
-    def __init__(self, *args):
+    _frozen: bool
+    def __init__(self, *args) -> None:
         super().__init__(*args)
         self._frozen = False
 
-    def freeze(self):
+    def freeze(self) -> None:
         self._frozen = True
 
-    def _check_mutation(self):
+    def _check_mutation(self) -> None:
         if self._frozen:
             raise AssertionError("Attempt to modify Enum.values after initialization")
 
     # Mutation methods we override to check
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         self._check_mutation()
         super().__setitem__(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key) -> None:
         self._check_mutation()
         super().__delitem__(key)
 
-    def append(self, item):
+    def append(self, item) -> None:
         self._check_mutation()
         super().append(item)
 
-    def extend(self, iterable):
+    def extend(self, iterable) -> None:
         self._check_mutation()
         super().extend(iterable)
 
-    def insert(self, index, item):
+    def insert(self, index, item) -> None:
         self._check_mutation()
         super().insert(index, item)
 
-    def pop(self, index=-1):
+    def pop(self, index: int = -1):
         self._check_mutation()
         return super().pop(index)
 
-    def remove(self, item):
+    def remove(self, item) -> None:
         self._check_mutation()
         super().remove(item)
 
-    def clear(self):
+    def clear(self) -> None:
         self._check_mutation()
         super().clear()
 
-    def sort(self, *args, **kwargs):
+    def sort(self, *args, **kwargs) -> None:
         self._check_mutation()
         super().sort(*args, **kwargs)
 
-    def reverse(self):
+    def reverse(self) -> None:
         self._check_mutation()
         super().reverse()
 
@@ -103,15 +108,18 @@ class EnumError(error.BaubleError):
 #        types.Enum("s. lat.", "s. str.", "", name="qualifier_enum"),
 class Enum(types.TypeDecorator):
     """A database independent Enum type. The value is stored in the database as a Unicode string."""
-
-    impl = types.Unicode  # Stored as Unicode in the database
-    cache_ok = True
+    values: Incomplete
+    strict: Incomplete
+    empty_to_none: Incomplete
+    translations: Incomplete
+    impl: Incomplete = types.Unicode  # Stored as Unicode in the database
+    cache_ok: bool = True
 
     def __hash__(self):
         """Ensure SQLAlchemy can cache this type safely."""
         return hash((tuple(self.values), self.empty_to_none, self.strict))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Enum(values={self.values}, empty_to_none={self.empty_to_none}, strict={self.strict})"
 
     def __eq__(self, other):
@@ -124,8 +132,8 @@ class Enum(types.TypeDecorator):
         )
 
     def __init__(
-        self, values, empty_to_none=False, strict=True, translations=None, **kwargs
-    ):
+        self, values, empty_to_none: bool = False, strict: bool = True, translations: Optional[Incomplete] = None, **kwargs
+    ) -> None:
         """
         :param values: A list of valid values for the column.
         :param empty_to_none: Treat the empty string '' as None. None must be in the values list for this to be set.
@@ -170,7 +178,7 @@ class Enum(types.TypeDecorator):
         # Call the parent class's constructor
         super().__init__()
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key, value) -> None:
         """
         Allow modifying `values` dynamically while ensuring correct behavior.
         """
@@ -228,14 +236,14 @@ class DateTime(types.TypeDecorator):
     A DateTime type that ensures timezone-aware storage and retrieval.
     """
 
-    impl = types.DateTime
-    cache_ok = True
+    impl: Incomplete = types.DateTime
+    cache_ok: bool = True
 
     import re
 
-    _rx_tz = re.compile("[+-]")
+    _rx_tz: Incomplete = re.compile("[+-]")
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def process_bind_param(self, value, dialect):
@@ -284,7 +292,7 @@ class DateTime(types.TypeDecorator):
         """
         return DateTime()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"DateTime(cache_ok={self.cache_ok})"
 
     def __eq__(self, other):
@@ -301,11 +309,12 @@ class Date(types.TypeDecorator):
     """
     A Date type that allows Date strings
     """
+    _dayfirst: Incomplete
+    _yearfirst: Incomplete
+    impl: Incomplete = types.Date
+    cache_ok: bool = True  # SQLAlchemy caching compatibility
 
-    impl = types.Date
-    cache_ok = True  # SQLAlchemy caching compatibility
-
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._dayfirst = None
         self._yearfirst = None
@@ -316,7 +325,7 @@ class Date(types.TypeDecorator):
             "DateType"
         )  # ✅ Static hash ensures uniqueness without breaking SQLAlchemy caching
 
-    def _initialize_date_prefs(self):
+    def _initialize_date_prefs(self) -> None:
         """
         Initialize dayfirst and yearfirst preferences if not already set.
         """
@@ -357,7 +366,7 @@ class Date(types.TypeDecorator):
         """
         return Date()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Date(cache_ok={self.cache_ok})"
 
     def __eq__(self, other):

@@ -67,7 +67,7 @@ here: http://lists.freedesktop.org/archives/xdg/2004-August/004489.html
 
 """
 
-__version__ = "0.2.4"
+__version__: str = "0.2.4"
 
 import os
 import subprocess

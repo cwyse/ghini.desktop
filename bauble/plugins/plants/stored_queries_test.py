@@ -25,19 +25,20 @@ from bauble.plugins.plants.stored_queries import (
 from bauble.prefs import testing
 
 # Enable testing mode
+from bauble.plugins.plants.stored_queries import StoredQueriesModel as StoredQueriesModel, StoredQueriesPresenter as StoredQueriesPresenter
 testing = True
 
 
 @pytest.mark.usefixtures("db_session")
 class TestStoredQueriesInitialize:
-    def test_initialize_model(self):
+    def test_initialize_model(self) -> None:
         model = StoredQueriesModel()
         for i in range(1, 9):
             assert (
                 model[i] == "::"
             ), f"Expected default empty value for model[{i}], but got: {model[i]}"
 
-    def test_initialize_has_defaults(self):
+    def test_initialize_has_defaults(self) -> None:
         model = StoredQueriesModel()
         for i in range(1, 9):
             assert (
@@ -47,7 +48,7 @@ class TestStoredQueriesInitialize:
 
 @pytest.mark.usefixtures("db_session")
 class TestStoredQueries:
-    def test_define_label(self):
+    def test_define_label(self) -> None:
         model = StoredQueriesModel()
         model.label = "n=1"
         assert model.label == "n=1"
@@ -58,7 +59,7 @@ class TestStoredQueries:
         model.page = 1
         assert model.label == "n=1"
 
-    def test_define_tooltip(self):
+    def test_define_tooltip(self) -> None:
         model = StoredQueriesModel()
         model.tooltip = "n=1"
         assert model.tooltip == "n=1"
@@ -69,7 +70,7 @@ class TestStoredQueries:
         model.page = 1
         assert model.tooltip == "n=1"
 
-    def test_define_query(self):
+    def test_define_query(self) -> None:
         model = StoredQueriesModel()
         model.query = "n=1"
         assert model.query == "n=1"
@@ -80,7 +81,7 @@ class TestStoredQueries:
         model.page = 1
         assert model.query == "n=1"
 
-    def test_loop(self):
+    def test_loop(self) -> None:
         model = StoredQueriesModel()
         before = [i for i in model]
 
@@ -101,7 +102,7 @@ class TestStoredQueries:
         assert model[3] == "::"
         assert [i for i in model] == after
 
-    def test_setgetitem(self):
+    def test_setgetitem(self) -> None:
         model = StoredQueriesModel()
         before = [i for i in model]
         model[1] = "l:t:q"
@@ -113,7 +114,7 @@ class TestStoredQueries:
             else:
                 assert after[i] == before[i]
 
-    def test_save(self):
+    def test_save(self) -> None:
         model = StoredQueriesModel()
         model[1] = "l:t:q"
         model[4] = "l:t:q"
@@ -122,7 +123,7 @@ class TestStoredQueries:
         assert [i for i in new_model] == [k for k in model]
         assert id(new_model) != id(model)
 
-    def test_save_overwrite(self):
+    def test_save_overwrite(self) -> None:
         model = StoredQueriesModel()
         model[1] = "l:t:q"
         model[4] = "l:t:q"
@@ -137,14 +138,14 @@ class TestStoredQueries:
 
 @pytest.mark.usefixtures("db_session")
 class TestStoredQueriesPresenter:
-    def test_create_presenter(self):
+    def test_create_presenter(self) -> None:
         view = MockView()
         model = StoredQueriesModel()
         presenter = StoredQueriesPresenter(model, view)
         assert presenter.view == view
         assert id(presenter.model) == id(model)
 
-    def test_change_page(self):
+    def test_change_page(self) -> None:
         view = MockView()
         model = StoredQueriesModel()
         presenter = StoredQueriesPresenter(model, view)
@@ -162,7 +163,7 @@ class TestStoredQueriesPresenter:
                 (lname, presenter.weight[i == model.page]),
             ) in presenter.view.invoked_detailed
 
-    def test_next_page(self):
+    def test_next_page(self) -> None:
         view = MockView()
         model = StoredQueriesModel()
         presenter = StoredQueriesPresenter(model, view)
@@ -172,7 +173,7 @@ class TestStoredQueriesPresenter:
         presenter.on_next_button_clicked(None)
         assert model.page == 3
 
-    def test_prev_page(self):
+    def test_prev_page(self) -> None:
         view = MockView()
         model = StoredQueriesModel()
         presenter = StoredQueriesPresenter(model, view)
@@ -182,7 +183,7 @@ class TestStoredQueriesPresenter:
         presenter.on_prev_button_clicked(None)
         assert model.page == 9
 
-    def test_select_page(self):
+    def test_select_page(self) -> None:
         view = MockView()
         model = StoredQueriesModel()
         presenter = StoredQueriesPresenter(model, view)
@@ -196,7 +197,7 @@ class TestStoredQueriesPresenter:
             ("stqr_01_button", False),
         ) in presenter.view.invoked_detailed
 
-    def test_label_entry_change(self):
+    def test_label_entry_change(self) -> None:
         view = MockView()
         model = StoredQueriesModel()
         presenter = StoredQueriesPresenter(model, view)

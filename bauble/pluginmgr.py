@@ -48,20 +48,23 @@ import bauble.paths as paths
 import bauble.utils as utils
 from bauble.error import BaubleError
 
+from typing import Union, Optional
+from bauble import db
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 from sqlalchemy import Column, Integer, Unicode, select
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-plugins = {}
-commands = {}
-provided = {}
+plugins: Incomplete = {}
+commands: Incomplete = {}
+provided: Incomplete = {}
 
 
-def register_command(handler):
+def register_command(handler) -> None:
     """
     Register command handlers.  If a command is a duplicate then it
     will overwrite the old command of the same name.
@@ -105,7 +108,7 @@ def _create_dependency_pairs(plugs):
     return depends, unmet
 
 
-def load(path=None):
+def load(path: Optional[Incomplete] = None) -> None:
     """
     Search the plugin path for modules that provide a plugin. If path
     is a directory then search the directory for plugins. If path is
@@ -158,7 +161,7 @@ def load(path=None):
             )
 
 
-def init(force=False):
+def init(force: bool = False) -> None:
     """
     Initialize the plugin manager.
 
@@ -289,7 +292,7 @@ def init(force=False):
         bauble.gui.build_tools_menu()
 
 
-def install(plugins_to_install, import_defaults=True, force=False):
+def install(plugins_to_install, import_defaults: bool = True, force: bool = False) -> None:
     """
     :param plugins_to_install: A list of plugins to install. If the
         string "all" is passed then install all plugins listed in the
@@ -355,13 +358,13 @@ class PluginRegistry(db.Base):
     in future versions.
     """
 
-    __tablename__ = "plugin"
-    id = Column(Integer, primary_key=True, autoincrement=False)
-    name = Column(Unicode(64), unique=True)
-    version = Column(Unicode(12))
+    __tablename__: str = "plugin"
+    id: Incomplete = Column(Integer, primary_key=True, autoincrement=False)
+    name: Incomplete = Column(Unicode(64), unique=True)
+    version: Incomplete = Column(Unicode(12))
 
     @staticmethod
-    def add(plugin):
+    def add(plugin) -> None:
         """
         Add a plugin to the registry.
 
@@ -379,7 +382,7 @@ class PluginRegistry(db.Base):
                 session.commit()
 
     @staticmethod
-    def remove(plugin=None, name=None):
+    def remove(plugin: Optional[Incomplete] = None, name: Optional[Incomplete] = None) -> None:
         """
         Remove a plugin from the registry by name.
         """
@@ -462,25 +465,25 @@ class Plugin:
       a short description of the plugin
     """
 
-    commands = []
-    tools = []
-    depends = []
-    provides = {}
-    description = ""
-    version = "0.0"
+    commands: Incomplete = []
+    tools: Incomplete = []
+    depends: Incomplete = []
+    provides: Incomplete = {}
+    description: str = ""
+    version: str = "0.0"
 
     @classmethod
-    def __init__(cls):
+    def __init__(cls) -> None:
         pass
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         """
         init() is run when Ghini is first started
         """
 
     @classmethod
-    def install(cls, import_defaults=True):
+    def install(cls, import_defaults: bool = True) -> None:
         """
         install() is run when a new plugin is installed, it is usually
         only run once for the lifetime of the plugin
@@ -493,17 +496,17 @@ class EditorPlugin(Plugin):
     implement the Editor interface
     """
 
-    editors = []
+    editors: Incomplete = []
 
 
 class Tool:
-    category = None
-    label = None
-    enabled = True
-    icon_dir = None
+    category: Incomplete = None
+    label: Incomplete = None
+    enabled: bool = True
+    icon_dir: Incomplete = None
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         pass
 
 
@@ -514,8 +517,10 @@ class View(Gtk.Box):
 
     If a class extends this View and provides its own __init__ it *must* call its parent (this) __init__.
     """
-
-    def __init__(self, *args, **kwargs):
+    widgets: Incomplete
+    view: Incomplete
+    running_threads: Incomplete
+    def __init__(self, *args, **kwargs) -> None:
         """
         Initializes the view, optionally loading a UI from a .glade file.
 
@@ -545,7 +550,7 @@ class View(Gtk.Box):
 
         self.running_threads = []
 
-    def cancel_threads(self):
+    def cancel_threads(self) -> None:
         """Cancel and join all running threads."""
         for k in self.running_threads:
             k.cancel()
@@ -559,7 +564,7 @@ class View(Gtk.Box):
         thread.start()
         return thread
 
-    def idle_start_thread(self, cls, *args, **kwargs):
+    def idle_start_thread(self, cls, *args, **kwargs) -> None:
         """Start a thread after the main loop yields control."""
 
         def create_and_start(cls, args, kwargs):
@@ -569,7 +574,7 @@ class View(Gtk.Box):
 
         GLib.idle_add(create_and_start, cls, args, kwargs)
 
-    def update(self):
+    def update(self) -> None:
         """Override this method in a subclass to update the view."""
         pass
 
@@ -577,22 +582,22 @@ class View(Gtk.Box):
         """Returns the main widget (Gtk.Box) containing the view's UI."""
         return self
 
-    def add(self, widget):
+    def add(self, widget) -> None:
         """Add a widget to the vbox container."""
         self.pack_start(widget, True, True, 0)
 
 
 class CommandHandler:
 
-    command = None
+    command: Incomplete = None
 
-    def get_view(self):
+    def get_view(self) -> None:
         """
         return the  view for this command handler
         """
         return None
 
-    def __call__(self, cmd, arg):
+    def __call__(self, cmd, arg) -> None:
         """
         do what this command handler does
 

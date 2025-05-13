@@ -44,15 +44,18 @@ from bauble.plugins.imex.xml import XMLExportCommandHandler, XMLExportTool
 # missing columns so that all columns will have some value
 
 
+from bauble import pluginmgr
+from _typeshed import Incomplete
+from bauble.plugins.imex.csv_ import CSVExportCommandHandler as CSVExportCommandHandler, CSVExportTool as CSVExportTool, CSVImportCommandHandler as CSVImportCommandHandler, CSVImportTool as CSVImportTool
 class ImexPlugin(pluginmgr.Plugin):
-    tools = [
+    tools: Incomplete = [
         CSVImportTool,
         CSVExportTool,
         JSONImportTool,
         JSONExportTool,
         XMLExportTool,
     ]
-    commands = [
+    commands: Incomplete = [
         CSVExportCommandHandler,
         CSVImportCommandHandler,
         XMLExportCommandHandler,

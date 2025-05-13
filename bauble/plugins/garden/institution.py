@@ -37,6 +37,11 @@ import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 
 # mapping stuff
+from typing import Union, Optional
+from bauble import editor
+from bauble import pluginmgr
+from _typeshed import Incomplete
+display: Incomplete
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkClutter", "1.0")
 gi.require_version("GtkChamplain", "0.12")
@@ -59,13 +64,13 @@ GtkClutter.init([])  # GtkClutter first
 Clutter.init([])  # Then Clutter
 
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 
-PADDING = 6
+PADDING: int = 6
 
 
-def safe_set_text(gtk_widget, text):
+def safe_set_text(gtk_widget, text) -> None:
     """
     Sets the text of a Gtk widget replacing None with an empty string.
 
@@ -78,7 +83,19 @@ def safe_set_text(gtk_widget, text):
 
 
 class MapViewer:
-    def __init__(self, title="", parent=None, *args, **kwargs):
+    dialog: Incomplete
+    result: Incomplete
+    map_widget: Incomplete
+    clutter_view: Incomplete
+    layer: Incomplete
+    plant_layer: Incomplete
+    plant_highlighted: Incomplete
+    buttons: Incomplete
+    place_button: Incomplete
+    marker_circle: Incomplete
+    marker_through: Incomplete
+    marker_centre: Incomplete
+    def __init__(self, title: str = "", parent: Optional[Incomplete] = None, *args, **kwargs) -> None:
         self.dialog = Gtk.Dialog(
             title, parent, *args, **kwargs
         )  # Use composition instead of subclassing
@@ -203,7 +220,7 @@ class MapViewer:
         layer.show()
         return layer
 
-    def on_clutter_place_button(self, widget, event):
+    def on_clutter_place_button(self, widget, event) -> None:
         # make sure the markers exist
         if self.layer is None:
             self.layer = self.add_marker_layer()
@@ -232,20 +249,20 @@ class MapViewer:
             self.buttons.remove_child(self.place_button)
             self.place_button = None
 
-    def on_view_button_release(self, widget, event):
+    def on_view_button_release(self, widget, event) -> None:
         if event.get_button() == 3:  # 1. issue_gdkevent_structs
             self.on_clutter_place_button(widget, event)
 
-    def on_clutter_ok_button(self, widget, event):
+    def on_clutter_ok_button(self, widget, event) -> None:
         if self.layer is None:
             return
         self.result = self.get_centre()
         self.dialog.response(Gtk.ResponseType.OK)
 
-    def on_clutter_cancel_button(self, widget, event):
+    def on_clutter_cancel_button(self, widget, event) -> None:
         self.dialog.response(Gtk.ResponseType.CANCEL)
 
-    def on_animation_completed(self, *args, **kwargs):
+    def on_animation_completed(self, *args, **kwargs) -> None:
         if self.layer is None:
             return
         lat, lon = (
@@ -271,7 +288,7 @@ class MapViewer:
         ), self.clutter_view.x_to_longitude(x + dx)
         self.marker_through.set_location(lat, lon)
 
-    def on_marker_button_release(self, marker_circle, dx, dy, event, *args, **kwargs):
+    def on_marker_button_release(self, marker_circle, dx, dy, event, *args, **kwargs) -> None:
         for marker in [self.marker_through, self.marker_centre]:
             lat, lon = marker.get_latitude(), marker.get_longitude()
             y, x = self.clutter_view.latitude_to_y(
@@ -286,7 +303,7 @@ class MapViewer:
         # we push it back to the bottom, below all its siblings.
         self.layer.set_child_below_sibling(self.marker_circle)
 
-    def on_marker_centre_button_release(self, marker_centre, dx, dy, event):
+    def on_marker_centre_button_release(self, marker_centre, dx, dy, event) -> None:
         lat, lon = (
             self.marker_centre.get_latitude(),
             self.marker_centre.get_longitude(),
@@ -294,7 +311,7 @@ class MapViewer:
         self.marker_circle.set_location(lat, lon)
         self.on_marker_through_button_release(self.marker_through, dx, dy, event)
 
-    def on_marker_through_button_release(self, marker_through, dx, dy, event):
+    def on_marker_through_button_release(self, marker_through, dx, dy, event) -> None:
         lat, lon = (
             marker_through.get_latitude(),
             marker_through.get_longitude(),
@@ -330,7 +347,7 @@ class MapViewer:
         else:
             return False
 
-    def scroll(self, deltax, deltay):
+    def scroll(self, deltax, deltay) -> None:
         lat = self.clutter_view.get_center_latitude()
         lon = self.clutter_view.get_center_longitude()
 
@@ -353,7 +370,7 @@ class MapViewer:
         x2, y2, zone_number, zone_letter = utm.from_latlon(lat2, lon2, zone_number)
         return (lat1, lon1, 2 * math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2))
 
-    def set_centre(self, lat, lon, diam):
+    def set_centre(self, lat, lon, diam) -> None:
         from . import utm
 
         if self.layer is None:
@@ -373,7 +390,7 @@ class MapViewer:
         self.clutter_view.set_zoom_level(zoom_level)
         self.on_marker_through_button_release(self.marker_through, 0, 0, None)
 
-    def add_plant(self, text, lat, lon, icon=None):
+    def add_plant(self, text, lat, lon, icon: Optional[Incomplete] = None) -> None:
         black = Clutter.Color.new(0x00, 0x00, 0x00, 0x7F)
         plant_marker = Champlain.Point()
         plant_marker.set_location(lat, lon)
@@ -398,7 +415,7 @@ class Institution:
     its own table
     """
 
-    __properties = (
+    __properties: Incomplete = (
         "name",
         "abbreviation",
         "code",
@@ -414,9 +431,9 @@ class Institution:
         "uuid",
     )
 
-    table = meta.BaubleMeta.__table__
+    table: Incomplete = meta.BaubleMeta.__table__
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Initialize properties to None
         for prop in self.__properties:
             setattr(self, prop, None)
@@ -431,7 +448,7 @@ class Institution:
                 if result is not None:
                     setattr(self, prop, result)
 
-    def write(self):
+    def write(self) -> None:
         """Write the current property values to the database."""
         db_prop_prefix = "inst_"
         with db.Session() as session:
@@ -463,7 +480,9 @@ class Institution:
 
 class InstitutionPresenter(editor.GenericEditorPresenter):
 
-    widget_to_field_map = {
+    message_box: Incomplete
+    email_regexp: Incomplete
+    widget_to_field_map: Incomplete = {
         "inst_name": "name",
         "inst_abbr": "abbreviation",
         "inst_code": "code",
@@ -478,7 +497,7 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
         "inst_geo_diameter": "geo_diameter",
     }
 
-    def __init__(self, model, view):
+    def __init__(self, model, view) -> None:
         self.message_box = None
         self.email_regexp = re.compile(r".+@.+\..+")
         super().__init__(model, view, refresh_view=True)
@@ -490,13 +509,13 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
 
             model.uuid = str(uuid.uuid4())
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         super().cleanup()
         if self.message_box:
             self.view.remove_box(self.message_box)
             self.message_box = None
 
-    def on_non_empty_text_entry_changed(self, widget, value=None):
+    def on_non_empty_text_entry_changed(self, widget, value: Optional[Incomplete] = None) -> None:
         value = super().on_non_empty_text_entry_changed(widget, value)
         box = self.message_box
         if value:
@@ -510,7 +529,7 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
             self.view.add_box(box)
             self.message_box = box
 
-    def on_email_text_entry_changed(self, widget, value=None):
+    def on_email_text_entry_changed(self, widget, value: Optional[Incomplete] = None) -> None:
         value = super().on_text_entry_changed(widget, value)
         self.view.widget_set_sensitive(
             "inst_register", self.email_regexp.match(value or "")
@@ -535,7 +554,7 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
             sentry_client.name = hex(hash(sentry_client.name) + 2**64)[2:-1]
             return SentryHandler(sentry_client)
 
-    def on_select_map_clicked(self, *args, **kwargs):
+    def on_select_map_clicked(self, *args, **kwargs) -> None:
         map = MapViewer(_("Zoom to garden"), self.view.get_window())
         try:
             map.set_centre(
@@ -552,7 +571,7 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
             self.view.widget_set_value("inst_geo_diameter", f"{diam:0.0f}")
         map.destroy()
 
-    def on_inst_register_clicked(self, *args, **kwargs):
+    def on_inst_register_clicked(self, *args, **kwargs) -> None:
         """send the registration data as sentry info log message"""
 
         # create the handler first
@@ -578,7 +597,7 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
         # disable button, so user will not send registration twice
         self.view.widget_set_sensitive("inst_register", False)
 
-    def on_inst_addr_tb_changed(self, widget, value=None, attr=None):
+    def on_inst_addr_tb_changed(self, widget, value: Optional[Incomplete] = None, attr: Optional[Incomplete] = None):
         return self.on_textbuffer_changed(widget, value, attr="address")
 
 
@@ -637,18 +656,18 @@ def start_institution_editor():
 
 
 class InstitutionCommand(pluginmgr.CommandHandler):
-    command = ("inst", "institution")
-    view = None
+    command: Incomplete = ("inst", "institution")
+    view: Incomplete = None
 
-    def __call__(self, cmd, arg):
+    def __call__(self, cmd, arg) -> None:
         InstitutionTool.start()
 
 
 class InstitutionTool(pluginmgr.Tool):
-    item_position = 2
-    label = _("Institution")
-    icon_name = "x-office-presentation"
+    item_position: int = 2
+    label: Incomplete = _("Institution")
+    icon_name: str = "x-office-presentation"
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         start_institution_editor()

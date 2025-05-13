@@ -28,17 +28,21 @@ import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 
+from typing import Union, Optional
+from bauble import pluginmgr
+from _typeshed import Incomplete
+default_filename: str
 gi.require_version("Gtk", "3.0")
 import copy
 
 from gi.repository import Gtk
 from sqlalchemy import select
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-testing = False  # set this to True when testing
+testing: bool = False  # set this to True when testing
 
 """
 The prefs module exposes an API for getting and setting user
@@ -60,34 +64,34 @@ using a dictionary like interface. e.g. ::
 # throughout bauble
 
 default_filename = "config"
-default_prefs_file = os.path.join(paths.appdata_dir(), default_filename)
+default_prefs_file: Incomplete = os.path.join(paths.appdata_dir(), default_filename)
 """
 The default file for the preference settings file.
 """
 
-config_version_pref = "bauble.config.version"
+config_version_pref: str = "bauble.config.version"
 """
 The preferences key for the bauble version of the preferences file.
 """
 
-config_version = bauble.version_tuple[0], bauble.version_tuple[1]
+config_version: Incomplete = bauble.version_tuple[0], bauble.version_tuple[1]
 
-date_format_pref = "bauble.default_date_format"
+date_format_pref: str = "bauble.default_date_format"
 """
 The preferences key for the default data format.
 """
 
-picture_root_pref = "bauble.picture_root"
+picture_root_pref: str = "bauble.picture_root"
 """
 The preferences key for the default data format.
 """
 
-ask_timeout_pref = "bauble.network_timeout"
+ask_timeout_pref: str = "bauble.network_timeout"
 """
 The preferences key for remote server querying timeout.
 """
 
-parse_dayfirst_pref = "bauble.parse_dayfirst"
+parse_dayfirst_pref: str = "bauble.parse_dayfirst"
 """
 The preferences key for to determine whether the date should come
 first when parsing date string.  For more information see the
@@ -96,7 +100,7 @@ first when parsing date string.  For more information see the
 Values: True, False
 """
 
-parse_yearfirst_pref = "bauble.parse_yearfirst"
+parse_yearfirst_pref: str = "bauble.parse_yearfirst"
 """
 The preferences key for to determine whether the date should come
 first when parsing date string.  For more information see the
@@ -105,14 +109,14 @@ first when parsing date string.  For more information see the
 Values: True, False
 """
 
-units_pref = "bauble.units"
+units_pref: str = "bauble.units"
 """
 The preferences key for the default units for Ghini.
 
 Values: metric, imperial
 """
 
-use_sentry_client_pref = "bauble.use_sentry_client"
+use_sentry_client_pref: str = "bauble.use_sentry_client"
 """
 During normal usage, Ghini produces a log file which contains
 invaluable information for tracking down errors. This information is
@@ -130,12 +134,14 @@ complete content of your log file.
 
 Values: True, False (Default: False)
 """
-testing_pref = "bauble.testing"
+testing_pref: str = "bauble.testing"
 
 
 class _prefs(dict):
 
-    def __init__(self, filename=default_prefs_file):
+    _filename: Incomplete
+    config: Incomplete
+    def __init__(self, filename=default_prefs_file) -> None:
         self._filename = filename
         self.config = None
 
@@ -185,7 +191,7 @@ class _prefs(dict):
         # Mimic the old behavior by returning self
         return self
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name, value) -> None:
         """
         Allow setting keys as attributes, e.g., prefs.parse_dayfirst_pref = value.
         """
@@ -195,7 +201,7 @@ class _prefs(dict):
             key = f"bauble.{name}"
             super().__setitem__(key, value)
 
-    def init(self, prefs=None):
+    def init(self, prefs: Optional[Incomplete] = None) -> None:
         """
         initialize the preferences, should only be called from app.main
         """
@@ -281,26 +287,26 @@ class _prefs(dict):
             for name, value in prefs.config.items(section)
         ]
 
-    def setdefault(self, key, default=None):
+    def setdefault(self, key, default: Optional[Incomplete] = None):
         if key not in self:
             self.__setitem__(key, default)
         return self[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         section, option = _prefs._parse_key(key)
         key = self._strip_prefix(key)
         if not self.config.has_section(section):
             self.config.add_section(section)
         self.config.set(section, option, str(value))
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         section, option = _prefs._parse_key(key)
         key = self._strip_prefix(key)
         if self.config.has_section(section) and self.config.has_option(section, option):
             return True
         return False
 
-    def save(self, force=False):
+    def save(self, force: bool = False) -> None:
         if testing and not force:
             return
         try:
@@ -325,17 +331,18 @@ class _prefs(dict):
                 logger.error(msg)
 
 
-prefs = _prefs()
+prefs: Incomplete = _prefs()
 
 
 class PrefsView(pluginmgr.View):
     """
     The PrefsView displays the values of in the preferences and the registry.
     """
+    prefs_ls: Incomplete
+    plugins_ls: Incomplete
+    pane_size_pref: str = "bauble.prefs.pane_position"
 
-    pane_size_pref = "bauble.prefs.pane_position"
-
-    def __init__(self):
+    def __init__(self) -> None:
         logger.debug("PrefsView::__init__")
         super().__init__(
             filename=os.path.join(paths.lib_dir(), "bauble.glade"),
@@ -346,7 +353,7 @@ class PrefsView(pluginmgr.View):
         self.plugins_ls = self.view.widgets.prefs_plugins_ls
         self.update()
 
-    def on_prefs_prefs_tv_row_activated(self, tv, path, column):
+    def on_prefs_prefs_tv_row_activated(self, tv, path, column) -> None:
         global prefs
         key, repr_str, type_str = self.prefs_ls[path]
         if type_str == "bool":
@@ -354,7 +361,7 @@ class PrefsView(pluginmgr.View):
             self.prefs_ls[path][1] = str(prefs[key])
             prefs.save()
 
-    def update(self):
+    def update(self) -> None:
         self.prefs_ls.clear()
         global prefs
         for key, value in sorted(prefs.items()):
@@ -375,10 +382,10 @@ class PrefsView(pluginmgr.View):
 
 class PrefsCommandHandler(pluginmgr.CommandHandler):
 
-    command = ("prefs", "config")
-    view = None
+    command: Incomplete = ("prefs", "config")
+    view: Incomplete = None
 
-    def __call__(self, cmd, arg):
+    def __call__(self, cmd, arg) -> None:
         pass
 
     def get_view(self):

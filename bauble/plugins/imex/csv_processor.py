@@ -58,15 +58,30 @@ from bauble.plugins.imex.unicode_utils import (
     UnicodeWriter,
 )
 
-logger = logging.getLogger(__name__)
-QUOTE_STYLE = csv.QUOTE_MINIMAL
-QUOTE_CHAR = '"'
+from typing import Union, Optional
+from _typeshed import Incomplete
+from bauble.plugins.imex.unicode_utils import InvalidDataError as InvalidDataError, UnicodeReader as UnicodeReader, UnicodeWriter as UnicodeWriter
+from collections.abc import Generator
+logger: Incomplete = logging.getLogger(__name__)
+QUOTE_STYLE: Incomplete = csv.QUOTE_MINIMAL
+QUOTE_CHAR: str = '"'
 
 
 class CSVProcessor:
+    table: Incomplete
+    filename: Incomplete
+    defaults: Incomplete
+    update_every: Incomplete
+    column_keys: Incomplete
+    insert_stmt: Incomplete
+    values: Incomplete
+    flush_count: Incomplete
+    steps_so_far: Incomplete
+    batch_queue: Incomplete
+    worker_thread: Incomplete
     def __init__(
-        self, table, filename, defaults, update_every, flush_count=0, steps_so_far=0
-    ):
+        self, table, filename, defaults, update_every, flush_count: int = 0, steps_so_far: int = 0
+    ) -> None:
         """
         Initialize the CSV processor.
 
@@ -254,7 +269,7 @@ class CSVProcessor:
         print(f"✅ Sorted file saved as: {sorted_filename}")
         return sorted_filename
 
-    def prepare_file(self):
+    def prepare_file(self) -> None:
         """
         Prepare the file by determining column keys and sorting rows if necessary.
         """
@@ -265,7 +280,7 @@ class CSVProcessor:
         self.column_keys = list(csv_columns.union(self.defaults.keys()))
         self.insert_stmt = self.table.insert()
 
-    def process_rows(self):
+    def process_rows(self) -> Generator[Incomplete, None, None]:
         """
         Process the CSV rows, applying defaults and preparing for batch insertion.
         Yields control after every `update_every` rows for GUI updates.
@@ -319,7 +334,7 @@ class CSVProcessor:
 
         return sorted_filename
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Ensure all batches are processed before exiting."""
         self.batch_queue.join()  # Wait for all batches to be inserted
         self.batch_queue.put(None)  # Signal the worker to stop
@@ -381,7 +396,7 @@ class CSVProcessor:
 
         return value  # Return as-is for any other data types
 
-    def _batch_worker(self):
+    def _batch_worker(self) -> None:
         while True:
             batch = self.batch_queue.get()
             if batch is None:
@@ -405,7 +420,7 @@ class CSVProcessor:
 
             self.batch_queue.task_done()
 
-    def _insert_batch(self, batch_values=None):
+    def _insert_batch(self, batch_values: Optional[Incomplete] = None):
         """
         Insert the current batch of rows into the database.
         Convert any Enum values to their corresponding string/int representations.

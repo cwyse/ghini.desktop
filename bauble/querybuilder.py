@@ -26,6 +26,10 @@ import bauble
 from bauble.editor import GenericEditorPresenter
 from bauble.utils import safe_set_text
 
+from typing import Union, Optional
+from .querybuilderparser import BuiltQuery as BuiltQuery
+from .search import EmptyToken as EmptyToken, MapperSearch as MapperSearch
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy.orm import class_mapper
@@ -34,7 +38,7 @@ from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
 from .querybuilderparser import BuiltQuery
 from .search import EmptyToken, MapperSearch
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 
 RelationProperty = RelationshipProperty
@@ -66,14 +70,18 @@ class SchemaMenu:
     :param relation_filter: Function to filter relations.
     :param leading_items: List of leading items to append to the menu.
     """
-
+    mapper: Incomplete
+    activate_cb: Incomplete
+    relation_filter: Incomplete
+    leading_items: Incomplete
+    menu: Incomplete
     def __init__(
         self,
         mapper,
-        activate_cb=None,
+        activate_cb: Optional[Incomplete] = None,
         relation_filter=lambda c, p: True,
-        leading_items=None,
-    ):
+        leading_items: Optional[Incomplete] = None
+    ) -> None:
         if leading_items is None:
             leading_items = []
         self.mapper = mapper
@@ -90,7 +98,7 @@ class SchemaMenu:
         """Returns the menu widget."""
         return self.menu
 
-    def on_activate(self, menuitem, prop):
+    def on_activate(self, menuitem, prop) -> None:
         """Invoke activate_cb on selected menu item."""
         path = []
         # path.append(menuitem.get_child().get_property("label"))
@@ -108,14 +116,14 @@ class SchemaMenu:
         if self.activate_cb:
             self.activate_cb(menuitem, full_path, prop)
 
-    def on_select(self, menuitem, prop):
+    def on_select(self, menuitem, prop) -> None:
         """Construct and show submenu corresponding to RelationProperty."""
         submenu = menuitem.get_submenu()
         if len(submenu.get_children()) == 0:  # If still empty, construct it
             self.append_menuitems(prop.mapper, prop, target=submenu)
         submenu.show_all()
 
-    def append_menuitems(self, mapper, container=None, target=None):
+    def append_menuitems(self, mapper, container: Optional[Incomplete] = None, target: Optional[Incomplete] = None):
         """Populate target menu
 
         Construct as manu Gtk.MenuItem as the properties of `mapper` and
@@ -181,7 +189,7 @@ class SchemaMenu:
             item.connect("select", self.on_select, prop)
             target.append(item)
 
-    def show_menu(self, widget, event):
+    def show_menu(self, widget, event) -> None:
         """Show the menu at the pointer position"""
         # Ensure that the menu shows up where the user clicked
         self.menu.popup_at_pointer(event)
@@ -189,10 +197,18 @@ class SchemaMenu:
 
 class ExpressionRow:
     """ """
+    table: Incomplete
+    presenter: Incomplete
+    menu_item_activated: bool
+    and_or_combo: Incomplete
+    prop_button: Incomplete
+    schema_menu: Incomplete
+    cond_combo: Incomplete
+    value_widget: Incomplete
+    remove_button: Incomplete
+    conditions: Incomplete = ["=", "!=", "<", "<=", ">", ">=", "like", "contains"]
 
-    conditions = ["=", "!=", "<", "<=", ">", ">=", "like", "contains"]
-
-    def __init__(self, query_builder, remove_callback, row_number):
+    def __init__(self, query_builder, remove_callback, row_number) -> None:
         self.table = query_builder.view.widgets.expressions_table
         self.presenter = query_builder
         self.menu_item_activated = False
@@ -250,7 +266,7 @@ class ExpressionRow:
             self.remove_button.connect("clicked", lambda b: remove_callback(self))
             self.table.attach(self.remove_button, 4, row_number, 1, 1)
 
-    def on_value_changed(self, widget, *args):
+    def on_value_changed(self, widget, *args) -> None:
         """
         Call the QueryBuilder.validate() for this row.
         Set the sensitivity of the Gtk.ResponseType.OK button on the QueryBuilder.
@@ -369,10 +385,15 @@ class ExpressionRow:
 
 class QueryBuilder(GenericEditorPresenter):
 
-    view_accept_buttons = ["cancel_button", "confirm_button"]
-    default_size = None
+    expression_rows: Incomplete
+    mapper: Incomplete
+    domain: Incomplete
+    table_row_count: int
+    domain_map: Incomplete
+    view_accept_buttons: Incomplete = ["cancel_button", "confirm_button"]
+    default_size: Incomplete = None
 
-    def __init__(self, view=None):
+    def __init__(self, view: Optional[Incomplete] = None) -> None:
         super().__init__(model=self, view=view, refresh_view=False)
 
         self.expression_rows = []
@@ -392,7 +413,7 @@ class QueryBuilder(GenericEditorPresenter):
         self.view.widgets.add_clause_button.set_sensitive = False
         self.refresh_view()
 
-    def on_domain_combo_changed(self, *args):
+    def on_domain_combo_changed(self, *args) -> None:
         """
         Change the search domain.  Resets the expression table and
         deletes all the expression rows.
@@ -438,7 +459,7 @@ class QueryBuilder(GenericEditorPresenter):
         self.view.widgets.confirm_button.set_sensitive = valid
         return valid
 
-    def remove_expression_row(self, row):
+    def remove_expression_row(self, row) -> None:
         """
         Remove a row from the expressions table.
         """
@@ -447,7 +468,7 @@ class QueryBuilder(GenericEditorPresenter):
         self.expression_rows.remove(row)
         self.view.widgets.expressions_table.resize(self.table_row_count, 5)
 
-    def on_add_clause(self, *args):
+    def on_add_clause(self, *args) -> None:
         """
         Add a row to the expressions table.
         """
@@ -477,7 +498,7 @@ class QueryBuilder(GenericEditorPresenter):
         query = [self.domain, "where"] + self.valid_clauses
         return " ".join(query)
 
-    def set_query(self, q):
+    def set_query(self, q) -> None:
         parsed = BuiltQuery(q)
         if not parsed.is_valid:
             logger.debug("cannot restore query, invalid")

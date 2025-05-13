@@ -24,7 +24,9 @@ import requests
 from requests.auth import HTTPDigestAuth
 
 
-def get_submissions(user, pw, host, form_id, to_skip=None):
+from typing import Union, Optional
+from _typeshed import Incomplete
+def get_submissions(user, pw, host, form_id, to_skip: Optional[Incomplete] = None):
     if to_skip is None:
         to_skip = []
     base_format = "https://%(host)s/view/%(api)s?formId=%(form_id)s"
@@ -78,7 +80,7 @@ def get_submissions(user, pw, host, form_id, to_skip=None):
     return result
 
 
-def get_image(user, pw, url, path):
+def get_image(user, pw, url, path) -> None:
     auth = HTTPDigestAuth(user, pw)
     pic = requests.get(url, stream=True, auth=auth)
     if pic.status_code == 200:

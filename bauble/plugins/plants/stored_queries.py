@@ -25,16 +25,22 @@ import gi
 import bauble
 from bauble import db, editor, meta, paths, pluginmgr
 
+from typing import Union, Optional
 gi.require_version("Gtk", "3.0")
 from gi.repository import Pango
 from sqlalchemy import select
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 class StoredQueriesModel:
-    def __init__(self):
+    _label: Incomplete
+    _tooltip: Incomplete
+    _query: Incomplete
+    page: int
+    __index: int
+    def __init__(self) -> None:
         self._label = [""] * 11
         self._tooltip = [""] * 11
         self._query = [""] * 11
@@ -54,7 +60,7 @@ class StoredQueriesModel:
 
         self.page = 1
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "[p:%d; l:%s; t:%s; q:%s" % (
             self.page,
             self._label[1:],
@@ -62,7 +68,7 @@ class StoredQueriesModel:
             self._query[1:],
         )
 
-    def save(self):
+    def save(self) -> None:
         """
         Save the current state of stored queries to the database.
         """
@@ -99,7 +105,7 @@ class StoredQueriesModel:
     def __getitem__(self, index):
         return f"{self._label[index]}:{self._tooltip[index]}:{self._query[index]}"
 
-    def __setitem__(self, index, value):
+    def __setitem__(self, index, value) -> None:
         self.page = index
         self.label, self.tooltip, self.query = value.split(":", 2)
 
@@ -115,7 +121,7 @@ class StoredQueriesModel:
             return self[self.__index]
 
     @property
-    def label(self):
+    def label(self) -> str:
         return self._label[self.page]
 
     @label.setter
@@ -123,7 +129,7 @@ class StoredQueriesModel:
         self._label[self.page] = value
 
     @property
-    def tooltip(self):
+    def tooltip(self) -> str:
         return self._tooltip[self.page]
 
     @tooltip.setter
@@ -131,7 +137,7 @@ class StoredQueriesModel:
         self._tooltip[self.page] = value
 
     @property
-    def query(self):
+    def query(self) -> str:
         return self._query[self.page]
 
     @query.setter
@@ -141,59 +147,60 @@ class StoredQueriesModel:
 
 class StoredQueriesPresenter(editor.GenericEditorPresenter):
 
-    widget_to_field_map = {
+    view_accept_buttons: Incomplete
+    widget_to_field_map: Incomplete = {
         "stqr_label_entry": "label",
         "stqr_tooltip_entry": "tooltip",
         "stqr_query_textbuffer": "query",
     }
 
-    weight = {False: Pango.AttrList(), True: Pango.AttrList()}
+    weight: Incomplete = {False: Pango.AttrList(), True: Pango.AttrList()}
     # weight[True].insert(Pango.AttrFontDesc(Pango.Weight.HEAVY, 0, 50))
 
     view_accept_buttons = [
         "stqr_ok_button",
     ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         for self.model.page in range(1, 11):
             name = "stqr_%02d_label" % self.model.page
             self.view.widget_set_text(name, self.model.label or _("<empty>"))
         self.model.page = 1
 
-    def refresh_toggles(self):
+    def refresh_toggles(self) -> None:
         for i in range(1, 11):
             bname = "stqr_%02d_button" % i
             lname = "stqr_%02d_label" % i
             self.view.widget_set_active(bname, i == self.model.page)
             self.view.widget_set_attributes(lname, self.weight[i == self.model.page])
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         super().refresh_view()
         self.refresh_toggles()
 
-    def on_button_clicked(self, widget, *args):
+    def on_button_clicked(self, widget, *args) -> None:
         if self.view.widget_get_active(widget) is False:
             return
         widget_name = self.widget_get_name(widget)
         self.model.page = int(widget_name[5:7])
         self.refresh_view()
 
-    def on_next_button_clicked(self, widget, *args):
+    def on_next_button_clicked(self, widget, *args) -> None:
         self.model.page = self.model.page % 10 + 1
         self.refresh_view()
 
-    def on_prev_button_clicked(self, widget, *args):
+    def on_prev_button_clicked(self, widget, *args) -> None:
         self.model.page = (self.model.page - 2) % 10 + 1
         self.refresh_view()
 
-    def on_label_entry_changed(self, widget, *args):
+    def on_label_entry_changed(self, widget, *args) -> None:
         self.on_text_entry_changed(widget, *args)
         page_label_name = "stqr_%02d_label" % self.model.page
         value = self.view.widget_get_text(widget)
         self.view.widget_set_text(page_label_name, value or _("<empty>"))
 
-    def on_stqr_query_textbuffer_changed(self, widget, value=None, attr=None):
+    def on_stqr_query_textbuffer_changed(self, widget, value: Optional[Incomplete] = None, attr: Optional[Incomplete] = None):
         return self.on_textbuffer_changed(widget, value, attr="query")
 
 
@@ -216,10 +223,10 @@ def edit_callback():
 
 
 class StoredQueryEditorTool(pluginmgr.Tool):
-    item_position = 20
-    label = _("Edit stored queries")
-    icon_name = "x-office-spreadsheet"
+    item_position: int = 20
+    label: Incomplete = _("Edit stored queries")
+    icon_name: str = "x-office-spreadsheet"
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         edit_callback()

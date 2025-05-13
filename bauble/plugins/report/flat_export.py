@@ -30,6 +30,8 @@ from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.querybuilder import SchemaMenu
 from bauble.search import MapperSearch
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, Gtk
 from sqlalchemy import select
@@ -40,10 +42,19 @@ from sqlalchemy.types import Boolean, Float, Integer
 
 class FlatFileExporter(GenericEditorPresenter):
 
-    view_accept_buttons = ["cancel_button", "confirm_button"]
-    logger = logging.getLogger(__name__)
+    domain_map: Incomplete
+    domain: Incomplete
+    mapper: Incomplete
+    results_model: Incomplete
+    signal_id: Incomplete
+    toggling: bool
+    active_toggle: Incomplete
+    active_ls: Incomplete
+    schema_menu: Incomplete
+    view_accept_buttons: Incomplete = ["cancel_button", "confirm_button"]
+    logger: Incomplete = logging.getLogger(__name__)
 
-    def __init__(self, view=None):
+    def __init__(self, view: Optional[Incomplete] = None) -> None:
         super().__init__(model=self, view=view, refresh_view=False)
 
         self.domain_map = MapperSearch.get_domain_classes().copy()
@@ -74,8 +85,8 @@ class FlatFileExporter(GenericEditorPresenter):
         }
 
     def set_model_fields(
-        self, output_file=None, domain=None, exported_fields=None, **kwargs
-    ):
+        self, output_file: Optional[Incomplete] = None, domain: Optional[Incomplete] = None, exported_fields: Optional[Incomplete] = None, **kwargs
+    ) -> None:
         if exported_fields is None:
             exported_fields = []
         if kwargs:
@@ -92,7 +103,7 @@ class FlatFileExporter(GenericEditorPresenter):
         for i in exported_fields:
             self.view.widgets.exported_fields_ls.append((i,))
 
-    def on_toggle_toggled(self, target):
+    def on_toggle_toggled(self, target) -> None:
         if self.toggling:
             return
         self.toggling = True
@@ -112,7 +123,7 @@ class FlatFileExporter(GenericEditorPresenter):
             self.on_domain_combo_changed()
         self.toggling = False
 
-    def on_open_btn_clicked(self, *args):
+    def on_open_btn_clicked(self, *args) -> None:
         """browse for output file"""
         previously = self.view.widget_get_value("output_file")
         last_folder, bn = os.path.split(previously)
@@ -134,7 +145,7 @@ class FlatFileExporter(GenericEditorPresenter):
             target="output_file",
         )
 
-    def on_output_file_changed(self, *args):
+    def on_output_file_changed(self, *args) -> None:
         """set sensitivity of button, based on validity of path"""
         current_path = self.view.widget_get_value("output_file")
 
@@ -148,7 +159,7 @@ class FlatFileExporter(GenericEditorPresenter):
             and os.access(dirname(current_path), os.W_OK),
         )
 
-    def on_schema_menu_activated(self, menuitem, clause_field, prop):
+    def on_schema_menu_activated(self, menuitem, clause_field, prop) -> None:
         """add the selected item to the exported fields"""
         self.view.widgets.exported_fields_ls.append((clause_field,))
 
@@ -303,13 +314,13 @@ class FlatFileExporter(GenericEditorPresenter):
 
 
 class FlatFileExportTool(pluginmgr.Tool):
-    category = _("Report")
-    label = _("Quick CSV")
-    icon_name = "accessories-text-editor"
-    last_model = {}
+    category: Incomplete = _("Report")
+    label: Incomplete = _("Quick CSV")
+    icon_name: str = "accessories-text-editor"
+    last_model: Incomplete = {}
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         gladefilepath = os.path.join(
             paths.lib_dir(), "plugins", "report", "flat_export.glade"
         )

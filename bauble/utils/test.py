@@ -29,11 +29,13 @@ import bauble.utils as utils
 from bauble.error import CheckConditionError
 from bauble.utils import topological_sort
 
+from _typeshed import Incomplete
+from collections.abc import Generator
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 
-def test_create_message_details_dialog():
+def test_create_message_details_dialog() -> None:
     pytest.skip("Not Implemented")  # Skip the test with pytest's skip functionality
     details = """these are the lines that i want to test
 asdasdadasddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
@@ -47,7 +49,7 @@ addasdadadad"""
     dialog.destroy()
 
 
-def test_create_message_dialog():
+def test_create_message_dialog() -> None:
     pytest.skip("Not Implemented")  # Skip the test with pytest's skip functionality
     msg = "msg"
     # msg = ' this is a longer message to test that the dialog width is correct.....but what if it keeps going'
@@ -57,7 +59,7 @@ def test_create_message_dialog():
     dialog.destroy()
 
 
-def test_search_tree_model():
+def test_search_tree_model() -> None:
     import gi
 
     gi.require_version("Gtk", "3.0")
@@ -106,7 +108,7 @@ def test_xml_safe():
     assert utils.xml_safe("test< string") == "test&lt; string"
 
 
-def test_range_builder():
+def test_range_builder() -> None:
     assert utils.range_builder("1-3") == [1, 2, 3]
     assert utils.range_builder("1-3,5-7") == [1, 2, 3, 5, 6, 7]
     assert utils.range_builder("1-3,5") == [1, 2, 3, 5]
@@ -122,7 +124,7 @@ def test_range_builder():
         utils.range_builder("2-1")
 
 
-def test_get_urls():
+def test_get_urls() -> None:
     text = "There a link in here: http://bauble.belizebotanic.org"
     urls = utils.get_urls(text)
     assert urls == [(None, "http://bauble.belizebotanic.org")]
@@ -153,7 +155,7 @@ def test_get_urls():
 
 
 @pytest.fixture
-def dependent_tables_metadata(db_session):
+def dependent_tables_metadata(db_session) -> Generator[Incomplete, None, None]:
     """
     Fixture to set up the test metadata and tables for dependency tests.
     Cleans up after the test.
@@ -195,7 +197,7 @@ def dependent_tables_metadata(db_session):
     metadata.drop_all(bind=db_session.bind)
 
 
-def test_find_dependent_tables(db_session, dependent_tables_metadata):
+def test_find_dependent_tables(db_session, dependent_tables_metadata) -> None:
     """
     Test `utils.find_dependent_tables` for various table dependency scenarios.
     """
@@ -240,7 +242,7 @@ def get_currval(session, col):
 
 
 @pytest.fixture
-def test_table(db_session):
+def test_table(db_session) -> Generator[Incomplete, None, None]:
     """
     Fixture to provide a simple test table for sequence-related operations.
     """
@@ -255,7 +257,7 @@ def test_table(db_session):
 
 
 @pytest.fixture
-def test_table_with_sequence(db_session):
+def test_table_with_sequence(db_session) -> Generator[Incomplete, None, None]:
     """
     Fixture to provide a test table with an explicit sequence for the primary key.
     """
@@ -275,7 +277,7 @@ def test_table_with_sequence(db_session):
     table.drop(bind=db_session.bind, checkfirst=True)
 
 
-def test_no_col_sequence(db_session, test_table):
+def test_no_col_sequence(db_session, test_table) -> None:
     """
     Test utils.reset_sequence on a column without an explicit sequence.
     """
@@ -286,7 +288,7 @@ def test_no_col_sequence(db_session, test_table):
     utils.reset_sequence(test_table.c.id)
 
 
-def test_empty_col_sequence(db_session, test_table):
+def test_empty_col_sequence(db_session, test_table) -> None:
     """
     Test utils.reset_sequence on an empty table without an explicit sequence.
     """
@@ -294,7 +296,7 @@ def test_empty_col_sequence(db_session, test_table):
     utils.reset_sequence(test_table.c.id)
 
 
-def test_with_col_sequence(db_session, test_table_with_sequence):
+def test_with_col_sequence(db_session, test_table_with_sequence) -> None:
     """
     Test utils.reset_sequence on a column with an explicit sequence.
     """
@@ -314,14 +316,14 @@ def test_with_col_sequence(db_session, test_table_with_sequence):
     ), f"Sequence value {currval} is not greater than {rangemax}."
 
 
-def test_empty_dependencies():
+def test_empty_dependencies() -> None:
     r = topological_sort(["a", "b", "c"], [])
     assert "a" in r
     assert "b" in r
     assert "c" in r
 
 
-def test_full_dependencies():
+def test_full_dependencies() -> None:
     r = topological_sort(["a", "b", "c"], [("a", "b"), ("b", "c")])
     assert "a" in r
     assert "b" in r
@@ -331,7 +333,7 @@ def test_full_dependencies():
     assert r.pop() == "a"
 
 
-def test_partial_dependencies():
+def test_partial_dependencies() -> None:
     r = topological_sort(["b", "e"], [("a", "b"), ("b", "c"), ("b", "d")])
     print(r)
     assert "e" in r
@@ -342,6 +344,6 @@ def test_partial_dependencies():
     # assert r == []  # This assertion is commented in the original
 
 
-def test_empty_input_full_dependencies():
+def test_empty_input_full_dependencies() -> None:
     topological_sort([], [("a", "b"), ("b", "c"), ("b", "d")])
     # assert r == []  # This assertion is commented in the original

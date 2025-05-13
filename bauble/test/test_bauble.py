@@ -36,7 +36,9 @@ from bauble import db, meta, prefs
 from bauble.plugins.plants import Family
 from bauble.test import check_dupids
 
-logger = logging.getLogger(__name__)
+from _typeshed import Incomplete
+from collections.abc import Generator
+logger: Incomplete = logging.getLogger(__name__)
 logger._cache.clear()
 logger.setLevel(logging.INFO)
 prefs.testing = True
@@ -68,13 +70,13 @@ prefs.testing = True
 
 #     _TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
 class _TestEnum(db.Base):
-    __tablename__ = "test_enum_type"
-    id = Column(Integer, primary_key=True)
-    value = Column(types.Enum(values=["1", "2", ""], omit_aliases=False), default="")
+    __tablename__: str = "test_enum_type"
+    id: Incomplete = Column(Integer, primary_key=True)
+    value: Incomplete = Column(types.Enum(values=["1", "2", ""], omit_aliases=False), default="")
 
 
 @pytest.fixture
-def clean_enum_table(db_session):
+def clean_enum_table(db_session) -> Generator[Incomplete, None, None]:
     """
     Fixture to clean and create the Enum test table for each test.
     """
@@ -113,7 +115,7 @@ class TestEnumModel:
     Tests for Enum-based SQLAlchemy model.
     """
 
-    def test_insert_low_level(self, db_session, clean_enum_table):
+    def test_insert_low_level(self, db_session, clean_enum_table) -> None:
         # ✅ Get database dialect (SQLite, PostgreSQL, etc.)
         dialect_name = db_session.bind.dialect.name
 
@@ -156,17 +158,17 @@ class TestEnumModel:
         )
         assert inserted_row is not None, "Row was not inserted properly!"
 
-    def test_insert_alchemic(self, db_session, clean_enum_table):
+    def test_insert_alchemic(self, db_session, clean_enum_table) -> None:
         instance = clean_enum_table(id=1)
         db_session.add(instance)
         db_session.flush()
 
-    def test_insert_by_value_ok(self, db_session, clean_enum_table):
+    def test_insert_by_value_ok(self, db_session, clean_enum_table) -> None:
         instance = clean_enum_table(value="1")
         db_session.add(instance)
         db_session.flush()
 
-    def test_insert_by_value_wrong_value_seen_late(self, db_session, clean_enum_table):
+    def test_insert_by_value_wrong_value_seen_late(self, db_session, clean_enum_table) -> None:
         from sqlalchemy.exc import StatementError
 
         instance = clean_enum_table(value="33")
@@ -195,7 +197,7 @@ class TestEnumModel:
         table_class.__table__.create(bind=db.engine, checkfirst=True)
         return table_class
 
-    def test_bad_enum(self, db_session):
+    def test_bad_enum(self, db_session) -> None:
         """
         Test invalid Enum configurations.
         """
@@ -227,7 +229,7 @@ class TestEnumModel:
         if db_session.in_transaction():
             db_session.rollback()
 
-    def test_empty_to_none(self, db_session):
+    def test_empty_to_none(self, db_session) -> None:
         """
         Test the `empty_to_none` functionality for Enums.
         """
@@ -253,7 +255,7 @@ class TestEnumModel:
         ).scalars()
         assert query.all() == [row2]
 
-    def test_function_creating_enum_with_fixture(self, db_session, clean_enum_table):
+    def test_function_creating_enum_with_fixture(self, db_session, clean_enum_table) -> None:
         """
         Ensure the `function_creating_enum` works with the clean_enum_table fixture.
         """
@@ -274,7 +276,7 @@ class TestDateTypes:
     Tests for Date and DateTime types in bauble.btypes.
     """
 
-    def test_date_type(self):
+    def test_date_type(self) -> None:
         from bauble.btypes import Date
 
         dt = Date()
@@ -300,7 +302,7 @@ class TestDateTypes:
         v = dt.process_bind_param(s, None)
         assert v.month == 12 and v.day == 30 and v.year == 2008
 
-    def test_datetime_type(self):
+    def test_datetime_type(self) -> None:
         from bauble.btypes import DateTime
 
         dt = DateTime()
@@ -329,7 +331,7 @@ class TestDateTypes:
         v = dt.process_bind_param(s, None)
         assert v.isoformat(" ") == result
 
-    def test_base_table(self, db_session):
+    def test_base_table(self, db_session) -> None:
         """
         Test `_created` and `_last_updated` fields in `BaubleMeta`.
         """
@@ -371,7 +373,7 @@ class TestDateTypes:
         assert isinstance(m._last_updated, datetime.datetime)
         assert m._last_updated != last_updated
 
-    def test_duplicate_ids(self):
+    def test_duplicate_ids(self) -> None:
         """
         Test for duplicate IDs in all `.glade` files.
         """
@@ -397,7 +399,7 @@ class TestHistory:
     Tests for tracking history changes in the database.
     """
 
-    def test_history_tracking(self, db_session):
+    def test_history_tracking(self, db_session) -> None:
         f = Family(family="Family")
         db_session.add(f)
         if db_session.in_transaction():
@@ -436,7 +438,7 @@ class TestHistory:
         assert history.table_name == "family"
         assert history.operation == "delete"
 
-    def verify_base_and_session(self):
+    def verify_base_and_session(self) -> None:
         """
         Verify that the Base, session, and engine configurations are correct.
         """
@@ -474,7 +476,7 @@ class TestMVP:
     Tests for MVP (Model-View-Presenter) components.
     """
 
-    def test_can_programmatically_connect_signals(self):
+    def test_can_programmatically_connect_signals(self) -> None:
         """
         Ensure that signals can be programmatically connected.
         """
@@ -542,7 +544,7 @@ class TestMVP:
         (BytesIO(b'version = "1.0.99999-dev"  # comment'), False),
     ],
 )
-def test_newer_version_on_github(version_stream, expected_result):
+def test_newer_version_on_github(version_stream, expected_result) -> None:
     """
     Test parsing and evaluation of version strings for newer versions on GitHub.
     """

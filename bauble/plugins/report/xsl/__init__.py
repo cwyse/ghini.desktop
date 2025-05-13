@@ -48,11 +48,13 @@ from bauble.plugins.garden.plant import Plant
 from bauble.plugins.plants.species import Species
 from bauble.plugins.report import FormatterPlugin
 
+from _typeshed import Incomplete
+fop_cmd: str
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy.orm import object_session
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 # from sqlalchemy import *
 
@@ -76,14 +78,14 @@ else:
 #    return ([os.path.join(p, e) for p in os.environ['PATH'].split(os.pathsep) if os.path.exists(os.path.join(p, e))] + [None])[0]
 
 # TODO: support FOray, see http://www.foray.org/
-renderers_map = {
+renderers_map: Incomplete = {
     "Apache FOP": (fop_cmd + " -fo %(fo_filename)s " "-pdf %(out_filename)s"),
     "XEP": "xep -fo %(fo_filename)s -pdf %(out_filename)s",
     # 'xmlroff': 'xmlroff -o %(out_filename)s %(fo_filename)s',
     # 'Ibex for Java': 'java -cp /home/brett/bin/ibex-3.9.7.jar
     # ibex.Run -xml %(fo_filename)s -pdf %(out_filename)s'
 }
-default_renderer = "Apache FOP"
+default_renderer: str = "Apache FOP"
 
 
 def on_path(exe):
@@ -106,8 +108,11 @@ class SpeciesABCDAdapter(ABCDAdapter):
     An adapter to convert a Species to an ABCD Unit, the SpeciesABCDAdapter
     does not create a valid ABCDUnit since we can't provide the required UnitID
     """
-
-    def __init__(self, species, for_labels=False):
+    session: Incomplete
+    for_labels: Incomplete
+    species: Incomplete
+    _date_format: Incomplete
+    def __init__(self, species, for_labels: bool = False) -> None:
         super().__init__(species)
 
         # hold on to the accession so it doesn't get cleaned up and closed
@@ -129,7 +134,7 @@ class SpeciesABCDAdapter(ABCDAdapter):
     def get_family(self):
         return butils.xml_safe(self.species.genus.family)
 
-    def get_FullScientificNameString(self, authors=True):
+    def get_FullScientificNameString(self, authors: bool = True):
         s = self.species.str(authors=authors, markup=False)
         return butils.xml_safe(s)
 
@@ -186,7 +191,7 @@ class SpeciesABCDAdapter(ABCDAdapter):
             )
         return butils.utf8(notes)
 
-    def extra_elements(self, unit):
+    def extra_elements(self, unit) -> None:
         # distribution isn't in the ABCD namespace so it should create an
         # invalid XML file
         if self.for_labels:
@@ -204,15 +209,15 @@ class AccessionABCDAdapter(SpeciesABCDAdapter):
     """
     An adapter to convert a Plant to an ABCD Unit
     """
-
-    def __init__(self, accession, for_labels=False):
+    accession: Incomplete
+    def __init__(self, accession, for_labels: bool = False) -> None:
         super().__init__(accession.species, for_labels)
         self.accession = accession
 
     def get_UnitID(self):
         return butils.xml_safe(str(self.accession))
 
-    def get_FullScientificNameString(self, authors=True):
+    def get_FullScientificNameString(self, authors: bool = True):
         s = self.accession.species_str(authors=authors, markup=False)
         return butils.xml_safe(s)
 
@@ -248,7 +253,7 @@ class AccessionABCDAdapter(SpeciesABCDAdapter):
             )
         return butils.xml_safe(notes)
 
-    def extra_elements(self, unit):
+    def extra_elements(self, unit) -> None:
         super().extra_elements(unit)
         if self.for_labels:
             if self.species.label_distribution:
@@ -332,8 +337,8 @@ class PlantABCDAdapter(AccessionABCDAdapter):
     """
     An adapter to convert a Plant to an ABCD Unit
     """
-
-    def __init__(self, plant, for_labels=False):
+    plant: Incomplete
+    def __init__(self, plant, for_labels: bool = False) -> None:
         super().__init__(plant.accession, for_labels)
         self.plant = plant
 
@@ -358,7 +363,7 @@ class PlantABCDAdapter(AccessionABCDAdapter):
             )
         return butils.xml_safe(str(notes))
 
-    def extra_elements(self, unit):
+    def extra_elements(self, unit) -> None:
         bg_unit = ABCDElement(unit, "BotanicalGardenUnit")
         ABCDElement(
             bg_unit,
@@ -387,10 +392,10 @@ class PlantABCDAdapter(AccessionABCDAdapter):
 
 class XSLFormatterPlugin(FormatterPlugin):
 
-    title = _("XSL")
-    extension = ".xsl"
-    domain_pattern = re.compile(r"^\s*<!--\s*DOMAIN\s+([a-z_]*)\s*-->\s*$")
-    option_pattern = re.compile(
+    title: Incomplete = _("XSL")
+    extension: str = ".xsl"
+    domain_pattern: Incomplete = re.compile(r"^\s*<!--\s*DOMAIN\s+([a-z_]*)\s*-->\s*$")
+    option_pattern: Incomplete = re.compile(
         r"^\s*<!--\s*OPTION ([a-z_]*): \("
         "type: ([a-z_]*), "
         "default: '(.*)', "
@@ -398,7 +403,7 @@ class XSLFormatterPlugin(FormatterPlugin):
     )
 
     @classmethod
-    def install(cls, import_defaults=True):
+    def install(cls, import_defaults: bool = True) -> None:
         "create templates dir on plugin installation"
         logger.debug("installing xsl plugin")
         container_dir = os.path.join(bpaths.appdata_dir(), "res", "templates")

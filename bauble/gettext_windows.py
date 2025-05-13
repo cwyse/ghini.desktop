@@ -47,10 +47,11 @@ import locale
 import os
 import sys
 
-OS_WINDOWS = sys.platform == "win32"
+from _typeshed import Incomplete
+OS_WINDOWS: Incomplete = sys.platform == "win32"
 
 
-def setup_env_windows(system_lang=True):
+def setup_env_windows(system_lang: bool = True) -> None:
     """Check environment variables used by gettext
     and setup LANG if there is none.
     """
@@ -61,7 +62,7 @@ def setup_env_windows(system_lang=True):
         os.environ["LANGUAGE"] = ":".join(lang)
 
 
-def get_language_windows(system_lang=True):
+def get_language_windows(system_lang: bool = True):
     """Get language code based on current Windows settings.
     @return: list of languages.
     """
@@ -79,11 +80,11 @@ def get_language_windows(system_lang=True):
     return [_f for _f in [locale.windows_locale.get(i) for i in lcids] if _f] or None
 
 
-def setup_env_other(system_lang=True):
+def setup_env_other(system_lang: bool = True) -> None:
     pass
 
 
-def get_language_other(system_lang=True):
+def get_language_other(system_lang: bool = True):
     lang = _get_lang_env_var()
     if lang is not None:
         return lang.split(":")
@@ -98,6 +99,10 @@ def _get_lang_env_var():
     return None
 
 
+get_language = get_language_windows
+get_language = get_language_other
+setup_env = setup_env_windows
+setup_env = setup_env_other
 if OS_WINDOWS:
     setup_env = setup_env_windows
     get_language = get_language_windows

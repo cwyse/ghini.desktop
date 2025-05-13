@@ -24,7 +24,8 @@ import re
 import pytest
 from babel.messages.pofile import read_po
 
-logger = logging.getLogger(__name__)
+from _typeshed import Incomplete
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -47,7 +48,7 @@ def translation_pattern():
     return re.compile(r"%\([a-z0-9_]*\)s")
 
 
-def test_same_keys(po_files, translation_pattern):
+def test_same_keys(po_files, translation_pattern) -> None:
     """
     Test that keys in the original message and translations match for all .po files.
     """
