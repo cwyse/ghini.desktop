@@ -46,17 +46,21 @@ from bauble.plugins.plants.species_model import (
 from bauble.prefs import prefs
 from bauble.utils import safe_set_props
 
+from typing import Union, Optional
+from bauble import editor
+from _typeshed import Incomplete
+from bauble.plugins.plants.species_model import Habit as Habit, Species as Species, SpeciesDistribution as SpeciesDistribution, SpeciesSynonym as SpeciesSynonym, VernacularName as VernacularName, compare_rank as compare_rank, infrasp_rank_values as infrasp_rank_values
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 from sqlalchemy import func, select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm.session import object_session
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def safe_set_text(gtk_widget, text):
+def safe_set_text(gtk_widget, text) -> None:
     """
     Sets the text of a Gtk widget replacing None with an empty string.
 
@@ -70,9 +74,22 @@ def safe_set_text(gtk_widget, text):
 
 class SpeciesEditorPresenter(editor.GenericEditorPresenter):
 
-    PROBLEM_INVALID_GENUS = 1
+    initializing: bool
+    session: Incomplete
+    _dirty: bool
+    omonym_box: Incomplete
+    species_check_messages: Incomplete
+    genus_check_messages: Incomplete
+    species_space: bool
+    vern_presenter: Incomplete
+    synonyms_presenter: Incomplete
+    dist_presenter: Incomplete
+    infrasp_presenter: Incomplete
+    notes_presenter: Incomplete
+    pictures_presenter: Incomplete
+    PROBLEM_INVALID_GENUS: int = 1
 
-    widget_to_field_map = {
+    widget_to_field_map: Incomplete = {
         "sp_genus_entry": "genus",
         "sp_species_entry": "epithet",
         "sp_author_entry": "author",
@@ -84,7 +101,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         "sp_habit_comboentry": "habit",
     }
 
-    def __init__(self, model, view):
+    def __init__(self, model, view) -> None:
         super().__init__(model, view)
         self.initializing = True
         self.create_toolbar()
@@ -403,20 +420,20 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             pass
         self.initializing = False
 
-    def set_visible_buttons(self, visible):
+    def set_visible_buttons(self, visible) -> None:
         self.view.widgets.sp_ok_and_add_button.set_visible(visible)
         self.view.widgets.sp_next_button.set_visible(visible)
 
-    def on_sp_species_entry_changed(self, widget, *args):
+    def on_sp_species_entry_changed(self, widget, *args) -> None:
         self.on_text_entry_changed(widget, *args)
         self.on_entry_changed_clear_boxes(widget, *args)
 
-    def on_entry_changed_clear_boxes(self, widget, *args):
+    def on_entry_changed_clear_boxes(self, widget, *args) -> None:
         while self.species_check_messages:
             kid = self.species_check_messages.pop()
             self.view.widgets.remove_parent(kid)
 
-    def on_habit_comboentry_changed(self, combo, *args):
+    def on_habit_comboentry_changed(self, combo, *args) -> None:
         """
         Changed handler for sp_habit_comboentry.
 
@@ -433,7 +450,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         safe_set_text(combo.get_child(), str(value))
         combo.get_child().set_position(-1)
 
-    def __del__(self):
+    def __del__(self) -> None:
         # we have to delete the views in the child presenters manually
         # to avoid the circular reference
         del self.vern_presenter.view
@@ -453,7 +470,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             or self.notes_presenter.is_dirty()
         )
 
-    def set_model_attr(self, field, value, validator=None):
+    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
         """
         Resets the sensitivity on the ok buttons and the name widgets
         when values change in the model
@@ -472,7 +489,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             sensitive = False
         self.view.set_accept_buttons_sensitive(sensitive)
 
-    def refresh_sensitivity(self):
+    def refresh_sensitivity(self) -> None:
         """
         :param self:
         """
@@ -544,7 +561,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             return value.decode("utf-8", errors="replace")
         return str(value)
 
-    def refresh_fullname_label(self, widget=None):
+    def refresh_fullname_label(self, widget: Optional[Incomplete] = None) -> None:
         """
         set the value of sp_fullname_label to either '--' if there
         is a problem or to the name of the string returned by Species.str
@@ -594,7 +611,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
                 box.show()
                 self.view.add_box(box)
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         super().cleanup()
         self.vern_presenter.cleanup()
         self.synonyms_presenter.cleanup()
@@ -605,7 +622,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         r = self.view.start()
         return r
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         for widget, field in list(self.widget_to_field_map.items()):
             if field == "genus_id":
                 value = self.model.genus
@@ -624,8 +641,10 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
 
 class InfraspPresenter(editor.GenericEditorPresenter):
     """ """
-
-    def __init__(self, parent):
+    parent_ref: Incomplete
+    _dirty: bool
+    table_rows: Incomplete
+    def __init__(self, parent) -> None:
         """
         :param parent: the parent SpeciesEditorPresenter
         """
@@ -663,7 +682,14 @@ class InfraspPresenter(editor.GenericEditorPresenter):
 
     class Row:
 
-        def __init__(self, presenter, level):
+        presenter: Incomplete
+        species: Incomplete
+        level: Incomplete
+        rank_combo: Incomplete
+        epithet_entry: Incomplete
+        author_entry: Incomplete
+        remove_button: Incomplete
+        def __init__(self, presenter, level) -> None:
             """ """
             self.presenter = presenter
             self.species = presenter.model
@@ -725,7 +751,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             table.attach(self.remove_button, 3, level, 1, 1)
             table.show_all()
 
-        def on_remove_button_clicked(self, *args):
+        def on_remove_button_clicked(self, *args) -> None:
             # remove the widgets
             table = self.presenter.view.widgets.infrasp_table
 
@@ -751,14 +777,14 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             self.presenter.parent_ref().refresh_sensitivity()
             self.presenter.view.widgets.add_infrasp_button.set_sensitive(True)
 
-        def set_model_attr(self, attr, value):
+        def set_model_attr(self, attr, value) -> None:
             infrasp_attr = Species.infrasp_attr[self.level][attr]
             setattr(self.species, infrasp_attr, value)
             self.presenter._dirty = True
             self.presenter.parent_ref().refresh_fullname_label()
             self.presenter.parent_ref().refresh_sensitivity()
 
-        def on_rank_combo_changed(self, combo, *args):
+        def on_rank_combo_changed(self, combo, *args) -> None:
             logger.info(f"on_rank_combo_changed({combo}, {args})")
             model = combo.get_model()
             it = combo.get_active_iter()
@@ -768,7 +794,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             else:
                 self.set_model_attr("rank", None)
 
-        def on_epithet_entry_changed(self, entry, *args):
+        def on_epithet_entry_changed(self, entry, *args) -> None:
             logger.info(f"on_epithet_entry_changed({entry}, {args})")
             value = entry.get_text()
             if not value:  # if None or ''
@@ -776,7 +802,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
             self.set_model_attr("epithet", value)
             # now warn if same binomial is already in database
 
-        def on_author_entry_changed(self, entry, *args):
+        def on_author_entry_changed(self, entry, *args) -> None:
             logger.info(f"on_author_entry_changed({entry}, {args})")
             value = entry.get_text()
             if not value:  # if None or ''
@@ -786,8 +812,12 @@ class InfraspPresenter(editor.GenericEditorPresenter):
 
 class DistributionPresenter(editor.GenericEditorPresenter):
     """ """
-
-    def __init__(self, parent):
+    parent_ref: Incomplete
+    session: Incomplete
+    _dirty: bool
+    remove_menu: Incomplete
+    geo_menu: Incomplete
+    def __init__(self, parent) -> None:
         """
         :param parent: the parent SpeciesEditorPresenter
         """
@@ -817,12 +847,12 @@ class DistributionPresenter(editor.GenericEditorPresenter):
 
         GLib.idle_add(_init_geo)
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         label = self.view.widgets.sp_dist_label
         s = ", ".join([str(d) for d in self.model.distribution or []])
         safe_set_text(label, s)
 
-    def on_add_button_pressed(self, button, event):
+    def on_add_button_pressed(self, button, event) -> None:
         self.geo_menu.popup(
             None,
             None,
@@ -832,7 +862,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
             activate_time=event.time,
         )
 
-    def on_remove_button_pressed(self, button, event):
+    def on_remove_button_pressed(self, button, event) -> None:
         # clear the menu
         for c in self.remove_menu.get_children():
             self.remove_menu.remove(c)
@@ -851,7 +881,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
             event.time,  # 1. issue_gdkevent_structs
         )
 
-    def on_activate_add_menu_item(self, widget, geoid=None):
+    def on_activate_add_menu_item(self, widget, geoid: Optional[Incomplete] = None) -> None:
         logger.debug(f"on_activate_add_menu_item {widget} {geoid}")
         from bauble.plugins.plants.geography import GeographicArea
 
@@ -869,7 +899,7 @@ class DistributionPresenter(editor.GenericEditorPresenter):
         self.refresh_view()
         self.parent_ref().refresh_sensitivity()
 
-    def on_activate_remove_menu_item(self, widget, dist):
+    def on_activate_remove_menu_item(self, widget, dist) -> None:
         self.model.distribution.remove(dist)
         utils.delete_or_expunge(dist)
         self.refresh_view()
@@ -889,8 +919,11 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
     more rely on the model in the TreeView which are VernacularName
     objects
     """
-
-    def __init__(self, parent):
+    parent_ref: Incomplete
+    session: Incomplete
+    _dirty: bool
+    treeview: Incomplete
+    def __init__(self, parent) -> None:
         """
         :param parent: the parent SpeciesEditorPresenter
         """
@@ -910,7 +943,7 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
         """
         return self._dirty
 
-    def on_add_button_clicked(self, button, data=None):
+    def on_add_button_clicked(self, button, data: Optional[Incomplete] = None) -> None:
         """
         Add the values in the entries to the model.
         """
@@ -925,7 +958,7 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
             # self.set_model_attr('default_vernacular_name', vn)
             self.model.default_vernacular_name = vn
 
-    def on_remove_button_clicked(self, button, data=None):
+    def on_remove_button_clicked(self, button, data: Optional[Incomplete] = None) -> None:
         """
         Removes the currently selected vernacular name from the view.
         """
@@ -958,7 +991,7 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
         self.parent_ref().refresh_sensitivity()
         self._dirty = True
 
-    def on_default_toggled(self, cell, path, data=None):
+    def on_default_toggled(self, cell, path, data: Optional[Incomplete] = None) -> None:
         """
         Default column callback.
         """
@@ -969,7 +1002,7 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 
-    def on_cell_edited(self, cell, path, new_text, prop):
+    def on_cell_edited(self, cell, path, new_text, prop) -> None:
         treemodel = self.treeview.get_model()
         vn = treemodel[path][0]
         if getattr(vn, prop) == new_text:
@@ -978,7 +1011,7 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 
-    def init_treeview(self, model):
+    def init_treeview(self, model) -> None:
         """
         Initialized the list of vernacular names.
 
@@ -1043,11 +1076,11 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
 
         self.view.connect(self.treeview, "cursor-changed", self.on_tree_cursor_changed)
 
-    def on_tree_cursor_changed(self, tree, data=None):
+    def on_tree_cursor_changed(self, tree, data: Optional[Incomplete] = None) -> None:
         path, column = tree.get_cursor()
         self.view.widgets.sp_vern_remove_button.set_sensitive(True)
 
-    def refresh_view(self, default_vernacular_name):
+    def refresh_view(self, default_vernacular_name) -> None:
         tree_model = self.treeview.get_model()
         # if len(self.model) > 0 and default_vernacular_name is None:
         vernacular_names = self.model.vernacular_names
@@ -1072,9 +1105,14 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
 
 class SynonymsPresenter(editor.GenericEditorPresenter):
 
-    PROBLEM_INVALID_SYNONYM = 1
+    parent_ref: Incomplete
+    session: Incomplete
+    _selected: Incomplete
+    _dirty: bool
+    treeview: Incomplete
+    PROBLEM_INVALID_SYNONYM: int = 1
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         """
         :param parent: the parent SpeciesEditorPresenter
         """
@@ -1118,7 +1156,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
     def is_dirty(self):
         return self._dirty
 
-    def init_treeview(self):
+    def init_treeview(self) -> None:
         """
         initialize the Gtk.TreeView
         """
@@ -1143,18 +1181,18 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self.treeview.set_model(tree_model)
         self.view.connect(self.treeview, "cursor-changed", self.on_tree_cursor_changed)
 
-    def on_tree_cursor_changed(self, tree, data=None):
+    def on_tree_cursor_changed(self, tree, data: Optional[Incomplete] = None) -> None:
         """ """
         path, column = tree.get_cursor()
         self.view.widgets.sp_syn_remove_button.set_sensitive(True)
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         """
         doesn't do anything
         """
         return
 
-    def on_add_button_clicked(self, button, data=None):
+    def on_add_button_clicked(self, button, data: Optional[Incomplete] = None) -> None:
         """
         Adds the synonym from the synonym entry to the list of synonyms for
         this species.
@@ -1171,7 +1209,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 
-    def on_remove_button_clicked(self, button, data=None):
+    def on_remove_button_clicked(self, button, data: Optional[Incomplete] = None) -> None:
         """
         removes the currently selected synonym from the list of synonyms for
         this species
@@ -1222,7 +1260,9 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
 
 class SpeciesEditorView(editor.GenericEditorView):
 
-    expanders_pref_map = {}
+    _tooltips: Incomplete
+    boxes: Incomplete
+    expanders_pref_map: Incomplete = {}
     # {'sp_infra_expander': 'editor.species.infra.expanded',
     # 'sp_meta_expander': 'editor.species.meta.expanded'}
 
@@ -1251,7 +1291,7 @@ class SpeciesEditorView(editor.GenericEditorView):
         "sp_next_button": _("Save your changes and add another " "species "),
     }
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[Incomplete] = None) -> None:
         """
         the constructor
 
@@ -1279,7 +1319,7 @@ class SpeciesEditorView(editor.GenericEditorView):
         return self.widgets.species_dialog
 
     @staticmethod
-    def genus_match_func(completion, key, iter, data=None):
+    def genus_match_func(completion, key, iter, data: Optional[Incomplete] = None):
         """
         match against both str(genus) and str(genus.genus) so that we
         catch the genera with hybrid flags in their name when only
@@ -1292,7 +1332,7 @@ class SpeciesEditorView(editor.GenericEditorView):
             return True
         return False
 
-    def set_accept_buttons_sensitive(self, sensitive):
+    def set_accept_buttons_sensitive(self, sensitive) -> None:
         """
         set the sensitivity of all the accept/ok buttons for the editor dialog
         """
@@ -1320,7 +1360,7 @@ class SpeciesEditorView(editor.GenericEditorView):
         self.widgets.sp_next_button.connect("clicked", lambda b: dialog.response(22))
 
     @staticmethod
-    def genus_completion_cell_data_func(column, renderer, model, treeiter, data=None):
+    def genus_completion_cell_data_func(column, renderer, model, treeiter, data: Optional[Incomplete] = None) -> None:
         """ """
         v = model[treeiter][0]
         renderer.set_property(
@@ -1328,19 +1368,19 @@ class SpeciesEditorView(editor.GenericEditorView):
         )
 
     @staticmethod
-    def syn_cell_data_func(column, renderer, model, treeiter, data=None):
+    def syn_cell_data_func(column, renderer, model, treeiter, data: Optional[Incomplete] = None) -> None:
         """ """
         v = model[treeiter][0]
         renderer.set_property("text", str(v))
 
-    def save_state(self):
+    def save_state(self) -> None:
         """
         save the current state of the gui to the preferences
         """
         for expander, pref in list(self.expanders_pref_map.items()):
             prefs[pref] = self.widgets[expander].get_expanded()
 
-    def restore_state(self):
+    def restore_state(self) -> None:
         """
         restore the state of the gui from the preferences
         """
@@ -1358,11 +1398,15 @@ class SpeciesEditorView(editor.GenericEditorView):
 class SpeciesEditor(editor.GenericModelViewPresenterEditor):
 
     # these have to correspond to the response values in the view
-    RESPONSE_OK_AND_ADD = 11
-    RESPONSE_NEXT = 22
-    ok_responses = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
+    parent: Incomplete
+    _committed: Incomplete
+    presenter: Incomplete
+    view: Incomplete
+    RESPONSE_OK_AND_ADD: int = 11
+    RESPONSE_NEXT: int = 22
+    ok_responses: Incomplete = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model=None, parent=None, is_dependent_window=False):
+    def __init__(self, model: Optional[Incomplete] = None, parent: Optional[Incomplete] = None, is_dependent_window: bool = False) -> None:
         """
         :param model: a species instance or None
         :param parent: the parent window or None
@@ -1455,7 +1499,7 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
         self.view.close_boxes()
         return True
 
-    def commit_changes(self):
+    def commit_changes(self) -> None:
         # if self.model.epithet or cv_group is empty and
         # self.model.infrasp_rank=='cv.' and self.model.infrasp
         # then show a dialog saying we can't commit and return
@@ -1494,7 +1538,7 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
         return self._committed
 
 
-def edit_species(model=None, parent_view=None, is_dependent_window=False):
+def edit_species(model: Optional[Incomplete] = None, parent_view: Optional[Incomplete] = None, is_dependent_window: bool = False):
     kkk = SpeciesEditor(model, parent_view, is_dependent_window)
     kkk.start()
     result = kkk._committed

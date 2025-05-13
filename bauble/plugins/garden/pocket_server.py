@@ -32,11 +32,13 @@ from bauble import db, meta, paths, pluginmgr
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.utils import safe_set_text
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from sqlalchemy import select
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 
 def get_ip():
@@ -66,11 +68,19 @@ def get_code():
 
 
 class RequestHandler(SimpleXMLRPCRequestHandler):
-    rpc_paths = ("/API1",)
+    rpc_paths: Incomplete = ("/API1",)
 
 
 class PocketServer(Thread):
-    def __init__(self, presenter):
+    presenter: Incomplete
+    log: Incomplete
+    clients: Incomplete
+    imei_to_user_name: Incomplete
+    ip: Incomplete
+    port: Incomplete
+    api: Incomplete
+    server: Incomplete
+    def __init__(self, presenter) -> None:
         super().__init__()
 
         class API:
@@ -237,7 +247,7 @@ class PocketServer(Thread):
         self.port = int(presenter.model.port)
         self.api = API(presenter)
 
-    def run(self):
+    def run(self) -> None:
         self.server = SimpleXMLRPCServer(
             (self.ip, self.port),
             requestHandler=RequestHandler,
@@ -247,15 +257,20 @@ class PocketServer(Thread):
         self.server.register_instance(self.api)
         self.server.serve_forever()
 
-    def cancel(self):
+    def cancel(self) -> None:
         self.server.shutdown()
         self.server.server_close()
 
 
 class PocketServerPresenter(GenericEditorPresenter):
     """manage the xmlrpc server for pocket communication"""
-
-    widget_to_field_map = {
+    clients_ls: Incomplete
+    is_exporting: bool
+    opacity: float
+    _dirty: bool
+    angle: int
+    keep_spinning: bool
+    widget_to_field_map: Incomplete = {
         "last_snapshot_date_entry": "last_snapshot_date",
         "code_entry": "code",
         "autorefresh_checkbutton": "autorefresh",
@@ -263,7 +278,7 @@ class PocketServerPresenter(GenericEditorPresenter):
         "port_entry": "port",
     }
 
-    def __init__(self, model, view):
+    def __init__(self, model, view) -> None:
         # invoke constructor
         super().__init__(
             model=model,
@@ -289,14 +304,14 @@ class PocketServerPresenter(GenericEditorPresenter):
             self.view.widgets.progressbar.set_visible(False)
             self.is_exporting = False
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         super().cleanup()
         self.stop_spinner()
         self.cancel_threads()
         # remove self.pocket_fn
         os.unlink(self.pocket_fn)
 
-    def read_clients_list(self):
+    def read_clients_list(self) -> None:
         self.clients_ls.clear()
         row = next(
             iter(
@@ -313,7 +328,7 @@ class PocketServerPresenter(GenericEditorPresenter):
         for i, key in enumerate(elems):
             self.clients_ls.append((i, key, elems[key]))
 
-    def commit_changes(self):
+    def commit_changes(self) -> None:
         result = list(
             self.session.execute(
                 select(meta.BaubleMeta).where(name="pocket-clients")
@@ -327,14 +342,14 @@ class PocketServerPresenter(GenericEditorPresenter):
         if self.session.in_transaction():
             self.session.commit()
 
-    def treeview_changed(self, widget, event, data=None):
+    def treeview_changed(self, widget, event, data: Optional[Incomplete] = None) -> None:
         adj = widget.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
 
-    def on_activity_expander_activate(self, target, *args):
+    def on_activity_expander_activate(self, target, *args) -> None:
         self.view.widgets.activity_log.set_visible(not target.get_expanded())
 
-    def on_new_snapshot_button_clicked(self, *args):
+    def on_new_snapshot_button_clicked(self, *args) -> None:
         text = self.view.widgets.creating_snapshot_label.get_text()
         safe_set_text(self.view.widgets.last_snapshot_date_entry, text)
         self.view.widgets.new_snapshot_button.set_sensitive(False)
@@ -355,14 +370,14 @@ class PocketServerPresenter(GenericEditorPresenter):
         self.is_exporting = True
         GLib.timeout_add(50, self.flashing_creating)
 
-    def on_export_complete(self):
+    def on_export_complete(self) -> None:
         now = datetime.datetime.now().isoformat().split(".")[0]
         self.view.widgets.last_snapshot_date_entry.set_text(now)
         self.view.widgets.progressbar.set_visible(False)
         self.view.widgets.progressbar_placeholder.set_visible(True)
         self.is_exporting = False
 
-    def on_remove_client_button_clicked(self, target, *args):
+    def on_remove_client_button_clicked(self, target, *args) -> None:
         selection = self.view.widgets.client_selection
         ls, iter = selection.get_selected()
         if iter is None:
@@ -370,12 +385,12 @@ class PocketServerPresenter(GenericEditorPresenter):
         ls.remove(iter)
         self._dirty = True
 
-    def on_refresh_code_button_clicked(self, target, *args):
+    def on_refresh_code_button_clicked(self, target, *args) -> None:
         self.model.code = get_code()
         entry = self.view.widgets.code_entry
         safe_set_text(entry, self.model.code)
 
-    def start_stop_server(self, target, *args):
+    def start_stop_server(self, target, *args) -> None:
         if target.get_active():
             self.start_thread(PocketServer(presenter=self))
             self.start_spinner()
@@ -383,14 +398,14 @@ class PocketServerPresenter(GenericEditorPresenter):
             self.cancel_threads()
             self.stop_spinner()
 
-    def start_spinner(self, *args):
+    def start_spinner(self, *args) -> None:
         if self.keep_spinning:
             return
         self.angle = 0
         self.keep_spinning = True
         GLib.timeout_add(50, self.rotate)
 
-    def stop_spinner(self, *args):
+    def stop_spinner(self, *args) -> None:
         self.view.widgets.server_toggle_button.set_active(False)
         self.keep_spinning = False
 
@@ -419,16 +434,17 @@ class PocketServerPresenter(GenericEditorPresenter):
 
 
 class PocketServerTool(pluginmgr.Tool):
-    item_position = 32
-    label = _("Pocket Server…")
-    icon_name = "server"
+    port: int
+    item_position: int = 32
+    label: Incomplete = _("Pocket Server…")
+    icon_name: str = "server"
     # prepare fields
     port = 44464
-    autorefresh = False
-    last_snapshot_date = ""
+    autorefresh: bool = False
+    last_snapshot_date: str = ""
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         filename = os.path.join(
             paths.lib_dir(), "plugins", "garden", "pocket_server.glade"
         )

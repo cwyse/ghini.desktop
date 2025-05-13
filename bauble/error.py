@@ -22,7 +22,10 @@
 from typing import Any, Optional
 
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 class BaubleError(Exception):
+    msg: Incomplete
     def __init__(self, msg: Optional[str] = None) -> None:
         self.msg = msg
 
@@ -36,6 +39,8 @@ class BaubleError(Exception):
 
 class CommitException(Exception):
 
+    row: Incomplete
+    exc: Incomplete
     def __init__(self, exc: Exception, row: Any) -> None:
         self.row = row  # the model we were trying to commit
         self.exc = exc  # the exception thrown while committing
@@ -71,6 +76,7 @@ class RegistryError(DatabaseError):
 
 class VersionError(DatabaseError):
 
+    version: Incomplete
     def __init__(self, version: Any) -> None:
         super().__init__()
         self.version = version

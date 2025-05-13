@@ -42,6 +42,10 @@ import bauble
 from bauble import paths
 from bauble.error import check
 
+from typing import Union, Optional
+from _typeshed import Incomplete
+from bauble import paths as paths, utils as utils
+from collections.abc import Generator
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk
 
@@ -51,7 +55,7 @@ from sqlalchemy.orm.session import object_session
 
 from bauble import utils
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -60,14 +64,14 @@ def get_object_session(obj):
     return object_session(obj)
 
 
-def add_to_relationship(parent, child, relationship_name):
+def add_to_relationship(parent, child, relationship_name) -> None:
     """Add a child object to a parent's relationship."""
     relationship = getattr(parent, relationship_name, None)
     if relationship is not None:
         relationship.append(child)
 
 
-def remove_from_relationship(parent, child, relationship_name):
+def remove_from_relationship(parent, child, relationship_name) -> None:
     """Remove a child object from a parent's relationship."""
     relationship = getattr(parent, relationship_name, None)
     if relationship is not None and child in relationship:
@@ -79,7 +83,7 @@ def get_column_value(obj, column_name):
     return getattr(obj, column_name, None)
 
 
-def set_column_value(obj, column_name, value):
+def set_column_value(obj, column_name, value) -> None:
     """Set the value of a specific column in an object."""
     setattr(obj, column_name, value)
 
@@ -89,7 +93,7 @@ def sorted_relationship(relationship, key):
     return sorted(relationship, key=lambda x: getattr(x, key, None))
 
 
-def handle_deletion_error(e):
+def handle_deletion_error(e) -> None:
     """Handle errors specific to deletion."""
     if isinstance(e, sqlalchemy.exc.IntegrityError):
         message = _(
@@ -106,7 +110,7 @@ def handle_deletion_error(e):
     utils.message_details_dialog(message, details, Gtk.MessageType.ERROR)
 
 
-def handle_generic_error(e):
+def handle_generic_error(e) -> None:
     """Handle database-specific errors."""
     if isinstance(e, sqlalchemy.exc.IntegrityError):
         message = _("Integrity error: Check constraints or data conflicts.")
@@ -121,7 +125,7 @@ def handle_generic_error(e):
     utils.message_details_dialog(message, details, Gtk.MessageType.ERROR)
 
 
-def handle_db_error(exception, context="database operation"):
+def handle_db_error(exception, context: str = "database operation") -> None:
     """
     Handle database-specific errors.
 
@@ -153,7 +157,7 @@ def count_relationship_items(obj, relationship_name):
     return 0
 
 
-def safe_set_text(gtk_widget, text):
+def safe_set_text(gtk_widget, text) -> None:
     """
     Sets the text of a Gtk widget, replacing None with an empty string
     and converting bytes to UTF-8 strings.
@@ -173,7 +177,7 @@ def safe_set_text(gtk_widget, text):
         raise TypeError(f"Invalid widget or text: {gtk_widget}, {text}") from e
 
 
-def safe_set_props(widget, prop, value):
+def safe_set_props(widget, prop, value) -> None:
     """
     Safely set a property of a widget.
 
@@ -199,7 +203,7 @@ def safe_set_props(widget, prop, value):
         widget.set_property(prop, value)
 
 
-def read_in_chunks(file_object, chunk_size=1024):
+def read_in_chunks(file_object, chunk_size: int = 1024) -> Generator[Incomplete, None, None]:
     """read a chunk from a stream
 
     Lazy function (generator) to read piece by piece from a file-like object.
@@ -225,8 +229,9 @@ class Cache:
     the image, the value is a pair with first the timestamp of the last usage
     of that key and second the value.
     """
-
-    def __init__(self, size):
+    size: Incomplete
+    storage: Incomplete
+    def __init__(self, size) -> None:
         self.size = size
         self.storage = {}
 
@@ -253,7 +258,7 @@ class Cache:
         return value
 
 
-def copy_picture_with_thumbnail(path, basename=None):
+def copy_picture_with_thumbnail(path, basename: Optional[Incomplete] = None):
     """copy file from path to picture_root, and make thumbnail, preserving name
 
     return base64 representation of thumbnail
@@ -299,9 +304,14 @@ def copy_picture_with_thumbnail(path, basename=None):
 
 
 class ImageLoader(threading.Thread):
-    cache = Cache(12)  # class-global cached results
+    box: Incomplete
+    loader: Incomplete
+    inline_picture_marker: str
+    reader_function: Incomplete
+    url: Incomplete
+    cache: Incomplete = Cache(12)  # class-global cached results
 
-    def __init__(self, box, url, *args, **kwargs):
+    def __init__(self, box, url, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.box = box  # will hold image or label
         self.loader = GdkPixbuf.PixbufLoader()
@@ -319,7 +329,7 @@ class ImageLoader(threading.Thread):
             pfolder = prefs.prefs[prefs.picture_root_pref]
             self.url = os.path.join(pfolder, url)
 
-    def callback(self):
+    def callback(self) -> None:
         pixbuf = self.loader.get_pixbuf()
         try:
             pixbuf = pixbuf.apply_embedded_orientation()
@@ -348,10 +358,10 @@ class ImageLoader(threading.Thread):
             self.box.add(label)
         self.box.show_all()
 
-    def loader_notified(self, pixbufloader):
+    def loader_notified(self, pixbufloader) -> None:
         GObject.idle_add(self.callback)
 
-    def run(self):
+    def run(self) -> None:
         self.loader.connect("closed", self.loader_notified)
         self.cache.get(self.url, self.reader_function, on_hit=self.loader.write)
         try:
@@ -394,7 +404,7 @@ class ImageLoader(threading.Thread):
         return b"".join(pieces)
 
 
-def find_dependent_tables(table, metadata=None):
+def find_dependent_tables(table, metadata: Optional[Incomplete] = None):
     """
     Return an iterator with all tables that depend on table.  The
     tables are returned in the order that they depend on each
@@ -434,8 +444,8 @@ class BuilderWidgets:
     Provides dictionary and attribute access for a
     :class:`Gtk.Builder` object.
     """
-
-    def __init__(self, ui):
+    builder: Incomplete
+    def __init__(self, ui) -> None:
         """
         :params filename: a Gtk.Builder XML UI file
         """
@@ -468,7 +478,7 @@ class BuilderWidgets:
             )
         return w
 
-    def remove_parent(self, w):
+    def remove_parent(self, w) -> None:
         """Remove widgets from its parent."""
         if isinstance(w, str):
             w = self.builder.get_object(w)
@@ -509,7 +519,7 @@ def search_tree_model(parent, data, cmp=lambda row, data: row[0] == data):
     return tuple(results)
 
 
-def clear_model(obj_with_model):
+def clear_model(obj_with_model) -> None:
     """
     :param obj_with_model: a gtk Widget that has a Gtk.TreeModel that
       can be retrieved with obj_with_mode.get_model
@@ -536,7 +546,7 @@ def clear_model(obj_with_model):
     obj_with_model.set_model(None)
 
 
-def combo_set_active_text(combo, value):
+def combo_set_active_text(combo, value) -> None:
     """
     does the same thing as set_combo_from_value but this looks more like a
     GTK+ method
@@ -582,7 +592,7 @@ def combo_get_value_iter(combo, value, cmp=lambda row, value: row[0] == value):
     return matches[0]
 
 
-def get_widget_value(w, index=0):
+def get_widget_value(w, index: int = 0):
     """
     :param w: an instance of Gtk.Widget
     :param index: the row index to use for those widgets who use a model
@@ -621,7 +631,7 @@ def get_widget_value(w, index=0):
         )
 
 
-def set_widget_value(widget, value, markup=False, default=None, index=0):
+def set_widget_value(widget, value, markup: bool = False, default: Optional[Incomplete] = None, index: int = 0):
     """
     :param widget: an instance of Gtk.Widget
     :param value: the value to put in the widget
@@ -713,7 +723,7 @@ def set_widget_value(widget, value, markup=False, default=None, index=0):
         )
 
 
-def none(function, *args):
+def none(function, *args) -> None:
     """invoke function but drop return value
 
     meant to be used in GObject.idle_add, so that the function is not placed
@@ -732,7 +742,7 @@ def none(function, *args):
 
 
 def create_message_dialog(
-    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent: Optional[Incomplete] = None
 ):
     """Create a message dialog, display and return it ready to be run.
 
@@ -779,8 +789,8 @@ def create_message_dialog(
 
 
 def idle_message(
-    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
-):
+    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent: Optional[Incomplete] = None
+) -> None:
     """create and run message_dialog in GUI thread, once."""
 
     def run_me():
@@ -792,7 +802,7 @@ def idle_message(
 
 
 def message_dialog(
-    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent=None
+    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent: Optional[Incomplete] = None
 ):
     """Create and run a temporary MessageDialog.
 
@@ -807,7 +817,7 @@ def message_dialog(
     return r
 
 
-def create_yes_no_dialog(msg, parent=None, buttons=Gtk.ButtonsType.YES_NO):
+def create_yes_no_dialog(msg, parent: Optional[Incomplete] = None, buttons=Gtk.ButtonsType.YES_NO):
     """
     Create a dialog with yes/no buttons.
     """
@@ -843,8 +853,8 @@ def create_yes_no_dialog(msg, parent=None, buttons=Gtk.ButtonsType.YES_NO):
 
 
 def yes_no_cancel_dialog(
-    msg, yes_label, no_label, cancel_label, parent=None, callback=None
-):
+    msg, yes_label, no_label, cancel_label, parent: Optional[Incomplete] = None, callback: Optional[Incomplete] = None
+) -> None:
     """
     Displays a dialog with Yes, No, and Cancel options.
     Returns a DialogResponse enum value.
@@ -882,7 +892,7 @@ def yes_no_cancel_dialog(
     dialog.show_all()
 
 
-def yes_no_dialog(msg, parent=None, yes_delay=-1):
+def yes_no_dialog(msg, parent: Optional[Incomplete] = None, yes_delay: int = -1):
     """
     Create and run a yes/no dialog.
 
@@ -915,7 +925,7 @@ def create_message_details_dialog(
     details,
     type=Gtk.MessageType.INFO,
     buttons=Gtk.ButtonsType.OK,
-    parent=None,
+    parent: Optional[Incomplete] = None
 ):
     """
     Create a message dialog with a details expander.
@@ -1003,7 +1013,7 @@ def message_details_dialog(
     details,
     type=Gtk.MessageType.INFO,
     buttons=Gtk.ButtonsType.OK,
-    parent=None,
+    parent: Optional[Incomplete] = None
 ):
     """
     Create and run a message dialog with a details expander.
@@ -1014,7 +1024,7 @@ def message_details_dialog(
     return r
 
 
-def setup_text_combobox(combo, values=None, cell_data_func=None):
+def setup_text_combobox(combo, values: Optional[Incomplete] = None, cell_data_func: Optional[Incomplete] = None):
     """
     Configure a Gtk.ComboBox as a text combobox
 
@@ -1093,7 +1103,7 @@ def prettify_format(format):
     return f
 
 
-def today_str(format=None):
+def today_str(format: Optional[Incomplete] = None):
     """
     Return a string for of today's date according to format.
 
@@ -1110,8 +1120,8 @@ def today_str(format=None):
 
 
 def set_button_contents(
-    button, label_text=None, icon_name=None, orientation=Gtk.Orientation.HORIZONTAL
-):
+    button, label_text: Optional[Incomplete] = None, icon_name: Optional[Incomplete] = None, orientation=Gtk.Orientation.HORIZONTAL
+) -> None:
     """
     Set button contents with optional icon and label.
     Works in both GTK 3 and GTK 4.
@@ -1135,7 +1145,7 @@ def set_button_contents(
         button.show_all()
 
 
-def setup_date_button(view, entry, button, date_func=None):
+def setup_date_button(view, entry, button, date_func: Optional[Incomplete] = None) -> None:
     """
     Associate a button with entry so that when the button is clicked a
     date is inserted into the entry.
@@ -1178,7 +1188,7 @@ def setup_date_button(view, entry, button, date_func=None):
         button.connect("clicked", on_clicked)
 
 
-def to_unicode(obj, encoding="utf-8"):
+def to_unicode(obj, encoding: str = "utf-8"):
     """
     Convert an object to a Unicode string (str in Python 3).
 
@@ -1257,7 +1267,7 @@ def safe_int(s):
     return 0
 
 
-__natsort_rx = re.compile(r"(\d+(?:\.\d+)?)")
+__natsort_rx: Incomplete = re.compile(r"(\d+(?:\.\d+)?)")
 
 
 def natsort_key(obj):
@@ -1285,7 +1295,7 @@ def natsort_key(obj):
     return (chunks, item)
 
 
-def delete_or_expunge(obj):
+def delete_or_expunge(obj) -> None:
     """
     If the object is in object_session(obj).new then expunge it from the
     session.  If not then session.delete it.
@@ -1357,7 +1367,8 @@ def reset_sequence(column):
 
 
 class WidgetStyler:
-    def __init__(self):
+    css_provider: Incomplete
+    def __init__(self) -> None:
         self.css_provider = Gtk.CssProvider()
         self.css_provider.load_from_data(
             b"""
@@ -1370,7 +1381,7 @@ class WidgetStyler:
         """
         )
 
-    def apply_styles(self, widget, label):
+    def apply_styles(self, widget, label) -> None:
         """Apply the CSS styles for background and foreground."""
         widget_style_context = widget.get_style_context()
         label_style_context = label.get_style_context()
@@ -1387,7 +1398,7 @@ class WidgetStyler:
         widget_style_context.add_class("background-set")
         label_style_context.add_class("foreground-set")
 
-    def reset_styles(self, widget, label):
+    def reset_styles(self, widget, label) -> None:
         """Reset the applied CSS classes."""
         widget_style_context = widget.get_style_context()
         label_style_context = label.get_style_context()
@@ -1398,10 +1409,10 @@ class WidgetStyler:
 
 
 # Example usage:
-styler = WidgetStyler()
+styler: Incomplete = WidgetStyler()
 
 
-def make_label_clickable(label, on_clicked, *args):
+def make_label_clickable(label, on_clicked, *args) -> None:
     """
     :param label: a Gtk.Label that has a Gtk.EventBox as its parent
     :param on_clicked: callback to be called when the label is clicked
@@ -1485,7 +1496,7 @@ def enum_values_str(col):
     return ", ".join(values)
 
 
-def which(filename, path=None):
+def which(filename, path: Optional[Incomplete] = None):
     """
     Return first occurence of file on the path.
     """
@@ -1498,7 +1509,7 @@ def which(filename, path=None):
     return None
 
 
-def ilike(col, val, engine=None):
+def ilike(col, val, engine: Optional[Incomplete] = None):
     """
     Return a cross platform ilike function.
     """
@@ -1567,7 +1578,7 @@ def gc_objects_by_type(tipe):
         return [o for o in gc.get_objects() if isinstance(o, type(tipe))]
 
 
-def mem(size="rss"):
+def mem(size: str = "rss"):
     """Generalization; memory sizes: rss, rsz, vsz."""
     import os
 
@@ -1676,13 +1687,14 @@ class GenericMessageBox:  # identify_subclassing_issues (Consider using composit
     """
     Abstract class for showing a message box at the top of an editor.
     """
-
-    def __init__(self):
+    event_box: Incomplete
+    box: Incomplete
+    def __init__(self) -> None:
         self.event_box = Gtk.EventBox()
         self.box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.event_box.add(self.box)
 
-    def set_color(self, attr, state, color):
+    def set_color(self, attr, state, color) -> None:
         """Sets background or foreground color dynamically using CSS."""
         context = self.event_box.get_style_context()
 
@@ -1703,7 +1715,7 @@ class GenericMessageBox:  # identify_subclassing_issues (Consider using composit
         # Apply the CSS provider to the widget's style context
         context.add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
-    def show_all(self):
+    def show_all(self) -> None:
         """
         Displays the widget and adjusts size dynamically.
         """
@@ -1713,7 +1725,7 @@ class GenericMessageBox:  # identify_subclassing_issues (Consider using composit
         width = requisition.width
         self.event_box.set_size_request(width, height + 10)
 
-    def show(self):
+    def show(self) -> None:
         self.show_all()
 
     def get_widget(self):
@@ -1725,8 +1737,13 @@ class MessageBox(GenericMessageBox):
     """
     A MessageBox that can display a message label at the top of an editor.
     """
-
-    def __init__(self, msg=None, details=None):
+    box: Incomplete
+    vbox: Incomplete
+    label: Incomplete
+    buffer: Incomplete
+    details_expander: Incomplete
+    details_label: Incomplete
+    def __init__(self, msg: Optional[Incomplete] = None, details: Optional[Incomplete] = None) -> None:
         super().__init__()
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -1793,13 +1810,13 @@ class MessageBox(GenericMessageBox):
         for color in colors:
             self.set_color(*color)
 
-    def on_expanded(self, *args):
+    def on_expanded(self, *args) -> None:
         """Adjust size when expanded."""
         width, height = self.box.get_preferred_size()[1]
         self.box.set_size_request(width, -1)
         self.box.queue_resize()
 
-    def show_all(self):
+    def show_all(self) -> None:
         """
         Show the widget but hide the details expander if there is no text.
         """
@@ -1808,7 +1825,7 @@ class MessageBox(GenericMessageBox):
             self.details_expander.hide()
 
     @property
-    def message(self):
+    def message(self) -> Incomplete:
         return self.buffer.get_text(
             self.buffer.get_start_iter(), self.buffer.get_end_iter(), True
         )
@@ -1818,7 +1835,7 @@ class MessageBox(GenericMessageBox):
         self.buffer.set_text(msg or "")
 
     @property
-    def details(self):
+    def details(self) -> Incomplete:
         return self.details_label.get_text()
 
     @details.setter
@@ -1837,8 +1854,10 @@ class YesNoMessageBox(GenericMessageBox):
     """
     A message box that can present a Yes or No question to the user
     """
-
-    def __init__(self, msg=None, on_response=None):
+    label: Incomplete
+    yes_button: Incomplete
+    no_button: Incomplete
+    def __init__(self, msg: Optional[Incomplete] = None, on_response: Optional[Incomplete] = None) -> None:
         """
         on_response: callback method when the yes or no buttons are
         clicked.  The signature of the function should be
@@ -1873,28 +1892,28 @@ class YesNoMessageBox(GenericMessageBox):
         for color in colors:
             self.set_color(*color)
 
-    def _set_on_response(self, func):
+    def _set_on_response(self, func) -> None:
         self.yes_button.connect("clicked", func, True)
         self.no_button.connect("clicked", func, False)
 
-    on_response = property(fset=_set_on_response)
+    on_response: Incomplete = property(fset=_set_on_response)
 
     def _get_message(self, msg):
         return self.label.text
 
-    def _set_message(self, msg):
+    def _set_message(self, msg) -> None:
         self.label.set_markup(msg or "")
 
-    message = property(_get_message, _set_message)
+    message: Incomplete = property(_get_message, _set_message)
 
     def get_widget(self):
         # Return the box containing all the widgets
         return self.box
 
 
-MESSAGE_BOX_INFO = 1
-MESSAGE_BOX_ERROR = 2
-MESSAGE_BOX_YESNO = 3
+MESSAGE_BOX_INFO: int = 1
+MESSAGE_BOX_ERROR: int = 2
+MESSAGE_BOX_YESNO: int = 3
 
 
 def add_message_box(parent, type=MESSAGE_BOX_INFO):
@@ -1927,7 +1946,7 @@ def get_distinct_values(column, session):
     return [v for v in results if v is not None]
 
 
-def get_invalid_columns(obj, ignore_columns=None):
+def get_invalid_columns(obj, ignore_columns: Optional[Incomplete] = None):
     """
     Return column names on a mapped object that have values
     which aren't valid for the model.
@@ -1965,10 +1984,10 @@ def get_urls(text):
     return matches
 
 
-sloppy_iso8601 = re.compile("^[12][0-9][0-9][0-9]-[0-9][0-9]?-[0-9][0-9]?.*$")
+sloppy_iso8601: Incomplete = re.compile("^[12][0-9][0-9][0-9]-[0-9][0-9]?-[0-9][0-9]?.*$")
 
 
-def parse_date(value, dayfirst=True, yearfirst=False, **kwargs):
+def parse_date(value, dayfirst: bool = True, yearfirst: bool = False, **kwargs):
     if sloppy_iso8601.match(value) is not None:
         dayfirst = False
         yearfirst = True
@@ -1977,11 +1996,11 @@ def parse_date(value, dayfirst=True, yearfirst=False, **kwargs):
     )
 
 
-def safe_rollback(session):
+def safe_rollback(session) -> None:
     if session.in_transaction():
         session.rollback()
 
 
-def safe_commit(session):
+def safe_commit(session) -> None:
     if session.in_transaction():
         session.commit()

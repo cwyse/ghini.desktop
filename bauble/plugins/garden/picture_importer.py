@@ -25,20 +25,23 @@ import gi
 from bauble import db, pluginmgr, utils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 
+from typing import Union, Optional
+from _typeshed import Incomplete
+from bauble import db as db, paths as paths, pluginmgr as pluginmgr, utils as utils
 gi.require_version("Gtk", "3.0")
 from gi.repository import GdkPixbuf, GLib, Gtk
 from sqlalchemy import select
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 
-accno_re = re.compile(r"([12][0-9][0-9][0-9]\.[0-9][0-9][0-9][0-9])(?:\.([0-9]+))?")
-species_re = re.compile(r"([A-Z][a-z]+(?: [a-z-]*)?)")
-picname_re = re.compile(r"([A-Z]+[0-9]+)")
-number_re = re.compile(r"([0-9]+)")
+accno_re: Incomplete = re.compile(r"([12][0-9][0-9][0-9]\.[0-9][0-9][0-9][0-9])(?:\.([0-9]+))?")
+species_re: Incomplete = re.compile(r"([A-Z][a-z]+(?: [a-z-]*)?)")
+picname_re: Incomplete = re.compile(r"([A-Z]+[0-9]+)")
+number_re: Incomplete = re.compile(r"([0-9]+)")
 
 
-def decode_parts(name, acc_format=None):
+def decode_parts(name, acc_format: Optional[Incomplete] = None):
     """return the dictionary of parts in name
 
     name is matched against the basic concepts in a plant description, like
@@ -90,12 +93,13 @@ def decode_parts(name, acc_format=None):
 
 
 class ListStoreHandler(logging.Handler):
-    def __init__(self, container, *args, **kwargs):
+    container: Incomplete
+    def __init__(self, container, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.container = container
         GLib.idle_add(utils.none, self.container.clear)
 
-    def emit(self, record):
+    def emit(self, record) -> None:
         msg = self.format(record)
         stock = {
             11: "gtk-directory",
@@ -117,17 +121,17 @@ def query_session_new(session, cls, **kwargs):
             return i
 
 
-use_me_col = 0
-filename_col = 1
-accno_col = 2
-binomial_col = 3
-thumbnail_col = 4
-iseditable_col = 5
-orig_accno_col = 6
-edited_accno_col = 7
-full_filename_col = 8
-orig_binomial_col = 9
-edited_binomial_col = 10
+use_me_col: int = 0
+filename_col: int = 1
+accno_col: int = 2
+binomial_col: int = 3
+thumbnail_col: int = 4
+iseditable_col: int = 5
+orig_accno_col: int = 6
+edited_accno_col: int = 7
+full_filename_col: int = 8
+orig_binomial_col: int = 9
+edited_binomial_col: int = 10
 
 from gi.repository import Gio
 
@@ -139,14 +143,21 @@ def get_first_or_none(session, stmt):
 
 
 class PictureImporterPresenter(GenericEditorPresenter):
-    widget_to_field_map = {
+    panes: Incomplete
+    review_liststore: Incomplete
+    running_thread: Incomplete
+    keep_running: Incomplete
+    should_commit: bool
+    pixbufs_to_load: Incomplete
+    lock: Incomplete
+    widget_to_field_map: Incomplete = {
         "accno_entry": "accno_format",
         "filepath_entry": "filepath",
         "recurse_checkbutton": "recurse",
     }
 
 
-    def create_actions(self):
+    def create_actions(self) -> None:
         actions = {
             "cancel": self.on_action_cancel_activate,
             "ok": self.on_action_ok_activate,
@@ -161,7 +172,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
             # Actions are added to the application or window
             self.view.get_window().add_action(action)
 
-    def __init__(self, model, view, **kwargs):
+    def __init__(self, model, view, **kwargs) -> None:
         kwargs["refresh_view"] = True
         super().__init__(model, view, **kwargs)
 
@@ -192,7 +203,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         # Gio.SimpleActions setup:
         self.create_actions()
 
-    def show_visible_pane(self):
+    def show_visible_pane(self) -> None:
         for n, i in enumerate(self.panes):
             i.set_visible(n == self.model.visible_pane)
         self.view.widgets.button_prev.set_sensitive(self.model.visible_pane > 0)
@@ -211,7 +222,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
             if self.session.in_transaction():
                 self.session.rollback()  # clean up session
 
-    def load_pixbufs(self):
+    def load_pixbufs(self) -> None:
         # to be run in different thread - or you're blocking the gui
         for fname, path in self.pixbufs_to_load:
             if not self.keep_running:
@@ -243,7 +254,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
                     f"picture {fname} caused Exception {type(e)}:{e}"
                 )
 
-    def add_rows(self, arg, dirname, fnames):
+    def add_rows(self, arg, dirname, fnames) -> None:
         for name in fnames:
             d = decode_parts(name, self.model.accno_format)
             if d is None:
@@ -269,7 +280,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
             )
             self.review_liststore.append(row)
 
-    def on_cellrenderertext_edited(self, widget, path, new_text, *args, **kwargs):
+    def on_cellrenderertext_edited(self, widget, path, new_text, *args, **kwargs) -> None:
         if widget == self.view.widgets.accno_crtext:
             self.review_liststore[path][accno_col] = self.review_liststore[path][
                 edited_accno_col
@@ -279,12 +290,12 @@ class PictureImporterPresenter(GenericEditorPresenter):
                 edited_binomial_col
             ] = new_text
 
-    def on_use_crtoggle_toggled(self, column_widget, path):
+    def on_use_crtoggle_toggled(self, column_widget, path) -> None:
         self.review_liststore[path][use_me_col] = not self.review_liststore[path][
             use_me_col
         ]
 
-    def on_edit_crtoggle_toggled(self, column_widget, path):
+    def on_edit_crtoggle_toggled(self, column_widget, path) -> None:
         self.review_liststore[path][iseditable_col] = not self.review_liststore[path][
             iseditable_col
         ]
@@ -303,7 +314,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
                 edited_binomial_col
             ]
 
-    def do_import(self):  # step 2
+    def do_import(self) -> None:  # step 2
         session = db.Session()
         handler = ListStoreHandler(self.view.widgets.log_liststore)
         logger.addHandler(handler)
@@ -456,14 +467,14 @@ class PictureImporterPresenter(GenericEditorPresenter):
                     session.rollback()
         self.lock.release()
 
-    def on_picture_importer_dialog_response(self, widget, response, **kwargs):
+    def on_picture_importer_dialog_response(self, widget, response, **kwargs) -> None:
         self.keep_running = None
 
-    def on_action_prev_activate(self, action, parameter):
+    def on_action_prev_activate(self, action, parameter) -> None:
         self.model.visible_pane -= 1
         self.show_visible_pane()
 
-    def on_action_next_activate(self, action, parameter):
+    def on_action_next_activate(self, action, parameter) -> None:
         self.model.visible_pane += 1
         self.show_visible_pane()
         if self.model.visible_pane == 1:  # let user review import
@@ -486,12 +497,12 @@ class PictureImporterPresenter(GenericEditorPresenter):
             )
             self.running_thread.start()
 
-    def show_gtk_stock_icons(self):
+    def show_gtk_stock_icons(self) -> None:
         """this is just some code to show an overview of gtk stock name/image"""
         for i in Gtk.stock_list_ids():
             self.view.widgets.log_liststore.append([i, i])
 
-    def on_action_cancel_activate(self, action, parameter):
+    def on_action_cancel_activate(self, action, parameter) -> None:
         if self.running_thread:
             self.keep_running = None  # any running thread will return soon
             if self.running_thread.name == "do_import":
@@ -500,7 +511,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
             self.running_thread = None
         self.view.get_window().emit("response", Gtk.ResponseType.DELETE_EVENT)
 
-    def on_action_ok_activate(self, action, parameter):
+    def on_action_ok_activate(self, action, parameter) -> None:
         # OK is set active only in do_import.  if we're here, means that
         # do_import has been running and is now waiting for us at the lock.
         self.should_commit = True
@@ -509,7 +520,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         self.running_thread = None
         self.view.get_window().emit("response", Gtk.ResponseType.OK)
 
-    def on_action_browse_activate(self, action, parameter):
+    def on_action_browse_activate(self, action, parameter) -> None:
         text = _("Select pictures source directory")
         parent = None
         action_type = Gtk.FileChooserAction.SELECT_FOLDER
@@ -527,10 +538,10 @@ class PictureImporterPresenter(GenericEditorPresenter):
 
 
 class PictureImporterTool(pluginmgr.Tool):
-    category = _("Import")
-    label = _("Picture Collection")
-    icon_name = "emblem-photos"
-    model = type(
+    category: Incomplete = _("Import")
+    label: Incomplete = _("Picture Collection")
+    icon_name: str = "emblem-photos"
+    model: Incomplete = type(
         "Model",
         (object,),
         {
@@ -547,7 +558,7 @@ class PictureImporterTool(pluginmgr.Tool):
 
     from bauble import paths
 
-    glade_path = os.path.join(
+    glade_path: Incomplete = os.path.join(
         paths.lib_dir(), "plugins", "garden", "picture_importer.glade"
     )
 

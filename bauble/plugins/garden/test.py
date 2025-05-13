@@ -27,12 +27,19 @@ import pytest
 
 from bauble.test import check_dupids
 
+from _typeshed import Incomplete
+from bauble.plugins.garden.accession import Accession as Accession, AccessionNote as AccessionNote, Voucher as Voucher
+from bauble.plugins.garden.plant import Plant as Plant, PlantChange as PlantChange, PlantNote as PlantNote, branch_callback as branch_callback, is_code_unique as is_code_unique
+from bauble.plugins.garden.propagation import PropCutting as PropCutting, PropCuttingRooted as PropCuttingRooted, PropSeed as PropSeed, Propagation as Propagation
+from bauble.utils import ilike as ilike, remove_zws as remove_zws, update_gui as update_gui
+accession_test_data: Incomplete
+default_cutting_values: Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
-prefs_testing = True
+prefs_testing: bool = True
 
 # Test data for different models
 accession_test_data = (
@@ -40,17 +47,17 @@ accession_test_data = (
     {"id": 2, "code": "2001.2", "species_id": 2, "source_type": "Collection"},
 )
 
-plant_test_data = (
+plant_test_data: Incomplete = (
     {"id": 1, "code": "1", "accession_id": 1, "location_id": 1, "quantity": 1},
     {"id": 2, "code": "1", "accession_id": 2, "location_id": 1, "quantity": 1},
     {"id": 3, "code": "2", "accession_id": 2, "location_id": 1, "quantity": 1},
 )
 
-location_test_data = ({"id": 1, "name": "Somewhere Over The Rainbow", "code": "RBW"},)
+location_test_data: Incomplete = ({"id": 1, "name": "Somewhere Over The Rainbow", "code": "RBW"},)
 
-geographic_area_test_data = [{"id": 1, "name": "Somewhere"}]
+geographic_area_test_data: Incomplete = [{"id": 1, "name": "Somewhere"}]
 
-collection_test_data = (
+collection_test_data: Incomplete = (
     {
         "id": 1,
         "accession_id": 2,
@@ -62,7 +69,7 @@ collection_test_data = (
 
 # Fixtures for test data setup
 @pytest.fixture(scope="module")
-def test_data_setup(db_session):
+def test_data_setup(db_session) -> None:
     from bauble.plugins.garden.institution import Institution
     from bauble.plugins.plants.geography import GeographicArea
 
@@ -90,7 +97,7 @@ def test_data_setup(db_session):
 
 
 # Test for duplicate IDs in Glade files
-def test_duplicate_ids():
+def test_duplicate_ids() -> None:
     import bauble.plugins.garden as mod
 
     head, _ = os.path.split(mod.__file__)
@@ -145,7 +152,7 @@ def plant_data(db_session, garden_data):
     return {"accession": accession, "location": location, "plant": plant}
 
 
-def test_plant_constraints(db_session, plant_data):
+def test_plant_constraints(db_session, plant_data) -> None:
     """Test that duplicate plant codes with the same accession are not allowed."""
     plant = plant_data["plant"]
     accession = plant_data["accession"]
@@ -163,7 +170,7 @@ def test_plant_constraints(db_session, plant_data):
         db_session.rollback()
 
 
-def test_plant_duplicate(db_session, plant_data):
+def test_plant_duplicate(db_session, plant_data) -> None:
     """Test duplication of a plant with notes and changes."""
     accession = plant_data["accession"]
     location = plant_data["location"]
@@ -186,7 +193,7 @@ def test_plant_duplicate(db_session, plant_data):
         db_session.commit()
 
 
-def test_search_view_markup_pair(db_session, plant_data):
+def test_search_view_markup_pair(db_session, plant_data) -> None:
     """Test the search view markup pair for living and dead plants."""
     accession = plant_data["accession"]
     location = plant_data["location"]
@@ -208,7 +215,7 @@ def test_search_view_markup_pair(db_session, plant_data):
     )
 
 
-def test_branch_callback(db_session, plant_data):
+def test_branch_callback(db_session, plant_data) -> None:
     """Test the branch callback functionality."""
     location = plant_data["location"]
     accession = plant_data["accession"]
@@ -230,7 +237,7 @@ def test_branch_callback(db_session, plant_data):
     assert branched_plant.changes[0].quantity == branched_plant.quantity
 
 
-def test_is_code_unique(plant_data):
+def test_is_code_unique(plant_data) -> None:
     """Test the uniqueness of plant codes."""
     plant = plant_data["plant"]
     assert not is_code_unique(plant, "1")
@@ -239,13 +246,13 @@ def test_is_code_unique(plant_data):
     assert not is_code_unique(plant, "01-2")
 
 
-def test_living_plant_has_no_date_of_death(plant_data):
+def test_living_plant_has_no_date_of_death(plant_data) -> None:
     """Test that a living plant has no date of death."""
     plant = plant_data["plant"]
     assert plant.date_of_death is None
 
 
-def test_setting_quantity_to_zero_defines_date_of_death(db_session, plant_data):
+def test_setting_quantity_to_zero_defines_date_of_death(db_session, plant_data) -> None:
     """Test that setting quantity to zero defines the date of death."""
     plant = plant_data["plant"]
     change = PlantChange()
@@ -291,7 +298,7 @@ default_cutting_values = {
     "rooted_pct": 90,
 }
 
-default_seed_values = {
+default_seed_values: Incomplete = {
     "pretreatment": "Soaked in peroxide solution",
     "nseeds": 24,
     "date_sown": datetime.date(2017, 1, 1),
@@ -343,7 +350,7 @@ def setup_plants(db_session, setup_accession):
     return plants
 
 
-def test_cutting_property(db_session, setup_plants):
+def test_cutting_property(db_session, setup_plants) -> None:
     """Test cutting property for propagations."""
     plant = setup_plants[0]
     prop = Propagation(plant=plant, prop_type="UnrootedCutting")
@@ -380,7 +387,7 @@ def test_cutting_property(db_session, setup_plants):
     )
 
 
-def test_voucher_management(db_session, setup_accession):
+def test_voucher_management(db_session, setup_accession) -> None:
     """Test voucher functionality."""
     accession = setup_accession["accession"]
     voucher = Voucher(herbarium="ABC", code="1234567", accession=accession)
@@ -417,7 +424,7 @@ def test_voucher_management(db_session, setup_accession):
     assert db_session.execute(select(Accession).filter_by(id=acc_id)).scalars().first()
 
 
-def test_propagation_get_summary_cutting(db_session, setup_plants):
+def test_propagation_get_summary_cutting(db_session, setup_plants) -> None:
     """Test summary generation for cutting propagations."""
     plant = setup_plants[0]
     prop = Propagation(plant=plant, prop_type="UnrootedCutting")
@@ -464,7 +471,7 @@ def setup_location(db_session):
     return location
 
 
-def test_source_propagation_cleanup(db_session, setup_accession):
+def test_source_propagation_cleanup(db_session, setup_accession) -> None:
     """Test cleanup of propagation when disassociated from a source."""
     accession = setup_accession["accession"]
     source = Source(accession=accession)
@@ -497,7 +504,7 @@ def test_source_propagation_cleanup(db_session, setup_accession):
     )
 
 
-def test_accession_species_str(db_session, setup_accession):
+def test_accession_species_str(db_session, setup_accession) -> None:
     """Test species string generation for accessions."""
     accession = setup_accession["accession"]
     sp_str = accession.species_str()
@@ -511,7 +518,7 @@ def test_accession_species_str(db_session, setup_accession):
     assert remove_zws(sp_str) == expected
 
 
-def test_accession_delete_cascades(db_session, setup_accession, setup_location):
+def test_accession_delete_cascades(db_session, setup_accession, setup_location) -> None:
     """Test cascading delete of accession and dependent entities."""
     accession = setup_accession["accession"]
     location = setup_location
@@ -531,7 +538,7 @@ def test_accession_delete_cascades(db_session, setup_accession, setup_location):
     assert db_session.execute(select(Plant).filter_by(id=plant_id)).first() is None
 
 
-def test_accession_unique_constraint(db_session, setup_accession):
+def test_accession_unique_constraint(db_session, setup_accession) -> None:
     """Test unique constraint on accession codes."""
     species = setup_accession["species"]
     accession = Accession(species=species, code="1")
@@ -560,7 +567,7 @@ def test_voucher_management(db_session, setup_accession):
     assert db_session.execute(select(Voucher).filter_by(id=voucher_id)).first() is None
 
 
-def test_location_editor_interactions(db_session, setup_location):
+def test_location_editor_interactions(db_session, setup_location) -> None:
     """Test interactions with the location editor."""
     from bauble.plugins.garden.location import LocationEditor
 
@@ -617,7 +624,7 @@ def setup_collection(db_session, setup_accession):
     return collection
 
 
-def test_collection_search_view_markup_pair(db_session, setup_collection):
+def test_collection_search_view_markup_pair(db_session, setup_collection) -> None:
     """Test the search view markup pair for collections."""
     collection = setup_collection
     expected = (
@@ -634,7 +641,7 @@ def setup_institution():
     return institution
 
 
-def test_institution_properties(db_session, setup_institution):
+def test_institution_properties(db_session, setup_institution) -> None:
     """Test that an institution has all required attributes."""
     institution = setup_institution
     attributes = [
@@ -652,7 +659,7 @@ def test_institution_properties(db_session, setup_institution):
         assert hasattr(institution, attr)
 
 
-def test_institution_initialization(db_session):
+def test_institution_initialization(db_session) -> None:
     """Test initialization of institution fields in metadata."""
     institution = Institution(name="Ghini")
     db_session.add(institution)
@@ -667,7 +674,7 @@ def test_institution_initialization(db_session):
     assert len(fields) == 13  # 13 properties define the institution
 
 
-def test_institution_write_none_stays_none(db_session):
+def test_institution_write_none_stays_none(db_session) -> None:
     """Test that writing None values to an institution keeps them as None."""
     institution = Institution(name="Ghini", email="bauble@anche.no")
     db_session.add(institution)
@@ -685,7 +692,7 @@ def test_institution_write_none_stays_none(db_session):
     assert len(field_values) == 2
 
 
-def test_institution_presenter_initialization():
+def test_institution_presenter_initialization() -> None:
     """Test creation of an InstitutionPresenter."""
     from bauble.editor import MockView
 
@@ -695,7 +702,7 @@ def test_institution_presenter_initialization():
     assert presenter.view == view
 
 
-def test_institution_presenter_empty_name_is_a_problem():
+def test_institution_presenter_empty_name_is_a_problem() -> None:
     """Test that an empty institution name is flagged as a problem."""
     from bauble.editor import MockView
 
@@ -706,7 +713,7 @@ def test_institution_presenter_empty_name_is_a_problem():
     assert len(view.boxes) == 1
 
 
-def test_institution_presenter_invalid_email_blocks_registration():
+def test_institution_presenter_invalid_email_blocks_registration() -> None:
     """Test that an invalid email prevents registration."""
     from bauble.editor import MockView
 
@@ -716,7 +723,7 @@ def test_institution_presenter_invalid_email_blocks_registration():
     assert not view.widget_get_sensitive("inst_register")
 
 
-def test_institution_presenter_valid_email_allows_registration():
+def test_institution_presenter_valid_email_allows_registration() -> None:
     """Test that a valid email allows registration."""
     from bauble.editor import MockView
 
@@ -726,7 +733,7 @@ def test_institution_presenter_valid_email_allows_registration():
     assert view.widget_get_sensitive("inst_register")
 
 
-def test_institution_presenter_registration_logs_info():
+def test_institution_presenter_registration_logs_info() -> None:
     """Test that registration logs information."""
     from functools import partial
 
@@ -776,7 +783,7 @@ def parse_lat_lon_data():
     ]
 
 
-def test_dms_to_decimal(conversion_test_data):
+def test_dms_to_decimal(conversion_test_data) -> None:
     """Test converting DMS to decimal degrees."""
     from bauble.plugins.garden.accession import dms_to_decimal
 
@@ -788,7 +795,7 @@ def test_dms_to_decimal(conversion_test_data):
         assert round(lon, 6) == round(decimal_deg[1], 6)
 
 
-def test_decimal_to_dms(conversion_test_data):
+def test_decimal_to_dms(conversion_test_data) -> None:
     """Test converting decimal degrees to DMS."""
     from bauble.plugins.garden.accession import latitude_to_dms, longitude_to_dms
 
@@ -800,7 +807,7 @@ def test_decimal_to_dms(conversion_test_data):
         assert lon_dms[:3] == dms[1][:3]
 
 
-def test_parse_lat_lon(parse_lat_lon_data):
+def test_parse_lat_lon(parse_lat_lon_data) -> None:
     """Test parsing latitude and longitude."""
     from bauble.plugins.garden.collection import CollectionPresenter
 
@@ -809,7 +816,7 @@ def test_parse_lat_lon(parse_lat_lon_data):
         assert parse(*input_data) == expected
 
 
-def test_accession_retrieve_or_create(db_session, setup_species):
+def test_accession_retrieve_or_create(db_session, setup_species) -> None:
     """Test retrieval or creation of accessions."""
     species = setup_species["species"]
     acc = Accession.retrieve_or_create(
@@ -819,7 +826,7 @@ def test_accession_retrieve_or_create(db_session, setup_species):
     assert acc.species == species
 
 
-def test_plant_retrieve_or_create(db_session, setup_accession):
+def test_plant_retrieve_or_create(db_session, setup_accession) -> None:
     """Test retrieval or creation of plants."""
     acc = setup_accession
     plant = Plant.retrieve_or_create(
@@ -828,7 +835,7 @@ def test_plant_retrieve_or_create(db_session, setup_accession):
     assert plant.accession == acc
 
 
-def test_accession_note_retrieve_or_create(db_session, setup_accession):
+def test_accession_note_retrieve_or_create(db_session, setup_accession) -> None:
     """Test retrieval or creation of accession notes."""
     acc = setup_accession
     note = AccessionNote.retrieve_or_create(
@@ -844,7 +851,7 @@ def test_accession_note_retrieve_or_create(db_session, setup_accession):
     assert note.note == "Test note"
 
 
-def test_plant_search_strategy(db_session):
+def test_plant_search_strategy(db_session) -> None:
     """Test searching plants using PlantSearch strategy."""
     from bauble.search import get_strategy
 
@@ -855,7 +862,7 @@ def test_plant_search_strategy(db_session):
     assert isinstance(plant, Plant)
 
 
-def test_location_retrieve_or_create_with_timestamps(db_session):
+def test_location_retrieve_or_create_with_timestamps(db_session) -> None:
     """Test retrieving or creating locations with timestamp fields."""
     Location.retrieve_or_create(db_session, {"code": "1", "_created": "2001-12-10"})
     location = Location.retrieve_or_create(db_session, {"code": "1"})
@@ -882,7 +889,7 @@ def setup_pocket_data(db_session, setup_species):
     return acc, loc, [plt1, plt2]
 
 
-def test_export_empty_database():
+def test_export_empty_database() -> None:
     with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
         tmpfile.close()
         create_pocket(tmpfile.name)
@@ -898,7 +905,7 @@ def test_export_empty_database():
         os.unlink(tmpfile.name)
 
 
-def test_export_two_plants(setup_pocket_data):
+def test_export_two_plants(setup_pocket_data) -> None:
     acc, loc, plants = setup_pocket_data
     with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
         tmpfile.close()

@@ -26,13 +26,15 @@ from bauble import paths, pluginmgr, utils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.plugins.plants import Species
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Pango
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 
-def safe_set_text(gtk_widget, text):
+def safe_set_text(gtk_widget, text) -> None:
     """
     Sets the text of a Gtk widget replacing None with an empty string.
 
@@ -84,7 +86,7 @@ def start_taxonomy_check():
     return error_state
 
 
-def species_to_fix(ssn, binomial, author, create=False):
+def species_to_fix(ssn, binomial, author, create: bool = False):
     if binomial.find(" ") == -1:
         return None
     binomial = utils.to_unicode(binomial)
@@ -115,21 +117,21 @@ def species_to_fix(ssn, binomial, author, create=False):
     return result
 
 
-ACCEPTABLE = 0
-STOCK_ID = 1
-OLD_BINOMIAL = 2
-NEW_BINOMIAL = 3
-AUTHORSHIP = 4
-TAXON_STATUS = 5
-ACCEPTED_BINOMIAL = 6
-ACCEPTED_AUTHORSHIP = 7
-TO_PROCESS = 8
+ACCEPTABLE: int = 0
+STOCK_ID: int = 1
+OLD_BINOMIAL: int = 2
+NEW_BINOMIAL: int = 3
+AUTHORSHIP: int = 4
+TAXON_STATUS: int = 5
+ACCEPTED_BINOMIAL: int = 6
+ACCEPTED_AUTHORSHIP: int = 7
+TO_PROCESS: int = 8
 
-YES_ICON = "gtk-yes"
-NO_ICON = "gtk-no"
+YES_ICON: str = "gtk-yes"
+NO_ICON: str = "gtk-no"
 
 
-def set_row_active(tick_off_row, to_process):
+def set_row_active(tick_off_row, to_process) -> None:
     tick_off_row[TO_PROCESS] = to_process
     stock_id = to_process and YES_ICON or NO_ICON
     tick_off_row[STOCK_ID] = stock_id
@@ -149,11 +151,12 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
     the Model of the BTC is a list of tuples.
 
     """
+    tick_off_list: Incomplete
+    binomials: Incomplete
+    widget_to_field_map: Incomplete = {"file_path_entry": "file_path"}
+    view_accept_buttons: Incomplete = ["ok_button"]
 
-    widget_to_field_map = {"file_path_entry": "file_path"}
-    view_accept_buttons = ["ok_button"]
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.refresh_visible_frame()
         self.tick_off_list = self.view.widgets.liststore2
@@ -163,13 +166,13 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
             if isinstance(item, Species) and item.sp != ""
         ]
 
-    def refresh_visible_frame(self):
+    def refresh_visible_frame(self) -> None:
         for i in range(1, 4):
             frame_id = "frame%d" % i
             self.view.widget_set_visible(frame_id, i == self.model.page)
         self.view.widget_set_sensitive("ok_button", self.model.page == 3)
 
-    def on_frame1_next(self, *args):
+    def on_frame1_next(self, *args) -> None:
         "parse the results into the liststore2 and move to frame 2"
         responses = []
         self.tick_off_list.clear()
@@ -209,7 +212,7 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
                 self.tick_off_list.append(row)
         self.on_frame_next(*args)
 
-    def on_frame2_next(self, *args):
+    def on_frame2_next(self, *args) -> None:
         "execute all that is selected in liststore2 and move to frame 3"
         self.on_frame_next(*args)
         tb = self.view.widgets.textbuffer3
@@ -276,27 +279,27 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
                     obj.accepted = accepted
             tb.insert_with_tags(tb.get_end_iter(), f" {row[AUTHORSHIP]}\n", tag_bold)
 
-    def on_frame_next(self, *args):
+    def on_frame_next(self, *args) -> None:
         self.model.page += 1
         self.refresh_visible_frame()
 
-    def on_frame_previous(self, *args):
+    def on_frame_previous(self, *args) -> None:
         self.model.page -= 1
         self.refresh_visible_frame()
 
-    def on_copy_to_clipboard_button_clicked(self, *args):
+    def on_copy_to_clipboard_button_clicked(self, *args) -> None:
         text = "\n".join(self.binomials)
         from gi.repository import Gtk
 
         clipboard = Gtk.Clipboard()
         safe_set_text(clipboard, text)
 
-    def on_tnrs_browse_button_clicked(self, *args):
+    def on_tnrs_browse_button_clicked(self, *args) -> None:
         from bauble.utils import desktop
 
         desktop.open("http://tnrs.iplantcollaborative.org/TNRSapp.html")
 
-    def on_tick_off_view_row_activated(self, view, path, column, data=None):
+    def on_tick_off_view_row_activated(self, view, path, column, data: Optional[Incomplete] = None) -> None:
         """toggle the selected row
 
         if selected row goes YES and is a synonym, also next row goes YES.
@@ -326,7 +329,7 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
             stock_id = to_process and YES_ICON or NO_ICON
             row[STOCK_ID] = stock_id
 
-    def on_filebtnbrowse_clicked(self, *args):
+    def on_filebtnbrowse_clicked(self, *args) -> None:
         from gi.repository import Gtk
 
         previously = self.view.widget_get_value("file_path_entry")
@@ -351,11 +354,11 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
 
 
 class TaxonomyCheckTool(pluginmgr.Tool):
-    item_position = 15
-    label = _("Taxonomy check")
-    icon_name = "taxonomy_check.png"
-    icon_dir = "plugins/plants"
+    item_position: int = 15
+    label: Incomplete = _("Taxonomy check")
+    icon_name: str = "taxonomy_check.png"
+    icon_dir: str = "plugins/plants"
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         start_taxonomy_check()

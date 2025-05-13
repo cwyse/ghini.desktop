@@ -34,7 +34,7 @@ def session_with_meta(db_session, clean_db):
     return db_session
 
 
-def test_get_default_without_creation(session_with_meta):
+def test_get_default_without_creation(session_with_meta) -> None:
     """
     Test bauble.meta.get_default() when object does not exist and no default value is provided.
     """
@@ -43,7 +43,7 @@ def test_get_default_without_creation(session_with_meta):
     assert obj is None, f"Expected None, but got {obj}"
 
 
-def test_get_default_with_creation(session_with_meta):
+def test_get_default_with_creation(session_with_meta) -> None:
     """
     Test bauble.meta.get_default() when object does not exist and a default value is provided.
     """
@@ -62,7 +62,7 @@ def test_get_default_with_creation(session_with_meta):
     assert obj.value == value, f"Expected value '{value}', but got {obj.value}"
 
 
-def test_get_default_no_override(session_with_meta):
+def test_get_default_no_override(session_with_meta) -> None:
     """
     Test bauble.meta.get_default() does not override existing value when a new default is provided.
     """
@@ -77,7 +77,7 @@ def test_get_default_no_override(session_with_meta):
     assert obj.value == value, f"Expected original value '{value}', but got {obj.value}"
 
 
-def test_get_default_with_custom_session(session_with_meta):
+def test_get_default_with_custom_session(session_with_meta) -> None:
     """
     Test bauble.meta.get_default() with a custom session and without committing the new object.
     """

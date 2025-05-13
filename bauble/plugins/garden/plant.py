@@ -56,6 +56,11 @@ from bauble.view import (
     select_in_search_results,
 )
 
+from typing import Union, Optional
+from _typeshed import Incomplete
+from bauble.editor import GenericEditorPresenter as GenericEditorPresenter, GenericEditorView as GenericEditorView, GenericModelViewPresenterEditor as GenericModelViewPresenterEditor, NotesPresenter as NotesPresenter, PicturesPresenter as PicturesPresenter
+from bauble.view import Action as Action, InfoBox as InfoBox, MapInfoExpander as MapInfoExpander, PropertiesExpander as PropertiesExpander, select_in_search_results as select_in_search_results
+plant_delimiter_key: str
 gi.require_version("Gtk", "3.0")
 from datetime import datetime
 
@@ -80,7 +85,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import object_mapper, relationship, validates
 from sqlalchemy.orm.session import object_session
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -89,7 +94,7 @@ logger.setLevel(logging.INFO)
 # location
 
 plant_delimiter_key = "plant_delimiter"
-default_plant_delimiter = "."
+default_plant_delimiter: str = "."
 
 
 def edit_callback(plants):
@@ -136,7 +141,7 @@ def remove_callback(plants):
     return True
 
 
-edit_action = Action(
+edit_action: Incomplete = Action(
     "plant_edit",
     _("_Edit"),
     callback=edit_callback,
@@ -144,14 +149,14 @@ edit_action = Action(
     multiselect=True,
 )
 
-branch_action = Action(
+branch_action: Incomplete = Action(
     "plant_branch",
     _("_Split"),
     callback=branch_callback,
     accelerator="<ctrl>b",
 )
 
-remove_action = Action(
+remove_action: Incomplete = Action(
     "plant_remove",
     _("_Delete"),
     callback=remove_callback,
@@ -159,7 +164,7 @@ remove_action = Action(
     multiselect=True,
 )
 
-plant_context_menu = [
+plant_context_menu: Incomplete = [
     edit_action,
     branch_action,
     remove_action,
@@ -242,7 +247,7 @@ def is_code_unique(plant, code):
 
 class PlantSearch(SearchStrategy):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def search(self, text, session):
@@ -333,7 +338,7 @@ def compute_serializable_fields(cls, session, keys):
 
 
 # TODO: some of these reasons are specific to UBC and could probably be culled.
-change_reasons = {
+change_reasons: Incomplete = {
     "DEAD": _("Dead"),
     "DISC": _("Discarded"),
     "DISW": _("Discarded, weedy"),
@@ -359,26 +364,29 @@ change_reasons = {
 
 class PlantChange(db.Base):
     """ """
+    from_location_id: Incomplete
+    person: Incomplete
+    date: Incomplete
+    plant: Incomplete
+    __tablename__: str = "plant_change"
 
-    __tablename__ = "plant_change"
-
-    id = Column(Integer, primary_key=True)
-    plant_id = Column(Integer, ForeignKey("plant.id"), nullable=False)
-    parent_plant_id = Column(Integer, ForeignKey("plant.id"))
+    id: Incomplete = Column(Integer, primary_key=True)
+    plant_id: Incomplete = Column(Integer, ForeignKey("plant.id"), nullable=False)
+    parent_plant_id: Incomplete = Column(Integer, ForeignKey("plant.id"))
 
     # - if to_location_id is None changeis a removal
     # - if from_location_id is None then this change is a creation
     # - if to_location_id != from_location_id change is a transfer
     from_location_id = Column(Integer, ForeignKey("location.id"))
-    to_location_id = Column(Integer, ForeignKey("location.id"))
+    to_location_id: Incomplete = Column(Integer, ForeignKey("location.id"))
 
     # the name of the person who made the change
     person = Column(Unicode(64))
 
-    quantity = Column(Integer, autoincrement=False, nullable=False)
-    note_id = Column(Integer, ForeignKey("plant_note.id"))
+    quantity: Incomplete = Column(Integer, autoincrement=False, nullable=False)
+    note_id: Incomplete = Column(Integer, ForeignKey("plant_note.id"))
 
-    reason = Column(
+    reason: Incomplete = Column(
         types.Enum(
             values=list(change_reasons.keys()),
             translations=change_reasons,
@@ -388,7 +396,7 @@ class PlantChange(db.Base):
 
     # date of change
     date = Column(types.DateTime, default=datetime.utcnow)
-    order_by = [asc(date)]
+    order_by: Incomplete = [asc(date)]
 
     # Relationships
     plant = relationship(
@@ -401,7 +409,7 @@ class PlantChange(db.Base):
         overlaps="changes",
     )
 
-    parent_plant = relationship(
+    parent_plant: Incomplete = relationship(
         "Plant",
         back_populates="branches",
         primaryjoin="PlantChange.parent_plant_id == Plant.id",
@@ -413,13 +421,13 @@ class PlantChange(db.Base):
         active_history=True,
     )
 
-    from_location = relationship(
+    from_location: Incomplete = relationship(
         "Location",
         primaryjoin="PlantChange.from_location_id == Location.id",
         uselist=False,  # One-to-one relationship with Location
         active_history=True,
     )
-    to_location = relationship(
+    to_location: Incomplete = relationship(
         "Location",
         primaryjoin="PlantChange.to_location_id == Location.id",
         uselist=False,  # One-to-one relationship with Location
@@ -429,9 +437,9 @@ class PlantChange(db.Base):
 
 # TODO: should sex be recorded at the species, accession or plant
 # level or just as part of a check since sex can change in some species
-sex_values = {"Female": _("Female"), "Male": _("Male"), "Both": ""}
+sex_values: Incomplete = {"Female": _("Female"), "Male": _("Male"), "Both": ""}
 
-acc_type_values = {
+acc_type_values: Incomplete = {
     "Plant": _("Planting"),
     "Seed": _("Seed/Spore"),
     "Vegetative": _("Vegetative Part"),
@@ -482,13 +490,14 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     :Constraints:
         The combination of code and accession_id must be unique.
     """
-
-    __tablename__ = "plant"
-    __table_args__ = (UniqueConstraint("code", "accession_id"), {})
+    id: Incomplete
+    accession: Incomplete
+    __tablename__: str = "plant"
+    __table_args__: Incomplete = (UniqueConstraint("code", "accession_id"), {})
 
     # columns
     id = Column(Integer, primary_key=True)
-    code = Column(Unicode(6), nullable=False)
+    code: Incomplete = Column(Unicode(6), nullable=False)
 
     @validates("code")
     def validate_stripping(self, key, value):
@@ -496,7 +505,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             return None
         return value.strip()
 
-    acc_type = Column(
+    acc_type: Incomplete = Column(
         types.Enum(
             values=list(acc_type_values.keys()),
             translations=acc_type_values,
@@ -504,12 +513,12 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         ),
         default=None,
     )
-    memorial = Column(Boolean, default=False)
-    quantity = Column(Integer, autoincrement=False, nullable=False)
+    memorial: Incomplete = Column(Boolean, default=False)
+    quantity: Incomplete = Column(Integer, autoincrement=False, nullable=False)
 
-    accession_id = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    location_id = Column(Integer, ForeignKey("location.id"), nullable=False)
-    order_by = [asc(accession_id), asc(code)]
+    accession_id: Incomplete = Column(Integer, ForeignKey("accession.id"), nullable=False)
+    location_id: Incomplete = Column(Integer, ForeignKey("location.id"), nullable=False)
+    order_by: Incomplete = [asc(accession_id), asc(code)]
 
     # Relationships
     accession = relationship(
@@ -520,7 +529,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         active_history=True,
     )
 
-    propagations = relationship(
+    propagations: Incomplete = relationship(
         "Propagation",
         secondary="plant_prop",
         back_populates="plants",
@@ -528,7 +537,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         single_parent=True,
     )
 
-    changes = relationship(
+    changes: Incomplete = relationship(
         "PlantChange",
         back_populates="plant",
         primaryjoin="PlantChange.plant_id == Plant.id",
@@ -537,7 +546,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         overlaps="plant",
     )
 
-    branches = relationship(
+    branches: Incomplete = relationship(
         "PlantChange",
         back_populates="parent_plant",
         primaryjoin="PlantChange.parent_plant_id == Plant.id",
@@ -547,14 +556,14 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         overlaps="parent_plant",
     )
 
-    location = relationship(
+    location: Incomplete = relationship(
         "Location",
         back_populates="plants",
         uselist=False,  # A Plant belongs to one Location
         cascade="save-update",
         active_history=True,
     )
-    _delimiter = None
+    _delimiter: Incomplete = None
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
@@ -576,7 +585,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             return located_counted, sp_str
 
     @classmethod
-    def get_delimiter(cls, refresh=False):
+    def get_delimiter(cls, refresh: bool = False):
         """
         Get the plant delimiter from the BaubleMeta table.
 
@@ -602,12 +611,12 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     def _get_delimiter(self):
         return Plant.get_delimiter()
 
-    delimiter = property(lambda self: self._get_delimiter())
+    delimiter: Incomplete = property(lambda self: self._get_delimiter())
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.accession}{self.delimiter}{self.code}"
 
-    def duplicate(self, code=None, session=None):
+    def duplicate(self, code: Optional[Incomplete] = None, session: Optional[Incomplete] = None):
         """Return a Plant that is a flat (not deep) duplicate of self. For notes,
         changes and propagations, you should refer to the original plant.
 
@@ -699,7 +708,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         }
 
 
-PlantNote = db.make_note_class(
+PlantNote: Incomplete = db.make_note_class(
     "Plant", Plant, compute_serializable_fields, as_dict, retrieve
 )
 Plant.notes = relationship(
@@ -712,7 +721,7 @@ Plant.notes = relationship(
 
 class PlantEditorView(GenericEditorView):
 
-    _tooltips = {
+    _tooltips: Incomplete = {
         "plant_code_entry": _(
             "The planting code must be a unique code for "
             "the accession.  You may also use ranges "
@@ -738,7 +747,7 @@ class PlantEditorView(GenericEditorView):
         "pad_nextaccession_button": _("Save your changes and add another accession."),
     }
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[Incomplete] = None) -> None:
         glade_file = os.path.join(
             paths.lib_dir(), "plugins", "garden", "plant_editor.glade"
         )
@@ -761,16 +770,28 @@ class PlantEditorView(GenericEditorView):
     def get_window(self):
         return self.widgets.plant_editor_dialog
 
-    def save_state(self):
+    def save_state(self) -> None:
         pass
 
-    def restore_state(self):
+    def restore_state(self) -> None:
         pass
 
 
 class PlantEditorPresenter(GenericEditorPresenter):
 
-    widget_to_field_map = {
+    session: Incomplete
+    _original_accession_id: Incomplete
+    _original_code: Incomplete
+    upper_quantity_limit: Incomplete
+    _original_quantity: Incomplete
+    lower_quantity_limit: int
+    _dirty: bool
+    notes_presenter: Incomplete
+    pictures_presenter: Incomplete
+    prop_presenter: Incomplete
+    initializing: bool
+    change: Incomplete
+    widget_to_field_map: Incomplete = {
         "plant_code_entry": "code",
         "plant_acc_entry": "accession",
         "plant_loc_comboentry": "location",
@@ -779,10 +800,10 @@ class PlantEditorPresenter(GenericEditorPresenter):
         "plant_quantity_entry": "quantity",
     }
 
-    PROBLEM_DUPLICATE_PLANT_CODE = str(random())
-    PROBLEM_INVALID_QUANTITY = str(random())
+    PROBLEM_DUPLICATE_PLANT_CODE: Incomplete = str(random())
+    PROBLEM_INVALID_QUANTITY: Incomplete = str(random())
 
-    def __init__(self, model, view):
+    def __init__(self, model, view) -> None:
         """
         :param model: should be an instance of Plant class
         :param view: should be an instance of PlantEditorView
@@ -949,10 +970,10 @@ class PlantEditorPresenter(GenericEditorPresenter):
             or self._dirty
         )
 
-    def on_date_entry_changed(self, entry, *args):
+    def on_date_entry_changed(self, entry, *args) -> None:
         self.change.date = entry.set_text
 
-    def on_quantity_changed(self, entry, *args):
+    def on_quantity_changed(self, entry, *args) -> None:
         value = entry.set_text
         try:
             value = int(value)
@@ -973,7 +994,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
             self.change.quantity = self.model.quantity
         self.refresh_view()
 
-    def on_plant_code_entry_changed(self, entry, *args):
+    def on_plant_code_entry_changed(self, entry, *args) -> None:
         """
         Validates the accession number and the plant code from the editors.
         """
@@ -1009,7 +1030,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
 
         self.refresh_sensitivity()
 
-    def refresh_sensitivity(self):
+    def refresh_sensitivity(self) -> None:
         logger.debug("refresh_sensitivity()")
         try:
             logger.debug(
@@ -1049,13 +1070,13 @@ class PlantEditorPresenter(GenericEditorPresenter):
         self.view.widgets.pad_next_button.set_sensitive(sensitive)
         self.view.widgets.split_planting_button.set_visible = False
 
-    def set_model_attr(self, field, value, validator=None):
+    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
         logger.debug(f"set_model_attr({field}, {value})")
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.refresh_sensitivity()
 
-    def on_loc_button_clicked(self, button, cmd=None):
+    def on_loc_button_clicked(self, button, cmd: Optional[Incomplete] = None) -> None:
         location = self.model.location
         combo = self.view.widgets.plant_loc_comboentry
         if cmd == "edit" and location:
@@ -1071,7 +1092,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
                 self.view.widget_set_value(combo, location)
                 self.set_model_attr("location", location)
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         # TODO: is this really relevant since this editor only creates new
         # plants?  it also won't work while testing, and removing it while
         # testing has no impact on test results.
@@ -1092,7 +1113,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
 
         self.refresh_sensitivity()
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         super().cleanup()
         msg_box_parent = self.view.widgets.message_box_parent
         list(map(msg_box_parent.remove, msg_box_parent.get_children()))
@@ -1104,7 +1125,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         return self.view.start()
 
 
-def move_quantity_between_plants(from_plant, to_plant, to_plant_change=None):
+def move_quantity_between_plants(from_plant, to_plant, to_plant_change: Optional[Incomplete] = None) -> None:
     ######################################################
     s = object_session(to_plant)
     if to_plant_change is None:
@@ -1130,10 +1151,15 @@ def move_quantity_between_plants(from_plant, to_plant, to_plant_change=None):
 class PlantEditor(GenericModelViewPresenterEditor):
 
     # these have to correspond to the response values in the view
-    RESPONSE_NEXT = 22
-    ok_responses = (RESPONSE_NEXT,)
+    branched_plant: Incomplete
+    parent: Incomplete
+    _committed: Incomplete
+    presenter: Incomplete
+    _commited: Incomplete
+    RESPONSE_NEXT: int = 22
+    ok_responses: Incomplete = (RESPONSE_NEXT,)
 
-    def __init__(self, model=None, parent=None, branch_mode=False):
+    def __init__(self, model: Optional[Incomplete] = None, parent: Optional[Incomplete] = None, branch_mode: bool = False) -> None:
         """
         :param model: Plant instance or None
         :param parent: None
@@ -1178,14 +1204,14 @@ class PlantEditor(GenericModelViewPresenterEditor):
         else:
             view.widgets.plant_code_entry.grab_focus()
 
-    def compute_plant_split_changes(self):
+    def compute_plant_split_changes(self) -> None:
         move_quantity_between_plants(
             from_plant=self.branched_plant,
             to_plant=self.model,
             to_plant_change=self.presenter.change,
         )
 
-    def commit_changes(self):
+    def commit_changes(self) -> None:
         """ """
         codes = utils.range_builder(self.model.code)
         if (
@@ -1369,8 +1395,8 @@ class GeneralPlantExpander(InfoExpander):
     """
     general expander for the PlantInfoBox
     """
-
-    def __init__(self, widgets):
+    current_obj: Incomplete
+    def __init__(self, widgets) -> None:
         """ """
         super().__init__(_("General"), widgets)
         general_box = self.widgets.general_box
@@ -1393,7 +1419,7 @@ class GeneralPlantExpander(InfoExpander):
 
         utils.make_label_clickable(self.widgets.location_data, on_location_clicked)
 
-    def update(self, row):
+    def update(self, row) -> None:
         """ """
         self.current_obj = row
         acc_code = str(row.accession)
@@ -1436,8 +1462,8 @@ class ChangesExpander(InfoExpander):
     """
     ChangesExpander
     """
-
-    def __init__(self, widgets):
+    table: Incomplete
+    def __init__(self, widgets) -> None:
         """ """
         super().__init__(_("Changes"), widgets)
         self.vbox.set_spacing(5)  # Replace self.vbox.props.spacing
@@ -1537,7 +1563,7 @@ class ChangesExpander(InfoExpander):
         self.vbox.show_all()
 
 
-def label_size_allocate(widget, rect):
+def label_size_allocate(widget, rect) -> None:
     widget.set_size_request(rect.width, -1)
 
 
@@ -1556,11 +1582,11 @@ class PropagationExpander(InfoExpander):
     Propagation Expander (GTK 3 Compatible)
     """
 
-    def __init__(self, widgets):
+    def __init__(self, widgets) -> None:
         super().__init__(_("Propagations"), widgets)
         self.vbox.set_spacing(4)
 
-    def update(self, row):
+    def update(self, row) -> None:
         """
         Update the UI with propagation data.
         """
@@ -1619,8 +1645,14 @@ class PlantInfoBox(InfoBox):
     """
     An InfoBox for a Plants table row.
     """
-
-    def __init__(self):
+    widgets: Incomplete
+    general: Incomplete
+    transfers: Incomplete
+    propagations: Incomplete
+    links: Incomplete
+    mapinfo: Incomplete
+    properties_expander: Incomplete
+    def __init__(self) -> None:
         """Initialize PlantInfoBox."""
         super().__init__()
         filename = os.path.join(
@@ -1654,7 +1686,7 @@ class PlantInfoBox(InfoBox):
             pass
         return result
 
-    def update(self, row):
+    def update(self, row) -> None:
         """Update the InfoBox with data from a row."""
         # TODO: don't really need a location expander, could just
         # use a label in the general section

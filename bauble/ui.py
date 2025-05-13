@@ -38,14 +38,17 @@ from bauble.editor import GenericEditorView
 from bauble.prefs import prefs
 from bauble.view import SearchView
 
+from typing import Union, Optional
+from bauble import pluginmgr
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def safe_set_text(gtk_widget, text):
+def safe_set_text(gtk_widget, text) -> None:
     """
     Sets the text of a Gtk widget replacing None with an empty string.
 
@@ -69,10 +72,11 @@ class DefaultView(pluginmgr.View):
     not to the view.DefaultCommandHandler
 
     """
+    hbox: Incomplete
+    infobox: Incomplete
+    infoboxclass: Incomplete = None
 
-    infoboxclass = None
-
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         # splash window contains a hbox: left half is for the proper splash,
@@ -89,7 +93,7 @@ class DefaultView(pluginmgr.View):
         # the following means we do not have an infobox yet
         self.infobox = None
 
-    def update(self):
+    def update(self) -> None:
         logger.debug("DefaultView::update")
         if self.infoboxclass and not self.infobox:
             logger.debug("DefaultView::update - creating infobox")
@@ -103,24 +107,24 @@ class DefaultView(pluginmgr.View):
 
 class SplashCommandHandler(pluginmgr.CommandHandler):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         if self.view is None:
             logger.warning("SplashCommandHandler.view is None, expect trouble")
 
-    command = ["home", "splash"]
-    view = None
+    command: Incomplete = ["home", "splash"]
+    view: Incomplete = None
 
     def get_view(self):
         if self.view is None:
             self.view = DefaultView()
         return self.view
 
-    def __call__(self, cmd, arg):
+    def __call__(self, cmd, arg) -> None:
         self.view.update()
 
 
-def create_menu_item_with_image(label, icon_name=None, base_dir=None):
+def create_menu_item_with_image(label, icon_name: Optional[Incomplete] = None, base_dir: Optional[Incomplete] = None):
     """Return a MenuItem with an associated image, if provided.
 
     Args:
@@ -176,12 +180,21 @@ def create_menu_item_with_image(label, icon_name=None, base_dir=None):
 
 class GUI:
 
-    entry_history_pref = "bauble.history"
-    history_size_pref = "bauble.history_size"
-    window_geometry_pref = "bauble.geometry"
-    _default_history_size = 12
+    widgets: Incomplete
+    window: Incomplete
+    previous_view: Incomplete
+    _cids: Incomplete
+    progressbar: Incomplete
+    cmd_parser: Incomplete
+    menubar: Incomplete
+    insert_menu: Incomplete
+    tools_menu: Incomplete
+    entry_history_pref: str = "bauble.history"
+    history_size_pref: str = "bauble.history_size"
+    window_geometry_pref: str = "bauble.geometry"
+    _default_history_size: int = 12
 
-    def __init__(self):
+    def __init__(self) -> None:
         filename = os.path.join(paths.lib_dir(), "bauble.glade")
         self.widgets = utils.BuilderWidgets(filename)
         self.window = self.widgets.main_window
@@ -283,17 +296,17 @@ class GUI:
 
         combo.grab_focus()
 
-    def on_statusbar_push(self, sb, cid, txt):
+    def on_statusbar_push(self, sb, cid, txt) -> None:
         if cid not in self._cids:
             self._cids.append(cid)
 
-    def close_message_box(self, *args):
+    def close_message_box(self, *args) -> None:
         parent = self.widgets.msg_box_parent
         for kid in self.widgets.msg_box_parent:
             parent.remove(kid)
         return
 
-    def show_yesno_box(self, msg):
+    def show_yesno_box(self, msg) -> None:
         self.close_message_box()
         box = utils.add_message_box(
             self.widgets.msg_box_parent, utils.MESSAGE_BOX_YESNO
@@ -301,7 +314,7 @@ class GUI:
         box.message = msg
         box.show()
 
-    def show_error_box(self, msg, details=None):
+    def show_error_box(self, msg, details: Optional[Incomplete] = None) -> None:
         self.close_message_box()
         box = utils.add_message_box(self.widgets.msg_box_parent, utils.MESSAGE_BOX_INFO)
         box.message = msg
@@ -320,7 +333,7 @@ class GUI:
             box.set_color(*color)
         box.show()
 
-    def show_message_box(self, msg):
+    def show_message_box(self, msg) -> None:
         """
         Show an info message in the message drop down box
         """
@@ -333,7 +346,7 @@ class GUI:
     #        self._msg_common(msg, colors)
     #        self.widgets.msg_eventbox.show()
 
-    def show(self):
+    def show(self) -> None:
         self.window.show()
 
     def _get_history_size(self):
@@ -342,25 +355,25 @@ class GUI:
             prefs[self.history_size_pref] = self._default_history_size
         return int(prefs[self.history_size_pref])
 
-    history_size = property(_get_history_size)
+    history_size: Incomplete = property(_get_history_size)
 
-    def send_command(self, command):
+    def send_command(self, command) -> None:
         safe_set_text(self.widgets.main_comboentry.get_child(), command)
         self.widgets.go_button.emit("clicked")
 
-    def on_main_entry_activate(self, widget, data=None):
+    def on_main_entry_activate(self, widget, data: Optional[Incomplete] = None) -> None:
         self.widgets.go_button.emit("clicked")
 
-    def on_home_button_clicked(self, widget):
+    def on_home_button_clicked(self, widget) -> None:
         """ """
         bauble.command_handler("home", None)
 
-    def on_prev_view_button_clicked(self, widget):
+    def on_prev_view_button_clicked(self, widget) -> None:
         """ """
         safe_set_text(self.widgets.main_comboentry.get_child(), "")
         bauble.gui.set_view("previous")
 
-    def on_go_button_clicked(self, widget):
+    def on_go_button_clicked(self, widget) -> None:
         """ """
         self.close_message_box()
         text = self.widgets.main_comboentry.get_child().get_text()
@@ -382,7 +395,7 @@ class GUI:
 
         bauble.command_handler(cmd, arg)
 
-    def on_query_button_clicked(self, widget):
+    def on_query_button_clicked(self, widget) -> None:
         gladefilepath = os.path.join(paths.lib_dir(), "querybuilder.glade")
         view = GenericEditorView(
             gladefilepath, parent=None, root_widget_name="main_dialog"
@@ -396,7 +409,7 @@ class GUI:
             self.widgets.go_button.emit("clicked")
         qb.cleanup()
 
-    def add_to_history(self, text, index=0):
+    def add_to_history(self, text, index: int = 0) -> None:
         """
         add text to history, if text is already in the history then set its
         index to index parameter
@@ -420,7 +433,7 @@ class GUI:
         prefs[self.entry_history_pref] = history
         self.populate_main_entry()
 
-    def populate_main_entry(self):
+    def populate_main_entry(self) -> None:
         history = prefs[self.entry_history_pref]
         main_combo = self.widgets.main_comboentry
         model = main_combo.get_model()
@@ -450,16 +463,16 @@ class GUI:
         else:
             return "{} {} - {}".format("Ghini", bauble.version, bauble.conn_name)
 
-    title = property(__get_title)
+    title: Incomplete = property(__get_title)
 
-    def set_busy(self, busy):
+    def set_busy(self, busy) -> None:
         self.widgets.main_box.set_sensitive(not busy)
         if busy:
             self.window.get_window().set_cursor(Gdk.Cursor.new(Gdk.CursorType.WATCH))
         else:
             self.window.get_window().set_cursor(None)
 
-    def set_default_view(self):
+    def set_default_view(self) -> None:
         main_entry = self.widgets.main_comboentry.get_child()
         if main_entry is not None:
             main_entry.set_text("")
@@ -467,7 +480,7 @@ class GUI:
         self.set_view(SplashCommandHandler.view)
         pluginmgr.register_command(SplashCommandHandler)
 
-    def set_view(self, view=None):
+    def set_view(self, view: Optional[Incomplete] = None) -> None:
         """
         set the view, if view is None then remove any views currently set
 
@@ -502,7 +515,7 @@ class GUI:
                 return kid
         return None
 
-    def get_results_model(self, quiet=False):
+    def get_results_model(self, quiet: bool = False):
         model = None
         view = bauble.gui.get_view()
         from bauble.view import SearchView
@@ -661,7 +674,7 @@ class GUI:
 
         return self.menubar
 
-    def clear_menu(self, menu):
+    def clear_menu(self, menu) -> None:
         """
         Remove all items from a Gtk.Menu.
 
@@ -675,7 +688,7 @@ class GUI:
             menu.remove(item)
         menu.show()
 
-    def add_menu(self, name, menu, index=-1):
+    def add_menu(self, name, menu, index: int = -1):
         """
         add a menu to the menubar
 
@@ -689,9 +702,9 @@ class GUI:
         self.menubar.show_all()
         return menu_item
 
-    __insert_menu_cache = {}
+    __insert_menu_cache: Incomplete = {}
 
-    def add_to_insert_menu(self, editor, label, icon_name=None, base_dir=None):
+    def add_to_insert_menu(self, editor, label, icon_name: Optional[Incomplete] = None, base_dir: Optional[Incomplete] = None) -> None:
         """
         Add an editor to the insert menu.
 
@@ -720,7 +733,7 @@ class GUI:
         # Make the menu item visible
         item.show()
 
-    def add_to_tools_menu(self, menu, tool, on_activate_callback, base_dir=None):
+    def add_to_tools_menu(self, menu, tool, on_activate_callback, base_dir: Optional[Incomplete] = None) -> None:
         """
         Helper function to add a tool to a tools menu.
 
@@ -798,7 +811,7 @@ class GUI:
         # Ensure all menu items are visible
         tools_menu.show_all()
 
-    def on_tools_menu_item_activate(self, widget, tool):
+    def on_tools_menu_item_activate(self, widget, tool) -> None:
         """
         Start a tool on the Tool menu.
         """
@@ -864,16 +877,16 @@ class GUI:
             if obj != []:
                 logger.warning(f"{view_cls.__name__} leaked: {obj}")
 
-    def on_edit_menu_cut(self, widget, data=None):
+    def on_edit_menu_cut(self, widget, data: Optional[Incomplete] = None) -> None:
         self.widgets.main_comboentry.get_child().cut_clipboard()
 
-    def on_edit_menu_copy(self, widget, data=None):
+    def on_edit_menu_copy(self, widget, data: Optional[Incomplete] = None) -> None:
         self.widgets.main_comboentry.get_child().copy_clipboard()
 
-    def on_edit_menu_paste(self, widget, data=None):
+    def on_edit_menu_paste(self, widget, data: Optional[Incomplete] = None) -> None:
         self.widgets.main_comboentry.get_child().paste_clipboard()
 
-    def on_file_menu_new(self, widget, data=None):
+    def on_file_menu_new(self, widget, data: Optional[Incomplete] = None) -> None:
         msg = (
             "If a database already exists at this connection then creating "
             "a new database could destroy your data.\n\n<i>Are you sure "
@@ -898,7 +911,7 @@ class GUI:
             return
         self.set_default_view()
 
-    def on_file_menu_open(self, widget, data=None):
+    def on_file_menu_open(self, widget, data: Optional[Incomplete] = None) -> None:
         """Open the connection manager."""
         from .connmgr import start_connection_manager
 
@@ -942,7 +955,7 @@ class GUI:
             self.statusbar_clear()
             pluginmgr.init()
 
-    def statusbar_clear(self):
+    def statusbar_clear(self) -> None:
         """
         Call Gtk.Statusbar.pop() for each context_id that had previously
         been pushed() onto the the statusbar stack.  This might not clear
@@ -955,35 +968,35 @@ class GUI:
         for cid in self._cids:
             self.widgets.statusbar.pop(cid)
 
-    def on_help_menu_contents(self, widget, data=None):
+    def on_help_menu_contents(self, widget, data: Optional[Incomplete] = None) -> None:
         desktop.open(
             "http://ghini.readthedocs.io/en/ghini-3.1-dev/",
             dialog_on_error=True,
         )
 
-    def on_help_menu_bug(self, widget, data=None):
+    def on_help_menu_bug(self, widget, data: Optional[Incomplete] = None) -> None:
         desktop.open(
             "https://github.com/Ghini/ghini.desktop/issues/new",
             dialog_on_error=True,
         )
 
-    def on_help_menu_logfile(self, widget, data=None):
+    def on_help_menu_logfile(self, widget, data: Optional[Incomplete] = None) -> None:
         filename = "file://" + os.path.join(paths.appdata_dir(), "bauble.log")
         desktop.open(filename, dialog_on_error=True)
 
-    def on_help_menu_web_devel(self, widget, data=None):
+    def on_help_menu_web_devel(self, widget, data: Optional[Incomplete] = None) -> None:
         desktop.open("http://github.com/Ghini/ghini.desktop/", dialog_on_error=True)
 
-    def on_help_menu_web_wiki(self, widget, data=None):
+    def on_help_menu_web_wiki(self, widget, data: Optional[Incomplete] = None) -> None:
         desktop.open("http://ghini.github.io/", dialog_on_error=True)
 
-    def on_help_menu_web_forum(self, widget, data=None):
+    def on_help_menu_web_forum(self, widget, data: Optional[Incomplete] = None) -> None:
         desktop.open(
             "https://groups.google.com/forum/#!forum/bauble",
             dialog_on_error=True,
         )
 
-    def on_help_menu_about(self, widget, data=None):
+    def on_help_menu_about(self, widget, data: Optional[Incomplete] = None) -> None:
         about = Gtk.AboutDialog()
         about.set_name("Ghini")
         about.set_version(bauble.version)
@@ -1015,7 +1028,7 @@ class GUI:
         about.run()
         about.destroy()
 
-    def save_state(self):
+    def save_state(self) -> None:
         """
         this is usually called from bauble.py when it shuts down
         """
@@ -1034,5 +1047,5 @@ class GUI:
             task.kill()
         return False
 
-    def on_quit(self, widget, data=None):
+    def on_quit(self, widget, data: Optional[Incomplete] = None) -> None:
         bauble.quit()

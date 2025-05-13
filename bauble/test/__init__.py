@@ -20,11 +20,13 @@
 import logging
 
 # Global configuration
-logger = logging.getLogger(__name__)
+from typing import Union, Optional
+from _typeshed import Incomplete
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-def update_gui():
+def update_gui() -> None:
     """
     Flush any GTK Events.  Used for doing GUI testing.
     """
@@ -60,21 +62,21 @@ def check_dupids(filename):
 
 class MockLoggingHandler(logging.Handler):
     """Mock logging handler to check for expected logs."""
-
-    def __init__(self, *args, **kwargs):
+    messages: Incomplete
+    def __init__(self, *args, **kwargs) -> None:
         self.reset()
         super().__init__(*args, **kwargs)
 
-    def emit(self, record):
+    def emit(self, record) -> None:
         received = self.messages.setdefault(record.name, {}).setdefault(
             record.levelname.lower(), []
         )
         received.append(self.format(record))
 
-    def reset(self):
+    def reset(self) -> None:
         self.messages = {}
 
 
-def mockfunc(msg=None, name=None, caller=None, result=False, *args, **kwargs):
+def mockfunc(msg: Optional[Incomplete] = None, name: Optional[Incomplete] = None, caller: Optional[Incomplete] = None, result: bool = False, *args, **kwargs):
     caller.invoked.append((name, msg))
     return result

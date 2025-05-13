@@ -31,10 +31,11 @@ from bauble import paths as bpaths
 from bauble import utils as butils
 from bauble.plugins.report import TemplateFormatterPlugin
 
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 
 class MakoFormatterPlugin(TemplateFormatterPlugin):
@@ -44,16 +45,16 @@ class MakoFormatterPlugin(TemplateFormatterPlugin):
     author to validate the type of the values and act accordingly if not.
     """
 
-    title = "Mako"
-    extension = ".mako"
-    domain_pattern = re.compile(r"^##\s*DOMAIN\s+([a-z_]*)\s*$")
-    option_pattern = re.compile(
+    title: str = "Mako"
+    extension: str = ".mako"
+    domain_pattern: Incomplete = re.compile(r"^##\s*DOMAIN\s+([a-z_]*)\s*$")
+    option_pattern: Incomplete = re.compile(
         r"^## OPTION ([a-z_]*): \("
         "type: ([a-z_]*), "
         "default: '(.*)', "
         r"tooltip: '(.*)'\)$"
     )
-    paths = []
+    paths: Incomplete = []
 
     @classmethod
     def get_template(cls, name):

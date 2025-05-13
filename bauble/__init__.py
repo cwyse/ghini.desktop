@@ -34,6 +34,10 @@ import bauble.error as err
 import bauble.i18n
 import bauble.paths as paths
 
+from _typeshed import Incomplete
+from gi.repository import GObject as GObject, Gdk as Gdk
+zipfile: Incomplete
+default_icon: Incomplete
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 import warnings
@@ -45,17 +49,17 @@ warnings.simplefilter("always", SAWarning)
 
 from bauble import _version
 
-version = _version.__version__
-version_tuple = tuple(
+version: Incomplete = _version.__version__
+version_tuple: Incomplete = tuple(
     int(part) if part.isdigit() else part for part in version.split(".")
 )
 
 # extract release date (assuming setuptools_scm local_scheme='node-and-date')
 import re
 
-match = re.search(r"\+g[0-9a-f]+\.d(\d{8})", version)
-release_date = match.group(1) if match else None
-installation_date = os.environ.get("BUILD_DATE", "1970-01-01T00:00:00Z")
+match: Incomplete = re.search(r"\+g[0-9a-f]+\.d(\d{8})", version)
+release_date: Incomplete = match.group(1) if match else None
+installation_date: Incomplete = os.environ.get("BUILD_DATE", "1970-01-01T00:00:00Z")
 
 
 from gi.repository import Gdk, Gio, GLib
@@ -74,9 +78,9 @@ except ImportError as e:
 
 # debugpy.breakpoint()
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-consoleLevel = logging.INFO
+consoleLevel: Incomplete = logging.INFO
 
 
 try:
@@ -87,7 +91,7 @@ except:
     pass
 
 
-def pb_set_fraction(fraction):
+def pb_set_fraction(fraction) -> None:
     """set progressbar fraction safely
 
     provides a safe way to handle the progress bar if the gui isn't started,
@@ -97,14 +101,14 @@ def pb_set_fraction(fraction):
         gui.progressbar.set_fraction(fraction)
 
 
-def pb_grab():
+def pb_grab() -> None:
     if gui is not None and gui.progressbar is not None:
         gui.set_busy(True)
         gui.progressbar.show()
         gui.progressbar.set_fraction(0)
 
 
-def pb_release():
+def pb_release() -> None:
     if gui is not None and gui.progressbar is not None:
         gui.progressbar.hide()
         gui.set_busy(False)
@@ -144,7 +148,7 @@ sys.path.append(paths.lib_dir())
 
 logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
-gui = None
+gui: Incomplete = None
 """bauble.gui is the instance :class:`bauble.ui.GUI`
 """
 
@@ -162,12 +166,12 @@ if not os.path.exists(default_icon):  # If fallback is also missing
 """The default icon.
 """
 
-conn_name = None
+conn_name: Incomplete = None
 """The name of the current connection.
 """
 
 
-def save_state():
+def save_state() -> None:
     """
     Save the gui state and preferences.
     """
@@ -179,7 +183,7 @@ def save_state():
     prefs.save()
 
 
-def quit():
+def quit() -> None:
     """
     Stop all tasks and quit Ghini.
     """
@@ -200,10 +204,10 @@ def quit():
     sys.exit(1)
 
 
-last_handler = None
+last_handler: Incomplete = None
 
 
-def command_handler(cmd, arg):
+def command_handler(cmd, arg) -> None:
     """
     Call a command handler.
 
@@ -251,8 +255,8 @@ def command_handler(cmd, arg):
         utils.message_details_dialog(msg, traceback.format_exc(), Gtk.MessageType.ERROR)
 
 
-conn_default_pref = "conn.default"
-conn_list_pref = "conn.list"
+conn_default_pref: str = "conn.default"
+conn_list_pref: str = "conn.list"
 
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
@@ -263,8 +267,12 @@ from bauble.view import DefaultCommandHandler
 
 class GhiniApp:
     """Manages application logic without subclassing Gtk.Application."""
-
-    def __init__(self):
+    gui: Incomplete
+    open_exc: Incomplete
+    conn_name: Incomplete
+    uri: Incomplete
+    gtk_app: Incomplete
+    def __init__(self) -> None:
         self.gui = None
         self.open_exc = None
         self.conn_name = None
@@ -287,7 +295,7 @@ class GhiniApp:
         """Run the GTK application."""
         return self.gtk_app.run(argv)
 
-    def on_startup(self, app):
+    def on_startup(self, app) -> None:
         """Runs initialization tasks before the UI is shown."""
         self.setup_logging()
         prefs.init()
@@ -300,13 +308,13 @@ class GhiniApp:
         prefs.save()
         pluginmgr.register_command(DefaultCommandHandler)
 
-    def on_activate(self, app):
+    def on_activate(self, app) -> None:
         """Runs when the application is launched (or brought to foreground)."""
         self.gui = self.create_gui()
         self.gui.show()
         self.handle_open_errors()
 
-    def setup_logging(self):
+    def setup_logging(self) -> None:
         """Configures application logging."""
         filename = os.path.join(paths.appdata_dir(), "bauble.log")
         formatter = logging.Formatter(
@@ -325,7 +333,7 @@ class GhiniApp:
         fileHandler.setLevel(logging.INFO)
         consoleHandler.setLevel(logging.WARNING)
 
-    def setup_sentry(self):
+    def setup_sentry(self) -> None:
         """Configures Sentry for error tracking if enabled in preferences."""
         try:
             from raven import Client
@@ -469,14 +477,14 @@ class GhiniApp:
             bauble.release_date,
         )
 
-    def create_user_directory(self):
+    def create_user_directory(self) -> None:
         """Ensures user directory exists for configuration and logging."""
         user_dir = paths.appdata_dir()
         if not os.path.exists(user_dir):
             os.makedirs(user_dir)
             logger.info("Created user directory: %s", user_dir)
 
-    def setup_py2exe_logging(self):
+    def setup_py2exe_logging(self) -> None:
         """Redirects stdout and stderr to files when running in py2exe mode."""
         if paths.main_is_frozen():
             _stdout = os.path.join(paths.user_dir(), "stdout.log")
@@ -487,8 +495,8 @@ class GhiniApp:
 
 
 # Define app as a global variable
-app = GhiniApp()  # 🔹 Now accessible globally
-gtk_app = app.gtk_app  # Shortcut to access Gtk.Application if needed
+app: Incomplete = GhiniApp()  # 🔹 Now accessible globally
+gtk_app: Incomplete = app.gtk_app  # Shortcut to access Gtk.Application if needed
 
 
 def main():

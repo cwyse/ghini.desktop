@@ -18,46 +18,48 @@
 import math
 
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 class OutOfRangeError(ValueError):
     pass
 
 
-K0 = 0.9996
+K0: float = 0.9996
 
-E = 0.00669438
-E2 = E * E
-E3 = E2 * E
-E_P2 = E / (1.0 - E)
+E: float = 0.00669438
+E2: Incomplete = E * E
+E3: Incomplete = E2 * E
+E_P2: Incomplete = E / (1.0 - E)
 
-SQRT_E = math.sqrt(1 - E)
-_E = (1 - SQRT_E) / (1 + SQRT_E)
-_E2 = _E * _E
-_E3 = _E2 * _E
-_E4 = _E3 * _E
-_E5 = _E4 * _E
+SQRT_E: Incomplete = math.sqrt(1 - E)
+_E: Incomplete = (1 - SQRT_E) / (1 + SQRT_E)
+_E2: Incomplete = _E * _E
+_E3: Incomplete = _E2 * _E
+_E4: Incomplete = _E3 * _E
+_E5: Incomplete = _E4 * _E
 
-M1 = 1 - E / 4 - 3 * E2 / 64 - 5 * E3 / 256
-M2 = 3 * E / 8 + 3 * E2 / 32 + 45 * E3 / 1024
-M3 = 15 * E2 / 256 + 45 * E3 / 1024
-M4 = 35 * E3 / 3072
+M1: Incomplete = 1 - E / 4 - 3 * E2 / 64 - 5 * E3 / 256
+M2: Incomplete = 3 * E / 8 + 3 * E2 / 32 + 45 * E3 / 1024
+M3: Incomplete = 15 * E2 / 256 + 45 * E3 / 1024
+M4: Incomplete = 35 * E3 / 3072
 
-P2 = 3.0 / 2 * _E - 27.0 / 32 * _E3 + 269.0 / 512 * _E5
-P3 = 21.0 / 16 * _E2 - 55.0 / 32 * _E4
-P4 = 151.0 / 96 * _E3 - 417.0 / 128 * _E5
-P5 = 1097.0 / 512 * _E4
+P2: Incomplete = 3.0 / 2 * _E - 27.0 / 32 * _E3 + 269.0 / 512 * _E5
+P3: Incomplete = 21.0 / 16 * _E2 - 55.0 / 32 * _E4
+P4: Incomplete = 151.0 / 96 * _E3 - 417.0 / 128 * _E5
+P5: Incomplete = 1097.0 / 512 * _E4
 
-R = 6378137
+R: int = 6378137
 
-ZONE_LETTERS = "CDEFGHJKLMNPQRSTUVWXX"
+ZONE_LETTERS: str = "CDEFGHJKLMNPQRSTUVWXX"
 
 
 def to_latlon(
     easting,
     northing,
     zone_number,
-    zone_letter=None,
-    northern=None,
-    strict=True,
+    zone_letter: Optional[Incomplete] = None,
+    northern: Optional[Incomplete] = None,
+    strict: bool = True
 ):
     """This function convert an UTM coordinate into Latitude and Longitude
 
@@ -171,7 +173,7 @@ def to_latlon(
     )
 
 
-def from_latlon(latitude, longitude, force_zone_number=None):
+def from_latlon(latitude, longitude, force_zone_number: Optional[Incomplete] = None):
     """This function convert Latitude and Longitude to UTM coordinate
 
     Parameters

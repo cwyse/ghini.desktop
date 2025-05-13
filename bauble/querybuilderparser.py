@@ -39,34 +39,40 @@ from pyparsing import (
 )
 
 
+from _typeshed import Incomplete
 class BuiltQuery:
 
+    wordStart: Incomplete
+    wordEnd: Incomplete
+    parsed: Incomplete
+    __clauses: Incomplete
+    is_valid: bool
     wordStart, wordEnd = WordStart(), WordEnd()
 
-    AND_ = wordStart + CaselessLiteral("and") + wordEnd
-    OR_ = wordStart + CaselessLiteral("or") + wordEnd
-    BETWEEN_ = wordStart + CaselessLiteral("between") + wordEnd
+    AND_: Incomplete = wordStart + CaselessLiteral("and") + wordEnd
+    OR_: Incomplete = wordStart + CaselessLiteral("or") + wordEnd
+    BETWEEN_: Incomplete = wordStart + CaselessLiteral("between") + wordEnd
 
-    numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?")
-    unquoted_string = Word(alphanums + alphas8bit + "%.-_*;:")
-    string_value = quotedString.setParseAction(removeQuotes) | unquoted_string
-    fieldname = Group(delimitedList(Word(alphas + "_", alphanums + "_"), "."))
-    value = numeric_value | string_value
-    binop = oneOf("= == != <> < <= > >= has like contains", caseless=True)
-    clause = fieldname + binop + value
-    unparseable_clause = (fieldname + BETWEEN_ + value + AND_ + value) | (
+    numeric_value: Incomplete = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?")
+    unquoted_string: Incomplete = Word(alphanums + alphas8bit + "%.-_*;:")
+    string_value: Incomplete = quotedString.setParseAction(removeQuotes) | unquoted_string
+    fieldname: Incomplete = Group(delimitedList(Word(alphas + "_", alphanums + "_"), "."))
+    value: Incomplete = numeric_value | string_value
+    binop: Incomplete = oneOf("= == != <> < <= > >= has like contains", caseless=True)
+    clause: Incomplete = fieldname + binop + value
+    unparseable_clause: Incomplete = (fieldname + BETWEEN_ + value + AND_ + value) | (
         Word(alphanums) + "(" + fieldname + ")" + binop + value
     )
-    expression = Group(clause) + ZeroOrMore(
+    expression: Incomplete = Group(clause) + ZeroOrMore(
         Group(
             AND_ + clause
             | OR_ + clause
             | ((OR_ | AND_) + unparseable_clause).suppress()
         )
     )
-    query = Word(alphas) + CaselessLiteral("where") + expression
+    query: Incomplete = Word(alphas) + CaselessLiteral("where") + expression
 
-    def __init__(self, s):
+    def __init__(self, s) -> None:
         self.parsed = None
         self.__clauses = None
         try:

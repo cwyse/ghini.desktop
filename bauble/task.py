@@ -29,10 +29,12 @@ import gi
 
 import bauble
 
+from _typeshed import Incomplete
+schedule: Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 # TODO: after some specified time the status bar should be cleared but not
 # too soon, maybe 30 seconds or so but only once the queue is empty, anytime
@@ -48,9 +50,9 @@ logger = logging.getLogger(__name__)
 
 schedule = fibra.schedule()
 
-__running = False
-__kill = False
-__message_ids = None
+__running: bool = False
+__kill: bool = False
+__message_ids: Incomplete = None
 
 
 def running():
@@ -60,7 +62,7 @@ def running():
     return __running
 
 
-def kill():
+def kill() -> None:
     """
     Kill the current task.
 
@@ -71,7 +73,7 @@ def kill():
     __kill = True
 
 
-def _idle():
+def _idle() -> None:
     """
     Called when a task is idle.
     """
@@ -87,7 +89,7 @@ def _idle():
 schedule.register_idle_func(_idle)
 
 
-def queue(task):
+def queue(task) -> None:
     """Run a task.
 
     task should be a generator with side effects. it does not matter what it
@@ -145,7 +147,7 @@ def set_message(msg):
     return msg_id
 
 
-def clear_messages():
+def clear_messages() -> None:
     """
     Clear all the messages from the statusbar that were set with
     :func:`bauble.task.set_message`

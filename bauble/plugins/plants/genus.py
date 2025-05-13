@@ -45,6 +45,10 @@ from bauble.shared import InfoExpander
 from bauble.utils import safe_set_props, safe_set_text
 from bauble.view import Action, InfoBox, PropertiesExpander, select_in_search_results
 
+from typing import Union, Optional
+from bauble import db
+from bauble import editor
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -68,7 +72,7 @@ from sqlalchemy.orm import relationship, synonym, validates
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.orm.session import object_session
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 
 # TODO: warn the user that a duplicate genus name is being entered
@@ -182,16 +186,16 @@ def remove_callback(genera):
     return True
 
 
-edit_action = Action(
+edit_action: Incomplete = Action(
     "genus_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
 )
-add_species_action = Action(
+add_species_action: Incomplete = Action(
     "genus_sp_add",
     _("_Add species"),
     callback=add_species_callback,
     accelerator="<ctrl>k",
 )
-remove_action = Action(
+remove_action: Incomplete = Action(
     "genus_remove",
     _("_Delete"),
     callback=remove_callback,
@@ -199,7 +203,7 @@ remove_action = Action(
     multiselect=True,
 )
 
-genus_context_menu = [edit_action, add_species_action, remove_action]
+genus_context_menu: Incomplete = [edit_action, add_species_action, remove_action]
 
 
 def get_species_editor():
@@ -242,19 +246,21 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         The combination of genus, author, qualifier
         and family_id must be unique.
     """
-
-    __tablename__ = "genus"
-    id = Column(Integer, primary_key=True)
-    epithet = Column(String(64), nullable=False, index=True)
-    __table_args__ = (
+    species_editor: Incomplete
+    synonyms: Incomplete
+    _synonyms_synonym: Incomplete
+    __tablename__: str = "genus"
+    id: Incomplete = Column(Integer, primary_key=True)
+    epithet: Incomplete = Column(String(64), nullable=False, index=True)
+    __table_args__: Incomplete = (
         UniqueConstraint("epithet", "author", "qualifier", "family_id"),
         {},
     )
 
-    rank = "genus"
-    link_keys = ["accepted"]
+    rank: str = "genus"
+    link_keys: Incomplete = ["accepted"]
 
-    family = relationship(
+    family: Incomplete = relationship(
         "Family",
         back_populates="genera",
         lazy="joined",
@@ -262,7 +268,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         active_history=True,
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         self.species_editor = get_species_editor()
         # Use keyword arguments to initialize attributes
         for key, value in kwargs.items():
@@ -321,8 +327,8 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         return cls.epithet
 
     # use '' instead of None so that the constraints will work propertly
-    author = Column(Unicode(255), default="")
-    order_by = [asc(epithet), asc(author)]
+    author: Incomplete = Column(Unicode(255), default="")
+    order_by: Incomplete = [asc(epithet), asc(author)]
 
     @validates("epithet", "author")
     def validate_stripping(self, key, value):
@@ -330,16 +336,16 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             return None
         return value.strip()
 
-    qualifier = Column(
+    qualifier: Incomplete = Column(
         types.Enum(values=["s. lat.", "s. str", ""], omit_aliases=False), default=""
     )
 
-    family_id = Column(Integer, ForeignKey("family.id"), nullable=False)
+    family_id: Incomplete = Column(Integer, ForeignKey("family.id"), nullable=False)
 
     # relations
     # `species` relation is defined outside of `Genus` class definition
     synonyms = association_proxy("_synonyms", "synonym")
-    _synonyms = relationship(
+    _synonyms: Incomplete = relationship(
         "GenusSynonym",
         primaryjoin="Genus.id==GenusSynonym.genus_id",
         uselist=True,
@@ -357,7 +363,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     )
 
     @property
-    def accepted(self):
+    def accepted(self) -> Any:
         """Return the accepted name for this genus (if it is a synonym)."""
         session = object_session(self)
         if session:
@@ -415,7 +421,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             logger.error(f"Error setting accepted synonym: {e}")
 
     @staticmethod
-    def str(genus, author=False):
+    def str(genus, author: bool = False):
         # TODO: the genus should be italicized for markup
         if genus.epithet is None:
             return repr(genus)
@@ -441,7 +447,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
 
         return False
 
-    def as_dict(self, recurse=True):
+    def as_dict(self, recurse: bool = True):
         result = db.Serializable.as_dict(self)
         if "qualifier" in result:
             del result["qualifier"]
@@ -479,7 +485,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             return None
 
     @classmethod
-    def correct_field_names(cls, keys):
+    def correct_field_names(cls, keys) -> None:
         for internal, exchange in [("family", "ht-epithet")]:
             if exchange in keys:
                 keys[internal] = keys[exchange]
@@ -517,7 +523,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
             },
         }
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         #        return f"<Genus(id={self.id}, epithet='{self.epithet}')>"
         return Genus.str(self)
 
@@ -533,7 +539,7 @@ def compute_serializable_fields(cls, session, keys):
     return result
 
 
-GenusNote = db.make_note_class("Genus", Genus, compute_serializable_fields)
+GenusNote: Incomplete = db.make_note_class("Genus", Genus, compute_serializable_fields)
 Genus.notes = relationship(
     "GenusNote",
     back_populates="genus",
@@ -547,12 +553,15 @@ class GenusSynonym(db.Base):
     """
     :Table name: genus_synonym
     """
-
-    __tablename__ = "genus_synonym"
+    id: Incomplete
+    synonym_id: Incomplete
+    genus: Incomplete
+    synonym: Incomplete
+    __tablename__: str = "genus_synonym"
 
     # columns
     id = Column(Integer, primary_key=True)
-    genus_id = Column(Integer, ForeignKey("genus.id"), nullable=False)
+    genus_id: Incomplete = Column(Integer, ForeignKey("genus.id"), nullable=False)
 
     # a genus can only be a synonum of one other genus
     synonym_id = Column(Integer, ForeignKey("genus.id"), nullable=False, unique=True)
@@ -572,16 +581,16 @@ class GenusSynonym(db.Base):
     #    synonym = relationship('Genus', uselist=False,
     #                       primaryjoin='GenusSynonym.synonym_id==Genus.id')
 
-    def __init__(self, synonym=None, **kwargs):
+    def __init__(self, synonym: Optional[Incomplete] = None, **kwargs) -> None:
         # it is necessary that the first argument here be synonym for
         # the Genus.synonyms association_proxy to work
         self.synonym = synonym
         super().__init__(**kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.synonym)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<GenusSynonym(id={self.id}, genus_id={self.genus_id}, synonym_id={self.synonym_id})>"
 
 
@@ -601,9 +610,9 @@ Genus.species = relationship(
 
 class GenusEditorView(editor.GenericEditorView):
 
-    syn_expanded_pref = "editor.genus.synonyms.expanded"
+    syn_expanded_pref: str = "editor.genus.synonyms.expanded"
 
-    _tooltips = {
+    _tooltips: Incomplete = {
         "gen_family_entry": _("The family name"),
         "gen_genus_entry": _("The genus name"),
         "gen_author_entry": _(
@@ -623,7 +632,7 @@ class GenusEditorView(editor.GenericEditorView):
         "gen_next_button": _("Save your changes and add another " "genus."),
     }
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[Incomplete] = None) -> None:
 
         filename = os.path.join(
             paths.lib_dir(), "plugins", "plants", "genus_editor.glade"
@@ -639,7 +648,7 @@ class GenusEditorView(editor.GenericEditorView):
         return self.widgets.genus_dialog
 
     @staticmethod
-    def syn_cell_data_func(column, renderer, model, iter, data=None):
+    def syn_cell_data_func(column, renderer, model, iter, data: Optional[Incomplete] = None) -> None:
         """ """
         family_instance = get_family_class()
         v = model[iter][0]
@@ -653,14 +662,14 @@ class GenusEditorView(editor.GenericEditorView):
             f"<i>{Genus.str(v)}</i> {author} (<small>{family_instance.str(v.family)}</small>)",
         )
 
-    def save_state(self):
+    def save_state(self) -> None:
         """
         save the current state of the gui to the preferences
         """
         # for expander, pref in self.expanders_pref_map.iteritems():
         #     prefs[pref] = self.widgets[expander].get_expanded()
 
-    def restore_state(self):
+    def restore_state(self) -> None:
         """
         restore the state of the gui from the preferences
         """
@@ -668,7 +677,7 @@ class GenusEditorView(editor.GenericEditorView):
         #     expanded = prefs.get(pref, True)
         #     self.widgets[expander].set_expanded(expanded)
 
-    def set_accept_buttons_sensitive(self, sensitive):
+    def set_accept_buttons_sensitive(self, sensitive) -> None:
         self.widgets.gen_ok_button.set_sensitive(sensitive)
         self.widgets.gen_ok_and_add_button.set_sensitive(sensitive)
         self.widgets.gen_next_button.set_sensitive(sensitive)
@@ -679,13 +688,17 @@ class GenusEditorView(editor.GenericEditorView):
 
 class GenusEditorPresenter(editor.GenericEditorPresenter):
 
-    widget_to_field_map = {
+    session: Incomplete
+    synonyms_presenter: Incomplete
+    notes_presenter: Incomplete
+    _dirty: bool
+    widget_to_field_map: Incomplete = {
         "gen_family_entry": "family",
         "gen_genus_entry": "genus",
         "gen_author_entry": "author",
     }
 
-    def __init__(self, model, view):
+    def __init__(self, model, view) -> None:
         """
         @model: should be an instance of class Genus
         @view: should be an instance of GenusEditorView
@@ -792,19 +805,19 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
 
         self._dirty = False
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         super().cleanup()
         self.synonyms_presenter.cleanup()
         self.notes_presenter.cleanup()
 
-    def refresh_sensitivity(self):
+    def refresh_sensitivity(self) -> None:
         # TODO: check widgets for problems
         sensitive = False
         if self.model.family and self.model.genus and self.model.family:
             sensitive = True
         self.view.set_accept_buttons_sensitive(sensitive)
 
-    def set_model_attr(self, field, value, validator=None):
+    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
         super().set_model_attr(field, value, validator)
         self._dirty = True
         self.refresh_sensitivity()
@@ -816,7 +829,7 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
             or self.notes_presenter.dirty()
         )
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         for widget, field in list(self.widget_to_field_map.items()):
             if field == "family_id":
                 value = self.model.family
@@ -831,9 +844,14 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
 
 class SynonymsPresenter(editor.GenericEditorPresenter):
 
-    PROBLEM_INVALID_SYNONYM = 1
+    parent_ref: Incomplete
+    session: Incomplete
+    _selected: Incomplete
+    _dirty: bool
+    treeview: Incomplete
+    PROBLEM_INVALID_SYNONYM: int = 1
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         """
         :param parent: GenusEditorPreesnter
         """
@@ -877,13 +895,13 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         )
         self._dirty = False
 
-    def start(self):
+    def start(self) -> None:
         raise Exception("genus.SynonymsPresenter cannot be started")
 
     def dirty(self):
         return self._dirty
 
-    def init_treeview(self):
+    def init_treeview(self) -> None:
         """
         initialize the Gtk.TreeView
         """
@@ -920,18 +938,18 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self.treeview.set_model(tree_model)
         self.view.connect(self.treeview, "cursor-changed", self.on_tree_cursor_changed)
 
-    def on_tree_cursor_changed(self, tree, data=None):
+    def on_tree_cursor_changed(self, tree, data: Optional[Incomplete] = None) -> None:
         """ """
         path, column = tree.get_cursor()
         self.view.widgets.gen_syn_remove_button.set_sensitive(True)
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         """
         doesn't do anything
         """
         return
 
-    def on_add_button_clicked(self, button, data=None):
+    def on_add_button_clicked(self, button, data: Optional[Incomplete] = None) -> None:
         """
         adds the synonym from the synonym entry to the list of synonyms for
             this species
@@ -948,7 +966,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 
-    def on_remove_button_clicked(self, button, data=None):
+    def on_remove_button_clicked(self, button, data: Optional[Incomplete] = None) -> None:
         """
         removes the currently selected synonym from the list of synonyms for
         this species
@@ -978,11 +996,15 @@ class GenusEditor(editor.GenericModelViewPresenterEditor):
 
     # these response values have to correspond to the response values in
     # the view
-    RESPONSE_OK_AND_ADD = 11
-    RESPONSE_NEXT = 22
-    ok_responses = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
+    view: Incomplete
+    presenter: Incomplete
+    parent: Incomplete
+    _committed: Incomplete
+    RESPONSE_OK_AND_ADD: int = 11
+    RESPONSE_NEXT: int = 22
+    ok_responses: Incomplete = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model=None, parent=None):
+    def __init__(self, model: Optional[Incomplete] = None, parent: Optional[Incomplete] = None) -> None:
         """
         :param model: Genus instance or None
         :param parent: None
@@ -1093,8 +1115,8 @@ class GeneralGenusExpander(InfoExpander):
     """
     expander to present general information about a genus
     """
-
-    def __init__(self, widgets):
+    current_obj: Incomplete
+    def __init__(self, widgets) -> None:
         """
         the constructor
         """
@@ -1137,7 +1159,7 @@ class GeneralGenusExpander(InfoExpander):
 
         utils.make_label_clickable(self.widgets.gen_nplants_data, on_nplants_clicked)
 
-    def update(self, row):
+    def update(self, row) -> None:
         """
         update the expander
 
@@ -1226,9 +1248,9 @@ class GeneralGenusExpander(InfoExpander):
 
 class SynonymsExpander(InfoExpander):
 
-    expanded_pref = "infobox.genus.synonyms.expanded"
+    expanded_pref: str = "infobox.genus.synonyms.expanded"
 
-    def __init__(self, widgets):
+    def __init__(self, widgets) -> None:
         InfoExpander.__init__(self, _("Synonyms"), widgets)
         synonyms_box = self.widgets.gen_synonyms_box
         self.widgets.remove_parent(synonyms_box)
@@ -1289,8 +1311,12 @@ class SynonymsExpander(InfoExpander):
 
 class GenusInfoBox(InfoBox):
     """ """
-
-    def __init__(self):
+    widgets: Incomplete
+    general: Incomplete
+    synonyms: Incomplete
+    links: Incomplete
+    properties_expander: Incomplete
+    def __init__(self) -> None:
         button_defs = [
             {
                 "name": "GoogleButton",
@@ -1374,7 +1400,7 @@ class GenusInfoBox(InfoBox):
             self.widgets.remove_parent("gen_nplants_label")
             self.widgets.remove_parent("gen_nplants_data")
 
-    def update(self, row):
+    def update(self, row) -> None:
         self.general.update(row)
         self.synonyms.update(row)
         self.links.update(row)

@@ -22,11 +22,13 @@ import pytest
 
 from bauble import prefs, version_tuple
 
+from _typeshed import Incomplete
+from collections.abc import Generator
 prefs.testing = True
 
 
 @pytest.fixture
-def temp_prefs_file():
+def temp_prefs_file() -> Generator[Incomplete, None, None]:
     """
     Provides a temporary preferences file for testing.
     """
@@ -34,7 +36,7 @@ def temp_prefs_file():
         yield temp_file.name
 
 
-def test_create_does_not_save(temp_prefs_file):
+def test_create_does_not_save(temp_prefs_file) -> None:
     """
     Test that creating preferences does not save the file by default.
     """
@@ -44,7 +46,7 @@ def test_create_does_not_save(temp_prefs_file):
         assert f.read() == "", "Preferences file should be empty after creation"
 
 
-def test_assert_initial_values(temp_prefs_file):
+def test_assert_initial_values(temp_prefs_file) -> None:
     """
     Verify the default values in preferences.
     """
@@ -64,7 +66,7 @@ def test_assert_initial_values(temp_prefs_file):
     assert p[prefs.units_pref] == "metric"
 
 
-def test_not_saved_while_testing(temp_prefs_file):
+def test_not_saved_while_testing(temp_prefs_file) -> None:
     """
     Verify that preferences are not saved during testing unless forced.
     """
@@ -75,7 +77,7 @@ def test_not_saved_while_testing(temp_prefs_file):
         assert f.read() == "", "Preferences file should not be saved during testing"
 
 
-def test_can_force_save(temp_prefs_file):
+def test_can_force_save(temp_prefs_file) -> None:
     """
     Verify that forcing a save writes to the preferences file.
     """
@@ -86,7 +88,7 @@ def test_can_force_save(temp_prefs_file):
         assert f.read() != "", "Preferences file should not be empty after forced save"
 
 
-def test_get_does_not_store_values(temp_prefs_file):
+def test_get_does_not_store_values(temp_prefs_file) -> None:
     """
     Verify that retrieving non-existent keys does not store them.
     """
@@ -101,7 +103,7 @@ def test_get_does_not_store_values(temp_prefs_file):
     assert "not_there_yet.3" not in p
 
 
-def test_use_setitem_to_store_value_and_create_section(temp_prefs_file):
+def test_use_setitem_to_store_value_and_create_section(temp_prefs_file) -> None:
     """
     Verify storing a value creates the section and the key.
     """
@@ -114,7 +116,7 @@ def test_use_setitem_to_store_value_and_create_section(temp_prefs_file):
     assert p.get("test.not_there_yet-1", 33) == "all is a ball"
 
 
-def test_most_values_converted_to_string(temp_prefs_file):
+def test_most_values_converted_to_string(temp_prefs_file) -> None:
     """
     Verify that most values are converted to strings for storage.
     """
@@ -130,7 +132,7 @@ def test_most_values_converted_to_string(temp_prefs_file):
     ), "None should be converted to the string 'None'"
 
 
-def test_boolean_values_stay_boolean(temp_prefs_file):
+def test_boolean_values_stay_boolean(temp_prefs_file) -> None:
     """
     Verify that boolean values retain their type.
     """
@@ -142,7 +144,7 @@ def test_boolean_values_stay_boolean(temp_prefs_file):
     assert p["test.not_there_yet-2"] is False
 
 
-def test_saved_dictionary_like_ini_file(temp_prefs_file):
+def test_saved_dictionary_like_ini_file(temp_prefs_file) -> None:
     """
     Verify preferences are saved in a dictionary-like format.
     """

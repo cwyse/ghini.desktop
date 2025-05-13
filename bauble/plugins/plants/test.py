@@ -49,8 +49,13 @@ from bauble.plugins.plants.species_model import _remove_zws as remove_zws
 from bauble.test import check_dupids, mockfunc
 
 
+from _typeshed import Incomplete
+from bauble.plugins.plants.family import Family as Family, FamilySynonym as FamilySynonym, remove_callback as remove_callback
+from bauble.plugins.plants.geography import GeographicArea as GeographicArea, get_species_in_geographic_area as get_species_in_geographic_area
+from bauble.plugins.plants.species import DefaultVernacularName as DefaultVernacularName, Species as Species, SpeciesNote as SpeciesNote, SpeciesSynonym as SpeciesSynonym, edit_species as edit_species
+from collections.abc import Generator
 @pytest.fixture
-def setup_plant_data():
+def setup_plant_data() -> Generator[None, None, None]:
     """Fixture to populate the database with test data."""
     from bauble.plugins.plants.test import setUp_data
 
@@ -60,7 +65,7 @@ def setup_plant_data():
     db.metadata.create_all(bind=db.engine)
 
 
-def test_duplicate_ids_glade():
+def test_duplicate_ids_glade() -> None:
     """Test for duplicate IDs in .glade files within the plants plugin."""
     import bauble.plugins.plants as mod
 
@@ -74,7 +79,7 @@ def test_duplicate_ids_glade():
 class TestFamily:
     """Tests related to the Family entity."""
 
-    def test_cascades(self, session):
+    def test_cascades(self, session) -> None:
         family = Family(epithet="family")
         genus = Genus(family=family, epithet="genus")
         session.add_all([family, genus])
@@ -89,7 +94,7 @@ class TestFamily:
         with pytest.raises(NoResultFound):
             query.scalar_one()
 
-    def test_synonyms(self, session):
+    def test_synonyms(self, session) -> None:
         family = Family(epithet="family")
         family2 = Family(epithet="family2")
         family.synonyms.append(family2)
@@ -149,7 +154,7 @@ class TestFamily:
             == 0
         )
 
-    def test_constraints(self, session):
+    def test_constraints(self, session) -> None:
         values = [
             {"epithet": "family"},
             {"epithet": "family", "qualifier": "s. lat."},
@@ -173,7 +178,7 @@ class TestFamily:
             if session.in_transaction():
                 session.rollback()
 
-    def test_str(self):
+    def test_str(self) -> None:
         f = Family()
         assert str(f) == repr(f)
         f = Family(epithet="fam")
@@ -182,7 +187,7 @@ class TestFamily:
         assert str(f) == "fam s. lat."
 
     @pytest.mark.skip(reason="Not implemented")
-    def test_editor(self):
+    def test_editor(self) -> None:
         """Placeholder for FamilyEditor tests."""
         pass
 
@@ -191,7 +196,7 @@ class TestFamily:
 class TestRemoveCallback:
     """Tests for the remove_callback function."""
 
-    def test_remove_callback_no_genera_no_confirm(self, session):
+    def test_remove_callback_no_genera_no_confirm(self, session) -> None:
         family = Family(epithet="Arecaceae")
         session.add(family)
         if session.in_transaction():
@@ -216,7 +221,7 @@ class TestRemoveCallback:
         ) in invoked
         assert result is None
 
-    def test_remove_callback_no_genera_confirm(self, session):
+    def test_remove_callback_no_genera_confirm(self, session) -> None:
         family = Family(epithet="Arecaceae")
         session.add(family)
         if session.in_transaction():
@@ -241,7 +246,7 @@ class TestRemoveCallback:
         ) in invoked
         assert result is True
 
-    def test_remove_callback_with_genera_cant_cascade(self, session):
+    def test_remove_callback_with_genera_cant_cascade(self, session) -> None:
         family = Family(epithet="Arecaceae")
         genus = Genus(family=family, epithet="Areca")
         session.add_all([family, genus])
@@ -274,7 +279,7 @@ class TestRemoveCallback:
 class TestGenus:
     """Tests related to the Genus entity."""
 
-    def test_synonyms(self, session):
+    def test_synonyms(self, session) -> None:
         family = Family(epithet="family")
         genus = Genus(family=family, epithet="genus")
         genus2 = Genus(family=family, epithet="genus2")
@@ -332,7 +337,7 @@ class TestGenus:
         count = session.execute(count_stmt).scalar_one()
         assert count == 0, f"Expected 0 synonyms, got {count}"
 
-    def test_constraints(self, session):
+    def test_constraints(self, session) -> None:
         family = Family(epithet="family")
         session.add(family)
 
@@ -358,7 +363,7 @@ class TestGenus:
                 if session.in_transaction():
                     session.rollback()
 
-    def test_remove_callback_no_species_no_confirm(self, session):
+    def test_remove_callback_no_species_no_confirm(self, session) -> None:
         family = Family(epithet="Caricaceae")
         genus = Genus(epithet="Carica", family=family)
         session.add_all([family, genus])
@@ -385,7 +390,7 @@ class TestGenus:
         ) in invoked
         assert result is None
 
-    def test_remove_callback_with_species_cant_cascade(self, session):
+    def test_remove_callback_with_species_cant_cascade(self, session) -> None:
         family = Family(epithet="Caricaceae")
         genus = Genus(epithet="Carica", family=family)
         species = Species(genus=genus, epithet="papaya")
@@ -416,7 +421,7 @@ class TestGenus:
 class TestGenusSynonymy:
     """Tests related to Genus synonymy."""
 
-    def test_forward_synonyms(self, session):
+    def test_forward_synonyms(self, session) -> None:
         family = Family(epithet="Orchidaceae")
         genus = Genus(family=family, epithet="Bulbophyllum")
         synonym = Genus(family=family, epithet="Zygoglossum")
@@ -428,7 +433,7 @@ class TestGenusSynonymy:
         assert genus.synonyms == [synonym]
         assert synonym.synonyms == []
 
-    def test_backward_synonyms(self, session):
+    def test_backward_synonyms(self, session) -> None:
         family = Family(epithet="Orchidaceae")
         genus = Genus(family=family, epithet="Bulbophyllum")
         synonym = Genus(family=family, epithet="Zygoglossum")
@@ -440,7 +445,7 @@ class TestGenusSynonymy:
         assert synonym.accepted == genus
         assert genus.accepted is None
 
-    def test_define_accepted(self, session):
+    def test_define_accepted(self, session) -> None:
         family = Family(epithet="Orchidaceae")
         genus = Genus(family=family, epithet="Bulbophyllum")
         new_synonym = Genus(family=family, epithet="Henosis")
@@ -455,7 +460,7 @@ class TestGenusSynonymy:
         assert new_synonym in genus.synonyms
         assert len(genus.synonyms) == 1
 
-    def test_can_redefine_accepted(self, session):
+    def test_can_redefine_accepted(self, session) -> None:
         family = Family(epithet="Crassulaceae")
         genus_villa = Genus(family=family, epithet="Villadia", author="Rose")
         genus_alta = Genus(family=family, epithet="Altamiranoa", author="Rose")
@@ -483,8 +488,8 @@ from bauble.plugins.plants.species import edit_species
 @pytest.mark.usefixtures("setup_plant_data")
 class TestSpecies:
     """Tests for the Species functionality."""
-
-    def test_species_editor(self, session):
+    invoked: Incomplete
+    def test_species_editor(self, session) -> None:
         """
         Test the Species editor and its interaction with the database and garbage collection.
         """
@@ -654,7 +659,7 @@ class TestSpecies:
     #     # Step 5: Verify that the string representation has changed
     #     assert sp.str() != str1, "String cache was not invalidated after modification."
 
-    def test_vernacular_name(self, session):
+    def test_vernacular_name(self, session) -> None:
         """Test the `Species.vernacular_name` property."""
         family = Family(epithet="family")
         genus = Genus(family=family, epithet="genus")
@@ -679,7 +684,7 @@ class TestSpecies:
                 select(VernacularName).where(VernacularName.species_id == sp.id)
             ).scalar_one()
 
-    def test_default_vernacular_name(self, session):
+    def test_default_vernacular_name(self, session) -> None:
         """Comprehensive test for Species.default_vernacular_name."""
 
         # Step 1: Create family, genus, species, and initial vernacular name
@@ -928,7 +933,7 @@ class TestSpecies:
         self.assertEqual(sp3.accepted, sp1)
         self.assertEqual(sp4.accepted, None)
 
-    def test_remove_callback_no_accessions_no_confirm(self):
+    def test_remove_callback_no_accessions_no_confirm(self) -> None:
         # T_0
         caricaceae = Family(epithet="Caricaceae")
         f5 = Genus(epithet="Carica", family=caricaceae)
@@ -964,7 +969,7 @@ class TestSpecies:
         matching = q.all()
         self.assertEqual(matching, [sp])
 
-    def test_remove_callback_no_accessions_confirm(self):
+    def test_remove_callback_no_accessions_confirm(self) -> None:
         # T_0
         caricaceae = Family(epithet="Caricaceae")
         f5 = Genus(epithet="Carica", family=caricaceae)
@@ -1001,7 +1006,7 @@ class TestSpecies:
         matching = q.all()
         self.assertEqual(matching, [])
 
-    def test_remove_callback_with_accessions_cant_cascade(self):
+    def test_remove_callback_with_accessions_cant_cascade(self) -> None:
         # T_0
         caricaceae = Family(epithet="Caricaceae")
         f5 = Genus(epithet="Carica", family=caricaceae)
@@ -1059,9 +1064,11 @@ from bauble.plugins.plants.species_distribution import SpeciesDistribution
 @pytest.mark.usefixtures("setup_plant_data")
 class TestGeographicArea:
     """Tests for Geographic Area functionality."""
-
+    session: Incomplete
+    family: Incomplete
+    genus: Incomplete
     @pytest.fixture(autouse=True)
-    def setup_class(self, session):
+    def setup_class(self, session) -> None:
         """Setup for each test."""
         self.session = session
         self.family = Family(epithet="family")
@@ -1077,7 +1084,7 @@ class TestGeographicArea:
         if session.in_transaction():
             session.commit()
 
-    def test_get_species(self):
+    def test_get_species(self) -> None:
         """Test fetching species by geographic area."""
         mexico_id = 53
         mexico_central_id = 267
@@ -1121,7 +1128,7 @@ class TestGeographicArea:
             sp3.id,
         ], "North America species mismatch"
 
-    def test_species_distribution_str(self):
+    def test_species_distribution_str(self) -> None:
         """Test the string representation of species distribution."""
         sp1 = Species(genus=self.genus, epithet="sp1")
         dist_1 = SpeciesDistribution(geographic_area_id=267)  # Mexico Central
@@ -1146,7 +1153,7 @@ import pytest
 class TestFromAndToDict:
     """Tests for retrieve_or_create and as_dict methods."""
 
-    def test_can_grab_existing_families(self, session):
+    def test_can_grab_existing_families(self, session) -> None:
         """Test retrieving existing families."""
         all_families = session.execute(select(Family)).scalars().all()
         orc = Family.retrieve_or_create(
@@ -1168,7 +1175,7 @@ class TestFromAndToDict:
             sol,
         }, "Mismatch in retrieved families."
 
-    def test_grabbing_same_params_same_output_existing(self, session):
+    def test_grabbing_same_params_same_output_existing(self, session) -> None:
         """Test that retrieving the same family parameters returns the same object."""
         orc1 = Family.retrieve_or_create(
             session, {"rank": "family", "epithet": "Orchidaceae"}
@@ -1178,7 +1185,7 @@ class TestFromAndToDict:
         )
         assert orc1 is orc2, "Different objects returned for identical parameters."
 
-    def test_can_create_family(self, session):
+    def test_can_create_family(self, session) -> None:
         """Test creating a new family."""
         all_families = session.execute(select(Family)).scalars().all()
         fab = Family.retrieve_or_create(
@@ -1190,7 +1197,7 @@ class TestFromAndToDict:
         assert fab in session_families, "Family not found in session after creation."
 
     @pytest.mark.skip(reason="Not Implemented")
-    def test_where_can_object_be_found_before_commit(self, db_session):
+    def test_where_can_object_be_found_before_commit(self, db_session) -> None:
         """Test visibility of created objects in other sessions before commit."""
         fab = Family.retrieve_or_create(
             db_session, {"rank": "family", "epithet": "Fabaceae"}
@@ -1210,7 +1217,7 @@ class TestFromAndToDict:
                 nested_transaction.rollback()
             other_session.close()
 
-    def test_where_can_object_be_found_after_commit(self, db_session):
+    def test_where_can_object_be_found_after_commit(self, db_session) -> None:
         """Test visibility of created objects in other sessions after commit."""
         fab = Family.retrieve_or_create(
             db_session, {"rank": "family", "epithet": "Fabaceae"}
@@ -1230,7 +1237,7 @@ class TestFromAndToDict:
         finally:
             other_session.close()
 
-    def test_grabbing_same_params_same_output_new(self, session):
+    def test_grabbing_same_params_same_output_new(self, session) -> None:
         """Test that retrieving the same parameters returns the same new object."""
         fab1 = Family.retrieve_or_create(
             session, {"rank": "family", "epithet": "Fabaceae"}
@@ -1240,7 +1247,7 @@ class TestFromAndToDict:
         )
         assert fab1 is fab2, "Different objects returned for identical parameters."
 
-    def test_can_grab_existing_genera(self, session):
+    def test_can_grab_existing_genera(self, session) -> None:
         """Test retrieving existing genera under a specific family."""
         orc = Family.retrieve_or_create(
             session, {"rank": "family", "epithet": "Orchidaceae"}
@@ -1283,7 +1290,7 @@ def get_first_or_none(session, stmt):
 class TestFromAndToDictCreateUpdate:
     """Test the create and update fields in retrieve_or_create."""
 
-    def test_family_nocreate_noupdate_noexisting(self, session):
+    def test_family_nocreate_noupdate_noexisting(self, session) -> None:
         """Do not create a Family if it doesn't exist."""
         obj = Family.retrieve_or_create(
             session,
@@ -1292,7 +1299,7 @@ class TestFromAndToDictCreateUpdate:
         )
         assert obj is None
 
-    def test_family_nocreate_noupdateeq_existing(self, session):
+    def test_family_nocreate_noupdateeq_existing(self, session) -> None:
         """Retrieve the same Family object without creating or updating."""
         obj = Family.retrieve_or_create(
             session,
@@ -1303,7 +1310,7 @@ class TestFromAndToDictCreateUpdate:
         assert obj is not None
         assert obj.qualifier == "s. str."
 
-    def test_family_nocreate_noupdatediff_existing(self, session):
+    def test_family_nocreate_noupdatediff_existing(self, session) -> None:
         """Do not update a Family object when create and update are disabled."""
         obj = Family.retrieve_or_create(
             session,
@@ -1318,7 +1325,7 @@ class TestFromAndToDictCreateUpdate:
         )
         assert obj.qualifier == "s. str."
 
-    def test_family_nocreate_updatediff_existing(self, session):
+    def test_family_nocreate_updatediff_existing(self, session) -> None:
         """Update a Family object when update is enabled."""
         obj = Family.retrieve_or_create(
             session,
@@ -1333,7 +1340,7 @@ class TestFromAndToDictCreateUpdate:
         )
         assert obj.qualifier == "s. lat."
 
-    def test_genus_nocreate_noupdate_noexisting_impossible(self, session):
+    def test_genus_nocreate_noupdate_noexisting_impossible(self, session) -> None:
         """Do not create a Genus if it doesn't exist and is missing required data."""
         obj = Genus.retrieve_or_create(
             session,
@@ -1342,7 +1349,7 @@ class TestFromAndToDictCreateUpdate:
         )
         assert obj is None
 
-    def test_genus_create_noupdate_noexisting_impossible(self, session):
+    def test_genus_create_noupdate_noexisting_impossible(self, session) -> None:
         """Do not create a Genus if required data is missing."""
         obj = Genus.retrieve_or_create(
             session,
@@ -1351,7 +1358,7 @@ class TestFromAndToDictCreateUpdate:
         )
         assert obj is None
 
-    def test_genus_nocreate_noupdate_noexisting_possible(self, session):
+    def test_genus_nocreate_noupdate_noexisting_possible(self, session) -> None:
         """Do not create a Genus if it doesn't exist."""
         obj = Genus.retrieve_or_create(
             session,
@@ -1366,7 +1373,7 @@ class TestFromAndToDictCreateUpdate:
         )
         assert obj is None
 
-    def test_genus_nocreate_noupdateeq_existing(self, session):
+    def test_genus_nocreate_noupdateeq_existing(self, session) -> None:
         """Retrieve the same Genus object without creating or updating."""
         obj = Genus.retrieve_or_create(
             session,
@@ -1377,7 +1384,7 @@ class TestFromAndToDictCreateUpdate:
         assert obj is not None
         assert obj.author == ""
 
-    def test_genus_nocreate_noupdatediff_existing(self, session):
+    def test_genus_nocreate_noupdatediff_existing(self, session) -> None:
         """Do not update a Genus object when create and update are disabled."""
         obj = Genus.retrieve_or_create(
             session,
@@ -1393,7 +1400,7 @@ class TestFromAndToDictCreateUpdate:
         assert obj is not None
         assert obj.author == ""
 
-    def test_genus_nocreate_updatediff_existing(self, session):
+    def test_genus_nocreate_updatediff_existing(self, session) -> None:
         """Update a Genus object when update is enabled."""
         obj = Genus.retrieve_or_create(
             session,
@@ -1409,7 +1416,7 @@ class TestFromAndToDictCreateUpdate:
         assert obj is not None
         assert obj.author == "Schltr."
 
-    def test_vernacular_name_as_dict(self, session):
+    def test_vernacular_name_as_dict(self, session) -> None:
         """Ensure VernacularName objects can be serialized to dictionaries."""
         bra = get_first_or_none(session, select(Species).where(Species.id == 21))
         assert bra is not None
@@ -1445,7 +1452,7 @@ class TestFromAndToDictCreateUpdate:
             "species": "Brugmansia arborea",
         }
 
-    def test_vernacular_name_nocreate_noupdate_noexisting(self, session):
+    def test_vernacular_name_nocreate_noupdate_noexisting(self, session) -> None:
         """Do not create a VernacularName if it doesn't exist."""
         obj = VernacularName.retrieve_or_create(
             session,
@@ -1458,7 +1465,7 @@ class TestFromAndToDictCreateUpdate:
         )
         assert obj is None
 
-    def test_vernacular_name_nocreate_noupdateeq_existing(self, session):
+    def test_vernacular_name_nocreate_noupdateeq_existing(self, session) -> None:
         """Retrieve the same VernacularName object without creating or updating."""
         obj = VernacularName.retrieve_or_create(
             session,
@@ -1473,7 +1480,7 @@ class TestFromAndToDictCreateUpdate:
         assert obj is not None
         assert obj.name == "Toé"
 
-    def test_vernacular_name_nocreate_noupdatediff_existing(self, session):
+    def test_vernacular_name_nocreate_noupdatediff_existing(self, session) -> None:
         """Do not update a VernacularName object when create and update are disabled."""
         obj = VernacularName.retrieve_or_create(
             session,
@@ -1488,7 +1495,7 @@ class TestFromAndToDictCreateUpdate:
         )
         assert obj.name == "Toé"
 
-    def test_vernacular_name_nocreate_updatediff_existing(self, session):
+    def test_vernacular_name_nocreate_updatediff_existing(self, session) -> None:
         """Update a VernacularName object when update is enabled."""
         obj = VernacularName.retrieve_or_create(
             session,
@@ -1511,7 +1518,7 @@ import pytest
 class TestCitesStatus:
     """Tests for retrieving CITES status as defined in family-genus-species."""
 
-    def test_cites_status(self, session):
+    def test_cites_status(self, session) -> None:
         gen = Genus.retrieve_or_create(
             session,
             {"object": "taxon", "rank": "genus", "epithet": "Maxillaria"},
@@ -1575,7 +1582,7 @@ class TestCitesStatus:
 class TestGenusHybridMarker:
     """Tests for identifying hybrid markers in Genus."""
 
-    def test_intergeneric_hybrid_not_hybrid(self, session):
+    def test_intergeneric_hybrid_not_hybrid(self, session) -> None:
         gen = Genus.retrieve_or_create(
             session,
             {
@@ -1588,7 +1595,7 @@ class TestGenusHybridMarker:
         assert gen.hybrid_marker == ""
         assert gen.hybrid_epithet == "Cattleya"
 
-    def test_intergeneric_hybrid_mult(self, session):
+    def test_intergeneric_hybrid_mult(self, session) -> None:
         gen = Genus.retrieve_or_create(
             session,
             {
@@ -1601,7 +1608,7 @@ class TestGenusHybridMarker:
         assert gen.hybrid_marker == "×"
         assert gen.hybrid_epithet == "Brassocattleya"
 
-    def test_intergeneric_hybrid_x_becomes_mult(self, session):
+    def test_intergeneric_hybrid_x_becomes_mult(self, session) -> None:
         gen = Genus.retrieve_or_create(
             session,
             {
@@ -1614,7 +1621,7 @@ class TestGenusHybridMarker:
         assert gen.hybrid_marker == "×"
         assert gen.hybrid_epithet == "Vascostylis"
 
-    def test_hybrid_formula_h(self, session):
+    def test_hybrid_formula_h(self, session) -> None:
         gen = Genus.retrieve_or_create(
             session,
             {
@@ -1627,7 +1634,7 @@ class TestGenusHybridMarker:
         assert gen.hybrid_marker == "H"
         assert gen.hybrid_epithet == "Miltonia × Odontoglossum × Cochlioda"
 
-    def test_intergeneric_graft_hybrid_plus(self, session):
+    def test_intergeneric_graft_hybrid_plus(self, session) -> None:
         gen = Genus.retrieve_or_create(
             session,
             {
@@ -1647,8 +1654,11 @@ import pytest
 @pytest.mark.usefixtures("setup_plant_data")
 class TestSpeciesInfraspecificProp:
     """Tests for infraspecific properties and cultivar epithet in Species."""
-
-    def test_cultivar_epithet_1(self, session):
+    cinnamomum: Incomplete
+    cinnamomum_camphora: Incomplete
+    gleditsia: Incomplete
+    gleditsia_triacanthos: Incomplete
+    def test_cultivar_epithet_1(self, session) -> None:
         obj = Species.retrieve_or_create(
             session,
             {
@@ -1663,7 +1673,7 @@ class TestSpeciesInfraspecificProp:
         obj.infrasp1_rank = "cv."
         assert obj.cultivar_epithet == "Eva Weigner"
 
-    def test_cultivar_epithet_2(self, session):
+    def test_cultivar_epithet_2(self, session) -> None:
         obj = Species.retrieve_or_create(
             session,
             {
@@ -1678,7 +1688,7 @@ class TestSpeciesInfraspecificProp:
         obj.infrasp2_rank = "cv."
         assert obj.cultivar_epithet == "Eva Weigner"
 
-    def test_infraspecific_1(self, session):
+    def test_infraspecific_1(self, session) -> None:
         self._include_cinnamomum_camphora(session)
         obj = Species(
             genus=self.cinnamomum,
@@ -1691,7 +1701,7 @@ class TestSpeciesInfraspecificProp:
         assert obj.infraspecific_epithet == "linaloolifera"
         assert obj.infraspecific_author == "(Y.Fujita) Sugim."
 
-    def test_infraspecific_2(self, session):
+    def test_infraspecific_2(self, session) -> None:
         self._include_cinnamomum_camphora(session)
         obj = Species(
             genus=self.cinnamomum,
@@ -1704,7 +1714,7 @@ class TestSpeciesInfraspecificProp:
         assert obj.infraspecific_epithet == "linaloolifera"
         assert obj.infraspecific_author == "(Y.Fujita) Sugim."
 
-    def test_variety_and_cultivar_1(self, session):
+    def test_variety_and_cultivar_1(self, session) -> None:
         self._include_gleditsia_triacanthos(session)
         obj = Species(
             genus=self.gleditsia,
@@ -1719,7 +1729,7 @@ class TestSpeciesInfraspecificProp:
         assert obj.infraspecific_author == ""
         assert obj.cultivar_epithet == "Sunburst"
 
-    def test_variety_and_cultivar_2(self, session):
+    def test_variety_and_cultivar_2(self, session) -> None:
         self._include_gleditsia_triacanthos(session)
         obj = Species(
             genus=self.gleditsia,
@@ -1734,7 +1744,7 @@ class TestSpeciesInfraspecificProp:
         assert obj.infraspecific_author == ""
         assert obj.cultivar_epithet == "Sunburst"
 
-    def test_infraspecific_props_is_lowest_ranked(self, session):
+    def test_infraspecific_props_is_lowest_ranked(self, session) -> None:
         Family.retrieve_or_create(
             session,
             {"object": "taxon", "rank": "family", "epithet": "Saxifragaceae"},
@@ -1795,7 +1805,7 @@ class TestSpeciesInfraspecificProp:
         assert cv.infraspecific_author == ""
         assert cv.cultivar_epithet == "Bellissima"
 
-    def _include_cinnamomum_camphora(self, session):
+    def _include_cinnamomum_camphora(self, session) -> None:
         Family.retrieve_or_create(
             session,
             {"object": "taxon", "rank": "family", "epithet": "Lauraceae"},
@@ -1821,7 +1831,7 @@ class TestSpeciesInfraspecificProp:
             },
         )
 
-    def _include_gleditsia_triacanthos(self, session):
+    def _include_gleditsia_triacanthos(self, session) -> None:
         Family.retrieve_or_create(
             session,
             {"object": "taxon", "rank": "family", "epithet": "Fabaceae"},
@@ -1852,7 +1862,7 @@ class TestSpeciesInfraspecificProp:
 class TestSpeciesProperties:
     """Test retrieval of species_note objects given species and category."""
 
-    def test_species_note_nocreate_noupdate_noexisting(self, session):
+    def test_species_note_nocreate_noupdate_noexisting(self, session) -> None:
         obj = SpeciesNote.retrieve_or_create(
             session,
             {
@@ -1864,7 +1874,7 @@ class TestSpeciesProperties:
         )
         assert obj is None
 
-    def test_species_note_nocreate_noupdateeq_existing(self, session):
+    def test_species_note_nocreate_noupdateeq_existing(self, session) -> None:
         obj = SpeciesNote.retrieve_or_create(
             session,
             {
@@ -1878,7 +1888,7 @@ class TestSpeciesProperties:
         assert obj is not None
         assert obj.note == "LC"
 
-    def test_species_note_nocreate_noupdatediff_existing(self, session):
+    def test_species_note_nocreate_noupdatediff_existing(self, session) -> None:
         obj = SpeciesNote.retrieve_or_create(
             session,
             {
@@ -1892,7 +1902,7 @@ class TestSpeciesProperties:
         )
         assert obj.note == "LC"
 
-    def test_species_note_nocreate_updatediff_existing(self, session):
+    def test_species_note_nocreate_updatediff_existing(self, session) -> None:
         obj = SpeciesNote.retrieve_or_create(
             session,
             {
@@ -1911,7 +1921,7 @@ class TestSpeciesProperties:
 class TestAttributesStoredInNotes:
     """Test parsing and retrieval of notes as attributes."""
 
-    def test_proper_yaml_dictionary(self, session):
+    def test_proper_yaml_dictionary(self, session) -> None:
         obj = Species.retrieve_or_create(
             session,
             {
@@ -1930,7 +1940,7 @@ class TestAttributesStoredInNotes:
             session.commit()
         assert obj.coords == {"1": 1, "2": 2}
 
-    def test_very_sloppy_json_dictionary(self, session):
+    def test_very_sloppy_json_dictionary(self, session) -> None:
         obj = Species.retrieve_or_create(
             session,
             {
@@ -1949,7 +1959,7 @@ class TestAttributesStoredInNotes:
             session.commit()
         assert obj.coords == {"lat": 8.3, "lon": -80.1}
 
-    def test_atomic_value_interpreted(self, session):
+    def test_atomic_value_interpreted(self, session) -> None:
         obj = Species.retrieve_or_create(
             session,
             {
@@ -1964,7 +1974,7 @@ class TestAttributesStoredInNotes:
         )
         assert obj.price == 19.50
 
-    def test_atomic_value_verbatim(self, session):
+    def test_atomic_value_verbatim(self, session) -> None:
         obj = Species.retrieve_or_create(
             session,
             {
@@ -1979,7 +1989,7 @@ class TestAttributesStoredInNotes:
         )
         assert obj.price_tag == "$19.50"
 
-    def test_list_value(self, session):
+    def test_list_value(self, session) -> None:
         obj = Species.retrieve_or_create(
             session,
             {
@@ -1994,7 +2004,7 @@ class TestAttributesStoredInNotes:
         )
         assert obj.list_var == ["abc", "def"]
 
-    def test_dict_value(self, session):
+    def test_dict_value(self, session) -> None:
         obj = Species.retrieve_or_create(
             session,
             {
@@ -2014,7 +2024,7 @@ class TestAttributesStoredInNotes:
 class TestConservationStatus:
     """Test retrieval of IUCN conservation status."""
 
-    def test(self, session):
+    def test(self, session) -> None:
         obj = Species.retrieve_or_create(
             session,
             {
@@ -2032,7 +2042,7 @@ class TestConservationStatus:
 
 @pytest.mark.usefixtures("setup_plant_data")
 class TestPresenter:
-    def test_can_reedit_object(self, session):
+    def test_can_reedit_object(self, session) -> None:
         species = Species.retrieve_or_create(
             session,
             {
@@ -2053,7 +2063,7 @@ class TestPresenter:
         assert species.author == "Asher"
 
     @pytest.mark.skip(reason="Not Implemented: Presenter uses view internals")
-    def test_cant_insert_same_twice(self, session):
+    def test_cant_insert_same_twice(self, session) -> None:
         model = Species.retrieve_or_create(
             session,
             {
@@ -2070,14 +2080,14 @@ class TestPresenter:
         presenter.on_text_entry_changed("sp_species_entry", "grandiflora")
 
     @pytest.mark.skip(reason="Not Implemented: Presenter uses view internals")
-    def test_cant_insert_same_twice_warn_once(self, session):
+    def test_cant_insert_same_twice_warn_once(self, session) -> None:
         # Implementation skipped
         pass
 
 
 @pytest.mark.usefixtures("setup_plant_data")
 class TestGlobalFunctions:
-    def test_species_markup_func(self, session):
+    def test_species_markup_func(self, session) -> None:
         eCo = Species.retrieve_or_create(
             session,
             {
@@ -2120,24 +2130,24 @@ class TestGlobalFunctions:
         )
         assert second == "Orchidaceae"
 
-    def test_vername_markup_func(self, session):
+    def test_vername_markup_func(self, session) -> None:
         vName = session.execute(select(VernacularName).where(id=1)).scalars().one()
         first, second = vName.search_view_markup_pair()
         assert remove_zws(second) == "<i>Maxillaria</i> <i>variabilis</i>"
         assert first == "SomeName"
 
-    def test_species_get_kids(self, session):
+    def test_species_get_kids(self, session) -> None:
         mVa = session.execute(select(Species).where(id=1)).scalars().one()
         assert partial(db.natsort, "accessions")(mVa) == []
 
-    def test_vernname_get_kids(self, session):
+    def test_vernname_get_kids(self, session) -> None:
         vName = session.execute(select(VernacularName).where(id=1)).scalars().one()
         assert partial(db.natsort, "species.accessions")(vName) == []
 
 
 @pytest.mark.usefixtures("setup_bauble_data")
 class TestBaubleSearch:
-    def test_search_uses_synonym_search(self, session, caplog):
+    def test_search_uses_synonym_search(self, session, caplog) -> None:
         import bauble.plugins.garden.plant
 
         caplog.set_level(logging.DEBUG, logger="bauble.search")

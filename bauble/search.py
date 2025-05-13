@@ -26,6 +26,11 @@ import gi
 # from bauble.db import get_orm_entity_by_name
 from bauble.error import check
 
+from typing import Union, Optional
+from _typeshed import Incomplete
+from sqlalchemy.sql.elements import ColumnElement as ColumnElement
+wordStart: Incomplete
+wordEnd: Incomplete
 gi.require_version("Gtk", "3.0")
 from datetime import date, datetime, timedelta
 
@@ -92,7 +97,7 @@ from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
 from sqlalchemy.orm.util import AliasedClass
 from sqlalchemy.sql import func
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -153,7 +158,7 @@ def resolve_relationships(cls, steps, env):
     return stmt, current_cls
 
 
-def search(text, session=None):
+def search(text, session: Optional[Incomplete] = None):
     results = set()
     for strategy in list(_search_strategies.values()):
         logger.debug(
@@ -164,21 +169,21 @@ def search(text, session=None):
 
 
 class NoneToken:
-    def __init__(self, t=None):
+    def __init__(self, t: Optional[Incomplete] = None) -> None:
         pass
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "(None<NoneType>)"
 
-    def express(self):
+    def express(self) -> None:
         return None
 
 
 class EmptyToken:
-    def __init__(self, t=None):
+    def __init__(self, t: Optional[Incomplete] = None) -> None:
         pass
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Empty"
 
     def express(self):
@@ -201,10 +206,11 @@ class ValueABC:
 
 class ValueToken:
 
-    def __init__(self, t):
+    value: Incomplete
+    def __init__(self, t) -> None:
         self.value = t[0]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self.value)
 
     def express(self):
@@ -212,18 +218,20 @@ class ValueToken:
 
 
 class StringToken(ValueABC):
-    def __init__(self, t):
+    value: Incomplete
+    def __init__(self, t) -> None:
         self.value = t[0]  # no need to parse the string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"'{self.value}'"
 
 
 class NumericToken(ValueABC):
-    def __init__(self, t):
+    value: Incomplete
+    def __init__(self, t) -> None:
         self.value = float(t[0])  # store the float value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.value}"
 
 
@@ -262,12 +270,13 @@ def smartboolean(*args):
 
 class TypedValueToken(ValueABC):
     # |<name>|<paramlist>|
-    constructor = {
+    value: Incomplete
+    constructor: Incomplete = {
         "datetime": (smartdatetime, int),
         "bool": (smartboolean, str),
     }
 
-    def __init__(self, t):
+    def __init__(self, t) -> None:
         logger.debug(f"constructing typedvaluetoken {str(t)}")
         try:
             constructor, converter = self.constructor[t[1]]
@@ -276,19 +285,21 @@ class TypedValueToken(ValueABC):
         params = tuple(converter(i) for i in t[3].express())
         self.value = constructor(*params)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.value}"
 
 
 
 
 class IdentifierAction:
-    def __init__(self, t):
+    steps: Incomplete
+    leaf: Incomplete
+    def __init__(self, t) -> None:
         logger.debug(f"IdentifierAction::__init__({t})")
         self.steps = t[0][:-2:2]
         self.leaf = t[0][-1]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return ".".join(self.steps + [self.leaf])
 
     def evaluate(self, env):
@@ -436,7 +447,13 @@ class IdentifierAction:
 
 
 class FilteredIdentifierAction:
-    def __init__(self, t):
+    steps: Incomplete
+    filter_attr: Incomplete
+    filter_op: Incomplete
+    filter_value: Incomplete
+    leaf: Incomplete
+    operation: Incomplete
+    def __init__(self, t) -> None:
         logger.debug(f"FilteredIdentifierAction::__init__({t})")
         self.steps = t[0][:-7:2]
         self.filter_attr = t[0][-6]
@@ -465,7 +482,7 @@ class FilteredIdentifierAction:
             "ihas": lambda x, y: utils.ilike(x, f"%{y}%"),
         }.get(self.filter_op)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{}[{}{}{}].{}".format(
             ".".join(self.steps),
             self.filter_attr,
@@ -508,7 +525,10 @@ class FilteredIdentifierAction:
 
 
 class IdentExpression:
-    def __init__(self, t):
+    op: Incomplete
+    operation: Incomplete
+    operands: Incomplete
+    def __init__(self, t) -> None:
         logger.debug(f"IdentExpression::__init__({t})")
         self.op = t[0][1]
 
@@ -535,7 +555,7 @@ class IdentExpression:
         }.get(self.op)
         self.operands = t[0][0::2]  # every second object is an operand
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"({self.operands[0]} {self.op} {self.operands[1]})"
 
     from sqlalchemy.orm import ColumnProperty, RelationshipProperty
@@ -741,7 +761,7 @@ class AggregatedExpression(IdentExpression):
     differently: not filter, but group_by and having.
     """
 
-    def __init__(self, t):
+    def __init__(self, t) -> None:
         super().__init__(t)
         logger.debug(f"AggregatedExpression::__init__({t})")
 
@@ -777,10 +797,11 @@ class AggregatedExpression(IdentExpression):
 
 
 class BetweenExpressionAction:
-    def __init__(self, t):
+    operands: Incomplete
+    def __init__(self, t) -> None:
         self.operands = t[0][0::2]  # every second object is an operand
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "(BETWEEN {} {} {})".format(*tuple(self.operands))
 
     def evaluate(self, env):
@@ -813,12 +834,12 @@ class BetweenExpressionAction:
 class UnaryLogical:
     ## abstract base class. `name` is defined in derived classes
 
-    name = "UNARY"
+    name: str = "UNARY"
 
-    def __init__(self, t):
+    def __init__(self, t) -> None:
         self.op, self.operand = t[0]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.name} {str(self.operand)}"
 
     def needs_join(self, env):
@@ -832,11 +853,13 @@ class UnaryLogical:
 
 class BinaryLogical:
     ## abstract base class. `name` is defined in derived classes
-    def __init__(self, t):
+    op: Incomplete
+    operands: Incomplete
+    def __init__(self, t) -> None:
         self.op = t[0][1]
         self.operands = t[0][0::2]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"({self.operands[0]} {self.name} {self.operands[1]})"
 
     def needs_join(self, env):
@@ -850,7 +873,7 @@ class BinaryLogical:
 
 
 class SearchAndAction(BinaryLogical):
-    name = "AND"
+    name: str = "AND"
 
     def evaluate(self, env):
         result, attr = self.operands[0].evaluate(env)
@@ -897,7 +920,7 @@ class SearchAndAction(BinaryLogical):
 
 
 class SearchOrAction(BinaryLogical):
-    name = "OR"
+    name: str = "OR"
 
     def evaluate(self, env):
         """Evaluates OR condition using SQLAlchemy expressions."""
@@ -916,7 +939,7 @@ class SearchOrAction(BinaryLogical):
 
 
 class SearchNotAction(UnaryLogical):
-    name = "NOT"
+    name: str = "NOT"
 
     def evaluate(self, env):
         """
@@ -944,10 +967,11 @@ class SearchNotAction(UnaryLogical):
 
 
 class ParenthesisedQuery:
-    def __init__(self, t):
+    content: Incomplete
+    def __init__(self, t) -> None:
         self.content = t[1]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"({self.content.__repr__()})"
 
     def evaluate(self, env):
@@ -990,8 +1014,10 @@ class QueryAction:
             Executes the query using the given search strategy and returns results.
 
     """
-
-    def __init__(self, t):
+    domain: Incomplete
+    filter: Incomplete
+    domains: Incomplete
+    def __init__(self, t) -> None:
         """
         QueryAction represents a structured database query.
 
@@ -1000,7 +1026,7 @@ class QueryAction:
         self.domain = t[0]  # The domain/table name being queried
         self.filter = t[1][0]  # The filtering condition (expression tree)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"SELECT * FROM {self.domain} WHERE {self.filter}"
 
     def invoke(self, search_strategy):
@@ -1096,8 +1122,8 @@ class StatementAction:
             using the provided search strategy.
 
     """
-
-    def __init__(self, t):
+    content: Incomplete
+    def __init__(self, t) -> None:
         """
         Initializes the StatementAction object with parsed content.
 
@@ -1123,7 +1149,7 @@ class StatementAction:
             raise TypeError(f"Invalid statement provided: {t}")
         self.content = t[0]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Returns a string representation of the StatementAction instance.
 
@@ -1185,8 +1211,9 @@ class BinomialNameAction:
 
     Searching using binomial names returns one or more species objects.
     """
-
-    def __init__(self, t):
+    genus_epithet: Incomplete
+    species_epithet: Incomplete
+    def __init__(self, t) -> None:
         """
         Initializes a BinomialNameAction.
 
@@ -1203,7 +1230,7 @@ class BinomialNameAction:
         self.genus_epithet = t[0]
         self.species_epithet = t[1]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.genus_epithet} {self.species_epithet}"
 
     def invoke(self, search_strategy):
@@ -1247,8 +1274,10 @@ class DomainExpressionAction:
     property (as passed to add_meta) matching (according to the binop)
     the value.
     """
-
-    def __init__(self, t):
+    domain: Incomplete
+    cond: Incomplete
+    values: Incomplete
+    def __init__(self, t) -> None:
         if not t or len(t) < 3:
             raise ValueError(
                 "Invalid domain expression: requires domain, condition, and values."
@@ -1257,7 +1286,7 @@ class DomainExpressionAction:
         self.cond = t[1]
         self.values = t[2]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.domain} {self.cond} {self.values}"
 
     from sqlalchemy import inspect, or_, select
@@ -1402,12 +1431,14 @@ class DomainExpressionAction:
 
 class AggregatingAction:
 
-    def __init__(self, t):
+    function: Incomplete
+    identifier: Incomplete
+    def __init__(self, t) -> None:
         logger.debug(f"AggregatingAction::__init__({t})")
         self.function = t[0]
         self.identifier = t[2]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"({self.function} {self.identifier})"
 
     def needs_join(self, env):
@@ -1428,11 +1459,12 @@ class AggregatingAction:
 
 class ValueListAction:
 
-    def __init__(self, t):
+    values: Incomplete
+    def __init__(self, t) -> None:
         logger.debug(f"ValueListAction::__init__({t})")
         self.values = t[0]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self.values)
 
     def express(self):
@@ -1522,40 +1554,40 @@ class SearchParser:
 
         return action
 
-    numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?").set_parse_action(NumericToken)(
+    numeric_value: Incomplete = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?").set_parse_action(NumericToken)(
         "number"
     )
-    unquoted_string = Word(alphanums + alphas8bit + "%.-_*;:")
-    string_value = (
+    unquoted_string: Incomplete = Word(alphanums + alphas8bit + "%.-_*;:")
+    string_value: Incomplete = (
         (quotedString.set_parse_action(removeQuotes) | unquoted_string)
         .set_parse_action(debug_parse_action("string_value"))
         .set_parse_action(StringToken)("string")
     )
 
-    none_token = (
+    none_token: Incomplete = (
         Literal("None")
         .set_parse_action(debug_parse_action("none_token"))
         .set_parse_action(NoneToken)
     )
-    empty_token = (
+    empty_token: Incomplete = (
         Literal("Empty")
         .set_parse_action(debug_parse_action("empty_token"))
         .set_parse_action(EmptyToken)
     )
 
-    value_list = Forward()
-    typed_value = (
+    value_list: Incomplete = Forward()
+    typed_value: Incomplete = (
         (Literal("|") + unquoted_string + Literal("|") + value_list + Literal("|"))
         .set_parse_action(debug_parse_action("typed_value"))
         .set_parse_action(TypedValueToken)
     )
 
-    AND_ = wordStart + (CaselessLiteral("AND") | Literal("&&")) + wordEnd
-    OR_ = wordStart + (CaselessLiteral("OR") | Literal("||")) + wordEnd
-    NOT_ = wordStart + (CaselessLiteral("NOT") | Literal("!")) + wordEnd
-    BETWEEN_ = wordStart + CaselessLiteral("BETWEEN") + wordEnd
+    AND_: Incomplete = wordStart + (CaselessLiteral("AND") | Literal("&&")) + wordEnd
+    OR_: Incomplete = wordStart + (CaselessLiteral("OR") | Literal("||")) + wordEnd
+    NOT_: Incomplete = wordStart + (CaselessLiteral("NOT") | Literal("!")) + wordEnd
+    BETWEEN_: Incomplete = wordStart + CaselessLiteral("BETWEEN") + wordEnd
 
-    value = (
+    value: Incomplete = (
         (
             typed_value
             | WordStart("0123456789.-e") + numeric_value + WordEnd("0123456789.-e")
@@ -1572,13 +1604,13 @@ class SearchParser:
         .set_parse_action(ValueListAction)("value_list")
     )
 
-    domain = Word(alphas, alphanums)
+    domain: Incomplete = Word(alphas, alphanums)
 
     # binop = MatchFirst([Literal("is not"), Literal("="), Literal("=="), Literal("!="), Literal("<>"), Literal("<"), Literal("<="), Literal(">="), Literal("not"), Literal("like"), Literal("contains"), Literal("has"), Literal("ilike"), Literal("icontains"), Literal("ihas"), Literal("is")])
     binop = one_of(
         "= == != <> < <= > >= not like contains has ilike icontains ihas is"
     ).set_parse_action(debug_parse_action("binop"))
-    binop = MatchFirst(
+    binop: Incomplete = MatchFirst(
         [
             CaselessKeyword("is not"),
             one_of(
@@ -1586,29 +1618,29 @@ class SearchParser:
             ),
         ]
     )
-    binop_set = one_of("in")
-    equals = Literal("=")
-    star_value = Literal("*")
-    domain_values = (value_list.copy())("domain_values")
-    domain_expression = (
+    binop_set: Incomplete = one_of("in")
+    equals: Incomplete = Literal("=")
+    star_value: Incomplete = Literal("*")
+    domain_values: Incomplete = (value_list.copy())("domain_values")
+    domain_expression: Incomplete = (
         (domain + equals + star_value + stringEnd)
         | (domain + binop + domain_values + stringEnd)
     ).set_parse_action(DomainExpressionAction)("domain_expression")
 
-    caps = srange("[A-Z]")
-    lowers = caps.lower()
-    binomial_name = (Word(caps, lowers) + Word(lowers)).set_parse_action(
+    caps: Incomplete = srange("[A-Z]")
+    lowers: Incomplete = caps.lower()
+    binomial_name: Incomplete = (Word(caps, lowers) + Word(lowers)).set_parse_action(
         BinomialNameAction
     )("binomial_name")
 
-    aggregating_func = (
+    aggregating_func: Incomplete = (
         Literal("sum") | Literal("min") | Literal("max") | Literal("count")
     )
 
-    query_expression = Forward()("filter")
+    query_expression: Incomplete = Forward()("filter")
 
-    atomic_identifier = Word(alphas + "_", alphanums + "_")
-    identifier = Group(
+    atomic_identifier: Incomplete = Word(alphas + "_", alphanums + "_")
+    identifier: Incomplete = Group(
         atomic_identifier
         + ZeroOrMore("." + atomic_identifier)
         + "["
@@ -1623,10 +1655,10 @@ class SearchParser:
     ).setParseAction(
         IdentifierAction
     )
-    aggregated = (
+    aggregated: Incomplete = (
         aggregating_func + Literal("(") + identifier + Literal(")")
     ).set_parse_action(AggregatingAction)
-    ident_expression = (
+    ident_expression: Incomplete = (
         Group(identifier + binop + value).set_parse_action(IdentExpression)
         | Group(identifier + binop_set + value_list).set_parse_action(
             ElementSetExpression
@@ -1636,7 +1668,7 @@ class SearchParser:
             ParenthesisedQuery
         )
     ).set_parse_action(debug_parse_action("ident_expression"))
-    between_expression = Group(
+    between_expression: Incomplete = Group(
         identifier + BETWEEN_ + value + AND_ + value
     ).set_parse_action(BetweenExpressionAction)
     query_expression <<= (
@@ -1651,7 +1683,7 @@ class SearchParser:
         .set_debug(True, False)
         .set_parse_action(debug_parse_action("query_expression"))
     )
-    query = (
+    query: Incomplete = (
         (
             domain
             + Keyword("where", caseless=True).suppress()
@@ -1662,7 +1694,7 @@ class SearchParser:
         .set_parse_action(QueryAction)
     )
 
-    statement = (
+    statement: Incomplete = (
         query("query")
         | domain_expression("domain")
         | binomial_name("binomial")
@@ -1689,7 +1721,7 @@ class SearchStrategy:
     Interface for adding search strategies to a view.
     """
 
-    def search(self, text, session=None):
+    def search(self, text, session: Optional[Incomplete] = None) -> None:
         """
         :param text: the search string
         :param session: the session to use for the search
@@ -1710,17 +1742,19 @@ class MapperSearch(SearchStrategy):
     3. query searchs: searches of the form domain where ident.ident = value,
     resolve the domain and identifiers and search for value
     """
+    _results: Incomplete
+    parser: Incomplete
+    _session: Incomplete
+    _domains: Incomplete = {}
+    _shorthand: Incomplete = {}
+    _properties: Incomplete = {}
 
-    _domains = {}
-    _shorthand = {}
-    _properties = {}
-
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._results = set()
         self.parser = SearchParser()
 
-    def add_meta(self, domain, cls, properties):
+    def add_meta(self, domain, cls, properties) -> None:
         """Add a domain to the search space
 
         an example of domain is a database table, where the properties would
@@ -1763,7 +1797,7 @@ class MapperSearch(SearchStrategy):
             d.setdefault(domain, item[0])
         return d
 
-    def search(self, text, session=None):
+    def search(self, text, session: Optional[Incomplete] = None):
         """
         Perform a text-based search on the database using the MapperSearch strategy.
 
@@ -1858,10 +1892,10 @@ class MapperSearch(SearchStrategy):
 
 
 # list of search strategies to be tried on each search string
-_search_strategies = {"MapperSearch": MapperSearch()}
+_search_strategies: Incomplete = {"MapperSearch": MapperSearch()}
 
 
-def add_strategy(strategy):
+def add_strategy(strategy) -> None:
     obj = strategy()
     _search_strategies[obj.__class__.__name__] = obj
 
@@ -1879,8 +1913,11 @@ class SchemaBrowser:
     """
     A UI component for browsing schema properties.
     """
-
-    def __init__(self):
+    container: Incomplete
+    domain_map: Incomplete
+    table_combo: Incomplete
+    prop_tree: Incomplete
+    def __init__(self) -> None:
         self.container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
 
         # WARNING: this is a hack from MapperSearch
@@ -1942,7 +1979,7 @@ class SchemaBrowser:
             it = model.append(treeiter, [prop.key, prop])
             model.append(it, ["", None])
 
-    def on_row_expanded(self, treeview, treeiter, path):
+    def on_row_expanded(self, treeview, treeiter, path) -> None:
         """
         Called before the row is expanded and populates the children of the
         row.
@@ -1959,7 +1996,7 @@ class SchemaBrowser:
         prop = treeview.props.model[treeiter][1]
         self._insert_props(prop.mapper, model, treeiter)
 
-    def on_table_combo_changed(self, combo, *args):
+    def on_table_combo_changed(self, combo, *args) -> None:
         """
         Change the table to use for the query
         """

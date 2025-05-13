@@ -38,7 +38,9 @@ from bauble.plugins.report import SVG, get_pertinent_objects
 from bauble.plugins.report.mako import MakoFormatterPlugin
 from bauble.plugins.report.utils import Code39
 
-logger = logging.getLogger(__name__)
+from _typeshed import Incomplete
+from bauble.plugins.plants import Family as Family, Genus as Genus, GeographicArea as GeographicArea, Species as Species, SpeciesDistribution as SpeciesDistribution, VernacularName as VernacularName
+logger: Incomplete = logging.getLogger(__name__)
 
 # TURN OFF desktop.open for this module so that the test doesn't open the report
 def desktop_open(x):
@@ -46,7 +48,7 @@ def desktop_open(x):
 
 
 @pytest.fixture(scope="module", autouse=True)
-def setup_database(session):
+def setup_database(session) -> None:
     """
     Fixture to set up the database for the tests.
     """
@@ -87,7 +89,7 @@ def setup_database(session):
 
 
 @pytest.mark.parametrize("use_qr", [False, True])
-def test_format_mako_templates(session, use_qr):
+def test_format_mako_templates(session, use_qr) -> None:
     """
     Test formatting all mako templates with or without QR codes.
     """
@@ -130,7 +132,7 @@ def test_format_mako_templates(session, use_qr):
         assert isinstance(report, bytes)
 
 
-def test_format_qr_postscript_templates(session):
+def test_format_qr_postscript_templates(session) -> None:
     """
     Test formatting mako templates with QR codes and PostScript.
     """
@@ -164,7 +166,7 @@ def test_format_qr_postscript_templates(session):
 
 
 @pytest.mark.skip(reason="Related to issue #363")
-def test_format_qr_svg_templates(session):
+def test_format_qr_svg_templates(session) -> None:
     """
     Test formatting mako templates with QR codes and SVG.
     """
@@ -193,7 +195,7 @@ def test_format_qr_svg_templates(session):
 
 
 class TestSvgProduction:
-    def test_add_text_a(self):
+    def test_add_text_a(self) -> None:
         g, x, y = SVG.add_text(0, 0, "a", 2)
         assert y == 0
         assert x == 31
@@ -203,7 +205,7 @@ class TestSvgProduction:
             "</g>"
         )
 
-    def test_add_text_tildes(self):
+    def test_add_text_tildes(self) -> None:
         g, x, y = SVG.add_text(0, 0, "áà", 2)
         assert y == 0
         assert x == 62
@@ -214,7 +216,7 @@ class TestSvgProduction:
             "</g>"
         )
 
-    def test_add_text_align_right1(self):
+    def test_add_text_align_right1(self) -> None:
         g, x, y = SVG.add_text(0, 0, "áà", 2, align=1)
         assert y == 0
         assert x == 0
@@ -225,7 +227,7 @@ class TestSvgProduction:
             "</g>"
         )
 
-    def test_add_text_align_right2(self):
+    def test_add_text_align_right2(self) -> None:
         g, x, y = SVG.add_text(0, 0, "áà", 2, align=0.5)
         assert y == 0
         assert x == 31.0
@@ -245,7 +247,7 @@ class TestSvgProduction:
             (180, -31, 0),
         ],
     )
-    def test_add_text_a_rotated_endpoint(self, rotate, expected_x, expected_y):
+    def test_add_text_a_rotated_endpoint(self, rotate, expected_x, expected_y) -> None:
         g, x, y = SVG.add_text(0, 0, "a", 2, align=0, rotate=rotate)
         assert pytest.approx(x) == expected_x
         assert pytest.approx(y) == expected_y
@@ -259,7 +261,7 @@ class TestSvgProduction:
             (180, -15.5, 0),
         ],
     )
-    def test_add_text_a_rotated_aligned_endpoint(self, rotate, expected_x, expected_y):
+    def test_add_text_a_rotated_aligned_endpoint(self, rotate, expected_x, expected_y) -> None:
         g, x, y = SVG.add_text(0, 0, "a", 2, align=0.5, rotate=rotate)
         assert pytest.approx(x) == expected_x
         assert pytest.approx(y) == expected_y
@@ -293,7 +295,7 @@ class TestSvgProduction:
             ),
         ],
     )
-    def test_add_text_a_rotated_glyph(self, rotate, expected_g):
+    def test_add_text_a_rotated_glyph(self, rotate, expected_g) -> None:
         g, x, y = SVG.add_text(0, 0, "a", 2, align=0, rotate=rotate)
         assert g == expected_g
 
@@ -326,14 +328,14 @@ class TestSvgProduction:
             ),
         ],
     )
-    def test_add_text_a_rotated_aligned_glyph(self, rotate, expected_g):
+    def test_add_text_a_rotated_aligned_glyph(self, rotate, expected_g) -> None:
         g, x, y = SVG.add_text(0, 0, "a", 2, align=0.5, rotate=rotate)
         g = g.replace("-0.0", "0.0")  # Ignore sign on zero
         assert g == expected_g
 
 
 class TestCode39:
-    def test_code39_path_0(self):
+    def test_code39_path_0(self) -> None:
         g = Code39.path("0", 10)
         assert (
             g == "M 0,0 0,10 "
@@ -347,7 +349,7 @@ class TestCode39:
             "M 14,0 14,10"
         )
 
-    def test_code39_path_dot(self):
+    def test_code39_path_dot(self) -> None:
         g = Code39.path(".", 10)
         assert (
             g == "M 0,0 0,10 "
@@ -361,7 +363,7 @@ class TestCode39:
             "M 14,0 14,10"
         )
 
-    def test_code39_path_dot_5(self):
+    def test_code39_path_dot_5(self) -> None:
         g = Code39.path(".", 5)
         assert (
             g == "M 0,0 0,5 "
@@ -375,21 +377,21 @@ class TestCode39:
             "M 14,0 14,5"
         )
 
-    def test_code39_letter_dot_5(self):
+    def test_code39_letter_dot_5(self) -> None:
         g = Code39.letter(".", 5)
         assert (
             g
             == '<path d="M 0,0 0,5 M 1,5 1,0 M 2,0 2,5 M 6,5 6,0 M 8,0 8,5 M 10,5 10,0 M 11,0 11,5 M 12,5 12,0 M 14,0 14,5" style="stroke:#0000ff;stroke-width:1"/>'
         )
 
-    def test_code39_translated_letter_dot_5(self):
+    def test_code39_translated_letter_dot_5(self) -> None:
         g = Code39.letter(".", 5, (5, 8))
         assert (
             g
             == '<path transform="translate(5,8)" d="M 0,0 0,5 M 1,5 1,0 M 2,0 2,5 M 6,5 6,0 M 8,0 8,5 M 10,5 10,0 M 11,0 11,5 M 12,5 12,0 M 14,0 14,5" style="stroke:#0000ff;stroke-width:1"/>'
         )
 
-    def test_code39_text(self):
+    def test_code39_text(self) -> None:
         g, x, y = SVG.add_code39(0, 0, "010810", unit=1, height=7)
         assert y == 0
         assert x == 127
@@ -427,7 +429,7 @@ class TestCode39:
             ),
         ],
     )
-    def test_code39_text_alignment(self, align, expected_x, expected_g):
+    def test_code39_text_alignment(self, align, expected_x, expected_g) -> None:
         g, x, y = SVG.add_code39(0, 0, "0", unit=1, height=7, align=align)
         assert y == 0
         assert x == expected_x
@@ -435,15 +437,15 @@ class TestCode39:
 
 
 class TestQRCode:
-    path = '<path stroke="#000" class="pyqrline" d="M0 0.5h7m1 0h3m1 0h1m1 0h7m-21 1h1m5 0h1m2 0h2m3 0h1m5 0h1m-21 1h1m1 0h3m1 0h1m3 0h1m3 0h1m1 0h3m1 0h1m-21 1h1m1 0h3m1 0h1m1 0h1m2 0h2m1 0h1m1 0h3m1 0h1m-21 1h1m1 0h3m1 0h1m3 0h2m2 0h1m1 0h3m1 0h1m-21 1h1m5 0h1m2 0h1m1 0h1m2 0h1m5 0h1m-21 1h7m1 0h1m1 0h1m1 0h1m1 0h7m-12 1h1m2 0h1m-11 1h1m1 0h3m1 0h2m3 0h1m3 0h1m2 0h1m-18 1h2m2 0h2m3 0h1m1 0h2m3 0h2m-21 1h5m1 0h1m1 0h1m3 0h4m1 0h4m-21 1h4m1 0h1m2 0h2m1 0h2m2 0h2m2 0h1m-20 1h2m3 0h2m1 0h3m4 0h1m1 0h1m1 0h2m-13 1h1m1 0h3m4 0h1m2 0h1m-21 1h7m2 0h2m5 0h2m1 0h2m-21 1h1m5 0h1m1 0h3m1 0h1m1 0h1m4 0h1m-20 1h1m1 0h3m1 0h1m1 0h1m1 0h2m2 0h1m1 0h2m1 0h2m-21 1h1m1 0h3m1 0h1m2 0h1m4 0h2m3 0h1m-20 1h1m1 0h3m1 0h1m1 0h1m3 0h2m1 0h1m2 0h1m1 0h1m-21 1h1m5 0h1m2 0h3m1 0h5m1 0h1m-20 1h7m3 0h1m2 0h3m2 0h3"/>'
+    path: str = '<path stroke="#000" class="pyqrline" d="M0 0.5h7m1 0h3m1 0h1m1 0h7m-21 1h1m5 0h1m2 0h2m3 0h1m5 0h1m-21 1h1m1 0h3m1 0h1m3 0h1m3 0h1m1 0h3m1 0h1m-21 1h1m1 0h3m1 0h1m1 0h1m2 0h2m1 0h1m1 0h3m1 0h1m-21 1h1m1 0h3m1 0h1m3 0h2m2 0h1m1 0h3m1 0h1m-21 1h1m5 0h1m2 0h1m1 0h1m2 0h1m5 0h1m-21 1h7m1 0h1m1 0h1m1 0h1m1 0h7m-12 1h1m2 0h1m-11 1h1m1 0h3m1 0h2m3 0h1m3 0h1m2 0h1m-18 1h2m2 0h2m3 0h1m1 0h2m3 0h2m-21 1h5m1 0h1m1 0h1m3 0h4m1 0h4m-21 1h4m1 0h1m2 0h2m1 0h2m2 0h2m2 0h1m-20 1h2m3 0h2m1 0h3m4 0h1m1 0h1m1 0h2m-13 1h1m1 0h3m4 0h1m2 0h1m-21 1h7m2 0h2m5 0h2m1 0h2m-21 1h1m5 0h1m1 0h3m1 0h1m1 0h1m4 0h1m-20 1h1m1 0h3m1 0h1m1 0h1m1 0h2m2 0h1m1 0h2m1 0h2m-21 1h1m1 0h3m1 0h1m2 0h1m4 0h2m3 0h1m-20 1h1m1 0h3m1 0h1m1 0h1m3 0h2m1 0h1m2 0h1m1 0h1m-21 1h1m5 0h1m2 0h3m1 0h5m1 0h1m-20 1h7m3 0h1m2 0h3m2 0h3"/>'
 
-    def test_can_get_qr_as_string(self):
+    def test_can_get_qr_as_string(self) -> None:
         g = SVG.add_qr(0, 0, "test")
         parts = g.split("\n")
         assert len(parts) == 1
         assert parts[0] == self.path
 
-    def test_can_get_qr_as_string_translated(self):
+    def test_can_get_qr_as_string_translated(self) -> None:
         g = SVG.add_qr(30, 10, "test")
         parts = g.split("\n")
         assert len(parts) == 3
@@ -451,7 +453,7 @@ class TestQRCode:
         assert parts[1] == self.path
         assert parts[2] == "</g>"
 
-    def test_can_get_qr_as_string_translated_framed(self):
+    def test_can_get_qr_as_string_translated_framed(self) -> None:
         g = SVG.add_qr(30, 10, "http://ghini.readthedocs.io/en/ghini-3.1-dev/", side=30)
         parts = g.split("\n")
         assert len(parts) == 3

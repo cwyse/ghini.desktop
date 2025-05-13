@@ -40,6 +40,10 @@ from bauble.editor import (
 from bauble.shared import InfoExpander
 from bauble.view import Action, InfoBox, MapInfoExpander, PropertiesExpander
 
+from typing import Union, Optional
+from bauble import db
+from _typeshed import Incomplete
+from bauble.editor import GenericEditorPresenter as GenericEditorPresenter, GenericEditorView as GenericEditorView, GenericModelViewPresenterEditor as GenericModelViewPresenterEditor, NotesPresenter as NotesPresenter, UnicodeOrNoneValidator as UnicodeOrNoneValidator
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -49,7 +53,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.orm.session import object_session
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -95,16 +99,16 @@ def remove_callback(locations):
     return True
 
 
-edit_action = Action(
+edit_action: Incomplete = Action(
     "loc_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
 )
-add_plant_action = Action(
+add_plant_action: Incomplete = Action(
     "loc_add_plant",
     _("_Add plants"),
     callback=add_plants_callback,
     accelerator="<ctrl>k",
 )
-remove_action = Action(
+remove_action: Incomplete = Action(
     "loc_remove",
     _("_Delete"),
     callback=remove_callback,
@@ -112,7 +116,7 @@ remove_action = Action(
     multiselect=True,
 )
 
-loc_context_menu = [edit_action, add_plant_action, remove_action]
+loc_context_menu: Incomplete = [edit_action, add_plant_action, remove_action]
 
 
 def compute_serializable_fields(cls, session, keys):
@@ -139,16 +143,17 @@ class Location(db.Base, db.Serializable, db.WithNotes):
         *plants*:
 
     """
-
-    __tablename__ = "location"
+    id: Incomplete
+    plants: Incomplete
+    __tablename__: str = "location"
 
     # columns
     # refers to beds by unique codes
     id = Column(Integer, primary_key=True, autoincrement=True)
-    code = Column(Unicode(12), unique=True, nullable=False)
-    name = Column(Unicode(80))
-    description = Column(UnicodeText)
-    order_by = [asc(name)]
+    code: Incomplete = Column(Unicode(12), unique=True, nullable=False)
+    name: Incomplete = Column(Unicode(80))
+    description: Incomplete = Column(UnicodeText)
+    order_by: Incomplete = [asc(name)]
 
     # relations
     plants = relationship("Plant", back_populates="location", uselist=True)
@@ -169,7 +174,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
             return None
         return value.strip()
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.name:
             return f"({self.code}) {self.name}"
         else:
@@ -211,7 +216,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
         }
 
 
-LocationNote = db.make_note_class("Location", Location, compute_serializable_fields)
+LocationNote: Incomplete = db.make_note_class("Location", Location, compute_serializable_fields)
 Location.notes = relationship(
     "LocationNote",
     back_populates="location",
@@ -235,7 +240,8 @@ def mergevalues(value1, value2, formatter):
 class LocationEditorView(GenericEditorView):
 
     # source_expanded_pref = 'editor.accesssion.source.expanded'
-    _tooltips = {
+    use_ok_and_add: bool
+    _tooltips: Incomplete = {
         "loc_name_entry": _(
             "The name that you will use " "later to refer to this location."
         ),
@@ -246,7 +252,7 @@ class LocationEditorView(GenericEditorView):
         ),
     }
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[Incomplete] = None) -> None:
         super().__init__(
             os.path.join(paths.lib_dir(), "plugins", "garden", "loc_editor.glade"),
             parent=parent,
@@ -263,7 +269,7 @@ class LocationEditorView(GenericEditorView):
     def get_window(self):
         return self.widgets.location_dialog
 
-    def set_accept_buttons_sensitive(self, sensitive):
+    def set_accept_buttons_sensitive(self, sensitive) -> None:
         self.widgets.loc_ok_button.set_sensitive(sensitive)
         self.widgets.loc_ok_and_add_button.set_sensitive(
             self.use_ok_and_add and sensitive
@@ -276,13 +282,17 @@ class LocationEditorView(GenericEditorView):
 
 class LocationEditorPresenter(GenericEditorPresenter):
 
-    widget_to_field_map = {
+    session: Incomplete
+    _dirty: bool
+    notes_presenter: Incomplete
+    merger_candidate: Incomplete
+    widget_to_field_map: Incomplete = {
         "loc_name_entry": "name",
         "loc_code_entry": "code",
         "loc_desc_textview": "description",
     }
 
-    def __init__(self, model, view):
+    def __init__(self, model, view) -> None:
         """
         model: should be an instance of class Accession
         view: should be an instance of AccessionEditorView
@@ -428,7 +438,7 @@ class LocationEditorPresenter(GenericEditorPresenter):
         # step 4: collapse the expander
         self.view.widgets.danger_zone.set_expanded(False)
 
-    def refresh_sensitivity(self):
+    def refresh_sensitivity(self) -> None:
         sensitive = False
         ignore = "id"
         if self.is_dirty() and not utils.get_invalid_columns(
@@ -437,7 +447,7 @@ class LocationEditorPresenter(GenericEditorPresenter):
             sensitive = True
         self.view.set_accept_buttons_sensitive(sensitive)
 
-    def set_model_attr(self, attr, value, validator=None):
+    def set_model_attr(self, attr, value, validator: Optional[Incomplete] = None) -> None:
         super().set_model_attr(attr, value, validator)
         self._dirty = True
         self.refresh_sensitivity()
@@ -445,7 +455,7 @@ class LocationEditorPresenter(GenericEditorPresenter):
     def is_dirty(self):
         return self.notes_presenter.is_dirty() or self._dirty
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         for widget, field in list(self.widget_to_field_map.items()):
             value = getattr(self.model, field)
             self.view.widget_set_value(widget, value)
@@ -458,11 +468,15 @@ class LocationEditorPresenter(GenericEditorPresenter):
 class LocationEditor(GenericModelViewPresenterEditor):
 
     # these have to correspond to the response values in the view
-    RESPONSE_OK_AND_ADD = 11
-    RESPONSE_NEXT = 22
-    ok_responses = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
+    view: Incomplete
+    presenter: Incomplete
+    parent: Incomplete
+    _committed: Incomplete
+    RESPONSE_OK_AND_ADD: int = 11
+    RESPONSE_NEXT: int = 22
+    ok_responses: Incomplete = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model=None, parent=None):
+    def __init__(self, model: Optional[Incomplete] = None, parent: Optional[Incomplete] = None) -> None:
         """
         :param model: Location instance or None
         :param parent: the parent widget or None
@@ -554,7 +568,8 @@ class LocationEditor(GenericModelViewPresenterEditor):
 
 class GeneralLocationExpander(InfoExpander):
 
-    def __init__(self, widgets):
+    current_obj: Incomplete
+    def __init__(self, widgets) -> None:
         """ """
         super().__init__(_("General"), widgets)
         general_box = self.widgets.loc_gen_box
@@ -568,7 +583,7 @@ class GeneralLocationExpander(InfoExpander):
 
         utils.make_label_clickable(self.widgets.loc_nplants_data, on_nplants_clicked)
 
-    def update(self, row):
+    def update(self, row) -> None:
         """ """
         self.current_obj = row
         from bauble.plugins.garden.plant import Plant
@@ -594,13 +609,13 @@ class DescriptionExpander(InfoExpander):
     The location description
     """
 
-    def __init__(self, widgets):
+    def __init__(self, widgets) -> None:
         super().__init__(_("Description"), widgets)
         descr_box = self.widgets.loc_descr_box
         self.widgets.remove_parent(descr_box)
         self.vbox.pack_start(descr_box, True, True, 0)
 
-    def update(self, row):
+    def update(self, row) -> None:
         """ """
         if row.description is None:
             self.set_expanded(False)
@@ -615,8 +630,12 @@ class LocationInfoBox(InfoBox):
     """
     an InfoBox for a Location table row
     """
-
-    def __init__(self):
+    widgets: Incomplete
+    general: Incomplete
+    description: Incomplete
+    mapinfo: Incomplete
+    properties_expander: Incomplete
+    def __init__(self) -> None:
         """ """
         super().__init__()
         filename = os.path.join(
@@ -641,7 +660,7 @@ class LocationInfoBox(InfoBox):
                 pass
         return result
 
-    def update(self, row):
+    def update(self, row) -> None:
         """ """
         self.general.update(row)
         self.description.update(row)

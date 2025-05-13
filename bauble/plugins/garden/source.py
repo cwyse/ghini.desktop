@@ -39,6 +39,11 @@ import bauble.utils as utils
 from bauble.plugins.plants.geography import GeographicArea, GeographicAreaMenu
 from bauble.utils import safe_set_text
 
+from typing import Union, Optional
+from bauble import db
+from bauble import editor
+from _typeshed import Incomplete
+view: Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
 
@@ -61,7 +66,7 @@ from sqlalchemy.orm import relationship
 # from sqlalchemy.ext.declarative import declared_attr
 
 view = importlib.import_module("bauble.view")
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 
 def collection_edit_callback(coll):
@@ -83,26 +88,26 @@ def collection_remove_callback(coll):
     return remove_callback([coll[0].source.accession])
 
 
-collection_edit_action = view.Action(
+collection_edit_action: Incomplete = view.Action(
     "collection_edit",
     _("_Edit"),
     callback=collection_edit_callback,
     accelerator="<ctrl>e",
 )
-collection_add_plant_action = view.Action(
+collection_add_plant_action: Incomplete = view.Action(
     "collection_add",
     _("_Add plants"),
     callback=collection_add_plants_callback,
     accelerator="<ctrl>k",
 )
-collection_remove_action = view.Action(
+collection_remove_action: Incomplete = view.Action(
     "collection_remove",
     _("_Delete"),
     callback=collection_remove_callback,
     accelerator="<ctrl>Delete",
 )
 
-collection_context_menu = [
+collection_context_menu: Incomplete = [
     collection_edit_action,
     collection_add_plant_action,
     collection_remove_action,
@@ -110,7 +115,7 @@ collection_context_menu = [
 
 
 class SourceBase:
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
 
         # This propagation relationship links a Source to a specific
@@ -143,18 +148,19 @@ class Source(db.Base):
     Create an Accession a, then create a Source s, then assign a.source = s
 
     """
-
-    __tablename__ = "source"
+    sources_code: Incomplete
+    propagation_id: Incomplete
+    __tablename__: str = "source"
     # ITF2 - E7 - Donor's Accession Identifier - donacc
     sources_code = Column(Unicode(32))
 
-    id = Column(Integer, primary_key=True)
+    id: Incomplete = Column(Integer, primary_key=True)
 
-    accession_id = Column(Integer, ForeignKey("accession.id"), unique=True)
-    accession = relationship("Accession", back_populates="source")
+    accession_id: Incomplete = Column(Integer, ForeignKey("accession.id"), unique=True)
+    accession: Incomplete = relationship("Accession", back_populates="source")
 
-    source_detail_id = Column(Integer, ForeignKey("contact.id"))
-    source_detail = relationship(
+    source_detail_id: Incomplete = Column(Integer, ForeignKey("contact.id"))
+    source_detail: Incomplete = relationship(
         "Contact",
         uselist=False,
         back_populates="sources",
@@ -163,7 +169,7 @@ class Source(db.Base):
         active_history=True,
     )
 
-    collection = relationship(
+    collection: Incomplete = relationship(
         "Collection",
         uselist=False,
         back_populates="source",
@@ -176,7 +182,7 @@ class Source(db.Base):
     # a propagation trial or source-related propagation activity
     # independent of the plant hierarchy.
     propagation_id = Column(Integer, ForeignKey("propagation.id"))
-    propagation = relationship(
+    propagation: Incomplete = relationship(
         "Propagation",
         uselist=False,
         back_populates="source",
@@ -186,8 +192,8 @@ class Source(db.Base):
         active_history=True,
     )
 
-    plant_propagation_id = Column(Integer, ForeignKey("propagation.id"))
-    plant_propagation = relationship(
+    plant_propagation_id: Incomplete = Column(Integer, ForeignKey("propagation.id"))
+    plant_propagation: Incomplete = relationship(
         "Propagation",
         primaryjoin="Source.plant_propagation_id == Propagation.id",
         back_populates="used_source",
@@ -210,7 +216,7 @@ class Source(db.Base):
     )
 
 
-source_type_values = [
+source_type_values: Incomplete = [
     ("Expedition", _("Expedition")),
     ("GeneBank", _("Gene Bank")),
     ("BG", _("Botanic Garden or Arboretum")),
@@ -290,8 +296,18 @@ class Collection(db.Base):
 
     :Constraints:
     """
-
-    __tablename__ = "collection"
+    id: Incomplete
+    collector: Incomplete
+    collectors_code: Incomplete
+    date: Incomplete
+    latitude: Incomplete
+    longitude: Incomplete
+    geo_accy: Incomplete
+    elevation: Incomplete
+    elevation_accy: Incomplete
+    habitat: Incomplete
+    notes: Incomplete
+    __tablename__: str = "collection"
 
     # columns
     id = Column(Integer, primary_key=True)
@@ -301,12 +317,12 @@ class Collection(db.Base):
     collectors_code = Column(Unicode(50))
     # ITF2 - F.27 - Collection Date
     date = Column(types.Date)
-    locale = Column(UnicodeText, nullable=False)
+    locale: Incomplete = Column(UnicodeText, nullable=False)
     # ITF2 - F1, F2, F3, F4 - Latitude, Degrees, Minutes, Seconds, Direction
     latitude = Column(Unicode(15))
     # ITF2 - F5, F6, F7, F8 - Longitude, Degrees, Minutes, Seconds, Direction
     longitude = Column(Unicode(15))
-    gps_datum = Column(Unicode(32))
+    gps_datum: Incomplete = Column(Unicode(32))
     # ITF2 - F9 - Accuracy of Geographical Referencing Data
     geo_accy = Column(Float)
     # ITF2 - F17 - Altitude
@@ -318,11 +334,11 @@ class Collection(db.Base):
     # ITF2 - F18 - Collection Notes
     notes = Column(UnicodeText)
 
-    geographic_area_id = Column(Integer, ForeignKey("geographic_area.id"))
-    region = relationship(GeographicArea, uselist=False, active_history=True)
+    geographic_area_id: Incomplete = Column(Integer, ForeignKey("geographic_area.id"))
+    region: Incomplete = relationship(GeographicArea, uselist=False, active_history=True)
 
-    source_id = Column(Integer, ForeignKey("source.id"), unique=True)
-    source = relationship("Source", back_populates="collection")
+    source_id: Incomplete = Column(Integer, ForeignKey("source.id"), unique=True)
+    source: Incomplete = relationship("Source", back_populates="collection")
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
@@ -333,7 +349,7 @@ class Collection(db.Base):
             safe(self),
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return _("Collection at %s") % (self.locale or repr(self))
 
 
@@ -346,8 +362,14 @@ class CollectionPresenter(editor.ChildPresenter):
     :param view: an AccessionEditorView
     :param session: a sqlalchemy.orm.session
     """
-
-    widget_to_field_map = {
+    PROBLEM_BAD_LATITUDE: Incomplete
+    parent_ref: Incomplete
+    session: Incomplete
+    north_toggle_signal_id: Incomplete
+    east_toggle_signal_id: Incomplete
+    geo_menu: Incomplete
+    _dirty: bool
+    widget_to_field_map: Incomplete = {
         "collector_entry": "collector",
         "coll_date_entry": "date",
         "collid_entry": "collectors_code",
@@ -366,11 +388,11 @@ class CollectionPresenter(editor.ChildPresenter):
     # TODO: could make the problems be tuples of an id and description to
     # be displayed in a dialog or on a label ala eclipse
     PROBLEM_BAD_LATITUDE = str(random())
-    PROBLEM_BAD_LONGITUDE = str(random())
-    PROBLEM_INVALID_DATE = str(random())
-    PROBLEM_INVALID_LOCALE = str(random())
+    PROBLEM_BAD_LONGITUDE: Incomplete = str(random())
+    PROBLEM_INVALID_DATE: Incomplete = str(random())
+    PROBLEM_INVALID_LOCALE: Incomplete = str(random())
 
-    def __init__(self, parent, model, view, session):
+    def __init__(self, parent, model, view, session) -> None:
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
         self.session = session
@@ -458,13 +480,13 @@ class CollectionPresenter(editor.ChildPresenter):
 
         self._dirty = False
 
-    def set_region(self, menu_item, geo_id):
+    def set_region(self, menu_item, geo_id) -> None:
         geographic_area = self.session.get(GeographicArea, geo_id)
         self.set_model_attr("region", geographic_area)
         self.set_model_attr("geographic_area_id", geo_id)
         self.view.widgets.add_region_button.set_label(str(geographic_area))
 
-    def set_model_attr(self, field, value, validator=None):
+    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
         """
         Validates the fields when a field changes.
         """
@@ -488,13 +510,13 @@ class CollectionPresenter(editor.ChildPresenter):
 
         self.parent_ref().refresh_sensitivity()
 
-    def start(self):
+    def start(self) -> None:
         raise Exception("CollectionPresenter cannot be started")
 
     def dirty(self):
         return self._dirty
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         from bauble.plugins.garden.accession import (
             latitude_to_dms,
             longitude_to_dms,
@@ -538,7 +560,7 @@ class CollectionPresenter(editor.ChildPresenter):
             self.view.widgets.geoacc_entry.set_sensitive(False)
             self.view.widgets.datum_entry.set_sensitive(False)
 
-    def on_date_entry_changed(self, entry, data=None):
+    def on_date_entry_changed(self, entry, data: Optional[Incomplete] = None) -> None:
         from bauble.editor import ValidatorError
 
         value = None
@@ -552,7 +574,7 @@ class CollectionPresenter(editor.ChildPresenter):
             self.parent_ref().remove_problem(PROBLEM, entry)
         self.set_model_attr("date", value)
 
-    def on_east_west_radio_toggled(self, button, data=None):
+    def on_east_west_radio_toggled(self, button, data: Optional[Incomplete] = None) -> None:
         direction = self._get_lon_direction()
         entry = self.view.widgets.lon_entry
         lon_text = entry.get_text()
@@ -572,7 +594,7 @@ class CollectionPresenter(editor.ChildPresenter):
         elif direction == "E" and lon_text[0] == "-":
             safe_set_text(entry, lon_text[1:])
 
-    def on_north_south_radio_toggled(self, button, data=None):
+    def on_north_south_radio_toggled(self, button, data: Optional[Incomplete] = None) -> None:
         direction = self._get_lat_direction()
         entry = self.view.widgets.lat_entry
         lat_text = entry.get_text()
@@ -638,7 +660,7 @@ class CollectionPresenter(editor.ChildPresenter):
             return "W"
         raise ValueError(_("East/West radio buttons in a confused state"))
 
-    def on_lat_entry_changed(self, entry, date=None):
+    def on_lat_entry_changed(self, entry, date: Optional[Incomplete] = None) -> None:
         """
         set the latitude value from text
         """
@@ -674,7 +696,7 @@ class CollectionPresenter(editor.ChildPresenter):
         else:
             self.set_model_attr("latitude", utils.utf8(latitude))
 
-    def on_lon_entry_changed(self, entry, data=None):
+    def on_lon_entry_changed(self, entry, data: Optional[Incomplete] = None) -> None:
         from bauble.plugins.garden.accession import longitude_to_dms
 
         text = entry.get_text()
@@ -717,12 +739,14 @@ class PropagationChooserPresenter(editor.ChildPresenter):
     :param view: an AccessionEditorView
     :param session: an sqlalchemy.orm.session
     """
+    parent_ref: Incomplete
+    session: Incomplete
+    _dirty: bool
+    widget_to_field_map: Incomplete = {}
 
-    widget_to_field_map = {}
+    PROBLEM_INVALID_DATE: Incomplete = random()
 
-    PROBLEM_INVALID_DATE = random()
-
-    def __init__(self, parent, model, view, session):
+    def __init__(self, parent, model, view, session) -> None:
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
         self.session = session
@@ -832,7 +856,7 @@ class PropagationChooserPresenter(editor.ChildPresenter):
             self.view.widgets.source_prop_plant_combo, "changed", on_select
         )
 
-    def refresh_view(self):
+    def refresh_view(self) -> None:
         treeview = self.view.widgets.source_prop_treeview
         if not self.model.plant_propagation:
             self.view.widget_set_value("source_prop_plant_combo", "")
@@ -854,13 +878,13 @@ class PropagationChooserPresenter(editor.ChildPresenter):
         treeview.set_model(model)
         treeview.set_sensitive = True
 
-    def toggle_cell_data_func(self, column, cell, model, treeiter, data=None):
+    def toggle_cell_data_func(self, column, cell, model, treeiter, data: Optional[Incomplete] = None) -> None:
         propagation = model[treeiter][0]
         active = self.model.plant_propagation == propagation
         cell.set_active(active)
         cell.set_sensitive(True)
 
-    def summary_cell_data_func(self, column, cell, model, treeiter, data=None):
+    def summary_cell_data_func(self, column, cell, model, treeiter, data: Optional[Incomplete] = None) -> None:
         propagation = model[treeiter][0]
         cell.set_text = propagation.get_summary()
         cell.set_sensitive(True)
@@ -875,13 +899,13 @@ class PropagationChooserPresenter(editor.ChildPresenter):
 #
 
 
-def create_contact(parent=None):
+def create_contact(parent: Optional[Incomplete] = None):
     model = Contact()
     source_detail_edit_callback([model], parent)
     return [model]
 
 
-def source_detail_edit_callback(details, parent=None):
+def source_detail_edit_callback(details, parent: Optional[Incomplete] = None):
     glade_path = os.path.join(paths.lib_dir(), "plugins", "garden", "contact.glade")
     view = editor.GenericEditorView(
         glade_path, parent=parent, root_widget_name="source_details_dialog"
@@ -914,13 +938,13 @@ def source_detail_remove_callback(details):
     return True
 
 
-source_detail_edit_action = view.Action(
+source_detail_edit_action: Incomplete = view.Action(
     "source_detail_edit",
     _("_Edit"),
     callback=source_detail_edit_callback,
     accelerator="<ctrl>e",
 )
-source_detail_remove_action = view.Action(
+source_detail_remove_action: Incomplete = view.Action(
     "source_detail_remove",
     _("_Delete"),
     callback=source_detail_remove_callback,
@@ -928,7 +952,7 @@ source_detail_remove_action = view.Action(
     multiselect=True,
 )
 
-source_detail_context_menu = [
+source_detail_context_menu: Incomplete = [
     source_detail_edit_action,
     source_detail_remove_action,
 ]
@@ -947,11 +971,14 @@ def compute_serializable_fields(cls, session, keys):
 
 
 class Contact(db.Base, db.Serializable, db.WithNotes):
-    __tablename__ = "contact"
+    id: Incomplete
+    description: Incomplete
+    source_type: Incomplete
+    __tablename__: str = "contact"
 
     # ITF2 - E6 - Donor
     id = Column(Integer, primary_key=True)
-    name = Column(Unicode(75), unique=True)
+    name: Incomplete = Column(Unicode(75), unique=True)
     # extra description, not included in E6
     description = Column(UnicodeText)
     # ITF2 - E5 - Donor Type Flag
@@ -963,9 +990,9 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
         ),
         default=None,
     )
-    order_by = [asc(name)]
+    order_by: Incomplete = [asc(name)]
 
-    sources = relationship(
+    sources: Incomplete = relationship(
         "Source",
         uselist=False,
         back_populates="source_detail",
@@ -974,7 +1001,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
         active_history=True,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.name) if self.name is not None else ""
 
     def search_view_markup_pair(self):
@@ -994,7 +1021,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
             return None
 
 
-ContactNote = db.make_note_class("Contact", Contact, compute_serializable_fields)
+ContactNote: Incomplete = db.make_note_class("Contact", Contact, compute_serializable_fields)
 Contact.notes = relationship(
     "ContactNote",
     back_populates="contact",
@@ -1005,20 +1032,20 @@ Contact.notes = relationship(
 
 class ContactPresenter(editor.GenericEditorPresenter):
 
-    widget_to_field_map = {
+    widget_to_field_map: Incomplete = {
         "source_name_entry": "name",
         "source_type_combo": "source_type",
         "source_desc_textview": "description",
     }
-    view_accept_buttons = ["sd_ok_button"]
+    view_accept_buttons: Incomplete = ["sd_ok_button"]
 
-    def __init__(self, model, view):
+    def __init__(self, model, view) -> None:
         view.init_translatable_combo("source_type_combo", source_type_values)
         super().__init__(model, view, refresh_view=True, do_commit=True)
         self.create_toolbar()
         view.set_accept_buttons_sensitive(False)
 
-    def on_textbuffer_changed_description(self, widget, value=None, attr=None):
+    def on_textbuffer_changed_description(self, widget, value: Optional[Incomplete] = None, attr: Optional[Incomplete] = None):
         return self.on_textbuffer_changed(widget, value, attr="description")
 
 
@@ -1028,13 +1055,13 @@ class GeneralSourceDetailExpander(view.InfoExpander):
     type of contact
     """
 
-    def __init__(self, widgets):
+    def __init__(self, widgets) -> None:
         super().__init__(_("General"), widgets)
         gen_box = self.widgets.sd_gen_box
         self.widgets.remove_parent(gen_box)
         self.vbox.pack_start(gen_box, True, True, 0)
 
-    def update(self, row):
+    def update(self, row) -> None:
         from sqlalchemy.sql import func
 
         # Set the name with markup
@@ -1074,7 +1101,9 @@ class GeneralSourceDetailExpander(view.InfoExpander):
 
 class ContactInfoBox(view.InfoBox):
 
-    def __init__(self):
+    widgets: Incomplete
+    general: Incomplete
+    def __init__(self) -> None:
         super().__init__()
         filename = os.path.join(
             paths.lib_dir(), "plugins", "garden", "source_detail_infobox.glade"
@@ -1083,5 +1112,5 @@ class ContactInfoBox(view.InfoBox):
         self.general = GeneralSourceDetailExpander(self.widgets)
         self.add_expander(self.general)
 
-    def update(self, row):
+    def update(self, row) -> None:
         self.general.update(row)

@@ -77,7 +77,14 @@ from bauble.plugins.garden.source import (
 from bauble.utils import safe_set_props, safe_set_text
 from bauble.view import SearchView
 
-logger = logging.getLogger(__name__)
+from bauble import pluginmgr
+from _typeshed import Incomplete
+from bauble.plugins.garden.accession import Accession as Accession, AccessionEditor as AccessionEditor, AccessionInfoBox as AccessionInfoBox, AccessionNote as AccessionNote, acc_context_menu as acc_context_menu
+from bauble.plugins.garden.institution import Institution as Institution, InstitutionCommand as InstitutionCommand, InstitutionTool as InstitutionTool, start_institution_editor as start_institution_editor
+from bauble.plugins.garden.location import Location as Location, LocationEditor as LocationEditor, LocationInfoBox as LocationInfoBox, loc_context_menu as loc_context_menu
+from bauble.plugins.garden.plant import Plant as Plant, PlantEditor as PlantEditor, PlantInfoBox as PlantInfoBox, PlantNote as PlantNote, PlantSearch as PlantSearch, default_plant_delimiter as default_plant_delimiter, plant_context_menu as plant_context_menu, plant_delimiter_key as plant_delimiter_key
+from bauble.plugins.garden.source import Collection as Collection, Contact as Contact, ContactInfoBox as ContactInfoBox, Source as Source, collection_context_menu as collection_context_menu, create_contact as create_contact, source_detail_context_menu as source_detail_context_menu
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -89,10 +96,10 @@ logger.setLevel(logging.INFO)
 
 
 class GardenPlugin(pluginmgr.Plugin):
-    depends = ["PlantsPlugin"]
-    tools = [InstitutionTool, PictureImporterTool, PocketServerTool]
-    commands = [InstitutionCommand]
-    provides = {
+    depends: Incomplete = ["PlantsPlugin"]
+    tools: Incomplete = [InstitutionTool, PictureImporterTool, PocketServerTool]
+    commands: Incomplete = [InstitutionCommand]
+    provides: Incomplete = {
         "Accession": Accession,
         "AccessionNote": AccessionNote,
         "Location": Location,
@@ -104,11 +111,11 @@ class GardenPlugin(pluginmgr.Plugin):
     }
 
     @classmethod
-    def install(cls, *args, **kwargs):
+    def install(cls, *args, **kwargs) -> None:
         pass
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         """Initialize the GardenPlugin."""
         pluginmgr.provided.update(cls.provides)
         cls._setup_search_metas()
@@ -202,7 +209,7 @@ class GardenPlugin(pluginmgr.Plugin):
         SearchView.row_meta[Species].child = "accessions"
 
     @classmethod
-    def _setup_gui_menus(cls):
+    def _setup_gui_menus(cls) -> None:
         """Set up GUI menus dynamically."""
         if bauble.gui is None:
             return
@@ -253,7 +260,7 @@ class GardenPlugin(pluginmgr.Plugin):
         insert_menu.show_all()
 
 
-def init_location_comboentry(presenter, combo, on_select, required=True):
+def init_location_comboentry(presenter, combo, on_select, required: bool = True):
     """associate custom completion to combobox internal entry
 
     This method allows us to have completions on the location entry based on

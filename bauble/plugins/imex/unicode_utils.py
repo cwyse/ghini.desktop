@@ -3,9 +3,13 @@ import csv
 import bauble.utils as utils
 
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 class UnicodeReader:
 
-    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
+    reader: Incomplete
+    encoding: Incomplete
+    def __init__(self, f, dialect=csv.excel, encoding: str = "utf-8", **kwds) -> None:
         self.reader = csv.DictReader(f, dialect=dialect, **kwds)
         self.encoding = encoding
 
@@ -31,17 +35,20 @@ class InvalidDataError(Exception):
 # TODO: add support for exporting only specific tables
 class UnicodeWriter:
 
-    def __init__(self, f, fields=None, dialect=csv.excel, encoding="utf-8", **kwds):
+    writer: Incomplete
+    field_order: Incomplete
+    encoding: Incomplete
+    def __init__(self, f, fields: Optional[Incomplete] = None, dialect=csv.excel, encoding: str = "utf-8", **kwds) -> None:
         self.writer = csv.writer(f, dialect=dialect, **kwds)
         self.field_order = fields
         self.encoding = encoding
 
-    def writerow(self, row):
+    def writerow(self, row) -> None:
         if isinstance(row, dict):
             row = [row[k] for k in self.field_order]
         t = [utils.to_unicode(s, self.encoding) for s in row]
         self.writer.writerow(t)
 
-    def writerows(self, rows):
+    def writerows(self, rows) -> None:
         for row in rows:
             self.writerow(row)

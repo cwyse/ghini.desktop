@@ -23,13 +23,13 @@ import bauble.utils as utils
 
 class Utils(TestCase):
 
-    def test_topological_sort_total(self):
+    def test_topological_sort_total(self) -> None:
         self.assertEqual(utils.topological_sort([1, 2, 3], [(2, 1), (3, 2)]), [3, 2, 1])
 
-    def test_topological_sort_partial(self):
+    def test_topological_sort_partial(self) -> None:
         self.assertEqual(utils.topological_sort([1, 2, 3, 4], [(2, 1)]), [4, 3, 2, 1])
 
-    def test_topological_sort_loop(self):
+    def test_topological_sort_loop(self) -> None:
         self.assertEqual(utils.topological_sort([1, 2], [(2, 1), (1, 2)]), None)
 
 
@@ -131,17 +131,17 @@ class CacheTest(TestCase):
 
 
 class GlobalFuncs(TestCase):
-    def test_safe_int_valid(self):
+    def test_safe_int_valid(self) -> None:
         self.assertEqual(utils.safe_int("123"), 123)
 
-    def test_safe_int_valid_not(self):
+    def test_safe_int_valid_not(self) -> None:
         self.assertEqual(utils.safe_int("123.2"), 0)
 
-    def test_safe_numeric_valid(self):
+    def test_safe_numeric_valid(self) -> None:
         self.assertEqual(utils.safe_numeric("123"), 123)
 
-    def test_safe_numeric_valid_decimal(self):
+    def test_safe_numeric_valid_decimal(self) -> None:
         self.assertEqual(utils.safe_numeric("123.2"), 123.2)
 
-    def test_safe_numeric_valid_not(self):
+    def test_safe_numeric_valid_not(self) -> None:
         self.assertEqual(utils.safe_numeric("123a.2"), 0)

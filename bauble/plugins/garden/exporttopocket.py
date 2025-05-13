@@ -27,14 +27,16 @@ from bauble import db
 from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from sqlalchemy import bindparam, select
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 
-def create_pocket(filename):
+def create_pocket(filename) -> None:
     create_sql = [
         """\
 CREATE TABLE "android_metadata" (
@@ -96,7 +98,12 @@ CREATE TABLE "plant" (
 
 
 class ExportToPocketThread(threading.Thread):
-    def __init__(self, filename, progressbar=None, callback=None, include_private=True):
+    filename: Incomplete
+    callback: Incomplete
+    progressbar: Incomplete
+    include_private: Incomplete
+    keep_running: bool
+    def __init__(self, filename, progressbar: Optional[Incomplete] = None, callback: Optional[Incomplete] = None, include_private: bool = True) -> None:
         super().__init__(target=None, name=None)
         self.filename = filename
         self.callback = callback
@@ -228,5 +235,5 @@ class ExportToPocketThread(threading.Thread):
             GLib.idle_add(self.callback)
         return True
 
-    def cancel(self):
+    def cancel(self) -> None:
         self.keep_running = False

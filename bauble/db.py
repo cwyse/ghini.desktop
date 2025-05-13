@@ -34,6 +34,8 @@ import bauble.error as error
 import bauble.utils as utils
 from bauble.utils import parse_date
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 # from sqlalchemy.orm import Query
 from gi.repository import Gtk
@@ -42,14 +44,14 @@ from sqlalchemy import event, insert, inspect, select
 # from sqlalchemy import text
 from sqlalchemy.orm import DeclarativeMeta, class_mapper, declarative_base
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 try:
     import sqlalchemy as sa
 
-    parts = tuple(int(i) for i in sa.__version__.split(".")[:2])
+    parts: Incomplete = tuple(int(i) for i in sa.__version__.split(".")[:2])
     if parts < (0, 6):
         msg = __(
             "This version of Ghini requires SQLAlchemy 0.6 or greater. "
@@ -60,14 +62,14 @@ try:
         ) % ".".join(parts)
         raise error.SQLAlchemyVersionError(msg)
 except ImportError:
-    msg = __(
+    msg: Incomplete = __(
         "SQLAlchemy not installed. Please install SQLAlchemy from "
         "http://www.sqlalchemy.org"
     )
     raise
 
 
-def sqlalchemy_debug(verbose):
+def sqlalchemy_debug(verbose) -> None:
     if verbose:
         logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
         logging.getLogger("sqlalchemy.orm.unitofwork").setLevel(logging.DEBUG)
@@ -76,13 +78,13 @@ def sqlalchemy_debug(verbose):
         logging.getLogger("sqlalchemy.orm.unitofwork").setLevel(logging.WARN)
 
 
-SQLALCHEMY_DEBUG = False
+SQLALCHEMY_DEBUG: bool = False
 sqlalchemy_debug(SQLALCHEMY_DEBUG)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 
-def get_or_create(session, model, defaults=None, **kwargs):
+def get_or_create(session, model, defaults: Optional[Incomplete] = None, **kwargs):
     """
     Retrieve or create an instance of the given model.
 
@@ -186,10 +188,14 @@ class MapperBase(DeclarativeMeta):
     than to extend it to add more default columns to all the bauble
     tables.
     """
+    id: Incomplete
+    _created: Incomplete
+    _last_updated: Incomplete
+    top_level_count: Incomplete
+    search_view_markup_pair: Incomplete
+    _class_registry: Incomplete = {}
 
-    _class_registry = {}
-
-    def __init__(self, classname, bases, dict_):
+    def __init__(self, classname, bases, dict_) -> None:
         if "__tablename__" in dict_:
             self.id = sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)
             self._created = sa.Column(
@@ -220,7 +226,7 @@ class MapperBase(DeclarativeMeta):
         MapperBase._register_event_listeners(self)
 
     @staticmethod
-    def add_history_entry(operation, instance):
+    def add_history_entry(operation, instance) -> None:
         """
         Helper function to add a history entry.
 
@@ -251,7 +257,7 @@ class MapperBase(DeclarativeMeta):
         logger.debug("History entry added: %s", stmt)
 
     @staticmethod
-    def _register_event_listeners(cls):
+    def _register_event_listeners(cls) -> None:
         """
         Registers SQLAlchemy ORM event listeners for a mapped class.
         """
@@ -285,13 +291,13 @@ class MapperBase(DeclarativeMeta):
         return query
 
 
-engine = None
+engine: Incomplete = None
 """A :class:`sqlalchemy.engine.base.Engine` used as the default
 connection to the database.
 """
 
 
-Session = None
+Session: Incomplete = None
 """
 bauble.db.Session is created after the database has been opened with
 :func:`bauble.db.open()`. bauble.db.Session should be used when you need
@@ -313,7 +319,7 @@ class TypedBaseMixin:
     _last_updated: datetime.datetime
 
 
-Base = declarative_base(cls=TypedBaseMixin, metaclass=MapperBase)
+Base: Incomplete = declarative_base(cls=TypedBaseMixin, metaclass=MapperBase)
 """
 All tables/mappers in Ghini which use the SQLAlchemy declarative
 plugin for declaring tables and mappers should derive from this class.
@@ -322,13 +328,13 @@ An instance of :class:`sqlalchemy.orm.Base`
 """
 
 
-metadata = Base.metadata
+metadata: Incomplete = Base.metadata
 """The default metadata for all Ghini tables.
 
 An instance of :class:`sqlalchemy.schema.Metadata`
 """
 
-history_base = declarative_base(metadata=metadata)
+history_base: Incomplete = declarative_base(metadata=metadata)
 
 
 class History(history_base):
@@ -355,17 +361,17 @@ class History(history_base):
         When the change was made.
     """
 
-    __tablename__ = "history"
-    id = sa.Column(sa.Integer, primary_key=True)
-    table_name = sa.Column(sa.Text, nullable=False)
-    table_id = sa.Column(sa.Integer, nullable=False, autoincrement=False)
-    values = sa.Column(sa.Text, nullable=False)
-    operation = sa.Column(sa.Text, nullable=False)
-    user = sa.Column(sa.Text)
-    timestamp = sa.Column(types.DateTime, nullable=False)
+    __tablename__: str = "history"
+    id: Incomplete = sa.Column(sa.Integer, primary_key=True)
+    table_name: Incomplete = sa.Column(sa.Text, nullable=False)
+    table_id: Incomplete = sa.Column(sa.Integer, nullable=False, autoincrement=False)
+    values: Incomplete = sa.Column(sa.Text, nullable=False)
+    operation: Incomplete = sa.Column(sa.Text, nullable=False)
+    user: Incomplete = sa.Column(sa.Text)
+    timestamp: Incomplete = sa.Column(types.DateTime, nullable=False)
 
 
-def open(uri, verify=True, show_error_dialogs=False):
+def open(uri, verify: bool = True, show_error_dialogs: bool = False):
     """
     Open a database connection. This function sets `bauble.db.engine` to
     the opened engine.
@@ -449,7 +455,7 @@ def open(uri, verify=True, show_error_dialogs=False):
 from sqlalchemy import text
 
 
-def create_triggers(connection):
+def create_triggers(connection) -> None:
     """
     Creates triggers for all TEXT columns in SQLite to convert empty strings to NULL.
     Adds constraints in PostgreSQL to prevent empty strings.
@@ -512,7 +518,7 @@ def create_triggers(connection):
             connection.commit()
 
 
-def create(import_defaults=True):
+def create(import_defaults: bool = True) -> None:
     """
     Create a new Ghini database at the current connection.
 
@@ -582,7 +588,7 @@ def create(import_defaults=True):
         raise
 
 
-def verify_connection(engine, show_error_dialogs=False):
+def verify_connection(engine, show_error_dialogs: bool = False):
     """
     Test whether a connection to an engine is a valid Ghini database.
     Raises an error for the first problem it finds with the database.
@@ -699,9 +705,9 @@ def verify_connection(engine, show_error_dialogs=False):
 def make_note_class(
     name,
     related_class,
-    compute_serializable_fields=None,
-    as_dict=None,
-    retrieve=None,
+    compute_serializable_fields: Optional[Incomplete] = None,
+    as_dict: Optional[Incomplete] = None,
+    retrieve: Optional[Incomplete] = None
 ):
     """
     Create a Note class with a relationship to the related_class using back_populates.
@@ -851,7 +857,7 @@ class WithNotes:
     A mixin to provide dynamic attribute access to notes based on categories.
     """
 
-    key_pattern = re.compile(r"{[^:]+:(.*)}")
+    key_pattern: Incomplete = re.compile(r"{[^:]+:(.*)}")
 
     def __getattr__(self, name):
         """
@@ -973,8 +979,8 @@ class Serializable:
 
     import re
 
-    single_cap_re = re.compile("([A-Z])")
-    link_keys = []
+    single_cap_re: Incomplete = re.compile("([A-Z])")
+    link_keys: Incomplete = []
 
     def as_dict(self):
         """
@@ -995,7 +1001,7 @@ class Serializable:
         return result
 
     @classmethod
-    def correct_field_names(cls, keys):
+    def correct_field_names(cls, keys) -> None:
         """
         Correct keys dictionary according to class attributes.
 
@@ -1015,7 +1021,7 @@ class Serializable:
         return {}
 
     @classmethod
-    def retrieve_or_create(cls, session, keys, create=True, update=True):
+    def retrieve_or_create(cls, session, keys, create: bool = True, update: bool = True):
         """
         Return a database object corresponding to keys, creating or updating as necessary.
 
@@ -1114,7 +1120,7 @@ class Serializable:
         return result
 
 
-def construct_from_dict(session, obj, create=True, update=True):
+def construct_from_dict(session, obj, create: bool = True, update: bool = True):
     """
     Construct an object from a dictionary representation.
 
@@ -1171,11 +1177,11 @@ class current_user_functor:
     This is designed to return the current user's name from the database
     or the system, with support for overriding.
     """
-
-    def __init__(self):
+    override_value: Incomplete
+    def __init__(self) -> None:
         self.override_value = None
 
-    def override(self, value=None):
+    def override(self, value: Optional[Incomplete] = None) -> None:
         """
         Override the current user value.
 
@@ -1214,4 +1220,4 @@ class current_user_functor:
 
 
 # Instantiate the current_user function
-current_user = current_user_functor()
+current_user: Incomplete = current_user_functor()

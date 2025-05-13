@@ -30,7 +30,9 @@ from bauble.plugins.report import get_pertinent_objects
 from bauble.plugins.tag import Tag, tag_objects
 from bauble.test import check_dupids
 
-logger = logging.getLogger(__name__)
+from _typeshed import Incomplete
+from collections.abc import Generator
+logger: Incomplete = logging.getLogger(__name__)
 
 
 # Modify desktop.open here to avoid cyclic import
@@ -53,7 +55,7 @@ def dynamic_import(module_name, class_name):
 
 
 @pytest.fixture
-def setup_test_data(session):
+def setup_test_data(session) -> Generator[None, None, None]:
     """
     Fixture to set up test data for all test cases.
     """
@@ -98,7 +100,7 @@ def setup_test_data(session):
         session.commit()
 
 
-def test_duplicate_ids():
+def test_duplicate_ids() -> None:
     """
     Test for duplicate IDs for all .glade files in the gardens plugin.
     """
@@ -118,7 +120,7 @@ def test_duplicate_ids():
 
 @pytest.mark.usefixtures("setup_test_data")
 class TestReport:
-    def test_no_objects_in_family_note(self, session):
+    def test_no_objects_in_family_note(self, session) -> None:
         family = session.execute(select(Family)).scalars().first()
         from bauble.error import BaubleError
         from bauble.plugins.plants.family import FamilyNote

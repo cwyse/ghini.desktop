@@ -25,6 +25,8 @@ import gi
 
 import bauble.db as db
 
+from bauble import db
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import Column, ForeignKey, Integer, String, Unicode, select
@@ -96,7 +98,8 @@ def get_species_in_geographic_area(geo):
 
 
 class GeographicAreaMenu:
-    def __init__(self, callback):
+    menu: Incomplete
+    def __init__(self, callback) -> None:
         # Create an instance of Gtk.Menu instead of subclassing it
         self.menu = Gtk.Menu()
         geographic_area_table = GeographicArea.__table__
@@ -208,17 +211,17 @@ class GeographicArea(db.Base):
 
     :Constraints:
     """
-
-    __tablename__ = "geographic_area"
+    id: Incomplete
+    __tablename__: str = "geographic_area"
 
     # columns
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(Unicode(255), nullable=False)
-    tdwg_code = Column(String(6))
-    iso_code = Column(String(7))
-    parent_id = Column(Integer, ForeignKey("geographic_area.id"))
+    name: Incomplete = Column(Unicode(255), nullable=False)
+    tdwg_code: Incomplete = Column(String(6))
+    iso_code: Incomplete = Column(String(7))
+    parent_id: Incomplete = Column(Integer, ForeignKey("geographic_area.id"))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 

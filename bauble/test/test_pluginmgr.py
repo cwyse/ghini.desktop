@@ -14,105 +14,108 @@ from bauble.pluginmgr import (
     plugins,
 )
 
-logger = logging.getLogger(__name__)
+from _typeshed import Incomplete
+from bauble.pluginmgr import Plugin as Plugin, PluginRegistry as PluginRegistry, _create_dependency_pairs as _create_dependency_pairs, init as init, install as install, plugins as plugins
+from collections.abc import Generator
+logger: Incomplete = logging.getLogger(__name__)
 
 
 class A(Plugin):
-    depends = []
-    initialized = False
-    installed = False
+    depends: Incomplete = []
+    initialized: bool = False
+    installed: bool = False
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         cls.initialized = True
 
     @classmethod
-    def install(cls, *args, **kwargs):
+    def install(cls, *args, **kwargs) -> None:
         cls.installed = True
 
 
 class B(Plugin):
-    depends = ["A"]
-    initialized = False
-    installed = False
+    depends: Incomplete = ["A"]
+    initialized: bool = False
+    installed: bool = False
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         cls.initialized = True
 
     @classmethod
-    def install(cls, *args, **kwargs):
+    def install(cls, *args, **kwargs) -> None:
         cls.installed = True
 
 
 class C(Plugin):
-    depends = ["B"]
-    initialized = False
-    installed = False
+    depends: Incomplete = ["B"]
+    initialized: bool = False
+    installed: bool = False
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         assert A.initialized and B.initialized
         cls.initialized = True
 
     @classmethod
-    def install(cls, *args, **kwargs):
+    def install(cls, *args, **kwargs) -> None:
         cls.installed = True
 
 
 class FailingInitPlugin(Plugin):
-    initialized = False
-    installed = False
+    initialized: bool = False
+    installed: bool = False
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         cls.initialized = True
         raise BaubleError("can't init")
 
     @classmethod
-    def install(cls, *args, **kwargs):
+    def install(cls, *args, **kwargs) -> None:
         cls.installed = True
 
 
 class DependsOnFailingInitPlugin(Plugin):
-    depends = ["FailingInitPlugin"]
-    initialized = False
-    installed = False
+    depends: Incomplete = ["FailingInitPlugin"]
+    initialized: bool = False
+    installed: bool = False
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         cls.initialized = True
 
     @classmethod
-    def install(cls, *args, **kwargs):
+    def install(cls, *args, **kwargs) -> None:
         cls.installed = True
 
 
 class FailingInstallPlugin(Plugin):
-    initialized = False
-    installed = False
+    initialized: bool = False
+    installed: bool = False
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         cls.initialized = True
 
     @classmethod
-    def install(cls, *args, **kwargs):
+    def install(cls, *args, **kwargs) -> None:
         cls.installed = True
         raise BaubleError("can't install")
 
 
 class DependsOnFailingInstallPlugin(Plugin):
-    depends = ["FailingInstallPlugin"]
-    initialized = False
-    installed = False
+    depends: Incomplete = ["FailingInstallPlugin"]
+    initialized: bool = False
+    installed: bool = False
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         cls.initialized = True
 
     @classmethod
-    def install(cls, *args, **kwargs):
+    def install(cls, *args, **kwargs) -> None:
         cls.installed = True
 
 
@@ -121,7 +124,7 @@ class PluginMgrTests:
     Pytest-based class for testing plugin manager functionality.
     """
 
-    def test_install(self, db_session, mock_logger):
+    def test_install(self, db_session, mock_logger) -> None:
         """
         Test importing default data from a plugin.
         """
@@ -181,7 +184,7 @@ class LocalFunctions:
     """
 
     @pytest.fixture(autouse=True)
-    def reset_plugins(self):
+    def reset_plugins(self) -> Generator[None, None, None]:
         """
         Fixture to reset plugin states and the plugins dictionary before and after each test.
         """
@@ -192,7 +195,7 @@ class LocalFunctions:
         yield
         plugins.clear()
 
-    def test_create_dependency_pairs(self):
+    def test_create_dependency_pairs(self) -> None:
         """
         Test creating dependency pairs for valid plugins.
         """
@@ -209,7 +212,7 @@ class LocalFunctions:
         assert dep == [(a, b), (b, c)], f"Unexpected dependency pairs: {dep}"
         assert unmet == {}, f"Unexpected unmet dependencies: {unmet}"
 
-    def test_create_dependency_pairs_missing_base(self):
+    def test_create_dependency_pairs_missing_base(self) -> None:
         """
         Test handling missing base dependencies.
         """
@@ -233,7 +236,7 @@ class StandalonePluginMgrTests:
     """
 
     @pytest.fixture(autouse=True)
-    def reset_plugins(self):
+    def reset_plugins(self) -> Generator[None, None, None]:
         """
         Fixture to reset plugin states and the plugins dictionary before and after each test.
         """
@@ -257,13 +260,13 @@ class StandalonePluginMgrTests:
         monkeypatch.setattr("bauble.utils.message_details_dialog", fake_dialog)
         return invoked
 
-    def test_command_handler(self):
+    def test_command_handler(self) -> None:
         """
         Placeholder for testing command handlers.
         """
         pass  # No functionality to test here in the original implementation.
 
-    def test_successfulinit(self, db_session):
+    def test_successfulinit(self, db_session) -> None:
         """
         Test that plugin manager initializes successfully with dependencies.
         """
@@ -274,7 +277,7 @@ class StandalonePluginMgrTests:
         assert B.initialized, "Plugin B was not initialized"
         assert C.initialized, "Plugin C was not initialized"
 
-    def test_init_with_problem(self, db_session, mock_message_dialog):
+    def test_init_with_problem(self, db_session, mock_message_dialog) -> None:
         """
         Test plugin manager initialization with a plugin that cannot initialize.
         """
@@ -290,7 +293,7 @@ class StandalonePluginMgrTests:
             not DependsOnFailingInitPlugin.initialized
         ), "DependsOnFailingInitPlugin should not be initialized"
 
-    def test_install_with_problem(self, db_session):
+    def test_install_with_problem(self, db_session) -> None:
         """
         Test plugin installation with a plugin that cannot install.
         """
@@ -302,7 +305,7 @@ class StandalonePluginMgrTests:
                 [FailingInstallPlugin(), DependsOnFailingInstallPlugin()], force=True
             )
 
-    def test_install(self, db_session):
+    def test_install(self, db_session) -> None:
         """
         Test plugin installation and verify all plugins are installed correctly.
         """
@@ -315,7 +318,7 @@ class StandalonePluginMgrTests:
         assert B.installed, "Plugin B was not installed"
         assert C.installed, "Plugin C was not installed"
 
-    def test_dependencies_BA(self, db_session):
+    def test_dependencies_BA(self, db_session) -> None:
         """
         Test that loading B installs A but not C.
         """
@@ -328,7 +331,7 @@ class StandalonePluginMgrTests:
         assert B.installed, "Plugin B was not installed"
         assert not C.installed, "Plugin C should not be installed"
 
-    def test_dependencies_CBA(self, db_session):
+    def test_dependencies_CBA(self, db_session) -> None:
         """
         Test that loading C installs B and A.
         """
@@ -348,7 +351,7 @@ class PluginRegistryTests:
     """
 
     @pytest.fixture(autouse=True)
-    def reset_plugins(self):
+    def reset_plugins(self) -> Generator[None, None, None]:
         """
         Fixture to reset plugin states and the plugins dictionary before and after each test.
         """
@@ -359,7 +362,7 @@ class PluginRegistryTests:
         yield
         PluginRegistry.clear()  # Clear PluginRegistry after the test
 
-    def test_registry(self, db_session):
+    def test_registry(self, db_session) -> None:
         """
         Test the functionality of the PluginRegistry.
         """

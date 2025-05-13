@@ -46,7 +46,10 @@ import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
 
-logger = logging.getLogger(__name__)
+from typing import Union, Optional
+from bauble import db
+from _typeshed import Incomplete
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
@@ -66,7 +69,7 @@ class VNList(list):
     list.
     """
 
-    def remove(self, vn):
+    def remove(self, vn) -> None:
         super().remove(vn)
         try:
             if vn.species.default_vernacular_name == vn:
@@ -75,7 +78,7 @@ class VNList(list):
             logger.debug(e)
 
 
-infrasp_rank_values = {
+infrasp_rank_values: Incomplete = {
     "subsp.": _("subsp."),
     "var.": _("var."),
     "subvar.": _("subvar"),
@@ -192,15 +195,21 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         The combination of epithet, author, hybrid, sp_qual,
         cv_group, trade_name, genus_id
     """
-
-    __tablename__ = "species"
-    id = Column(Integer, primary_key=True, nullable=False)
-    epithet = Column(Unicode(64), index=True)
-    genus_id = Column(Integer, ForeignKey("genus.id"), nullable=False)
-    __table_args__ = (
+    genus: Incomplete
+    label_distribution: Incomplete
+    synonyms: Incomplete
+    _synonyms_synonym: Incomplete
+    vernacular_names: Incomplete
+    verifications: Incomplete
+    awards: Incomplete
+    __tablename__: str = "species"
+    id: Incomplete = Column(Integer, primary_key=True, nullable=False)
+    epithet: Incomplete = Column(Unicode(64), index=True)
+    genus_id: Incomplete = Column(Integer, ForeignKey("genus.id"), nullable=False)
+    __table_args__: Incomplete = (
         UniqueConstraint("genus_id", "epithet", name="_genus_epithet_uc"),
     )
-    order_by = [text("species.epithet"), text("species.author")]
+    order_by: Incomplete = [text("species.epithet"), text("species.author")]
 
     # Define relationship to Genus
     genus = relationship(
@@ -210,10 +219,10 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         uselist=False,
         active_history=True,
     )
-    accessions = relationship("Accession", back_populates="species", uselist=True)
+    accessions: Incomplete = relationship("Accession", back_populates="species", uselist=True)
 
-    rank = "species"
-    link_keys = ["accepted"]
+    rank: str = "species"
+    link_keys: Incomplete = ["accepted"]
 
     @hybrid_property
     def ht_epithet(self):
@@ -387,65 +396,65 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         return ""
 
     # columns
-    sp = synonym("epithet")
-    sp2 = Column(Unicode(64), index=True)  # in case hybrid=True
-    author = Column(Unicode(128))
-    hybrid = Column(Boolean, default=False)
-    sp_qual = Column(
+    sp: Incomplete = synonym("epithet")
+    sp2: Incomplete = Column(Unicode(64), index=True)  # in case hybrid=True
+    author: Incomplete = Column(Unicode(128))
+    hybrid: Incomplete = Column(Boolean, default=False)
+    sp_qual: Incomplete = Column(
         types.Enum(values=["agg.", "s. lat.", "s. str.", None], omit_aliases=False),
         default=None,
     )
-    cv_group = Column(Unicode(50))
-    trade_name = Column(Unicode(64))
+    cv_group: Incomplete = Column(Unicode(50))
+    trade_name: Incomplete = Column(Unicode(64))
 
-    infrasp1 = Column(Unicode(64))
-    infrasp1_rank = Column(
+    infrasp1: Incomplete = Column(Unicode(64))
+    infrasp1_rank: Incomplete = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
             translations=infrasp_rank_values,
             omit_aliases=False,
         )
     )
-    infrasp1_author = Column(Unicode(64))
+    infrasp1_author: Incomplete = Column(Unicode(64))
 
-    infrasp2 = Column(Unicode(64))
-    infrasp2_rank = Column(
+    infrasp2: Incomplete = Column(Unicode(64))
+    infrasp2_rank: Incomplete = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
             translations=infrasp_rank_values,
             omit_aliases=False,
         )
     )
-    infrasp2_author = Column(Unicode(64))
+    infrasp2_author: Incomplete = Column(Unicode(64))
 
-    infrasp3 = Column(Unicode(64))
-    infrasp3_rank = Column(
+    infrasp3: Incomplete = Column(Unicode(64))
+    infrasp3_rank: Incomplete = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
             translations=infrasp_rank_values,
             omit_aliases=False,
         )
     )
-    infrasp3_author = Column(Unicode(64))
+    infrasp3_author: Incomplete = Column(Unicode(64))
 
-    infrasp4 = Column(Unicode(64))
-    infrasp4_rank = Column(
+    infrasp4: Incomplete = Column(Unicode(64))
+    infrasp4_rank: Incomplete = Column(
         types.Enum(
             values=list(infrasp_rank_values.keys()),
             translations=infrasp_rank_values,
             omit_aliases=False,
         )
     )
-    infrasp4_author = Column(Unicode(64))
+    infrasp4_author: Incomplete = Column(Unicode(64))
 
     # the Species.genus property is defined as back_populates in Genus.species
 
     label_distribution = Column(UnicodeText)
-    bc_distribution = Column(UnicodeText)
+    bc_distribution: Incomplete = Column(UnicodeText)
 
     # relations
     synonyms = association_proxy("_synonyms", "synonym")
-    _synonyms = relationship(
+    _synonyms: Incomplete = relationship(
         "SpeciesSynonym",
         primaryjoin="Species.id==SpeciesSynonym.species_id",
         cascade="all, delete-orphan",
@@ -473,7 +482,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         single_parent=False,
     )
 
-    _default_vernacular_name = relationship(
+    _default_vernacular_name: Incomplete = relationship(
         "DefaultVernacularName",
         uselist=False,
         single_parent=False,
@@ -481,7 +490,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         back_populates="species",
         active_history=True,
     )
-    distribution = (
+    distribution: Incomplete = (
         relationship(
             "SpeciesDistribution",
             cascade="all, delete-orphan",
@@ -493,13 +502,13 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         or []
     )
 
-    habit_id = Column(Integer, ForeignKey("habit.id"), default=None)
-    habit = relationship(
+    habit_id: Incomplete = Column(Integer, ForeignKey("habit.id"), default=None)
+    habit: Incomplete = relationship(
         "Habit", uselist=False, back_populates="species", active_history=True
     )
 
-    flower_color_id = Column(Integer, ForeignKey("color.id"), default=None)
-    flower_color = relationship(
+    flower_color_id: Incomplete = Column(Integer, ForeignKey("color.id"), default=None)
+    flower_color: Incomplete = relationship(
         "Color", uselist=False, back_populates="species", active_history=True
     )
 
@@ -512,7 +521,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         uselist=True,
         overlaps="prev_species",
     )
-    previous_verifications = relationship(
+    previous_verifications: Incomplete = relationship(
         "Verification",
         primaryjoin="Verification.prev_species_id == Species.id",
         back_populates="prev_species",
@@ -524,10 +533,10 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     awards = Column(UnicodeText)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         "return the default string representation for self."
         return self.str()
 
@@ -536,7 +545,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             return None
         return self._default_vernacular_name.vernacular_name
 
-    def _set_default_vernacular_name(self, vn):
+    def _set_default_vernacular_name(self, vn) -> None:
         if vn is None:
             del self.default_vernacular_name
             return
@@ -546,11 +555,11 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         d.vernacular_name = vn
         self._default_vernacular_name = d
 
-    def _del_default_vernacular_name(self):
+    def _del_default_vernacular_name(self) -> None:
         utils.delete_or_expunge(self._default_vernacular_name)
         del self._default_vernacular_name
 
-    default_vernacular_name = property(
+    default_vernacular_name: Incomplete = property(
         _get_default_vernacular_name,
         _set_default_vernacular_name,
         _del_default_vernacular_name,
@@ -563,7 +572,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             dist = [f"{d}" for d in self.distribution]
             return ", ".join(sorted(dist))
 
-    def markup(self, authors=False, genus=True):
+    def markup(self, authors: bool = False, genus: bool = True):
         """returns this object as a string with markup
 
         :param authors: whether the authorship should be included
@@ -573,15 +582,15 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         return self.str(authors, markup=True, genus=genus)
 
     # in PlantPlugins.init() we set this to 'x' for win32
-    hybrid_char = "×"
+    hybrid_char: str = "×"
 
     def str(
         self,
-        authors=False,
-        markup=False,
-        remove_zws=False,
-        genus=True,
-        qualification=None,
+        authors: bool = False,
+        markup: bool = False,
+        remove_zws: bool = False,
+        genus: bool = True,
+        qualification: Optional[Incomplete] = None
     ):
         """
         returns a string for species
@@ -696,7 +705,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         return s
 
     @property
-    def accepted(self):
+    def accepted(self) -> Any:
         """Return the accepted name for this species (if it is a synonym)."""
         if self._synonyms_synonym:
             return self._synonyms_synonym[0].species
@@ -729,7 +738,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
         return False
 
-    infrasp_attr = {
+    infrasp_attr: Incomplete = {
         1: {
             "rank": "infrasp1_rank",
             "epithet": "infrasp1",
@@ -762,7 +771,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             getattr(self, self.infrasp_attr[level]["author"]),
         )
 
-    def set_infrasp(self, level, rank, epithet, author=None):
+    def set_infrasp(self, level, rank, epithet, author: Optional[Incomplete] = None) -> None:
         """
         level should be 1-4
         """
@@ -770,7 +779,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         setattr(self, self.infrasp_attr[level]["epithet"], epithet)
         setattr(self, self.infrasp_attr[level]["author"], author)
 
-    def as_dict(self, recurse=True):
+    def as_dict(self, recurse: bool = True):
         result = {
             col: getattr(self, col)
             for col in list(self.__table__.columns.keys())
@@ -788,7 +797,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         return result
 
     @classmethod
-    def correct_field_names(cls, keys):
+    def correct_field_names(cls, keys) -> None:
         pass
 
     @classmethod
@@ -862,7 +871,7 @@ def retrieve(session, keys):
         return None
 
 
-SpeciesNote = db.make_note_class(
+SpeciesNote: Incomplete = db.make_note_class(
     "Species", Species, compute_serializable_fields, as_dict, retrieve
 )
 Species.notes = relationship(
@@ -878,13 +887,15 @@ class SpeciesSynonym(db.Base):
     """
     :Table name: species_synonym
     """
-
-    __tablename__ = "species_synonym"
+    id: Incomplete
+    species: Incomplete
+    synonym: Incomplete
+    __tablename__: str = "species_synonym"
 
     # columns
     id = Column(Integer, primary_key=True, nullable=False)
-    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
-    synonym_id = Column(Integer, ForeignKey("species.id"), nullable=False, unique=True)
+    species_id: Incomplete = Column(Integer, ForeignKey("species.id"), nullable=False)
+    synonym_id: Incomplete = Column(Integer, ForeignKey("species.id"), nullable=False, unique=True)
 
     # Relationship to the main Species entity
     species = relationship(
@@ -904,13 +915,13 @@ class SpeciesSynonym(db.Base):
         active_history=True,
     )
 
-    def __init__(self, synonym=None, **kwargs):
+    def __init__(self, synonym: Optional[Incomplete] = None, **kwargs) -> None:
         # it is necessary that the first argument here be synonym for
         # the Species.synonyms association_proxy to work
         self.synonym = synonym
         super().__init__(**kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.synonym)
 
 
@@ -934,16 +945,16 @@ class VernacularName(db.Base, db.Serializable):
     :Constraints:
     """
 
-    __tablename__ = "vernacular_name"
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(Unicode(128), nullable=False)
-    language = Column(Unicode(128))
-    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
-    __table_args__ = (
+    __tablename__: str = "vernacular_name"
+    id: Incomplete = Column(Integer, primary_key=True, nullable=False)
+    name: Incomplete = Column(Unicode(128), nullable=False)
+    language: Incomplete = Column(Unicode(128))
+    species_id: Incomplete = Column(Integer, ForeignKey("species.id"), nullable=False)
+    __table_args__: Incomplete = (
         UniqueConstraint("name", "language", "species_id", name="vn_index"),
         {},
     )
-    species = relationship(
+    species: Incomplete = relationship(
         "Species",
         back_populates="vernacular_names",
         uselist=False,
@@ -955,7 +966,7 @@ class VernacularName(db.Base, db.Serializable):
         """provide the two lines describing object for SearchView row."""
         return str(self), self.species.markup(authors=False)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.name:
             return self.name
         else:
@@ -1038,23 +1049,24 @@ class DefaultVernacularName(db.Base):
 
     :Constraints:
     """
-
-    __tablename__ = "default_vernacular_name"
-    __table_args__ = (
+    id: Incomplete
+    vernacular_name: Incomplete
+    __tablename__: str = "default_vernacular_name"
+    __table_args__: Incomplete = (
         UniqueConstraint("species_id", "vernacular_name_id", name="default_vn_index"),
         {},
     )
 
     # columns
     id = Column(Integer, primary_key=True)
-    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
-    vernacular_name_id = Column(
+    species_id: Incomplete = Column(Integer, ForeignKey("species.id"), nullable=False)
+    vernacular_name_id: Incomplete = Column(
         Integer, ForeignKey("vernacular_name.id"), nullable=False
     )
 
     # relations
     vernacular_name = relationship(VernacularName, uselist=False)
-    species = relationship(
+    species: Incomplete = relationship(
         "Species",
         uselist=False,
         back_populates="_default_vernacular_name",
@@ -1062,7 +1074,7 @@ class DefaultVernacularName(db.Base):
         active_history=True,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.vernacular_name)
 
 
@@ -1076,16 +1088,16 @@ class SpeciesDistribution(db.Base):
 
     :Constraints:
     """
-
-    __tablename__ = "species_distribution"
+    id: Incomplete
+    __tablename__: str = "species_distribution"
 
     # columns
     id = Column(Integer, primary_key=True)
-    geographic_area_id = Column(
+    geographic_area_id: Incomplete = Column(
         Integer, ForeignKey("geographic_area.id"), nullable=False
     )
-    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
-    species = relationship(
+    species_id: Incomplete = Column(Integer, ForeignKey("species.id"), nullable=False)
+    species: Incomplete = relationship(
         "Species",
         back_populates="distribution",
         single_parent=False,
@@ -1093,7 +1105,7 @@ class SpeciesDistribution(db.Base):
         active_history=True,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.geographic_area)
 
 
@@ -1106,18 +1118,18 @@ SpeciesDistribution.geographic_area = relationship(
 
 
 class Habit(db.Base):
-    __tablename__ = "habit"
+    __tablename__: str = "habit"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(Unicode(64))
-    code = Column(Unicode(8), unique=True)
-    species = relationship(
+    id: Incomplete = Column(Integer, primary_key=True, autoincrement=True)
+    name: Incomplete = Column(Unicode(64))
+    code: Incomplete = Column(Unicode(8), unique=True)
+    species: Incomplete = relationship(
         "Species",
         back_populates="habit",
         uselist=True,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.name:
             return f"{self.name} ({self.code})"
         else:
@@ -1125,18 +1137,18 @@ class Habit(db.Base):
 
 
 class Color(db.Base):
-    __tablename__ = "color"
+    __tablename__: str = "color"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(Unicode(32))
-    code = Column(Unicode(8), unique=True)
-    species = relationship(
+    id: Incomplete = Column(Integer, primary_key=True)
+    name: Incomplete = Column(Unicode(32))
+    code: Incomplete = Column(Unicode(8), unique=True)
+    species: Incomplete = relationship(
         "Species",
         back_populates="flower_color",
         uselist=True,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.name:
             return f"{self.name} ({self.code})"
         else:

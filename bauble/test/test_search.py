@@ -38,6 +38,8 @@ from sqlalchemy.sql import select
 
 
 # Search Parser Fixture
+from bauble import db as db, prefs as prefs, querybuilder as querybuilder, search as search
+from bauble.search import EmptyToken as EmptyToken, NoneToken as NoneToken, SearchParser as SearchParser, get_strategy as get_strategy
 @pytest.fixture(scope="function")
 def parser():
     """Fixture for creating a SearchParser instance."""
@@ -100,7 +102,7 @@ class TestSearchParser:
             "domain where relation.relation.col=value AND col2=value2",
         ],
     )
-    def test_query_expression_token_UPPER(self, parser, query):
+    def test_query_expression_token_UPPER(self, parser, query) -> None:
         parser.query.parseString(query)
 
     @pytest.mark.parametrize(
@@ -109,7 +111,7 @@ class TestSearchParser:
             "domain where relation.relation.col=value and col2=value2",
         ],
     )
-    def test_query_expression_token_LOWER(self, parser, query):
+    def test_query_expression_token_LOWER(self, parser, query) -> None:
         parser.query.parseString(query)
 
     @pytest.mark.parametrize(
@@ -126,7 +128,7 @@ class TestSearchParser:
             ('domain="test test"', "[domain = ['test test']]"),
         ],
     )
-    def test_domain_expression_token(self, parser, query, expected):
+    def test_domain_expression_token(self, parser, query, expected) -> None:
         results = parser.domain_expression.parseString(query, parseAll=True)
         assert str(results) == expected
 
@@ -137,7 +139,7 @@ class TestSearchParser:
             ("123.1", 123.1),
         ],
     )
-    def test_integer_token(self, parser, query, expected):
+    def test_integer_token(self, parser, query, expected) -> None:
         results = parser.value.parseString(query)
         assert results.value.express() == expected
 
@@ -147,7 +149,7 @@ class TestSearchParser:
             "|bool||",
         ],
     )
-    def test_bool_typed_no_arguments(self, parser, query):
+    def test_bool_typed_no_arguments(self, parser, query) -> None:
         with pytest.raises(ParseException):
             parser.value.parseString(query)
 
@@ -174,17 +176,17 @@ class TestSearchParser:
             ("|bool|abc, 1.1, 3|", True),
         ],
     )
-    def test_bool_typed_values(self, parser, query, expected):
+    def test_bool_typed_values(self, parser, query, expected) -> None:
         results = parser.value.parseString(query)
         assert results.getName() == "value"
         assert results.value.express() == expected
 
-    def test_datetime_typed_values(self, parser):
+    def test_datetime_typed_values(self, parser) -> None:
         results = parser.value.parseString("|datetime|1970,1,1|")
         assert results.getName() == "value"
         assert results.value.express() == datetime(1970, 1, 1)
 
-    def test_datetime_typed_values_offset(self, parser):
+    def test_datetime_typed_values_offset(self, parser) -> None:
         today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         yesterday = today - timedelta(1)
 
@@ -211,7 +213,7 @@ class TestSearchParser:
             ('"%.-_*"', "%.-_*"),
         ],
     )
-    def test_value_token_valid(self, parser, query, expected):
+    def test_value_token_valid(self, parser, query, expected) -> None:
         """
         value should return the first valid token
         """
@@ -228,7 +230,7 @@ class TestSearchParser:
             "$",
         ],
     )
-    def test_value_token_invalid(self, parser, query):
+    def test_value_token_invalid(self, parser, query) -> None:
         """
         value should raise a parse exception for invalid queries
         """
@@ -246,7 +248,7 @@ class TestSearchParser:
             ),
         ],
     )
-    def test_needs_join(self, parser, query, expected):
+    def test_needs_join(self, parser, query, expected) -> None:
         """
         Test the join steps generated from queries
         """
@@ -268,7 +270,7 @@ class TestSearchParser:
             ('"test1 test2", test3', [["test1 test2", "test3"]]),
         ],
     )
-    def test_value_list_token_valid(self, parser, query, expected):
+    def test_value_list_token_valid(self, parser, query, expected) -> None:
         """
         value_list: should return all valid values
         """
@@ -285,7 +287,7 @@ class TestSearchParser:
             "1,2,3 4 5",
         ],
     )
-    def test_value_list_token_invalid(self, parser, query):
+    def test_value_list_token_invalid(self, parser, query) -> None:
         """
         value_list: should raise a parse exception for invalid queries
         """
@@ -301,7 +303,7 @@ from sqlalchemy import select
 
 @pytest.mark.usefixtures("db_session", "setup_test_data")
 class TestSearch:
-    def test_find_correct_strategy_internal(self):
+    def test_find_correct_strategy_internal(self) -> None:
         """
         Verify the MapperSearch strategy is available (low-level)
         """
@@ -312,7 +314,7 @@ class TestSearch:
         "strategy, expected_type",
         [("MapperSearch", search.MapperSearch), ("NotExisting", None)],
     )
-    def test_find_correct_strategy(self, strategy, expected_type):
+    def test_find_correct_strategy(self, strategy, expected_type) -> None:
         """
         Test retrieving search strategies
         """
@@ -322,7 +324,7 @@ class TestSearch:
         else:
             assert isinstance(mapper_search, expected_type)
 
-    def setup_test_domains(self, mapper_search):
+    def setup_test_domains(self, mapper_search) -> None:
         """
         Register domains in MapperSearch with the appropriate metadata.
         """
@@ -381,7 +383,7 @@ class TestSearch:
     )
     def test_search_by_values(
         self, db_session, setup_test_data, query, expected_len, expected_ids
-    ):
+    ) -> None:
         """
         Test searching by values for family or genus
         """
@@ -415,7 +417,7 @@ class TestSearch:
                     filtered_results.append(obj)
         assert len(filtered_results) == expected_len
 
-    def test_search_family_eq(self, db_session, setup_test_data):
+    def test_search_family_eq(self, db_session, setup_test_data) -> None:
         """
         Test searching for a family by its name using the MapperSearch strategy.
         """
@@ -436,7 +438,7 @@ class TestSearch:
         assert isinstance(result_family, Family)
         assert result_family.id == setup_test_data["family1"].id
 
-    def test_search_by_expression_family_eq(self, db_session, setup_test_data):
+    def test_search_by_expression_family_eq(self, db_session, setup_test_data) -> None:
         mapper_search = get_strategy("MapperSearch")
         # Register domains
         self.setup_test_domains(mapper_search)
@@ -456,7 +458,7 @@ class TestSearch:
     )
     def test_search_by_expression_genus_eq(
         self, db_session, setup_test_data, query, expected
-    ):
+    ) -> None:
         """
         Test searching genus with specific expressions
         """
@@ -562,7 +564,7 @@ class TestSearch:
     )
     def test_search_by_expression_genus_like_nomatch(
         self, db_session, setup_test_data, query, expected_count
-    ):
+    ) -> None:
         """
         Test searching for genus using 'like' expressions that yield no matches.
         """
@@ -575,7 +577,7 @@ class TestSearch:
         # Assert the results match the expected count
         assert len(results) == expected_count
 
-    def test_search_by_query11(self, db_session, setup_test_data):
+    def test_search_by_query11(self, db_session, setup_test_data) -> None:
         """
         Query with MapperSearch, single table, single test.
         This test verifies that a query like "genus where genus=genus1" returns
@@ -625,7 +627,7 @@ class TestSearch:
             ("genus where genus=genus2 OR genus=genus1", {1, 2, 3}),
         ],
     )
-    def test_search_by_query12(self, db_session, setup_test_data, query, expected_ids):
+    def test_search_by_query12(self, db_session, setup_test_data, query, expected_ids) -> None:
         """
         Query with MapperSearch, single table, p1 OR p2.
         """
@@ -677,7 +679,7 @@ class TestSearch:
             ("genus where id>0 AND id<3", {1, 2}),
         ],
     )
-    def test_search_by_query13(self, db_session, query, expected_ids):
+    def test_search_by_query13(self, db_session, query, expected_ids) -> None:
         """
         Query with MapperSearch, single table, p1 AND p2.
         """
@@ -702,7 +704,7 @@ class TestSearch:
         # Assert the IDs of the results match the expected ones
         assert {g.id for g in results} == expected_ids
 
-    def test_search_by_query21(self, db_session, setup_test_data):
+    def test_search_by_query21(self, db_session, setup_test_data) -> None:
         """
         Query with MapperSearch, joined tables, one predicate.
         This test verifies two things:
@@ -772,7 +774,7 @@ class TestSearch:
     )
     def test_search_by_query22(
         self, db_session, setup_test_data, query, expected_result
-    ):
+    ) -> None:
         """
         Test searching using a query language that filters data based on conditions.
         The test covers multiple conditions involving joins and nested relationships.
@@ -827,7 +829,7 @@ class TestSearch:
     )
     def test_search_by_query22Symbolic(
         self, db_session, setup_test_data, query, expected_length
-    ):
+    ) -> None:
         """
         Query with MapperSearch, joined tables, using &&, ||, ! operators.
         """
@@ -858,7 +860,7 @@ class TestSearch:
             ("genus where author is None", {1, 2, 3}),
         ],
     )
-    def test_search_by_query22None(self, db_session, query, expected_result):
+    def test_search_by_query22None(self, db_session, query, expected_result) -> None:
         """
         Query with MapperSearch, joined tables, predicates using None.
         """
@@ -897,7 +899,7 @@ class TestSearch:
             ("genus where author != None", 'genus where NOT author = ""'),
         ],
     )
-    def test_search_by_query22NoneMatch(self, db_session, clean_db, query1, query2):
+    def test_search_by_query22NoneMatch(self, db_session, clean_db, query1, query2) -> None:
         """
         Query with MapperSearch, joined tables, predicates using None.
         """
@@ -922,7 +924,7 @@ class TestSearch:
         # Assert results match the expected output
         assert results1 == results2
 
-    def test_search_by_query22id(self, db_session):
+    def test_search_by_query22id(self, db_session) -> None:
         """
         Query with MapperSearch, joined tables, test on id of dependent table.
         """
@@ -948,7 +950,7 @@ class TestSearch:
         # Validate the query executes without errors
         assert isinstance(list(results), list)
 
-    def test_search_by_query22like(self, db_session, setup_test_data):
+    def test_search_by_query22like(self, db_session, setup_test_data) -> None:
         """
         Query with MapperSearch, joined tables, LIKE.
         """
@@ -981,7 +983,7 @@ class TestSearch:
         # Validate results
         assert set(results) == {genus1, genus21}
 
-    def test_search_by_query22_underscore(self, db_session):
+    def test_search_by_query22_underscore(self, db_session) -> None:
         """
         Query with MapperSearch, joined tables, fields starting with an underscore.
         """
@@ -1021,7 +1023,7 @@ class TestSearch:
         assert results_before_2000 == set()
         assert results_after_2000 == {pp}
 
-    def test_query_filter(self, db_session):
+    def test_query_filter(self, db_session) -> None:
         """
         Test query filtering with valid subqueries and filtering logic.
         """
@@ -1031,7 +1033,7 @@ class TestSearch:
         # Validate results
         assert len(results) > 0
 
-    def test_search_with_subquery(self, db_session):
+    def test_search_with_subquery(self, db_session) -> None:
         """
         Ensure proper subquery usage with filters in SQLAlchemy.
         """
@@ -1053,7 +1055,7 @@ class TestSearch:
         for row in results:
             assert "family" in row.family.lower()  # Example check
 
-    def test_between_evaluate(self, db_session):
+    def test_between_evaluate(self, db_session) -> None:
         """
         Query with BETWEEN value and value.
         """
@@ -1090,7 +1092,7 @@ class TestSearch:
         assert set(results_valid) == {ac}
         assert set(results_invalid) == set()
 
-    def test_search_by_query_synonyms(self, db_session):
+    def test_search_by_query_synonyms(self, db_session) -> None:
         """
         SynonymSearch strategy gives all synonyms of the given taxon.
         """
@@ -1121,7 +1123,7 @@ class TestSearch:
         # Validate results
         assert results == [g3]
 
-    def test_search_by_query_synonyms_disabled(self, db_session):
+    def test_search_by_query_synonyms_disabled(self, db_session) -> None:
         """
         SynonymSearch strategy should not return synonyms when disabled.
         """
@@ -1153,7 +1155,7 @@ class TestSearch:
         # Validate results
         assert results == []
 
-    def test_search_by_query_vernacular(self, db_session):
+    def test_search_by_query_vernacular(self, db_session) -> None:
         """
         MapperSearch strategy can find species by vernacular name.
         """
@@ -1204,7 +1206,7 @@ def setup_in_operator_search(db_session):
 
 
 class InOperatorSearch:
-    def test_in_singleton(self, db_session, setup_in_operator_search):
+    def test_in_singleton(self, db_session, setup_in_operator_search) -> None:
         """
         Test 'IN' operator with a single value.
         """
@@ -1215,7 +1217,7 @@ class InOperatorSearch:
         results = mapper_search.search(query, db_session)
         assert results == {setup_in_operator_search["g1"]}
 
-    def test_in_list(self, db_session, setup_in_operator_search):
+    def test_in_list(self, db_session, setup_in_operator_search) -> None:
         """
         Test 'IN' operator with a list of values.
         """
@@ -1231,7 +1233,7 @@ class InOperatorSearch:
         }
         assert results == expected_results
 
-    def test_in_list_no_result(self, db_session, setup_in_operator_search):
+    def test_in_list_no_result(self, db_session, setup_in_operator_search) -> None:
         """
         Test 'IN' operator with a list of values that yield no results.
         """
@@ -1242,7 +1244,7 @@ class InOperatorSearch:
         results = mapper_search.search(query, db_session)
         assert results == set()
 
-    def test_in_composite_expression(self, db_session, setup_in_operator_search):
+    def test_in_composite_expression(self, db_session, setup_in_operator_search) -> None:
         """
         Test 'IN' operator with composite expressions.
         """
@@ -1259,7 +1261,7 @@ class InOperatorSearch:
 
     def test_in_composite_expression_excluding(
         self, db_session, setup_in_operator_search
-    ):
+    ) -> None:
         """
         Test 'IN' operator with composite expressions using 'AND'.
         """
@@ -1300,7 +1302,7 @@ def setup_binomial_search(db_session):
 
 
 class BinomialSearchTests:
-    def test_binomial_complete(self, db_session, setup_binomial_search):
+    def test_binomial_complete(self, db_session, setup_binomial_search) -> None:
         """
         Test searching with a complete binomial name.
         """
@@ -1311,7 +1313,7 @@ class BinomialSearchTests:
         results = mapper_search.search(query, db_session)
         assert results == {setup_binomial_search["ic"]}
 
-    def test_binomial_incomplete(self, db_session, setup_binomial_search):
+    def test_binomial_incomplete(self, db_session, setup_binomial_search) -> None:
         """
         Test searching with an incomplete binomial name.
         """
@@ -1322,7 +1324,7 @@ class BinomialSearchTests:
         results = mapper_search.search(query, db_session)
         assert results == {setup_binomial_search["ic"]}
 
-    def test_binomial_no_match(self, db_session):
+    def test_binomial_no_match(self, db_session) -> None:
         """
         Test searching with a binomial name that matches nothing.
         """
@@ -1333,7 +1335,7 @@ class BinomialSearchTests:
         results = mapper_search.search(query, db_session)
         assert results == set()
 
-    def test_almost_binomial(self, db_session, setup_binomial_search):
+    def test_almost_binomial(self, db_session, setup_binomial_search) -> None:
         """
         Test searching with a name that partially matches genus and species.
         """
@@ -1348,7 +1350,7 @@ class BinomialSearchTests:
             setup_binomial_search["pc"],
         }
 
-    def test_cultivar_also_matched(self, db_session, setup_binomial_search):
+    def test_cultivar_also_matched(self, db_session, setup_binomial_search) -> None:
         """
         Test searching with a binomial name that includes a cultivar.
         """
@@ -1381,21 +1383,21 @@ def querybuilder_view():
 
 
 class QueryBuilderTests:
-    def test_can_create_querybuilder(self, querybuilder_view):
+    def test_can_create_querybuilder(self, querybuilder_view) -> None:
         """
         Test that a QueryBuilder instance can be created.
         """
         qb = querybuilder.QueryBuilder(querybuilder_view)
         assert qb is not None
 
-    def test_empty_query_is_invalid(self, querybuilder_view):
+    def test_empty_query_is_invalid(self, querybuilder_view) -> None:
         """
         Test that an empty QueryBuilder is invalid.
         """
         qb = querybuilder.QueryBuilder(querybuilder_view)
         assert not qb.validate()
 
-    def test_can_set_query(self, querybuilder_view):
+    def test_can_set_query(self, querybuilder_view) -> None:
         """
         Test that a query can be set in the QueryBuilder.
         """
@@ -1403,7 +1405,7 @@ class QueryBuilderTests:
         qb.set_query("plant where id=0 or id=1 or id>10")
         assert len(qb.expression_rows) == 3
 
-    def test_can_set_enum_query(self, querybuilder_view):
+    def test_can_set_enum_query(self, querybuilder_view) -> None:
         """
         Test that an enum query can be set in the QueryBuilder.
         """
@@ -1441,14 +1443,14 @@ class BuildingSQLStatements:
             ),
         ],
     )
-    def test_parse_species_queries(self, search_parser, query, expected):
+    def test_parse_species_queries(self, search_parser, query, expected) -> None:
         """
         Test parsing species-related SQL queries.
         """
         results = search_parser.parse_string(query)
         assert str(results.statement) == expected
 
-    def test_parse_family_query(self, search_parser):
+    def test_parse_family_query(self, search_parser) -> None:
         """
         Test parsing SQL query to find family from genus.
         """
@@ -1457,7 +1459,7 @@ class BuildingSQLStatements:
         results = search_parser.parse_string(query)
         assert str(results.statement) == expected
 
-    def test_parse_genus_query(self, search_parser):
+    def test_parse_genus_query(self, search_parser) -> None:
         """
         Test parsing SQL query to find genus from family.
         """
@@ -1466,7 +1468,7 @@ class BuildingSQLStatements:
         results = search_parser.parse_string(query)
         assert str(results.statement) == expected
 
-    def test_parse_plant_query(self, search_parser):
+    def test_parse_plant_query(self, search_parser) -> None:
         """
         Test parsing SQL query to find plant by accession ID.
         """
@@ -1492,7 +1494,7 @@ class BuildingSQLStatements:
             ),
         ],
     )
-    def test_parse_not_operators(self, search_parser, query, expected):
+    def test_parse_not_operators(self, search_parser, query, expected) -> None:
         """
         Test parsing SQL queries with NOT operators.
         """
@@ -1516,14 +1518,14 @@ class BuildingSQLStatements:
             ),
         ],
     )
-    def test_parse_lowercase_operators(self, search_parser, query, expected):
+    def test_parse_lowercase_operators(self, search_parser, query, expected) -> None:
         """
         Test parsing SQL queries with lowercase logical operators.
         """
         results = search_parser.parse_string(query)
         assert str(results.statement) == expected
 
-    def test_notes_boundary_condition(self, search_parser):
+    def test_notes_boundary_condition(self, search_parser) -> None:
         """
         Test SQL query that ensures proper handling of word boundaries.
         """
@@ -1549,7 +1551,7 @@ class BuildingSQLStatements:
             ),
         ],
     )
-    def test_parse_between_conditions(self, search_parser, query, expected):
+    def test_parse_between_conditions(self, search_parser, query, expected) -> None:
         """
         Test parsing SQL queries with BETWEEN conditions.
         """
@@ -1558,7 +1560,7 @@ class BuildingSQLStatements:
 
     SearchParser = SearchParser
 
-    def test_can_find_species_from_genus(self):
+    def test_can_find_species_from_genus(self) -> None:
         """
         Can find species from genus.
         """
@@ -1570,7 +1572,7 @@ class BuildingSQLStatements:
             == "SELECT * FROM species WHERE (species.genus = 'genus1')"
         )
 
-    def test_can_use_logical_operators(self):
+    def test_can_use_logical_operators(self) -> None:
         """
         Can use logical operators.
         """
@@ -1589,7 +1591,7 @@ class BuildingSQLStatements:
             "SELECT * FROM species WHERE ((species.genus = 'genus1') OR ((species.sp = 'name') AND (species.genus.family.family = 'name')))"
         )
 
-    def test_can_find_family_from_genus(self):
+    def test_can_find_family_from_genus(self) -> None:
         """
         Can find family from genus.
         """
@@ -1600,7 +1602,7 @@ class BuildingSQLStatements:
             == "SELECT * FROM family WHERE (family.genus = 'genus1')"
         )
 
-    def test_can_find_genus_from_family(self):
+    def test_can_find_genus_from_family(self) -> None:
         """
         Can find genus from family.
         """
@@ -1611,7 +1613,7 @@ class BuildingSQLStatements:
             == "SELECT * FROM genus WHERE (genus.family = 'family2')"
         )
 
-    def test_can_find_plant_by_accession(self):
+    def test_can_find_plant_by_accession(self) -> None:
         """
         Can find plant from the accession id.
         """
@@ -1622,7 +1624,7 @@ class BuildingSQLStatements:
             == "SELECT * FROM plant WHERE (accession.species.id = 113.0)"
         )
 
-    def test_can_use_not_operator(self):
+    def test_can_use_not_operator(self) -> None:
         """
         Can use the NOT operator.
         """
@@ -1646,7 +1648,7 @@ class BuildingSQLStatements:
             "SELECT * FROM species WHERE ((family = 1.0) OR ((family = 2.0) AND NOT (genus.id = 3.0)))"
         )
 
-    def test_can_use_lowercase_operators(self):
+    def test_can_use_lowercase_operators(self) -> None:
         """
         Can use the operators in lower case.
         """
@@ -1670,7 +1672,7 @@ class BuildingSQLStatements:
             "SELECT * FROM species WHERE ((family = 1.0) OR ((family = 2.0) AND NOT (genus.id = 3.0)))"
         )
 
-    def test_notes_is_not_not_es(self):
+    def test_notes_is_not_not_es(self) -> None:
         """
         Acknowledges word boundaries.
         """
@@ -1678,7 +1680,7 @@ class BuildingSQLStatements:
         results = sp.parse_string("species where notes.id!=0")
         assert str(results.statement) == "SELECT * FROM species WHERE (notes.id != 0.0)"
 
-    def test_between_just_parse_0(self):
+    def test_between_just_parse_0(self) -> None:
         """
         Use BETWEEN value and value.
         """
@@ -1688,7 +1690,7 @@ class BuildingSQLStatements:
             str(results.statement) == "SELECT * FROM species WHERE (BETWEEN id 0.0 1.0)"
         )
 
-    def test_between_just_parse_1(self):
+    def test_between_just_parse_1(self) -> None:
         """
         Use BETWEEN value and value.
         """
@@ -1699,7 +1701,7 @@ class BuildingSQLStatements:
             == "SELECT * FROM species WHERE (BETWEEN step.id 0.0 1.0)"
         )
 
-    def test_between_just_parse_2(self):
+    def test_between_just_parse_2(self) -> None:
         """
         Use BETWEEN value and value.
         """
@@ -1783,7 +1785,7 @@ def setup_filter_then_match(db_session):
 
 
 class FilterThenMatchTests:
-    def test_can_filter_match_notes(self, db_session, setup_filter_then_match):
+    def test_can_filter_match_notes(self, db_session, setup_filter_then_match) -> None:
         mapper_search = search.get_strategy("MapperSearch")
         genus1, genus2, genus3, genus4 = setup_filter_then_match
 
@@ -1803,7 +1805,7 @@ class FilterThenMatchTests:
         results = mapper_search.search(s, db_session)
         assert results == {genus2}
 
-    def test_can_find_empty_set(self, db_session, setup_filter_then_match):
+    def test_can_find_empty_set(self, db_session, setup_filter_then_match) -> None:
         mapper_search = search.get_strategy("MapperSearch")
         _, _, _, genus4 = setup_filter_then_match
 
@@ -1811,7 +1813,7 @@ class FilterThenMatchTests:
         results = mapper_search.search(s, db_session)
         assert results == {genus4}
 
-    def test_can_find_non_empty_set(self, db_session, setup_filter_then_match):
+    def test_can_find_non_empty_set(self, db_session, setup_filter_then_match) -> None:
         mapper_search = search.get_strategy("MapperSearch")
         genus1, genus2, genus3, _ = setup_filter_then_match
 
@@ -1819,7 +1821,7 @@ class FilterThenMatchTests:
         results = mapper_search.search(s, db_session)
         assert results == {genus1, genus2, genus3}
 
-    def test_can_match_list_of_values(self, db_session, setup_filter_then_match):
+    def test_can_match_list_of_values(self, db_session, setup_filter_then_match) -> None:
         mapper_search = search.get_strategy("MapperSearch")
         genus1, genus2, genus3, _ = setup_filter_then_match
 
@@ -1831,7 +1833,7 @@ class FilterThenMatchTests:
         results = mapper_search.search(s, db_session)
         assert results == {genus3}
 
-    def test_parenthesised_search(self, db_session, setup_filter_then_match):
+    def test_parenthesised_search(self, db_session, setup_filter_then_match) -> None:
         mapper_search = search.get_strategy("MapperSearch")
 
         s = "genus where (notes!=Empty) and (notes=Empty)"
@@ -1852,13 +1854,13 @@ class ParseTypedValue:
             ("whatever else", "whatever else"),
         ],
     )
-    def test_parse_typed_value(self, expected):
+    def test_parse_typed_value(self, expected) -> None:
         result = querybuilder.parse_typed_value(self)
         assert result == expected
 
 
 class EmptySetEqualityTest:
-    def test_EmptyToken_equals(self):
+    def test_EmptyToken_equals(self) -> None:
         """
         Test equality of EmptyToken instances.
         """
@@ -1867,7 +1869,7 @@ class EmptySetEqualityTest:
         assert et1 == et2
         assert et1 == set()
 
-    def test_empty_token_otherwise(self):
+    def test_empty_token_otherwise(self) -> None:
         """
         Test inequality of EmptyToken with various other types.
         """
@@ -1879,7 +1881,7 @@ class EmptySetEqualityTest:
 
     from bauble.search import EmptyToken, NoneToken
 
-    def test_EmptyToken_representation(self):
+    def test_EmptyToken_representation(self) -> None:
         """
         Test the representation of EmptyToken.
         """
@@ -1887,7 +1889,7 @@ class EmptySetEqualityTest:
         assert str(et1) == "Empty"
         assert et1.express() == set()
 
-    def test_NoneToken_representation(self):
+    def test_NoneToken_representation(self) -> None:
         """
         Test the representation of NoneToken.
         """
@@ -1936,7 +1938,7 @@ def setup_aggregating_functions(db_session):
 
 
 class AggregatingFunctions:
-    def test_count(self, setup_aggregating_functions):
+    def test_count(self, setup_aggregating_functions) -> None:
         """
         Test count function in MapperSearch.
         """
@@ -1956,7 +1958,7 @@ class AggregatingFunctions:
         result = results.pop()
         assert result.id == 2
 
-    def test_count_just_parse(self):
+    def test_count_just_parse(self) -> None:
         """
         Test count parsing in SearchParser.
         """
@@ -1969,7 +1971,7 @@ class AggregatingFunctions:
 
 
 class BaubleSearchSearchTest:
-    def test_search_search_uses_Mapper_Search(self, db_session, mock_logger):
+    def test_search_search_uses_Mapper_Search(self, db_session, mock_logger) -> None:
         """
         Test that MapperSearch is used for searches.
         """

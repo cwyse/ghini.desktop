@@ -30,11 +30,13 @@ from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.plant import Plant, PlantNote
 from bauble.plugins.plants import Familia, Genus, Species, SpeciesNote, VernacularName
 
+from _typeshed import Incomplete
+from collections.abc import Generator
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import select
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 
 def serializedatetime(obj):
@@ -59,9 +61,12 @@ class JSONExporter(editor.GenericEditorPresenter):
     """Export taxonomy and plants in JSON format.
 
     the Presenter ((M)VP)"""
-
-    last_folder = ""
-    widget_to_field_map = {
+    selection_based_on: str
+    export_includes: str
+    include_private: bool
+    filename: str
+    last_folder: str = ""
+    widget_to_field_map: Incomplete = {
         "sbo_selection": "selection_based_on",
         "sbo_taxa": "selection_based_on",
         "sbo_accessions": "selection_based_on",
@@ -72,12 +77,12 @@ class JSONExporter(editor.GenericEditorPresenter):
         "filename": "filename",
     }
 
-    view_accept_buttons = [
+    view_accept_buttons: Incomplete = [
         "sed-button-ok",
         "sed-button-cancel",
     ]
 
-    def __init__(self, view):
+    def __init__(self, view) -> None:
         self.selection_based_on = "sbo_selection"
         self.export_includes = "ei_referred"
         self.include_private = True
@@ -362,7 +367,7 @@ class JSONExporter(editor.GenericEditorPresenter):
         # done, return the result
         return result
 
-    def on_btnbrowse_clicked(self, button):
+    def on_btnbrowse_clicked(self, button) -> None:
         self.view.run_file_chooser_dialog(
             _("Choose a file…"),
             parent=self,
@@ -379,13 +384,13 @@ class JSONExporter(editor.GenericEditorPresenter):
         filename = self.view.widget_get_value("filename")
         JSONExporter.last_folder, bn = os.path.split(filename)
 
-    def on_btnok_clicked(self, widget):
+    def on_btnok_clicked(self, widget) -> None:
         self.run()  # should go in the background really
 
-    def on_btncancel_clicked(self, widget):
+    def on_btncancel_clicked(self, widget) -> None:
         pass
 
-    def run(self):
+    def run(self) -> None:
         "perform the export"
 
         filename = self.filename
@@ -441,20 +446,26 @@ class JSONImporter(editor.GenericEditorPresenter):
     the Presenter ((M)VP)
     Model (attributes container) is the Presenter itself.
     """
-
-    widget_to_field_map = {
+    filename: str
+    update: bool
+    create: bool
+    __error: bool
+    __cancel: bool
+    __pause: bool
+    __error_exc: bool
+    widget_to_field_map: Incomplete = {
         "chk_create": "create",
         "chk_update": "update",
         "input_filename": "filename",
     }
-    last_folder = ""
+    last_folder: str = ""
 
-    view_accept_buttons = [
+    view_accept_buttons: Incomplete = [
         "sid-button-ok",
         "sid-button-cancel",
     ]
 
-    def __init__(self, view):
+    def __init__(self, view) -> None:
         self.filename = ""
         self.update = True
         self.create = True
@@ -464,7 +475,7 @@ class JSONImporter(editor.GenericEditorPresenter):
         self.__pause = False  # flag to pause importing
         self.__error_exc = False
 
-    def on_btnbrowse_clicked(self, button):
+    def on_btnbrowse_clicked(self, button) -> None:
         # Use the window from self.view
         parent_window = self.view.get_window()
 
@@ -484,15 +495,15 @@ class JSONImporter(editor.GenericEditorPresenter):
         filename = self.view.widget_get_value("input_filename")
         JSONImporter.last_folder, bn = os.path.split(filename)
 
-    def on_btnok_clicked(self, widget):
+    def on_btnok_clicked(self, widget) -> None:
         obj = json.load(open(self.filename))
         a = isinstance(obj, list) and obj or [obj]
         bauble.task.queue(self.run(a))
 
-    def on_btncancel_clicked(self, widget):
+    def on_btncancel_clicked(self, widget) -> None:
         pass
 
-    def run(self, objects):
+    def run(self, objects) -> Generator[None, None, None]:
         # generator function. will be run as a task.
         session = db.Session()
         n = len(objects)
@@ -527,12 +538,12 @@ class JSONImporter(editor.GenericEditorPresenter):
 
 
 class JSONImportTool(pluginmgr.Tool):
-    category = (_("Import"), "edit-undo")
-    label = _("JSON")
-    icon_name = _("new-json.png")
+    category: Incomplete = (_("Import"), "edit-undo")
+    label: Incomplete = _("JSON")
+    icon_name: Incomplete = _("new-json.png")
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         """
         Start the JSON importer.  This tool will also reinitialize the
         plugins after importing.
@@ -552,12 +563,12 @@ class JSONImportTool(pluginmgr.Tool):
 
 
 class JSONExportTool(pluginmgr.Tool):
-    category = (_("Export"), "edit-redo")
-    label = _("JSON")
-    icon_name = "new-json.png"
+    category: Incomplete = (_("Export"), "edit-redo")
+    label: Incomplete = _("JSON")
+    icon_name: str = "new-json.png"
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         # the presenter uses the view to interact with user then
         # performs the export, if this is the case.
         s = db.Session()

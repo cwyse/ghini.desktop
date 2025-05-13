@@ -35,6 +35,9 @@ import bauble.utils as utils
 from bauble.error import check
 from bauble.plugins.garden.plant import Plant
 
+from typing import Union, Optional
+from bauble import pluginmgr
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -91,10 +94,10 @@ def verify_institution(institution):
     )
 
 
-namespaces = {"abcd": "http://www.tdwg.org/schemas/abcd/2.06"}
+namespaces: Incomplete = {"abcd": "http://www.tdwg.org/schemas/abcd/2.06"}
 
 
-def ABCDElement(parent, name, text=None, attrib=None):
+def ABCDElement(parent, name, text: Optional[Incomplete] = None, attrib: Optional[Incomplete] = None):
     """
     append a named element to parent, with text and attributes.
 
@@ -134,78 +137,78 @@ class ABCDAdapter:
     """
     An abstract base class for creating ABCD adapters.
     """
-
     # TODO: create a HigherTaxonRank/HigherTaxonName iteratorator for a list
     # of all the higher taxon
 
     # TODO: need to mark those fields that are required and those that
     # are optional
-    def extra_elements(self, unit):
+    _object: Incomplete
+    def extra_elements(self, unit) -> None:
         """
         Add extra non required elements
         """
 
-    def __init__(self, obj):
+    def __init__(self, obj) -> None:
         self._object = obj
 
-    def get_UnitID(self):
+    def get_UnitID(self) -> None:
         """
         Get a value for the UnitID
         """
 
-    def get_family(self):
+    def get_family(self) -> None:
         """
         Get a value for the family.
         """
 
-    def get_FullScientificNameString(self, authors=True):
+    def get_FullScientificNameString(self, authors: bool = True) -> None:
         """
         Get the full scientific name string.
         """
 
-    def get_GenusOrMonomial(self):
+    def get_GenusOrMonomial(self) -> None:
         """
         Get the Genus string.
         """
 
-    def get_FirstEpithet(self):
+    def get_FirstEpithet(self) -> None:
         """
         Get the first epithet.
         """
 
-    def get_AuthorTeam(self):
+    def get_AuthorTeam(self) -> None:
         """
         Get the Author string.
         """
 
-    def get_InfraspecificAuthor(self):
+    def get_InfraspecificAuthor(self) -> None:
         pass
 
-    def get_InfraspecificRank(self):
+    def get_InfraspecificRank(self) -> None:
         pass
 
-    def get_InfraspecificEpithet(self):
+    def get_InfraspecificEpithet(self) -> None:
         pass
 
-    def get_CultivarName(self):
+    def get_CultivarName(self) -> None:
         pass
 
-    def get_HybridFlag(self):
+    def get_HybridFlag(self) -> None:
         pass
 
-    def get_IdentificationQualifier(self):
+    def get_IdentificationQualifier(self) -> None:
         pass
 
-    def get_IdentificationQualifierRank(self):
+    def get_IdentificationQualifierRank(self) -> None:
         pass
 
-    def get_InformalNameString(self):
+    def get_InformalNameString(self) -> None:
         """
         Get the common name string.
         """
 
 
-def create_abcd(decorated_objects, authors=True, validate=True):
+def create_abcd(decorated_objects, authors: bool = True, validate: bool = True):
     """
     :param objects: a list/tuple of objects that implement the ABCDDecorator
       interface
@@ -355,7 +358,7 @@ class ABCDExporter:
     Export Plants to an ABCD file.
     """
 
-    def start(self, filename=None, plants=None):
+    def start(self, filename: Optional[Incomplete] = None, plants: Optional[Incomplete] = None) -> None:
         if filename is None:  # no filename, ask the user
             d = Gtk.FileChooserDialog(
                 _("Choose a file to export to..."),
@@ -393,7 +396,7 @@ class ABCDExporter:
                 return
         self.run(filename, plants)
 
-    def run(self, filename, plants=None):
+    def run(self, filename, plants: Optional[Incomplete] = None) -> None:
         if filename is None:
             raise ValueError("filename can not be None")
 
@@ -422,18 +425,18 @@ class ABCDExporter:
 
 
 class ABCDExportTool(pluginmgr.Tool):
-    category = _("Export")
-    label = _("ABCD")
-    icon_name = "new-abcd.png"
+    category: Incomplete = _("Export")
+    label: Incomplete = _("ABCD")
+    icon_name: str = "new-abcd.png"
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         ABCDExporter().start()
 
 
 class ABCDImexPlugin(pluginmgr.Plugin):
-    tools = [ABCDExportTool]
-    depends = ["PlantsPlugin"]
+    tools: Incomplete = [ABCDExportTool]
+    depends: Incomplete = ["PlantsPlugin"]
 
 
 try:

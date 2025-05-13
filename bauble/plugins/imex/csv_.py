@@ -41,6 +41,10 @@ from bauble.error import BaubleError
 from bauble.plugins.imex.csv_processor import CSVProcessor
 from bauble.plugins.imex.unicode_utils import UnicodeWriter
 
+from typing import Union, Optional
+from bauble import pluginmgr
+from _typeshed import Incomplete
+from collections.abc import Generator
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -51,9 +55,9 @@ from sqlalchemy.exc import IntegrityError
 # from sqlalchemy.exc import DataError
 from sqlalchemy.orm import configure_mappers, sessionmaker
 
-logger = logging.getLogger(__name__)
-QUOTE_STYLE = csv.QUOTE_MINIMAL
-QUOTE_CHAR = '"'
+logger: Incomplete = logging.getLogger(__name__)
+QUOTE_STYLE: Incomplete = csv.QUOTE_MINIMAL
+QUOTE_CHAR: str = '"'
 
 # TODO: i've also had a problem with bad insert statements, e.g. importing a
 # geography table after creating a new database and it doesn't use the
@@ -89,7 +93,7 @@ class Importer:
         """
         return bauble.task.queue(self.run, **kwargs)
 
-    def run(self, **kwargs):
+    def run(self, **kwargs) -> None:
         """
         where all the action happens
         """
@@ -112,8 +116,15 @@ class CSVImporter(Importer):
     inserted rows.
 
     """
-
-    def __init__(self):
+    __error: bool
+    __cancel: bool
+    __pause: bool
+    __error_exc: bool
+    q: Incomplete
+    job_done: Incomplete
+    flush_count: int
+    steps_so_far: int
+    def __init__(self) -> None:
         super().__init__()
         self.__error = False  # flag to indicate error on import
         self.__cancel = False  # flag to cancel importing
@@ -123,7 +134,7 @@ class CSVImporter(Importer):
         self.job_done = object()  # Sentinel for completion
         self.flush_count = 0
 
-    def start(self, filenames=None, metadata=None, force=False):
+    def start(self, filenames: Optional[Incomplete] = None, metadata: Optional[Incomplete] = None, force: bool = False) -> None:
         """start the import process. this is a non blocking method: we queue
         the process as a bauble task. there is no callback informing whether
         it is successfully completed or not.
@@ -336,7 +347,7 @@ class CSVImporter(Importer):
             self._create_table(table, session, created_tables)
         return True
 
-    def _create_table(self, table, session, created_tables):
+    def _create_table(self, table, session, created_tables) -> None:
         """
         Create a table using the session's bind.
 
@@ -352,10 +363,10 @@ class CSVImporter(Importer):
             created_tables.append(table.name)
 
     # Ensure this is set up in your database initialization code
-    Session = sessionmaker(bind=db.engine, future=True)
+    Session: Incomplete = sessionmaker(bind=db.engine, future=True)
 
     # Instead of recreating all tables, check for and create only missing ones
-    def create_missing_tables(self, metadata, session):
+    def create_missing_tables(self, metadata, session) -> None:
         """
         Create missing tables in the correct order, respecting dependencies.
 
@@ -377,7 +388,7 @@ class CSVImporter(Importer):
                     logger.error(f"Error creating table {table.name}: {e}")
                     raise
 
-    def run(self, filenames, metadata, force=False):
+    def run(self, filenames, metadata, force: bool = False) -> Generator[None, None, None]:
         """
         A generator method for importing filenames into the database.
         This method periodically yields control so that the GUI can
@@ -562,7 +573,7 @@ class CSVImporter(Importer):
             self.__error_exc = e
             raise
 
-    def _reset_sequences(self, sorted_tables):
+    def _reset_sequences(self, sorted_tables) -> None:
         """
         Reset database sequences for all columns in the given tables.
 
@@ -592,7 +603,7 @@ class CSVImporter(Importer):
                 type=Gtk.MessageType.ERROR,
             )
 
-    def _update_gui(self):
+    def _update_gui(self) -> None:
         """
         Update the GUI after processing.
         Logs an error if the update fails.
@@ -637,7 +648,7 @@ class CSVImporter(Importer):
         fc.destroy()
         return filenames
 
-    def on_response(self, widget, response, data=None):
+    def on_response(self, widget, response, data: Optional[Incomplete] = None) -> None:
         logger.debug("on_response")
         logger.debug(response)
 
@@ -648,7 +659,7 @@ from sqlalchemy import select
 
 
 @contextmanager
-def open_file_safe(filename, mode="w"):
+def open_file_safe(filename, mode: str = "w") -> Generator[Incomplete, None, None]:
     """Context manager for opening a file safely."""
     try:
         f = open(filename, mode)
@@ -659,7 +670,8 @@ def open_file_safe(filename, mode="w"):
 
 class CSVExporter:
 
-    def start(self, path=None):
+    steps_so_far: int
+    def start(self, path: Optional[Incomplete] = None) -> None:
         if path is None:
             d = Gtk.FileChooserDialog(
                 _("Select a directory"),
@@ -688,7 +700,7 @@ class CSVExporter:
         except Exception as e:
             logger.debug(f"{type(e).__name__}({e})")
 
-    def __export_task(self, path):
+    def __export_task(self, path) -> Generator[None, None, Incomplete]:
         filename_template = os.path.join(path, "%s.txt")
         self.steps_so_far = 0
         ntables = 0
@@ -766,18 +778,18 @@ class CSVExporter:
 
 class CSVImportCommandHandler(pluginmgr.CommandHandler):
 
-    command = "imcsv"
+    command: str = "imcsv"
 
-    def __call__(self, cmd, arg):
+    def __call__(self, cmd, arg) -> None:
         importer = CSVImporter()
         importer.start(arg)
 
 
 class CSVExportCommandHandler(pluginmgr.CommandHandler):
 
-    command = "excsv"
+    command: str = "excsv"
 
-    def __call__(self, cmd, arg):
+    def __call__(self, cmd, arg) -> None:
         exporter = CSVExporter()
         exporter.start(arg)
 
@@ -786,16 +798,16 @@ class CSVExportCommandHandler(pluginmgr.CommandHandler):
 # plugin classes
 #
 
-backup_category = (_("Backup"), "plugins/imex/backup.png")
+backup_category: Incomplete = (_("Backup"), "plugins/imex/backup.png")
 
 
 class CSVImportTool(pluginmgr.Tool):
     category = backup_category
-    label = _("Restore")
-    icon_name = "backup-restore.png"
+    label: Incomplete = _("Restore")
+    icon_name: str = "backup-restore.png"
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         """
         Start the CSV importer.  This tool will also reinitialize the
         plugins after importing.
@@ -812,11 +824,11 @@ class CSVImportTool(pluginmgr.Tool):
 
 class CSVExportTool(pluginmgr.Tool):
     category = backup_category
-    label = _("Create")
-    icon_name = "backup-create.png"
+    label: Incomplete = _("Create")
+    icon_name: str = "backup-create.png"
 
     @classmethod
-    def start(cls):
+    def start(cls) -> None:
         c = CSVExporter()
         c.start()
 

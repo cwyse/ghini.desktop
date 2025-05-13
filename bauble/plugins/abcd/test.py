@@ -37,7 +37,8 @@ import bauble.plugins.plants.test as plants_test
 from bauble.plugins.abcd import ABCDElement, ABCDExporter, DataSets, plants_to_abcd
 from bauble.plugins.garden import Accession, Collection, Plant, Source
 
-logger = logging.getLogger(__name__)
+from _typeshed import Incomplete
+logger: Incomplete = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="module")
@@ -51,7 +52,7 @@ def abcd_schema():
 
 
 @pytest.fixture
-def setup_test_data(db_session):
+def setup_test_data(db_session) -> None:
     """
     Fixture to set up test data for plants and gardens.
     """
@@ -67,7 +68,7 @@ def setup_test_data(db_session):
         db_session.commit()
 
 
-def test_abcd_structure(abcd_schema, setup_test_data):
+def test_abcd_structure(abcd_schema, setup_test_data) -> None:
     """
     Test the structure and validation of an ABCD dataset.
     """
@@ -99,7 +100,7 @@ def test_abcd_structure(abcd_schema, setup_test_data):
     assert abcd_schema.validate(datasets), abcd_schema.error_log
 
 
-def test_abcd_export(db_session, setup_test_data):
+def test_abcd_export(db_session, setup_test_data) -> None:
     """
     Test the ABCDExporter functionality.
     """
@@ -135,7 +136,7 @@ def test_abcd_export(db_session, setup_test_data):
         os.remove(filename)
 
 
-def test_plants_to_abcd(db_session, abcd_schema, setup_test_data):
+def test_plants_to_abcd(db_session, abcd_schema, setup_test_data) -> None:
     """
     Test conversion of plants to ABCD format and validate the result.
     """

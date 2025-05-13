@@ -30,7 +30,7 @@ class TestDecodeParts:
     Test cases for the decode_parts function in picture_importer.
     """
 
-    def test_decode_parts_complete(self):
+    def test_decode_parts_complete(self) -> None:
         assert decode_parts("2018.0020.1 (4) Epidendrum.jpg") == {
             "accession": "2018.0020",
             "plant": "1",
@@ -50,10 +50,10 @@ class TestDecodeParts:
             "species": "Annona muricata",
         }
 
-    def test_decode_parts_none(self):
+    def test_decode_parts_none(self) -> None:
         assert decode_parts("20x18.0020.1 (4).jpg") is None
 
-    def test_decode_parts_optional(self):
+    def test_decode_parts_optional(self) -> None:
         assert decode_parts("2018.0020 (4) Dracula.jpg") == {
             "accession": "2018.0020",
             "plant": "1",
@@ -73,7 +73,7 @@ class TestDecodeParts:
             "species": "Zzz",
         }
 
-    def test_decode_parts_seq_from_original(self):
+    def test_decode_parts_seq_from_original(self) -> None:
         assert decode_parts("DSCN0123-2018.0020.JPG") == {
             "accession": "2018.0020",
             "plant": "1",
@@ -93,7 +93,7 @@ class TestDecodeParts:
             "species": "Vanda",
         }
 
-    def test_decode_parts_custom_accession_format(self):
+    def test_decode_parts_custom_accession_format(self) -> None:
         assert decode_parts("2007.01.321 Annona muricata.jpg", "####.##.###") == {
             "accession": "2007.01.321",
             "plant": "1",
@@ -113,7 +113,7 @@ class TestDecodeParts:
             "species": "Opuntia ficus-indica",
         }
 
-    def test_decode_parts_only_scan_name(self):
+    def test_decode_parts_only_scan_name(self) -> None:
         assert decode_parts("Location/2018.0020.1 (4) Epidendrum.jpg") == {
             "accession": "2018.0020",
             "plant": "1",

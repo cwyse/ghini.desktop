@@ -25,14 +25,16 @@ import gi
 
 import bauble.utils.desktop as desktop
 
+from typing import Union, Optional
+from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def _open_link(data=None, *args, **kwargs):
+def _open_link(data: Optional[Incomplete] = None, *args, **kwargs) -> None:
     """Open a web link"""
     logger.debug(
         f"_open_link received data={data}, args={args}, kwargs={kwargs}"
@@ -48,14 +50,15 @@ class BaubleLinkButton:
     A button that acts as a link, but instead of using subclassing,
     it uses composition to wrap around a Gtk.LinkButton.
     """
+    link_button: Incomplete
+    fields: Incomplete
+    _base_uri: str = "%s"
+    _space: str = "_"
+    title: Incomplete = _("Search")
+    tooltip: Incomplete = None
+    pt: Incomplete = re.compile(r"%\(([a-z_\.]*)\)s")
 
-    _base_uri = "%s"
-    _space = "_"
-    title = _("Search")
-    tooltip = None
-    pt = re.compile(r"%\(([a-z_\.]*)\)s")
-
-    def __init__(self, title=_("Search"), tooltip=None):
+    def __init__(self, title=_("Search"), tooltip: Optional[Incomplete] = None) -> None:
         # Create the Gtk.LinkButton instance
         self.link_button = Gtk.LinkButton(label=title, uri="")
         self.set_tooltip(tooltip or title)
@@ -63,11 +66,11 @@ class BaubleLinkButton:
         # Find the fields based on the URI pattern
         self.fields = self.pt.findall(self._base_uri)
 
-    def set_tooltip(self, tooltip_text):
+    def set_tooltip(self, tooltip_text) -> None:
         """Set the tooltip text for the link button."""
         self.link_button.set_tooltip_text(tooltip_text)
 
-    def set_string(self, row):
+    def set_string(self, row) -> None:
         """
         Set the URI for the link button based on a row's values.
 

@@ -30,8 +30,10 @@ from bauble import db
 from bauble.test import check_dupids
 
 
+from _typeshed import Incomplete
+from collections.abc import Generator
 @pytest.fixture
-def test_user():
+def test_user() -> Generator[Incomplete, None, None]:
     """Fixture for setting up and tearing down a test user."""
     user = "_test_user"
     if user not in users.get_users():
@@ -41,7 +43,7 @@ def test_user():
 
 
 @pytest.fixture
-def test_group():
+def test_group() -> Generator[Incomplete, None, None]:
     """Fixture for setting up and tearing down a test group."""
     group = "_test_group"
     if group not in users.get_groups():
@@ -51,7 +53,7 @@ def test_group():
 
 
 @pytest.fixture
-def test_table():
+def test_table() -> Generator[Incomplete, None, None]:
     """Fixture for creating and dropping a test table."""
     table = Table(
         "test_users",
@@ -65,14 +67,14 @@ def test_table():
 
 
 @pytest.fixture
-def test_connection():
+def test_connection() -> Generator[Incomplete, None, None]:
     """Fixture for creating and closing a database connection."""
     conn = db.engine.connect()
     yield conn
     conn.close()
 
 
-def test_duplicate_ids():
+def test_duplicate_ids() -> None:
     """Test for duplicate IDs in .glade files within the users plugin."""
     import bauble.plugins.users as mod
 
@@ -83,7 +85,7 @@ def test_duplicate_ids():
 
 
 @pytest.mark.skipif(db.engine.name != "postgresql", reason="Requires PostgreSQL")
-def test_group_members(test_user, test_group):
+def test_group_members(test_user, test_group) -> None:
     """Test adding and removing a user from a group."""
     # Add the user to the group
     users.add_member(test_user, [test_group])
@@ -97,7 +99,7 @@ def test_group_members(test_user, test_group):
 
 
 @pytest.mark.skipif(db.engine.name != "postgresql", reason="Requires PostgreSQL")
-def test_has_privileges(test_user):
+def test_has_privileges(test_user) -> None:
     """Test setting and checking user privileges."""
     # Grant admin privileges
     users.set_privilege(test_user, "admin")
@@ -124,6 +126,6 @@ def test_has_privileges(test_user):
     assert not users.has_privileges(test_user, "read")
 
 
-def test_tool():
+def test_tool() -> None:
     """Placeholder for testing the UsersEditor tool."""
     pytest.skip("Not Implemented")

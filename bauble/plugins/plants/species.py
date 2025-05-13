@@ -51,12 +51,16 @@ from bauble.prefs import prefs
 from bauble.shared import InfoExpander
 from bauble.view import Action, InfoBox, PropertiesExpander, select_in_search_results
 
+from bauble import search
+from _typeshed import Incomplete
+from bauble.plugins.plants.species_editor import SpeciesDistribution as SpeciesDistribution, SpeciesEditor as SpeciesEditor, SpeciesEditorPresenter as SpeciesEditorPresenter, SpeciesEditorView as SpeciesEditorView, edit_species as edit_species
+from bauble.plugins.plants.species_model import DefaultVernacularName as DefaultVernacularName, Species as Species, SpeciesNote as SpeciesNote, SpeciesSynonym as SpeciesSynonym, VernacularName as VernacularName
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import distinct, select
 from sqlalchemy.orm.session import object_session
 
-logger = logging.getLogger(__name__)
+logger: Incomplete = logging.getLogger(__name__)
 
 logger.setLevel(logging.INFO)
 
@@ -129,16 +133,16 @@ def add_accession_callback(values):
     return e.start() is not None
 
 
-edit_action = Action(
+edit_action: Incomplete = Action(
     "species_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
 )
-add_accession_action = Action(
+add_accession_action: Incomplete = Action(
     "species_acc_add",
     _("_Add accession"),
     callback=add_accession_callback,
     accelerator="<ctrl>k",
 )
-remove_action = Action(
+remove_action: Incomplete = Action(
     "species_remove",
     _("_Delete"),
     callback=remove_callback,
@@ -146,8 +150,8 @@ remove_action = Action(
     multiselect=True,
 )
 
-species_context_menu = [edit_action, remove_action]
-vernname_context_menu = [edit_action]
+species_context_menu: Incomplete = [edit_action, remove_action]
+vernname_context_menu: Incomplete = [edit_action]
 
 
 class SynonymSearch(search.SearchStrategy):
@@ -157,9 +161,9 @@ class SynonymSearch(search.SearchStrategy):
     bauble.search.return_synonyms in the prefs toggles this.
     """
 
-    return_synonyms_pref = "bauble.search.return_synonyms"
+    return_synonyms_pref: str = "bauble.search.return_synonyms"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         if self.return_synonyms_pref not in prefs:
             prefs[self.return_synonyms_pref] = True
@@ -224,13 +228,13 @@ class VernacularExpander(InfoExpander):
     :param widgets:
     """
 
-    def __init__(self, widgets):
+    def __init__(self, widgets) -> None:
         InfoExpander.__init__(self, _("Vernacular names"), widgets)
         vernacular_box = self.widgets.sp_vernacular_box
         self.widgets.remove_parent(vernacular_box)
         self.vbox.pack_start(vernacular_box, True, True, 0)
 
-    def update(self, row):
+    def update(self, row) -> None:
         """
         update the expander
 
@@ -257,7 +261,7 @@ class VernacularExpander(InfoExpander):
 
 class SynonymsExpander(InfoExpander):
 
-    def __init__(self, widgets):
+    def __init__(self, widgets) -> None:
         InfoExpander.__init__(self, _("Synonyms"), widgets)
         synonyms_box = self.widgets.sp_synonyms_box
         self.widgets.remove_parent(synonyms_box)
@@ -330,8 +334,8 @@ class GeneralSpeciesExpander(InfoExpander):
     """
     expander to present general information about a species
     """
-
-    def __init__(self, widgets):
+    current_obj: Incomplete
+    def __init__(self, widgets) -> None:
         """
         the constructor
         """
@@ -494,10 +498,16 @@ class SpeciesInfoBox(InfoBox):
     general info, fullname, common name, num of accessions and clones,
     distribution
     """
-
     # others to consider: reference, images, redlist status
 
-    def __init__(self):
+    widgets: Incomplete
+    general: Incomplete
+    vernacular: Incomplete
+    synonyms: Incomplete
+    links: Incomplete
+    properties_expander: Incomplete
+    label: Incomplete
+    def __init__(self) -> None:
         """
         the constructor
         """
@@ -599,7 +609,7 @@ class SpeciesInfoBox(InfoBox):
             self.widgets.remove_parent("sp_nplants_label")
             self.widgets.remove_parent("sp_nplants_data")
 
-    def update(self, row):
+    def update(self, row) -> None:
         """
         update the expanders in this infobox
 
@@ -615,7 +625,7 @@ class SpeciesInfoBox(InfoBox):
 # it's easier just to put this here instead of playing around with imports
 class VernacularNameInfoBox(SpeciesInfoBox):
 
-    def update(self, row):
+    def update(self, row) -> None:
         logger.info(
             f"VernacularNameInfoBox.update {row.__class__.__name__}({row})"
         )

@@ -32,7 +32,8 @@ from bauble import db
 from bauble.plugins.garden import Accession, Location, Plant, PlantNote, Verification
 from bauble.plugins.plants import Family, Genus, Species
 
-logger = logging.getLogger(__name__)
+from _typeshed import Incomplete
+logger: Incomplete = logging.getLogger(__name__)
 
 
 def get_genus(session, keys):
@@ -118,7 +119,7 @@ def heuristic_split(full_plant_code):
     return accession_code, plant_code
 
 
-def process_inventory_line(session, baseline, timestamp, parameters):
+def process_inventory_line(session, baseline, timestamp, parameters) -> None:
     location_code, full_plant_code, imei = parameters
     if not full_plant_code:
         # what should we do…
@@ -184,7 +185,7 @@ def process_inventory_line(session, baseline, timestamp, parameters):
     )
 
 
-def process_pending_edit_line(session, baseline, timestamp, parameters):
+def process_pending_edit_line(session, baseline, timestamp, parameters) -> None:
     full_plant_code, scientific_name, quantity, coordinates, *pictures = parameters
     if not full_plant_code:
         # what should we do…
@@ -288,7 +289,7 @@ def process_pending_edit_line(session, baseline, timestamp, parameters):
         )
 
 
-def process_line(session, line, baseline):
+def process_line(session, line, baseline) -> None:
     """process the changes in 'line'"""
     import re
 
