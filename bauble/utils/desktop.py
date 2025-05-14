@@ -89,8 +89,12 @@ def _readfrom(cmd: Union[str, list[str]], shell: bool) -> bytes:
     opener = subprocess.Popen(
         cmd, shell=shell, stdin=subprocess.PIPE, stdout=subprocess.PIPE
     )
-    opener.stdin.close()
-    return opener.stdout.read()
+    if opener.stdin:
+        opener.stdin.close()
+    if opener.stdout:
+        return opener.stdout.read()
+    return b""
+
 
 def _status(cmd: Union[str, list[str]], shell: bool) -> bool:
     opener = subprocess.Popen(cmd, shell=shell)
@@ -115,9 +119,9 @@ def _is_xfce() -> bool:
         else:
             vars_ = ""
         return (
-            _readfrom(vars_ + "xprop -root _DT_SAVE_MODE", shell=1)
+            _readfrom(vars_ + "xprop -root _DT_SAVE_MODE", shell=True)
             .strip()
-            .endswith(' = "xfce4"')
+            .endswith(b' = "xfce4"')
         )
 
     except OSError:
@@ -210,7 +214,7 @@ def open_url(url: str, _desktop: Optional[str] = None, _wait: int = 0,
              _dialog_on_error: bool = False) -> None:
     """Open the 'url' in the current desktop's preferred client."""
 
-    import gi  # type: ignore
+    import gi  
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gdk, Gtk
 

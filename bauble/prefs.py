@@ -20,17 +20,16 @@ import logging
 import os
 from configparser import RawConfigParser
 from gettext import gettext as _
-
-import gi
+from typing import Optional, Union
 
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
-
-from typing import Union, Optional
-from bauble import pluginmgr
+import gi
 from _typeshed import Incomplete
+from bauble import pluginmgr
+
 default_filename: str
 gi.require_version("Gtk", "3.0")
 import copy
@@ -178,7 +177,7 @@ class _prefs(dict):
 
         return new_prefs
 
-    def _strip_prefix(self, key):
+    def _strip_prefix(self, key: str) -> str:
         """
         Strip the 'bauble.' prefix from a key if present.
         """
@@ -248,11 +247,11 @@ class _prefs(dict):
                 self[parse_yearfirst_pref] = False
 
     @staticmethod
-    def _parse_key(name):
+    def _parse_key(name: str) -> tuple[str, str]:
         index = name.rfind(".")
         return name[:index], name[index + 1 :]
 
-    def get(self, key, default):
+    def get(self, key: str, default: Optional[Any]) -> Optional[Any]:
         """
         get value for key else return default
         """
@@ -287,7 +286,7 @@ class _prefs(dict):
             for name, value in prefs.config.items(section)
         ]
 
-    def setdefault(self, key, default: Optional[Incomplete] = None):
+    def setdefault(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         if key not in self:
             self.__setitem__(key, default)
         return self[key]

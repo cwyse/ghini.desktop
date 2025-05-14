@@ -46,8 +46,10 @@ _ = translation.gettext
 import locale
 import os
 import sys
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from _typeshed import Incomplete
+
 OS_WINDOWS: Incomplete = sys.platform == "win32"
 
 
@@ -62,36 +64,37 @@ def setup_env_windows(system_lang: bool = True) -> None:
         os.environ["LANGUAGE"] = ":".join(lang)
 
 
-def get_language_windows(system_lang: bool = True):
+def get_language_windows(system_lang: bool = True) -> Optional[list[str]]:
     """Get language code based on current Windows settings.
     @return: list of languages.
     """
     try:
         import ctypes
-    except ImportError:
-        return [locale.getdefaultlocale()[0]]
+        windll = cast(Any, ctypes).windll  # silence mypy on non-Windows
+    except (ImportError, AttributeError):
+        default_locale = locale.getdefaultlocale()[0]
+        return [default_locale] if default_locale is not None else None
     # get all locales using windows API
-    lcid_user = ctypes.windll.kernel32.GetUserDefaultLCID()
-    lcid_system = ctypes.windll.kernel32.GetSystemDefaultLCID()
-    if system_lang and lcid_user != lcid_system:
-        lcids = [lcid_user, lcid_system]
-    else:
-        lcids = [lcid_user]
-    return [_f for _f in [locale.windows_locale.get(i) for i in lcids] if _f] or None
+    lcid_user = windll.kernel32.GetUserDefaultLCID()
+    lcid_system = windll.kernel32.GetSystemDefaultLCID()
+    lcids = [lcid_user, lcid_system] if system_lang and lcid_user != lcid_system else [lcid_user]
+
+    langs = [locale.windows_locale[i] for i in lcids if i in locale.windows_locale]
+    return langs or None
 
 
 def setup_env_other(system_lang: bool = True) -> None:
     pass
 
 
-def get_language_other(system_lang: bool = True):
+def get_language_other(system_lang: bool = True) -> Optional[list[str]]:
     lang = _get_lang_env_var()
     if lang is not None:
         return lang.split(":")
     return None
 
 
-def _get_lang_env_var():
+def _get_lang_env_var() -> Optional[str]:
     for i in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
         lang = os.environ.get(i)
         if lang:
