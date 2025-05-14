@@ -20,17 +20,18 @@ import glob
 import logging
 import os
 import re
+from typing import Generator, List, Pattern
 
 import pytest
+from _typeshed import Incomplete
 from babel.messages.pofile import read_po
 
-from _typeshed import Incomplete
-logger: Incomplete = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-@pytest.fixture
-def po_files():
+@pytest.fixture  # type: ignore[misc]
+def po_files() -> List[str]:
     """
     Fixture to locate all .po files in the 'po' directory.
     """
@@ -40,15 +41,14 @@ def po_files():
     return files
 
 
-@pytest.fixture
-def translation_pattern():
+@pytest.fixture  # type: ignore[misc]
+def translation_pattern() -> Pattern[str]:
     """
     Fixture to compile the translation key pattern.
     """
     return re.compile(r"%\([a-z0-9_]*\)s")
 
-
-def test_same_keys(po_files, translation_pattern) -> None:
+def test_same_keys(po_files: List[str], translation_pattern: Pattern[str]) -> None:
     """
     Test that keys in the original message and translations match for all .po files.
     """

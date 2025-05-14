@@ -18,11 +18,11 @@
 import difflib
 import logging
 import threading
+from typing import Any, Callable, Optional, Union
 
 import requests
-
-from typing import Union, Optional
 from _typeshed import Incomplete
+
 logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -38,14 +38,14 @@ class AskTPL(threading.Thread):
 
     def __init__(
         self,
-        binomial,
-        callback,
+        binomial: Optional[str],
+        callback: Callable[[Optional[dict[str, Any]], Optional[Union[dict[str, Any], list[dict[str, Any]]]]], None],
         threshold: float = 0.8,
         timeout: int = 4,
         gui: bool = False,
-        group: Optional[Incomplete] = None,
-        verbose: Optional[Incomplete] = None,
-        **kwargs
+        group: Optional[Any] = None,
+        verbose: Optional[bool] = None,
+        **kwargs: Any
     ) -> None:
         super().__init__(group=group, target=None, name=None)
         logger.debug(
@@ -79,26 +79,25 @@ class AskTPL(threading.Thread):
     def stop(self) -> None:
         self._stop = True
 
-    def stopped(self):
+    def stopped(self) -> bool:
         return self._stop
 
-    def run(self):
-
-        def extract_family(wfo_path):
+    def run(self) -> None:
+        def extract_family(wfo_path: str) -> Optional[str]:
             parts = wfo_path.split("$")
             parts = parts[0].split("/")
             if len(parts) > 3:
                 return parts[-3]  # Third-to-last element
             return None
 
-        def extract_species(wfo_path):
+        def extract_species(wfo_path: str) -> Optional[str]:
             parts = wfo_path.split("$")
             parts = parts[0].split("/")
             if len(parts) > 3:
                 return parts[-1]  # Third-to-last element
             return None
 
-        def query_wfo_api(input_string):
+        def query_wfo_api(input_string: str) -> Any:
             url = "https://list.worldfloraonline.org/gql.php"
             query = """
             query ($inputString: String!) {
@@ -144,7 +143,7 @@ class AskTPL(threading.Thread):
             response = requests.post(url, json={"query": query, "variables": variables})
             return response.json()
 
-        def ask_wfo(name):
+        def ask_wfo(name: str) -> Optional[list[dict[str, Any]]]:
             result = query_wfo_api(name)
             data = result.get("data", {}).get("taxonNameMatch", {})
 
@@ -265,7 +264,8 @@ class AskTPL(threading.Thread):
 
         if self.binomial is None:
             return
-
+        found: Optional[dict[str, Any]] = None
+        accepted: Optional[Union[dict[str, Any], list[dict[str, Any]]]] = None
         try:
             accepted = None
             logger.debug("%s before first query", self.name)
@@ -298,11 +298,11 @@ class AskTPL(threading.Thread):
             logger.debug("found this: %s", str(found))
             if found["Accepted ID"]:
                 # accepted = found
-                accepted = ask_wfo(found["FullName"])
+                accepted_list = ask_wfo(found["FullName"])
+                accepted = accepted_list[0] if accepted_list else None
+
                 logger.debug("ask_tpl on the Accepted ID returns %s", accepted)
-                if accepted:
-                    accepted = accepted[0]
-                else:
+                if accepted is None:
                     logger.debug(
                         "taxon %s %s (%s) is marked as synonym. "
                         "accepted form (%s) is at infraspecific rank.",
@@ -328,7 +328,9 @@ class AskTPL(threading.Thread):
                 e,
             )
             self.__class__.running = None
-            found = accepted = None
+            found = None
+            accepted = None
+
         self.__class__.running = None
         logger.debug(f"{self.name} before invoking callback")
         if self.gui:
@@ -342,7 +344,7 @@ class AskTPL(threading.Thread):
             self.callback(found, accepted)
 
 
-def citation(d):
+def citation(d: dict[str, Any]) -> str:
     # return (
     #     "%(Genus hybrid marker)s%(Genus)s "
     #     "%(Species hybrid marker)s%(Species)s "
@@ -352,12 +354,19 @@ def citation(d):
     return ("{Title} ({Family})".format(**d)).replace("   ", " ")
 
 
-def what_to_do_with_it(found, accepted) -> None:
+from typing import Any
+
+
+def what_to_do_with_it(
+    found: Optional[dict[str, Any]],
+    accepted: Optional[Union[dict[str, Any], list[dict[str, Any]]]]
+) -> None:
     if found is None and accepted is None:
         logger.info("nothing matches")
         return
-    logger.info("%s", citation(found))
+    if found is not None:
+        logger.info("%s", citation(found))
     if accepted == []:
         logger.info("invalid reference in tpl.")
-    if accepted:
+    if isinstance(accepted, dict):
         logger.info("%s - is its accepted form", citation(accepted))

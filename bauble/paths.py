@@ -28,10 +28,11 @@ import os
 import sys
 
 from _typeshed import Incomplete
+
 logger: Incomplete = logging.getLogger(__name__)
 
 
-def main_is_frozen():
+def main_is_frozen() -> bool:
     """Returns True if the application is running from a frozen executable."""
     import importlib.machinery
 
@@ -47,7 +48,7 @@ def main_is_frozen():
     )
 
 
-def main_dir():
+def main_dir() -> str:
     """
     Returns the path of the bauble executable.
     """
@@ -60,7 +61,7 @@ def main_dir():
     return os.path.abspath(d)
 
 
-def lib_dir():
+def lib_dir() -> str:
     """
     Returns the path of the bauble module.
     """
@@ -71,7 +72,7 @@ def lib_dir():
     return os.path.abspath(d)
 
 
-def locale_dir():
+def locale_dir() -> str:
     """
     Returns the root path of the locale files
     """
@@ -81,7 +82,7 @@ def locale_dir():
     return os.path.abspath(d)
 
 
-def installation_dir():
+def installation_dir() -> str:
     """
     Returns the root path of the installation target
     """
@@ -105,7 +106,7 @@ def installation_dir():
     return os.path.abspath(d)
 
 
-def user_dir():
+def user_dir() -> str:
     """Returns the path to where user data are saved.
 
     this is not the same as Application Data, for app_data is going to be
@@ -119,7 +120,7 @@ def user_dir():
     return appdata_dir()
 
 
-def appdata_dir():
+def appdata_dir() -> str:
     """Returns the path to where Ghini application data and settings are saved."""
     if sys.platform == "win32":
         if is_portable_installation():
@@ -155,7 +156,7 @@ def appdata_dir():
     return os.path.abspath(d)
 
 
-def is_portable_installation():
+def is_portable_installation() -> bool:
     """tell whether ghini is running on a USB stick
 
     only relevant on Windows

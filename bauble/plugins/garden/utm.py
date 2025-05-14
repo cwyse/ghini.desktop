@@ -16,10 +16,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import math
+from typing import Optional, Union
 
-
-from typing import Union, Optional
 from _typeshed import Incomplete
+
+
 class OutOfRangeError(ValueError):
     pass
 
@@ -54,13 +55,13 @@ ZONE_LETTERS: str = "CDEFGHJKLMNPQRSTUVWXX"
 
 
 def to_latlon(
-    easting,
-    northing,
-    zone_number,
-    zone_letter: Optional[Incomplete] = None,
-    northern: Optional[Incomplete] = None,
+    easting: int,
+    northing: int,
+    zone_number: int,
+    zone_letter: Optional[str] = None,
+    northern: Optional[bool] = None,
     strict: bool = True
-):
+) -> tuple[float, float]:
     """This function convert an UTM coordinate into Latitude and Longitude
 
     Parameters
@@ -173,7 +174,7 @@ def to_latlon(
     )
 
 
-def from_latlon(latitude, longitude, force_zone_number: Optional[Incomplete] = None):
+def from_latlon(latitude: float, longitude: float, force_zone_number: Optional[int] = None) -> tuple[float, float, int, Optional[str]]:
     """This function convert Latitude and Longitude to UTM coordinate
 
     Parameters
@@ -264,14 +265,14 @@ def from_latlon(latitude, longitude, force_zone_number: Optional[Incomplete] = N
     return easting, northing, zone_number, zone_letter
 
 
-def latitude_to_zone_letter(latitude):
+def latitude_to_zone_letter(latitude: float) -> Optional[str]:
     if -80 <= latitude <= 84:
         return ZONE_LETTERS[int(latitude + 80) >> 3]
     else:
         return None
 
 
-def latlon_to_zone_number(latitude, longitude):
+def latlon_to_zone_number(latitude: float, longitude: float) -> int:
     if 56 <= latitude < 64 and 3 <= longitude < 12:
         return 32
 
@@ -288,5 +289,5 @@ def latlon_to_zone_number(latitude, longitude):
     return int((longitude + 180) / 6) + 1
 
 
-def zone_number_to_central_longitude(zone_number):
+def zone_number_to_central_longitude(zone_number: int) -> float:
     return (zone_number - 1) * 6 - 180 + 3
