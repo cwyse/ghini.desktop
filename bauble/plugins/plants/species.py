@@ -23,8 +23,6 @@ import os
 import traceback
 from gettext import gettext as _
 
-import gi
-
 import bauble
 import bauble.db as db
 import bauble.paths as paths
@@ -32,29 +30,40 @@ import bauble.pluginmgr as pluginmgr
 import bauble.search as search
 import bauble.utils as utils
 import bauble.view as view
+import gi
+from _typeshed import Incomplete
+from bauble import search
 from bauble.plugins.plants.genus import Genus, GenusSynonym
+from bauble.plugins.plants.species_editor import SpeciesDistribution
 from bauble.plugins.plants.species_editor import (
-    SpeciesDistribution,
-    SpeciesEditor,
-    SpeciesEditorPresenter,
-    SpeciesEditorView,
-    edit_species,
+    SpeciesDistribution as SpeciesDistribution,
 )
+from bauble.plugins.plants.species_editor import SpeciesEditor
+from bauble.plugins.plants.species_editor import SpeciesEditor as SpeciesEditor
+from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
+from bauble.plugins.plants.species_editor import (
+    SpeciesEditorPresenter as SpeciesEditorPresenter,
+)
+from bauble.plugins.plants.species_editor import SpeciesEditorView
+from bauble.plugins.plants.species_editor import SpeciesEditorView as SpeciesEditorView
+from bauble.plugins.plants.species_editor import edit_species
+from bauble.plugins.plants.species_editor import edit_species as edit_species
+from bauble.plugins.plants.species_model import DefaultVernacularName
 from bauble.plugins.plants.species_model import (
-    DefaultVernacularName,
-    Species,
-    SpeciesNote,
-    SpeciesSynonym,
-    VernacularName,
+    DefaultVernacularName as DefaultVernacularName,
 )
+from bauble.plugins.plants.species_model import Species
+from bauble.plugins.plants.species_model import Species as Species
+from bauble.plugins.plants.species_model import SpeciesNote
+from bauble.plugins.plants.species_model import SpeciesNote as SpeciesNote
+from bauble.plugins.plants.species_model import SpeciesSynonym
+from bauble.plugins.plants.species_model import SpeciesSynonym as SpeciesSynonym
+from bauble.plugins.plants.species_model import VernacularName
+from bauble.plugins.plants.species_model import VernacularName as VernacularName
 from bauble.prefs import prefs
 from bauble.shared import InfoExpander
 from bauble.view import Action, InfoBox, PropertiesExpander, select_in_search_results
 
-from bauble import search
-from _typeshed import Incomplete
-from bauble.plugins.plants.species_editor import SpeciesDistribution as SpeciesDistribution, SpeciesEditor as SpeciesEditor, SpeciesEditorPresenter as SpeciesEditorPresenter, SpeciesEditorView as SpeciesEditorView, edit_species as edit_species
-from bauble.plugins.plants.species_model import DefaultVernacularName as DefaultVernacularName, Species as Species, SpeciesNote as SpeciesNote, SpeciesSynonym as SpeciesSynonym, VernacularName as VernacularName
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import distinct, select

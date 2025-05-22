@@ -26,8 +26,7 @@ import traceback
 import weakref
 import xml
 from gettext import gettext as _
-
-import gi
+from typing import Optional, Union
 
 import bauble
 import bauble.btypes as types
@@ -38,6 +37,9 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.view as view
+import gi
+from _typeshed import Incomplete
+from bauble import db, editor
 from bauble.plugins.plants.family import Family, FamilySynonym
 from bauble.plugins.plants.species_model import Species
 from bauble.prefs import prefs
@@ -45,10 +47,6 @@ from bauble.shared import InfoExpander
 from bauble.utils import safe_set_props, safe_set_text
 from bauble.view import Action, InfoBox, PropertiesExpander, select_in_search_results
 
-from typing import Union, Optional
-from bauble import db
-from bauble import editor
-from _typeshed import Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -71,6 +69,8 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, synonym, validates
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.orm.session import object_session
+
+__all__ = ["Genus"]
 
 logger: Incomplete = logging.getLogger(__name__)
 
