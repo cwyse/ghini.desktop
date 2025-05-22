@@ -21,6 +21,9 @@
 # QueryBuilder will be able to start from there
 #
 # if the query does not follow the grammar, start from scratch.
+from typing import Any, cast
+
+from _typeshed import Incomplete
 from pyparsing import (
     CaselessLiteral,
     Group,
@@ -39,7 +42,6 @@ from pyparsing import (
 )
 
 
-from _typeshed import Incomplete
 class BuiltQuery:
 
     wordStart: Incomplete
@@ -72,7 +74,7 @@ class BuiltQuery:
     )
     query: Incomplete = Word(alphas) + CaselessLiteral("where") + expression
 
-    def __init__(self, s) -> None:
+    def __init__(self, s: str) -> None:
         self.parsed = None
         self.__clauses = None
         try:
@@ -82,7 +84,7 @@ class BuiltQuery:
             self.is_valid = False
 
     @property
-    def clauses(self):
+    def clauses(self) -> list[Any]:
         if not self.__clauses:
             self.__clauses = [
                 type(
@@ -97,8 +99,8 @@ class BuiltQuery:
                 )()
                 for i in [k for k in self.parsed if len(k) > 0][2:]
             ]
-        return self.__clauses
+        return cast(list[Any], self.__clauses)
 
     @property
-    def domain(self):
-        return self.parsed[0]
+    def domain(self) -> str:
+        return cast(str, self.parsed[0])

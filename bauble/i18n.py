@@ -33,20 +33,23 @@ in :mod:`bauble`
 """
 import builtins
 import gettext
-locale = gettext
+
+gettext_locale = gettext
 import locale
 import os
 import sys
+from typing import Callable, cast
 
 import bauble.gettext_windows
 import bauble.paths as paths
+from _typeshed import Incomplete
 from bauble._version import __version__
 
 # the following has effect on Windows: to set the environment variables as
 # on an operating system. operating systems don't need it.
 
-from _typeshed import Incomplete
-_: Incomplete
+
+
 bauble.gettext_windows.setup_env()
 
 __all__ = ['_']
@@ -81,17 +84,24 @@ langs += ["en"]
 
 
 if sys.platform in ["win32", "darwin"]:
-    locale = gettext
+    gettext_locale.bindtextdomain(TEXT_DOMAIN, paths.locale_dir())
+    gettext_locale.textdomain(TEXT_DOMAIN)
+else:
+    locale.bindtextdomain(TEXT_DOMAIN, paths.locale_dir())
+    locale.textdomain(TEXT_DOMAIN)
 
-locale.bindtextdomain(TEXT_DOMAIN, paths.locale_dir())
-locale.textdomain(TEXT_DOMAIN)
+from typing import Callable, cast
 
-# Get the language to use
+# i18n setup ...
 lang = gettext.translation(
     TEXT_DOMAIN, paths.locale_dir(), languages=langs, fallback=True
 )
-# associate this module's as well as the global `_` functions (we marked our
-# translatable strings with it) to lang.gettext(), which translates them.
-_ = lang.gettext
 
-builtins._ = lang.gettext
+# explicitly type and assign _
+_: Callable[[str], str] = cast(Callable[[str], str], lang.gettext)
+
+# explicitly inform mypy about the new built-in attribute
+builtins.__dict__['_'] = _ 
+
+__all__ = ['_']
+

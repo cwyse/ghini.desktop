@@ -14,8 +14,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-import pytest
+import sys
+from typing import Annotated
 
+import pytest
 from bauble.querybuilderparser import BuiltQuery
 
 
@@ -95,7 +97,7 @@ def test_is_none_if_wrong() -> None:
     assert query.is_valid is False
 
 
-@pytest.mark.parametrize(
+@pytest.mark.parametrize(  # type: ignore[misc]
     "query_string",
     [
         "species Where genus.epithet=Inga and accessions.code like '2010%'",
@@ -105,7 +107,7 @@ def test_is_none_if_wrong() -> None:
         "species WHERE genus.epithet=Inga AND accessions.code LIKE '2010%'",
     ],
 )
-def test_is_case_insensitive(query_string) -> None:
+def test_is_case_insensitive(query_string: str) -> None:
     query = BuiltQuery(query_string)
     assert len(query.clauses) == 2
     assert query.clauses[0].connector is None

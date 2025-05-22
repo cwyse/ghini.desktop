@@ -19,14 +19,14 @@
 #
 import re
 import xml.etree.ElementTree as ET
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import requests
+from _typeshed import Incomplete
 from requests.auth import HTTPDigestAuth
 
 
-from typing import Union, Optional
-from _typeshed import Incomplete
-def get_submissions(user, pw, host, form_id, to_skip: Optional[Incomplete] = None):
+def get_submissions(user: str, pw: str, host: str, form_id: str, to_skip: Optional[List[str]] = None) -> Optional[List[Dict[str, Any]]]:
     if to_skip is None:
         to_skip = []
     base_format = "https://%(host)s/view/%(api)s?formId=%(form_id)s"
@@ -34,15 +34,15 @@ def get_submissions(user, pw, host, form_id, to_skip: Optional[Incomplete] = Non
         "[@version=null and @uiVersion=null]/%(group_name)s[@key=%(uuid)s]"
     )
     auth = HTTPDigestAuth(user, pw)
-    result = requests.get(
+    response = requests.get(
         base_format % {"form_id": form_id, "api": "submissionList", "host": host},
         auth=auth,
     )
-    if not result.ok:
-        return
-    root = ET.fromstring(result.text)
+    if not response.ok:
+        return None
+    root = ET.fromstring(response.text)
     idlist = root[0]
-    result = []
+    result: List[Dict[str, Any]] = []
     for uuid in [i.text for i in idlist]:
         if uuid in to_skip:
             continue
@@ -64,7 +64,7 @@ def get_submissions(user, pw, host, form_id, to_skip: Optional[Incomplete] = Non
         root = ET.fromstring(reply.text)
         data = root[0]  # media may follow
         form = data[0]
-        item = {re.sub(r"{.*}(.*)", r"\1", i.tag): i.text for i in form}
+        item: Dict[str, Any] = {re.sub(r"{.*}(.*)", r"\1", i.tag): i.text for i in form}
         item["meta:uuid"] = uuid
         result.append(item)
         for key in list(item.keys()):
@@ -73,14 +73,14 @@ def get_submissions(user, pw, host, form_id, to_skip: Optional[Incomplete] = Non
             del item[key]
             prefix = key[:-7]
             item[prefix] = [i[0].text for i in form if i.tag.endswith(key)]
-        item["media"] = {}
+        item["media"] = cast(Dict[str, Tuple[str, str]], {})
         for _i, media_element in enumerate(root[1:]):
             filename, hash, url = media_element
             item["media"][filename.text] = (url.text, hash.text)
     return result
 
 
-def get_image(user, pw, url, path) -> None:
+def get_image(user: str, pw: str, url: str, path: str) -> None:
     auth = HTTPDigestAuth(user, pw)
     pic = requests.get(url, stream=True, auth=auth)
     if pic.status_code == 200:

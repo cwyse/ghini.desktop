@@ -20,7 +20,14 @@
 import logging
 from gettext import gettext as _
 from itertools import chain
+from typing import Optional, Union
 
+import bauble.btypes as types
+import bauble.db as db
+import bauble.error as error
+import bauble.utils as utils
+from _typeshed import Incomplete
+from bauble import db
 from sqlalchemy import (
     Boolean,
     Column,
@@ -41,14 +48,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, synonym
 from sqlalchemy.orm.exc import MultipleResultsFound
 
-import bauble.btypes as types
-import bauble.db as db
-import bauble.error as error
-import bauble.utils as utils
-
-from typing import Union, Optional
-from bauble import db
-from _typeshed import Incomplete
+__all__ = ["Species"]
 logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 

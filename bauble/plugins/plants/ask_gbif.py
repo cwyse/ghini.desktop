@@ -18,34 +18,34 @@
 import json
 import logging
 import threading
+from typing import Any, Callable, Optional, Union
 
 import requests
 
-from typing import Union, Optional
-from _typeshed import Incomplete
-logger: Incomplete = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
 logger.setLevel(logging.WARNING)
 
 
 class AskGBIF(threading.Thread):
     _stop: bool
-    binomial: Incomplete
-    threshold: Incomplete
-    callback: Incomplete
-    timeout: Incomplete
-    gui: Incomplete
-    running: Incomplete = None
+    binomial: Optional[str]
+    threshold: float
+    callback: Callable[[Optional[dict[str, str]], Optional[Union[dict[str, str], list[dict[str, str]]]]], None]
+    timeout: int
+    gui: bool
+    running: Optional["AskGBIF"] = None
 
     def __init__(
         self,
-        binomial,
-        callback,
+        binomial: Optional[str],
+        callback: Callable[[Optional[dict[str, str]], Optional[Union[dict[str, str], list[dict[str, str]]]]], None],
         threshold: float = 0.8,
         timeout: int = 4,
         gui: bool = False,
-        group: Optional[Incomplete] = None,
-        verbose: Optional[Incomplete] = None,
-        **kwargs
+        group: Optional[Any] = None,
+        verbose: Optional[bool] = None,
+        **kwargs: Any
     ) -> None:
         super().__init__(group=group, target=None, name=None)
         logger.debug(
@@ -79,18 +79,19 @@ class AskGBIF(threading.Thread):
     def stop(self) -> None:
         self._stop = True
 
-    def stopped(self):
+    def stopped(self) -> bool:
         return self._stop
 
-    def run(self):
-        def ask_gbif(binomial):
+    def run(self) -> None:
+        def ask_gbif(binomial: str) -> dict[str, Any]:
             result = requests.get(
                 "https://api.gbif.org/v1/species/match?verbose=false&name=" + binomial,
                 timeout=self.timeout,
             )
             logger.debug(result.text)
-            result = json.loads(result.text)
-            return result
+            from typing import cast
+            return cast(dict[str, Any], result.json())
+
 
         class ShouldStopNow(Exception):
             pass
@@ -100,6 +101,9 @@ class AskGBIF(threading.Thread):
 
         if self.binomial is None:
             return
+
+        found: Optional[dict[str, str]] = None
+        accepted: Optional[dict[str, str]] = None
 
         try:
             accepted = None
@@ -147,16 +151,19 @@ class AskGBIF(threading.Thread):
             self.callback(found, accepted)
 
 
-def citation(d):
+def citation(d: dict[str, str]) -> str:
     return ("{scientificName} " "({family})".format(**d)).replace("   ", " ")
 
 
-def what_to_do_with_it(found, accepted) -> None:
+def what_to_do_with_it(found: Optional[dict[str, str]], accepted: Optional[Union[dict[str, str], list[dict[str, str]]]]) -> None:
     if found is None and accepted is None:
         logger.info("nothing matches")
         return
-    logger.info("%s", citation(found))
+    if found:
+        logger.info("%s", citation(found))
+
     if accepted == []:
         logger.info("invalid reference in gbif.")
-    if accepted:
+    if isinstance(accepted, dict):
         logger.info("%s - is its accepted form", citation(accepted))
+
