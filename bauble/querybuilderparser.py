@@ -44,35 +44,35 @@ from pyparsing import (
 
 class BuiltQuery:
 
-    wordStart: Incomplete
-    wordEnd: Incomplete
-    parsed: Incomplete
-    __clauses: Incomplete
+    wordStart: Any
+    wordEnd: Any
+    parsed: Any
+    __clauses: Any
     is_valid: bool
     wordStart, wordEnd = WordStart(), WordEnd()
 
-    AND_: Incomplete = wordStart + CaselessLiteral("and") + wordEnd
-    OR_: Incomplete = wordStart + CaselessLiteral("or") + wordEnd
-    BETWEEN_: Incomplete = wordStart + CaselessLiteral("between") + wordEnd
+    AND_: Any = wordStart + CaselessLiteral("and") + wordEnd
+    OR_: Any = wordStart + CaselessLiteral("or") + wordEnd
+    BETWEEN_: Any = wordStart + CaselessLiteral("between") + wordEnd
 
-    numeric_value: Incomplete = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?")
-    unquoted_string: Incomplete = Word(alphanums + alphas8bit + "%.-_*;:")
-    string_value: Incomplete = quotedString.setParseAction(removeQuotes) | unquoted_string
-    fieldname: Incomplete = Group(delimitedList(Word(alphas + "_", alphanums + "_"), "."))
-    value: Incomplete = numeric_value | string_value
-    binop: Incomplete = oneOf("= == != <> < <= > >= has like contains", caseless=True)
-    clause: Incomplete = fieldname + binop + value
-    unparseable_clause: Incomplete = (fieldname + BETWEEN_ + value + AND_ + value) | (
+    numeric_value: Any = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?")
+    unquoted_string: Any = Word(alphanums + alphas8bit + "%.-_*;:")
+    string_value: Any = quotedString.setParseAction(removeQuotes) | unquoted_string
+    fieldname: Any = Group(delimitedList(Word(alphas + "_", alphanums + "_"), "."))
+    value: Any = numeric_value | string_value
+    binop: Any = oneOf("= == != <> < <= > >= has like contains", caseless=True)
+    clause: Any = fieldname + binop + value
+    unparseable_clause: Any = (fieldname + BETWEEN_ + value + AND_ + value) | (
         Word(alphanums) + "(" + fieldname + ")" + binop + value
     )
-    expression: Incomplete = Group(clause) + ZeroOrMore(
+    expression: Any = Group(clause) + ZeroOrMore(
         Group(
             AND_ + clause
             | OR_ + clause
             | ((OR_ | AND_) + unparseable_clause).suppress()
         )
     )
-    query: Incomplete = Word(alphas) + CaselessLiteral("where") + expression
+    query: Any = Word(alphas) + CaselessLiteral("where") + expression
 
     def __init__(self, s: str) -> None:
         self.parsed = None

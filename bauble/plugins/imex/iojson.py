@@ -36,7 +36,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import select
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 def serializedatetime(obj):
@@ -66,7 +66,7 @@ class JSONExporter(editor.GenericEditorPresenter):
     include_private: bool
     filename: str
     last_folder: str = ""
-    widget_to_field_map: Incomplete = {
+    widget_to_field_map: Any = {
         "sbo_selection": "selection_based_on",
         "sbo_taxa": "selection_based_on",
         "sbo_accessions": "selection_based_on",
@@ -77,7 +77,7 @@ class JSONExporter(editor.GenericEditorPresenter):
         "filename": "filename",
     }
 
-    view_accept_buttons: Incomplete = [
+    view_accept_buttons: Any = [
         "sed-button-ok",
         "sed-button-cancel",
     ]
@@ -453,14 +453,14 @@ class JSONImporter(editor.GenericEditorPresenter):
     __cancel: bool
     __pause: bool
     __error_exc: bool
-    widget_to_field_map: Incomplete = {
+    widget_to_field_map: Any = {
         "chk_create": "create",
         "chk_update": "update",
         "input_filename": "filename",
     }
     last_folder: str = ""
 
-    view_accept_buttons: Incomplete = [
+    view_accept_buttons: Any = [
         "sid-button-ok",
         "sid-button-cancel",
     ]
@@ -538,9 +538,9 @@ class JSONImporter(editor.GenericEditorPresenter):
 
 
 class JSONImportTool(pluginmgr.Tool):
-    category: Incomplete = (_("Import"), "edit-undo")
-    label: Incomplete = _("JSON")
-    icon_name: Incomplete = _("new-json.png")
+    category: Any = (_("Import"), "edit-undo")
+    label: Any = _("JSON")
+    icon_name: Any = _("new-json.png")
 
     @classmethod
     def start(cls) -> None:
@@ -563,8 +563,8 @@ class JSONImportTool(pluginmgr.Tool):
 
 
 class JSONExportTool(pluginmgr.Tool):
-    category: Incomplete = (_("Export"), "edit-redo")
-    label: Incomplete = _("JSON")
+    category: Any = (_("Export"), "edit-redo")
+    label: Any = _("JSON")
     icon_name: str = "new-json.png"
 
     @classmethod

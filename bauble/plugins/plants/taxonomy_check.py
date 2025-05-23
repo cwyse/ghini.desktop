@@ -31,7 +31,7 @@ from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Pango
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 def safe_set_text(gtk_widget, text) -> None:
@@ -151,10 +151,10 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
     the Model of the BTC is a list of tuples.
 
     """
-    tick_off_list: Incomplete
-    binomials: Incomplete
-    widget_to_field_map: Incomplete = {"file_path_entry": "file_path"}
-    view_accept_buttons: Incomplete = ["ok_button"]
+    tick_off_list: Any
+    binomials: Any
+    widget_to_field_map: Any = {"file_path_entry": "file_path"}
+    view_accept_buttons: Any = ["ok_button"]
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -299,7 +299,7 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
 
         desktop.open("http://tnrs.iplantcollaborative.org/TNRSapp.html")
 
-    def on_tick_off_view_row_activated(self, view, path, column, data: Optional[Incomplete] = None) -> None:
+    def on_tick_off_view_row_activated(self, view, path, column, data: Optional[Any] = None) -> None:
         """toggle the selected row
 
         if selected row goes YES and is a synonym, also next row goes YES.
@@ -355,7 +355,7 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
 
 class TaxonomyCheckTool(pluginmgr.Tool):
     item_position: int = 15
-    label: Incomplete = _("Taxonomy check")
+    label: Any = _("Taxonomy check")
     icon_name: str = "taxonomy_check.png"
     icon_dir: str = "plugins/plants"
 

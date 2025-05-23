@@ -17,11 +17,11 @@ from bauble.pluginmgr import (
 from typing import Any
 from bauble.pluginmgr import Plugin as Plugin, PluginRegistry as PluginRegistry, _create_dependency_pairs as _create_dependency_pairs, init as init, install as install, plugins as plugins
 from collections.abc import Generator
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 class A(Plugin):
-    depends: Incomplete = []
+    depends: Any = []
     initialized: bool = False
     installed: bool = False
 
@@ -35,7 +35,7 @@ class A(Plugin):
 
 
 class B(Plugin):
-    depends: Incomplete = ["A"]
+    depends: Any = ["A"]
     initialized: bool = False
     installed: bool = False
 
@@ -49,7 +49,7 @@ class B(Plugin):
 
 
 class C(Plugin):
-    depends: Incomplete = ["B"]
+    depends: Any = ["B"]
     initialized: bool = False
     installed: bool = False
 
@@ -78,7 +78,7 @@ class FailingInitPlugin(Plugin):
 
 
 class DependsOnFailingInitPlugin(Plugin):
-    depends: Incomplete = ["FailingInitPlugin"]
+    depends: Any = ["FailingInitPlugin"]
     initialized: bool = False
     installed: bool = False
 
@@ -106,7 +106,7 @@ class FailingInstallPlugin(Plugin):
 
 
 class DependsOnFailingInstallPlugin(Plugin):
-    depends: Incomplete = ["FailingInstallPlugin"]
+    depends: Any = ["FailingInstallPlugin"]
     initialized: bool = False
     installed: bool = False
 

@@ -40,7 +40,7 @@ from bauble.error import BaubleError, check
 from typing import Union, Optional
 from typing import Any
 from bauble import db as db, editor as editor, gui as gui, paths as paths, pictures_view as pictures_view, pluginmgr as pluginmgr, search as search, utils as utils
-display: Incomplete
+display: Any
 _substr_tmpl: str
 gi.require_version("Gtk", "3.0")
 gi.require_version("Champlain", "0.12")
@@ -61,7 +61,7 @@ from sqlalchemy.orm import object_session
 
 from bauble.shared import InfoExpander
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -133,23 +133,23 @@ class Action:
 
     Updated to use `Gio.SimpleAction` instead of deprecated `Gtk.Action`.
     """
-    name: Incomplete
-    label: Incomplete
-    tooltip: Incomplete
-    stock_id: Incomplete
-    callback: Incomplete
-    multiselect: Incomplete
-    singleselect: Incomplete
-    accelerator: Incomplete
-    action: Incomplete
+    name: Any
+    label: Any
+    tooltip: Any
+    stock_id: Any
+    callback: Any
+    multiselect: Any
+    singleselect: Any
+    accelerator: Any
+    action: Any
     def __init__(
         self,
         name,
         label,
-        tooltip: Optional[Incomplete] = None,
-        stock_id: Optional[Incomplete] = None,
-        callback: Optional[Incomplete] = None,
-        accelerator: Optional[Incomplete] = None,
+        tooltip: Optional[Any] = None,
+        stock_id: Optional[Any] = None,
+        callback: Optional[Any] = None,
+        accelerator: Optional[Any] = None,
         multiselect: bool = False,
         singleselect: bool = True
     ) -> None:
@@ -214,14 +214,14 @@ class Action:
         """Check if the action is enabled."""
         return self.action.get_enabled()
 
-    enabled: Incomplete = property(get_enabled, set_enabled)
+    enabled: Any = property(get_enabled, set_enabled)
 
 
 class PropertiesExpander(InfoExpander):
-    id_data: Incomplete
-    type_data: Incomplete
-    created_data: Incomplete
-    updated_data: Incomplete
+    id_data: Any
+    type_data: Any
+    created_data: Any
+    updated_data: Any
     def __init__(self) -> None:
         super().__init__(_("Properties"))
         table = Gtk.Grid()
@@ -294,10 +294,10 @@ class MapInfoExpander(InfoExpander):
     """
     Displays a location on a map using Champlain.
     """
-    map_widget: Incomplete
-    get_points: Incomplete
-    layer: Incomplete
-    def __init__(self, get_points: Optional[Incomplete] = None) -> None:
+    map_widget: Any
+    get_points: Any
+    layer: Any
+    def __init__(self, get_points: Optional[Any] = None) -> None:
         super().__init__(_("Location on map"))
 
         self.map_widget = Champlain.View()
@@ -347,9 +347,9 @@ class InfoBoxPage:
     Container for :class:`bauble.view.InfoExpander` objects.
     Uses composition instead of subclassing Gtk.ScrolledWindow.
     """
-    container: Incomplete
-    vbox: Incomplete
-    expanders: Incomplete
+    container: Any
+    vbox: Any
+    expanders: Any
     def __init__(self) -> None:
         self.container = Gtk.ScrolledWindow()
         self.container.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -411,8 +411,8 @@ class InfoBox:
     use `InfoBox(tabbed=True)`. When using tabs, expanders can be added
     directly to the `InfoBoxPage` or via `InfoBox.add_expander(page_num)`.
     """
-    notebook: Incomplete
-    row: Incomplete
+    notebook: Any
+    row: Any
     def __init__(self, tabbed: bool = False) -> None:
         self.notebook = Gtk.Notebook()
         self.row = None
@@ -459,10 +459,10 @@ class LinksExpander(InfoExpander):
     """
     Displays external links and notes associated with a row.
     """
-    dynamic_box: Incomplete
-    notes: Incomplete
-    buttons: Incomplete
-    def __init__(self, notes: Optional[Incomplete] = None, links: Optional[Incomplete] = None) -> None:
+    dynamic_box: Any
+    notes: Any
+    buttons: Any
+    def __init__(self, notes: Optional[Any] = None, links: Optional[Any] = None) -> None:
         """
         :param notes: The name of the notes property on the row.
         """
@@ -532,10 +532,10 @@ class AddOneDot(threading.Thread):
     """
     Adds dots to the status bar to indicate loading progress.
     """
-    __stopped: Incomplete
+    __stopped: Any
     dotno: int
-    statusbar: Incomplete
-    sbcontext_id: Incomplete
+    statusbar: Any
+    sbcontext_id: Any
     def __init__(self) -> None:
         super().__init__()
         self.__stopped = threading.Event()
@@ -561,12 +561,12 @@ class CountResultsTask(threading.Thread):
     """
     Counts top-level results and updates the status bar.
     """
-    klass: Incomplete
-    ids: Incomplete
-    dots_thread: Incomplete
-    __cancel: Incomplete
-    statusbar: Incomplete
-    sbcontext_id: Incomplete
+    klass: Any
+    ids: Any
+    dots_thread: Any
+    __cancel: Any
+    statusbar: Any
+    sbcontext_id: Any
     def __init__(self, klass, ids, dots_thread) -> None:
         super().__init__()
         self.klass = klass
@@ -620,11 +620,11 @@ class PopulateResults(threading.Thread):
     """
     Populates search results asynchronously.
     """
-    view: Incomplete
-    results: Incomplete
-    __stopped: Incomplete
-    statusbar: Incomplete
-    sbcontext_id: Incomplete
+    view: Any
+    results: Any
+    __stopped: Any
+    statusbar: Any
+    sbcontext_id: Any
     def __init__(self, view, results) -> None:
         super().__init__()
         self.view = view
@@ -710,18 +710,18 @@ class SearchView(pluginmgr.View):
     The SearchView is the main view for Ghini. It manages search results
     when text is entered into the main text entry.
     """
-    widgets: Incomplete
-    view: Incomplete
-    context_menu_cache: Incomplete
-    infobox_cache: Incomplete
-    infobox: Incomplete
-    session: Incomplete
-    running_threads: Incomplete
-    installed_accels: Incomplete
-    results_view: Incomplete
-    accel_group: Incomplete
-    pane: Incomplete
-    picpane: Incomplete
+    widgets: Any
+    view: Any
+    context_menu_cache: Any
+    infobox_cache: Any
+    infobox: Any
+    session: Any
+    running_threads: Any
+    installed_accels: Any
+    results_view: Any
+    accel_group: Any
+    pane: Any
+    picpane: Any
     class ViewMeta(dict):
         """
         This class shouldn't need to be instantiated directly.
@@ -729,11 +729,11 @@ class SearchView(pluginmgr.View):
         """
 
         class Meta:
-            children: Incomplete
-            infobox: Incomplete
-            markup_func: Incomplete
-            actions: Incomplete
-            context_menu: Incomplete
+            children: Any
+            infobox: Any
+            markup_func: Any
+            actions: Any
+            context_menu: Any
             def __init__(self) -> None:
                 self.children = None
                 self.infobox = None
@@ -741,7 +741,7 @@ class SearchView(pluginmgr.View):
                 self.actions = []
 
             def set(
-                self, children: Optional[Incomplete] = None, infobox: Optional[Incomplete] = None, context_menu: Optional[Incomplete] = None, markup_func: Optional[Incomplete] = None
+                self, children: Optional[Any] = None, infobox: Optional[Any] = None, context_menu: Optional[Any] = None, markup_func: Optional[Any] = None
             ) -> None:
                 self.children = children
                 self.infobox = infobox
@@ -789,8 +789,8 @@ class SearchView(pluginmgr.View):
                 self[item] = self.Meta()
             return self.get(item)
 
-    row_meta: Incomplete = ViewMeta()
-    bottom_info: Incomplete = ViewMeta()
+    row_meta: Any = ViewMeta()
+    bottom_info: Any = ViewMeta()
 
     def __init__(self) -> None:
         logger.debug("SearchView::__init__")
@@ -1162,7 +1162,7 @@ class SearchView(pluginmgr.View):
             child = model.iter_nth_child(parent, nkids - 1)
             model.remove(child)
 
-    def on_test_expand_row(self, view, treeiter, path, data: Optional[Incomplete] = None):
+    def on_test_expand_row(self, view, treeiter, path, data: Optional[Any] = None):
         """
         Look up the table type of the selected row and if it has
         any children then add them to the row
@@ -1205,7 +1205,7 @@ class SearchView(pluginmgr.View):
                 model.append(i, ["_dummy"])
         return model
 
-    def cell_data_func(self, col, cell, model, treeiter, data: Optional[Incomplete] = None) -> None:
+    def cell_data_func(self, col, cell, model, treeiter, data: Optional[Any] = None) -> None:
         # start with a (redundant) check, whether the cell is visible.
         path = model.get_path(treeiter)
         tree_rect = self.results_view.get_visible_rect()
@@ -1291,7 +1291,7 @@ class SearchView(pluginmgr.View):
             if ref.valid():
                 self.results_view.expand_to_path(ref.get_path())
 
-    def on_view_button_release(self, view, event, data: Optional[Incomplete] = None):
+    def on_view_button_release(self, view, event, data: Optional[Any] = None):
         """right-mouse-button release.
 
         Popup a context menu on the selected row.
@@ -1401,7 +1401,7 @@ class SearchView(pluginmgr.View):
         self.expand_to_all_refs(expanded_rows)
         self.results_view.set_cursor(path)
 
-    def on_view_row_activated(self, view, path, column, data: Optional[Incomplete] = None) -> None:
+    def on_view_row_activated(self, view, path, column, data: Optional[Any] = None) -> None:
         """
         expand the row on activation
         """
@@ -1514,8 +1514,8 @@ class Note:
 
 class AppendThousandRows(threading.Thread):
 
-    __stopped: Incomplete
-    view: Incomplete
+    __stopped: Any
+    view: Any
     def callback(self, rows) -> None:
         for row in rows:
             self.view.add_row(row)
@@ -1525,7 +1525,7 @@ class AppendThousandRows(threading.Thread):
         row[4] = "** " + _("interrupted") + " **"
         self.view.liststore.append(row)
 
-    def __init__(self, view, group: Optional[Incomplete] = None, verbose: Optional[Incomplete] = None, **kwargs) -> None:
+    def __init__(self, view, group: Optional[Any] = None, verbose: Optional[Any] = None, **kwargs) -> None:
         super().__init__(group=group, target=None, name=None)
         self.__stopped = threading.Event()
         self.view = view
@@ -1555,7 +1555,7 @@ class AppendThousandRows(threading.Thread):
 
 class HistoryView(pluginmgr.View):
     """Show the tables row in the order they were last updated"""
-    liststore: Incomplete
+    liststore: Any
     TVC_TIMESTAMP: int = 0
     TVC_OPERATION: int = 1
     TVC_USER: int = 2
@@ -1643,7 +1643,7 @@ class HistoryView(pluginmgr.View):
 class HistoryCommandHandler(pluginmgr.CommandHandler):
 
     command: str = "history"
-    view: Incomplete = None
+    view: Any = None
 
     def __init__(self) -> None:
         super().__init__()
@@ -1694,8 +1694,8 @@ class DefaultCommandHandler(pluginmgr.CommandHandler):
     def __init__(self) -> None:
         super().__init__()
 
-    command: Incomplete = [None]
-    view: Incomplete = None
+    command: Any = [None]
+    view: Any = None
 
     def get_view(self):
         if self.__class__.view is None:

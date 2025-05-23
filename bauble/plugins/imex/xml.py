@@ -40,7 +40,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import select
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -69,13 +69,13 @@ def ElementFactory(parent, name, **kwargs):
 
 class XMLExporter:
 
-    selected_path_label: Incomplete
-    progress_bar: Incomplete
-    selected_path: Incomplete
+    selected_path_label: Any
+    progress_bar: Any
+    selected_path: Any
     def __init__(self) -> None:
         pass
 
-    def start(self, path: Optional[Incomplete] = None) -> None:
+    def start(self, path: Optional[Any] = None) -> None:
 
         dialog = Gtk.Dialog(
             title=_("Ghini - XML Exporter"),
@@ -220,8 +220,8 @@ class XMLExportCommandHandler(pluginmgr.CommandHandler):
 
 
 class XMLExportTool(pluginmgr.Tool):
-    category: Incomplete = _("Export")
-    label: Incomplete = _("XML")
+    category: Any = _("Export")
+    label: Any = _("XML")
     icon_name: str = "new-xml.png"
 
     @classmethod
@@ -231,8 +231,8 @@ class XMLExportTool(pluginmgr.Tool):
 
 
 class XMLImexPlugin(pluginmgr.Plugin):
-    tools: Incomplete = [XMLExportTool]
-    commands: Incomplete = [XMLExportCommandHandler]
+    tools: Any = [XMLExportTool]
+    commands: Any = [XMLExportCommandHandler]
 
 
 try:

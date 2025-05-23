@@ -94,10 +94,10 @@ def verify_institution(institution):
     )
 
 
-namespaces: Incomplete = {"abcd": "http://www.tdwg.org/schemas/abcd/2.06"}
+namespaces: Any = {"abcd": "http://www.tdwg.org/schemas/abcd/2.06"}
 
 
-def ABCDElement(parent, name, text: Optional[Incomplete] = None, attrib: Optional[Incomplete] = None):
+def ABCDElement(parent, name, text: Optional[Any] = None, attrib: Optional[Any] = None):
     """
     append a named element to parent, with text and attributes.
 
@@ -142,7 +142,7 @@ class ABCDAdapter:
 
     # TODO: need to mark those fields that are required and those that
     # are optional
-    _object: Incomplete
+    _object: Any
     def extra_elements(self, unit) -> None:
         """
         Add extra non required elements
@@ -358,7 +358,7 @@ class ABCDExporter:
     Export Plants to an ABCD file.
     """
 
-    def start(self, filename: Optional[Incomplete] = None, plants: Optional[Incomplete] = None) -> None:
+    def start(self, filename: Optional[Any] = None, plants: Optional[Any] = None) -> None:
         if filename is None:  # no filename, ask the user
             d = Gtk.FileChooserDialog(
                 _("Choose a file to export to..."),
@@ -396,7 +396,7 @@ class ABCDExporter:
                 return
         self.run(filename, plants)
 
-    def run(self, filename, plants: Optional[Incomplete] = None) -> None:
+    def run(self, filename, plants: Optional[Any] = None) -> None:
         if filename is None:
             raise ValueError("filename can not be None")
 
@@ -425,8 +425,8 @@ class ABCDExporter:
 
 
 class ABCDExportTool(pluginmgr.Tool):
-    category: Incomplete = _("Export")
-    label: Incomplete = _("ABCD")
+    category: Any = _("Export")
+    label: Any = _("ABCD")
     icon_name: str = "new-abcd.png"
 
     @classmethod
@@ -435,8 +435,8 @@ class ABCDExportTool(pluginmgr.Tool):
 
 
 class ABCDImexPlugin(pluginmgr.Plugin):
-    tools: Incomplete = [ABCDExportTool]
-    depends: Incomplete = ["PlantsPlugin"]
+    tools: Any = [ABCDExportTool]
+    depends: Any = ["PlantsPlugin"]
 
 
 try:

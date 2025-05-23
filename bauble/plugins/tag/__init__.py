@@ -73,12 +73,12 @@ from sqlalchemy.orm.session import object_session
 if TYPE_CHECKING:
     from bauble.types import BaseModelProtocol
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 @contextmanager
-def session_scope() -> Generator[Incomplete, None, None]:
+def session_scope() -> Generator[Any, None, None]:
     """Provide a transactional scope around a series of operations."""
     session = db.Session()
     try:
@@ -88,11 +88,11 @@ def session_scope() -> Generator[Incomplete, None, None]:
 
 
 class TagsMenuManager:
-    menu_item: Incomplete
-    active_tag_name: Incomplete
-    item_list: Incomplete
-    apply_active_tag_menu_item: Incomplete
-    remove_active_tag_menu_item: Incomplete
+    menu_item: Any
+    active_tag_name: Any
+    item_list: Any
+    apply_active_tag_menu_item: Any
+    remove_active_tag_menu_item: Any
     def __init__(self) -> None:
         self.menu_item: Gtk.MenuItem | None = None
         self.active_tag_name: str | None = None
@@ -100,7 +100,7 @@ class TagsMenuManager:
         self.apply_active_tag_menu_item: Gtk.MenuItem | None = None
         self.remove_active_tag_menu_item: Gtk.MenuItem | None = None
 
-    def reset(self, make_active_tag: Optional[Incomplete] = None) -> None:
+    def reset(self, make_active_tag: Optional[Any] = None) -> None:
         """Initialize or replace Tags menu in the main menu."""
         self.active_tag_name = make_active_tag.tag if make_active_tag else None
         tags_menu = self.build_menu()
@@ -295,7 +295,7 @@ class TagsMenuManager:
         self.toggle_tag(applying=utils.untag_objects)
 
 
-tags_menu_manager: Incomplete = TagsMenuManager()
+tags_menu_manager: Any = TagsMenuManager()
 
 
 def edit_callback(tags):
@@ -349,10 +349,10 @@ def remove_callback(tags):
     return True
 
 
-edit_action: Incomplete = Action(
+edit_action: Any = Action(
     "acc_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
 )
-remove_action: Incomplete = Action(
+remove_action: Any = Action(
     "tag_remove",
     _("_Delete"),
     callback=remove_callback,
@@ -360,19 +360,19 @@ remove_action: Incomplete = Action(
     multiselect=True,
 )
 
-tag_context_menu: Incomplete = [edit_action, remove_action]
+tag_context_menu: Any = [edit_action, remove_action]
 
 
 class TagEditorPresenter(GenericEditorPresenter):
 
-    last_entry: Incomplete
+    last_entry: Any
     column: int
-    widget_to_field_map: Incomplete = {
+    widget_to_field_map: Any = {
         "tag_name_entry": "tag",
         "tag_desc_textbuffer": "description",
     }
 
-    view_accept_buttons: Incomplete = [
+    view_accept_buttons: Any = [
         "tag_ok_button",
         "tag_cancel_button",
     ]
@@ -403,7 +403,7 @@ class TagEditorPresenter(GenericEditorPresenter):
         #               0        1           2             3      4        5
         self.view.widgets.notes_list.append(("", "str", "", "gtk-apply", -1, True))
 
-    def on_tag_desc_textbuffer_changed(self, widget, value: Optional[Incomplete] = None):
+    def on_tag_desc_textbuffer_changed(self, widget, value: Optional[Any] = None):
         return GenericEditorPresenter.on_textbuffer_changed(
             self, widget, value, attr="description"
         )
@@ -442,9 +442,9 @@ class TagItemGUI(editor.GenericEditorView):
     """
     Interface for tagging individual items in the results of the SearchView
     """
-    item_data_label: Incomplete
-    values: Incomplete
-    tag_tree: Incomplete
+    item_data_label: Any
+    values: Any
+    tag_tree: Any
     def __init__(self, values) -> None:
         filename = os.path.join(paths.lib_dir(), "plugins", "tag", "tag.glade")
         super().__init__(filename)
@@ -470,7 +470,7 @@ class TagItemGUI(editor.GenericEditorView):
             tags_menu_manager.reset(tag)
         session.close()
 
-    def on_toggled(self, renderer, path, data: Optional[Incomplete] = None) -> None:
+    def on_toggled(self, renderer, path, data: Optional[Any] = None) -> None:
         """
         tag or untag the objs in self.values
         """
@@ -580,14 +580,14 @@ class Tag(db.Base, db.WithNotes):
       description: :class:`sqlalchemy.types.Unicode`
         A description of this tag.
     """
-    id: Incomplete
-    _objects: Incomplete
+    id: Any
+    _objects: Any
     __tablename__: str = "tag"
 
     # columns
     id = Column(Integer, primary_key=True)
-    tag: Incomplete = Column(Unicode(64), unique=True, nullable=False)
-    description: Incomplete = Column(UnicodeText)
+    tag: Any = Column(Unicode(64), unique=True, nullable=False)
+    description: Any = Column(UnicodeText)
 
     # relations
     _objects = relationship(
@@ -597,8 +597,8 @@ class Tag(db.Base, db.WithNotes):
         single_parent=True,
     )
 
-    __my_own_timestamp: Incomplete = None
-    __last_objects: Incomplete = None
+    __my_own_timestamp: Any = None
+    __last_objects: Any = None
 
     # Use a lambda to defer attribute access until runtime
     @staticmethod
@@ -740,7 +740,7 @@ class Tag(db.Base, db.WithNotes):
         return first, second
 
 
-TagNote: Incomplete = db.make_note_class("Tag", Tag)
+TagNote: Any = db.make_note_class("Tag", Tag)
 Tag.notes = relationship(
     "TagNote",
     back_populates="tag",
@@ -761,15 +761,15 @@ class TaggedObj(db.Base):
         A ForeignKey to :class:`Tag`.
 
     """
-    id: Incomplete
+    id: Any
     __tablename__: str = "tagged_obj"
 
     # columns
     id = Column(Integer, primary_key=True)
-    obj_id: Incomplete = Column(Integer, autoincrement=False)
-    obj_class: Incomplete = Column(String(128))
-    tag_id: Incomplete = Column(Integer, ForeignKey("tag.id"))
-    tag: Incomplete = relationship(
+    obj_id: Any = Column(Integer, autoincrement=False)
+    obj_class: Any = Column(String(128))
+    tag_id: Any = Column(Integer, ForeignKey("tag.id"))
+    tag: Any = relationship(
         "Tag",
         cascade="all, delete-orphan",
         back_populates="_objects",
@@ -999,8 +999,8 @@ class GeneralTagExpander(InfoExpander):
     generic information about an accession like
     number of clones, provenance type, wild provenance type, speciess
     """
-    table_cells: Incomplete
-    current_obj: Incomplete
+    table_cells: Any
+    current_obj: Any
     def __init__(self, widgets) -> None:
         """ """
         super().__init__(_("General"), widgets)
@@ -1056,8 +1056,8 @@ class TagInfoBox(InfoBox):
     - general info
     - source
     """
-    widgets: Incomplete
-    general: Incomplete
+    widgets: Any
+    general: Any
     def __init__(self) -> None:
         super().__init__()
         filename = os.path.join(paths.lib_dir(), "plugins", "tag", "tag.glade")
@@ -1070,7 +1070,7 @@ class TagInfoBox(InfoBox):
 
 
 class TagPlugin(pluginmgr.Plugin):
-    provides: Incomplete = {"Tag": Tag}
+    provides: Any = {"Tag": Tag}
 
     @classmethod
     def init(cls) -> None:

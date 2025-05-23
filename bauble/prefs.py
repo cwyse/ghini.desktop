@@ -37,7 +37,7 @@ import copy
 from gi.repository import Gtk
 from sqlalchemy import select
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -63,7 +63,7 @@ using a dictionary like interface. e.g. ::
 # throughout bauble
 
 default_filename = "config"
-default_prefs_file: Incomplete = os.path.join(paths.appdata_dir(), default_filename)
+default_prefs_file: Any = os.path.join(paths.appdata_dir(), default_filename)
 """
 The default file for the preference settings file.
 """
@@ -73,7 +73,7 @@ config_version_pref: str = "bauble.config.version"
 The preferences key for the bauble version of the preferences file.
 """
 
-config_version: Incomplete = bauble.version_tuple[0], bauble.version_tuple[1]
+config_version: Any = bauble.version_tuple[0], bauble.version_tuple[1]
 
 date_format_pref: str = "bauble.default_date_format"
 """
@@ -138,8 +138,8 @@ testing_pref: str = "bauble.testing"
 
 class _prefs(dict):
 
-    _filename: Incomplete
-    config: Incomplete
+    _filename: Any
+    config: Any
     def __init__(self, filename=default_prefs_file) -> None:
         self._filename = filename
         self.config = None
@@ -200,7 +200,7 @@ class _prefs(dict):
             key = f"bauble.{name}"
             super().__setitem__(key, value)
 
-    def init(self, prefs: Optional[Incomplete] = None) -> None:
+    def init(self, prefs: Optional[Any] = None) -> None:
         """
         initialize the preferences, should only be called from app.main
         """
@@ -330,15 +330,15 @@ class _prefs(dict):
                 logger.error(msg)
 
 
-prefs: Incomplete = _prefs()
+prefs: Any = _prefs()
 
 
 class PrefsView(pluginmgr.View):
     """
     The PrefsView displays the values of in the preferences and the registry.
     """
-    prefs_ls: Incomplete
-    plugins_ls: Incomplete
+    prefs_ls: Any
+    plugins_ls: Any
     pane_size_pref: str = "bauble.prefs.pane_position"
 
     def __init__(self) -> None:
@@ -381,8 +381,8 @@ class PrefsView(pluginmgr.View):
 
 class PrefsCommandHandler(pluginmgr.CommandHandler):
 
-    command: Incomplete = ("prefs", "config")
-    view: Incomplete = None
+    command: Any = ("prefs", "config")
+    view: Any = None
 
     def __call__(self, cmd, arg) -> None:
         pass

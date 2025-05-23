@@ -40,7 +40,7 @@ from bauble.plugins.report.utils import Code39
 
 from typing import Any
 from bauble.plugins.plants import Family as Family, Genus as Genus, GeographicArea as GeographicArea, Species as Species, SpeciesDistribution as SpeciesDistribution, VernacularName as VernacularName
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 # TURN OFF desktop.open for this module so that the test doesn't open the report
 def desktop_open(x):

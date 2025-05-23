@@ -69,7 +69,7 @@ from gi.repository import Gtk
 from sqlalchemy import distinct, select
 from sqlalchemy.orm.session import object_session
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 logger.setLevel(logging.INFO)
 
@@ -142,16 +142,16 @@ def add_accession_callback(values):
     return e.start() is not None
 
 
-edit_action: Incomplete = Action(
+edit_action: Any = Action(
     "species_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
 )
-add_accession_action: Incomplete = Action(
+add_accession_action: Any = Action(
     "species_acc_add",
     _("_Add accession"),
     callback=add_accession_callback,
     accelerator="<ctrl>k",
 )
-remove_action: Incomplete = Action(
+remove_action: Any = Action(
     "species_remove",
     _("_Delete"),
     callback=remove_callback,
@@ -159,8 +159,8 @@ remove_action: Incomplete = Action(
     multiselect=True,
 )
 
-species_context_menu: Incomplete = [edit_action, remove_action]
-vernname_context_menu: Incomplete = [edit_action]
+species_context_menu: Any = [edit_action, remove_action]
+vernname_context_menu: Any = [edit_action]
 
 
 class SynonymSearch(search.SearchStrategy):
@@ -343,7 +343,7 @@ class GeneralSpeciesExpander(InfoExpander):
     """
     expander to present general information about a species
     """
-    current_obj: Incomplete
+    current_obj: Any
     def __init__(self, widgets) -> None:
         """
         the constructor
@@ -509,13 +509,13 @@ class SpeciesInfoBox(InfoBox):
     """
     # others to consider: reference, images, redlist status
 
-    widgets: Incomplete
-    general: Incomplete
-    vernacular: Incomplete
-    synonyms: Incomplete
-    links: Incomplete
-    properties_expander: Incomplete
-    label: Incomplete
+    widgets: Any
+    general: Any
+    vernacular: Any
+    synonyms: Any
+    links: Any
+    properties_expander: Any
+    label: Any
     def __init__(self) -> None:
         """
         the constructor

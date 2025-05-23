@@ -30,14 +30,14 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Pango
 from sqlalchemy import select
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 class StoredQueriesModel:
-    _label: Incomplete
-    _tooltip: Incomplete
-    _query: Incomplete
+    _label: Any
+    _tooltip: Any
+    _query: Any
     page: int
     __index: int
     def __init__(self) -> None:
@@ -147,14 +147,14 @@ class StoredQueriesModel:
 
 class StoredQueriesPresenter(editor.GenericEditorPresenter):
 
-    view_accept_buttons: Incomplete
-    widget_to_field_map: Incomplete = {
+    view_accept_buttons: Any
+    widget_to_field_map: Any = {
         "stqr_label_entry": "label",
         "stqr_tooltip_entry": "tooltip",
         "stqr_query_textbuffer": "query",
     }
 
-    weight: Incomplete = {False: Pango.AttrList(), True: Pango.AttrList()}
+    weight: Any = {False: Pango.AttrList(), True: Pango.AttrList()}
     # weight[True].insert(Pango.AttrFontDesc(Pango.Weight.HEAVY, 0, 50))
 
     view_accept_buttons = [
@@ -200,7 +200,7 @@ class StoredQueriesPresenter(editor.GenericEditorPresenter):
         value = self.view.widget_get_text(widget)
         self.view.widget_set_text(page_label_name, value or _("<empty>"))
 
-    def on_stqr_query_textbuffer_changed(self, widget, value: Optional[Incomplete] = None, attr: Optional[Incomplete] = None):
+    def on_stqr_query_textbuffer_changed(self, widget, value: Optional[Any] = None, attr: Optional[Any] = None):
         return self.on_textbuffer_changed(widget, value, attr="query")
 
 
@@ -224,7 +224,7 @@ def edit_callback():
 
 class StoredQueryEditorTool(pluginmgr.Tool):
     item_position: int = 20
-    label: Incomplete = _("Edit stored queries")
+    label: Any = _("Edit stored queries")
     icon_name: str = "x-office-spreadsheet"
 
     @classmethod

@@ -38,7 +38,7 @@ from bauble.plugins.abcd import ABCDElement, ABCDExporter, DataSets, plants_to_a
 from bauble.plugins.garden import Accession, Collection, Plant, Source
 
 from typing import Any
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="module")

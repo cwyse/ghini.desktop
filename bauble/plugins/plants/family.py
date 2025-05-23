@@ -72,8 +72,8 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Session, relationship, validates
 from sqlalchemy.orm.session import object_session
 
-view: Incomplete = importlib.import_module("bauble.view")
-logger: Incomplete = logging.getLogger(__name__)
+view: Any = importlib.import_module("bauble.view")
+logger: Any = logging.getLogger(__name__)
 
 
 def edit_callback(families):
@@ -143,17 +143,17 @@ def remove_callback(families):
     return True
 
 
-edit_action: Incomplete = view.Action(
+edit_action: Any = view.Action(
     name="family_edit", label=_("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
 )
 
-add_species_action: Incomplete = view.Action(
+add_species_action: Any = view.Action(
     name="family_genus_add",
     label=_("_Add genus"),
     callback=add_genera_callback,
     accelerator="<ctrl>k",
 )
-remove_action: Incomplete = view.Action(
+remove_action: Any = view.Action(
     name="family_remove",
     label=_("_Delete"),
     callback=remove_callback,
@@ -161,7 +161,7 @@ remove_action: Incomplete = view.Action(
     multiselect=True,
 )
 
-family_context_menu: Incomplete = [edit_action, add_species_action, remove_action]
+family_context_menu: Any = [edit_action, add_species_action, remove_action]
 
 
 #
@@ -190,15 +190,15 @@ class FamilySynonym(db.Base):
 
         *family*:
     """
-    id: Incomplete
-    synonym: Incomplete
-    family: Incomplete
+    id: Any
+    synonym: Any
+    family: Any
     __tablename__: str = "family_synonym"
 
     # columns
     id = Column(Integer, primary_key=True, nullable=False)
-    family_id: Incomplete = Column(Integer, ForeignKey("family.id"), nullable=False)
-    synonym_id: Incomplete = Column(Integer, ForeignKey("family.id"), nullable=False, unique=True)
+    family_id: Any = Column(Integer, ForeignKey("family.id"), nullable=False)
+    synonym_id: Any = Column(Integer, ForeignKey("family.id"), nullable=False, unique=True)
 
     # Relationships
     synonym = relationship(
@@ -213,7 +213,7 @@ class FamilySynonym(db.Base):
         primaryjoin="FamilySynonym.family_id==Family.id",
     )
 
-    def __init__(self, synonym: Optional[Incomplete] = None, **kwargs) -> None:
+    def __init__(self, synonym: Optional[Any] = None, **kwargs) -> None:
         # it is necessary that the first argument here be synonym for
         # the Family.synonyms association_proxy to work
         self.synonym = synonym
@@ -249,14 +249,14 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     :Constraints:
         The family table has a unique constraint on family/qualifier.
     """
-    qualifier: Incomplete
-    synonyms: Incomplete
+    qualifier: Any
+    synonyms: Any
     __tablename__: str = "family"
-    __table_args__: Incomplete = (UniqueConstraint("epithet"),)
+    __table_args__: Any = (UniqueConstraint("epithet"),)
 
-    id: Incomplete = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
+    id: Any = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
     rank: str = "familia"
-    link_keys: Incomplete = ["accepted"]
+    link_keys: Any = ["accepted"]
 
     @validates("genus")
     def validate_stripping(self, key, value):
@@ -276,7 +276,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         return cites_notes[0]
 
     # columns
-    epithet: Incomplete = Column(String(45), nullable=False, index=True)
+    epithet: Any = Column(String(45), nullable=False, index=True)
     # family = synonym("epithet")
 
     # Use hybrid property for the 'family' synonym
@@ -293,19 +293,19 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         return cls.epithet
 
     # use '' instead of None so that the constraints will work propertly
-    author: Incomplete = Column(Unicode(255), default="")
+    author: Any = Column(Unicode(255), default="")
 
     # we use the blank string here instead of None so that the
     # contraints will work properly,
     qualifier = Column(
         types.Enum(values=["s. lat.", "s. str.", ""], omit_aliases=False), default=""
     )
-    order_by: Incomplete = [asc(epithet), asc(qualifier)]
+    order_by: Any = [asc(epithet), asc(qualifier)]
 
     # relations
     # `genera` relation is defined outside of `Family` class definition
     synonyms = association_proxy("_synonyms", "synonym")
-    _synonyms: Incomplete = relationship(
+    _synonyms: Any = relationship(
         "FamilySynonym",
         primaryjoin="Family.id==FamilySynonym.family_id",
         cascade="all, delete-orphan",
@@ -464,7 +464,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
 # defining the latin alias to the class.
 Familia = Family
 
-FamilyNote: Incomplete = db.make_note_class("Family", Family, compute_serializable_fields)
+FamilyNote: Any = db.make_note_class("Family", Family, compute_serializable_fields)
 Family.notes = relationship(
     "FamilyNote",
     back_populates="family",
@@ -517,7 +517,7 @@ class FamilyEditorView(editor.GenericEditorView):
 
     syn_expanded_pref: str = "editor.family.synonyms.expanded"
 
-    _tooltips: Incomplete = {
+    _tooltips: Any = {
         "fam_family_entry": _("The family name."),
         "fam_qualifier_combo": _(
             "The family qualifier helps to remove "
@@ -538,7 +538,7 @@ class FamilyEditorView(editor.GenericEditorView):
         "fam_next_button": _("Save your changes and add another " "family."),
     }
 
-    def __init__(self, parent: Optional[Incomplete] = None) -> None:
+    def __init__(self, parent: Optional[Any] = None) -> None:
         filename = os.path.join(
             paths.lib_dir(), "plugins", "plants", "family_editor.glade"
         )
@@ -572,11 +572,11 @@ class FamilyEditorView(editor.GenericEditorView):
 
 class FamilyEditorPresenter(editor.GenericEditorPresenter):
 
-    session: Incomplete
-    synonyms_presenter: Incomplete
-    notes_presenter: Incomplete
+    session: Any
+    synonyms_presenter: Any
+    notes_presenter: Any
     _dirty: bool
-    widget_to_field_map: Incomplete = {
+    widget_to_field_map: Any = {
         "fam_family_entry": "family",
         "fam_qualifier_combo": "qualifier",
     }
@@ -656,7 +656,7 @@ class FamilyEditorPresenter(editor.GenericEditorPresenter):
             sensitive = True
         self.view.set_accept_buttons_sensitive(sensitive)
 
-    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
+    def set_model_attr(self, field, value, validator: Optional[Any] = None) -> None:
         # debug('set_model_attr(%s, %s)' % (field, value))
         super().set_model_attr(field, value, validator)
         self._dirty = True
@@ -687,12 +687,12 @@ class FamilyEditorPresenter(editor.GenericEditorPresenter):
 
 class SynonymsPresenter(editor.GenericEditorPresenter):
 
-    parent_ref: Incomplete
-    session: Incomplete
-    synonyms_to_add: Incomplete
-    _selected: Incomplete
+    parent_ref: Any
+    session: Any
+    synonyms_to_add: Any
+    _selected: Any
     _dirty: bool
-    treeview: Incomplete
+    treeview: Any
     PROBLEM_INVALID_SYNONYM: int = 1
 
     def __init__(self, parent) -> None:
@@ -811,7 +811,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self.treeview.set_model(tree_model)
         self.view.connect(self.treeview, "cursor-changed", self.on_tree_cursor_changed)
 
-    def on_tree_cursor_changed(self, tree, data: Optional[Incomplete] = None) -> None:
+    def on_tree_cursor_changed(self, tree, data: Optional[Any] = None) -> None:
         """ """
         path, column = tree.get_cursor()
         self.view.widgets.fam_syn_remove_button.set_sensitive(True)
@@ -832,7 +832,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
             synonym_name = synonym_entry.synonym.epithet
             tree_model.append([synonym_name])
 
-    def on_add_button_clicked(self, button, data: Optional[Incomplete] = None) -> None:
+    def on_add_button_clicked(self, button, data: Optional[Any] = None) -> None:
         """
         Adds the synonym from the synonym entry to the list of synonyms for this family.
         """
@@ -865,7 +865,7 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 
-    def on_remove_button_clicked(self, button, data: Optional[Incomplete] = None) -> None:
+    def on_remove_button_clicked(self, button, data: Optional[Any] = None) -> None:
         """
         Removes the currently selected synonym from the list of synonyms for this family.
         """
@@ -896,14 +896,14 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
 class FamilyEditor(editor.GenericModelViewPresenterEditor):
 
     # these have to correspond to the response values in the view
-    parent: Incomplete
-    _committed: Incomplete
-    presenter: Incomplete
+    parent: Any
+    _committed: Any
+    presenter: Any
     RESPONSE_OK_AND_ADD: int = 11
     RESPONSE_NEXT: int = 22
-    ok_responses: Incomplete = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
+    ok_responses: Any = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model: Optional[Incomplete] = None, parent: Optional[Incomplete] = None) -> None:
+    def __init__(self, model: Optional[Any] = None, parent: Optional[Any] = None) -> None:
         """
         :param model: Family instance or None
         :param parent: the parent window or None
@@ -990,7 +990,7 @@ class GeneralFamilyExpander(InfoExpander):
     generic information about an family like number of genus, species,
     accessions and plants
     """
-    current_obj: Incomplete
+    current_obj: Any
     def __init__(self, widgets) -> None:
         """
 
@@ -1216,11 +1216,11 @@ class SynonymsExpander(InfoExpander):
 
 class FamilyInfoBox(InfoBox):
     """ """
-    widgets: Incomplete
-    general: Incomplete
-    synonyms: Incomplete
-    links: Incomplete
-    properties_expander: Incomplete
+    widgets: Any
+    general: Any
+    synonyms: Any
+    links: Any
+    properties_expander: Any
     def __init__(self) -> None:
         """ """
 

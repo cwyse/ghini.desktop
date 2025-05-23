@@ -38,7 +38,7 @@ from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
 from .querybuilderparser import BuiltQuery
 from .search import EmptyToken, MapperSearch
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 RelationProperty = RelationshipProperty
@@ -70,17 +70,17 @@ class SchemaMenu:
     :param relation_filter: Function to filter relations.
     :param leading_items: List of leading items to append to the menu.
     """
-    mapper: Incomplete
-    activate_cb: Incomplete
-    relation_filter: Incomplete
-    leading_items: Incomplete
-    menu: Incomplete
+    mapper: Any
+    activate_cb: Any
+    relation_filter: Any
+    leading_items: Any
+    menu: Any
     def __init__(
         self,
         mapper,
-        activate_cb: Optional[Incomplete] = None,
+        activate_cb: Optional[Any] = None,
         relation_filter=lambda c, p: True,
-        leading_items: Optional[Incomplete] = None
+        leading_items: Optional[Any] = None
     ) -> None:
         if leading_items is None:
             leading_items = []
@@ -123,7 +123,7 @@ class SchemaMenu:
             self.append_menuitems(prop.mapper, prop, target=submenu)
         submenu.show_all()
 
-    def append_menuitems(self, mapper, container: Optional[Incomplete] = None, target: Optional[Incomplete] = None):
+    def append_menuitems(self, mapper, container: Optional[Any] = None, target: Optional[Any] = None):
         """Populate target menu
 
         Construct as manu Gtk.MenuItem as the properties of `mapper` and
@@ -197,16 +197,16 @@ class SchemaMenu:
 
 class ExpressionRow:
     """ """
-    table: Incomplete
-    presenter: Incomplete
+    table: Any
+    presenter: Any
     menu_item_activated: bool
-    and_or_combo: Incomplete
-    prop_button: Incomplete
-    schema_menu: Incomplete
-    cond_combo: Incomplete
-    value_widget: Incomplete
-    remove_button: Incomplete
-    conditions: Incomplete = ["=", "!=", "<", "<=", ">", ">=", "like", "contains"]
+    and_or_combo: Any
+    prop_button: Any
+    schema_menu: Any
+    cond_combo: Any
+    value_widget: Any
+    remove_button: Any
+    conditions: Any = ["=", "!=", "<", "<=", ">", ">=", "like", "contains"]
 
     def __init__(self, query_builder, remove_callback, row_number) -> None:
         self.table = query_builder.view.widgets.expressions_table
@@ -385,15 +385,15 @@ class ExpressionRow:
 
 class QueryBuilder(GenericEditorPresenter):
 
-    expression_rows: Incomplete
-    mapper: Incomplete
-    domain: Incomplete
+    expression_rows: Any
+    mapper: Any
+    domain: Any
     table_row_count: int
-    domain_map: Incomplete
-    view_accept_buttons: Incomplete = ["cancel_button", "confirm_button"]
-    default_size: Incomplete = None
+    domain_map: Any
+    view_accept_buttons: Any = ["cancel_button", "confirm_button"]
+    default_size: Any = None
 
-    def __init__(self, view: Optional[Incomplete] = None) -> None:
+    def __init__(self, view: Optional[Any] = None) -> None:
         super().__init__(model=self, view=view, refresh_view=False)
 
         self.expression_rows = []

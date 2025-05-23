@@ -28,7 +28,7 @@ prefs.testing = True
 
 
 @pytest.fixture
-def temp_prefs_file() -> Generator[Incomplete, None, None]:
+def temp_prefs_file() -> Generator[Any, None, None]:
     """
     Provides a temporary preferences file for testing.
     """

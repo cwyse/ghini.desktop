@@ -37,7 +37,7 @@ from typing import Union, Optional
 from bauble import editor
 from bauble import pluginmgr
 from typing import Any
-logger: Incomplete
+logger: Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -146,7 +146,7 @@ def get_groups():
     return [r[0] for r in db.engine.execute(stmt)]
 
 
-def _create_role(name, password: Optional[Incomplete] = None, login: bool = False, admin: bool = False) -> None:
+def _create_role(name, password: Optional[Any] = None, login: bool = False, admin: bool = False) -> None:
     """Internal helper to create a role."""
     try:
         with db.engine.begin() as conn:
@@ -163,7 +163,7 @@ def _create_role(name, password: Optional[Incomplete] = None, login: bool = Fals
         raise
 
 
-def create_user(name, password: Optional[Incomplete] = None, admin: bool = False, groups: Optional[Incomplete] = None) -> None:
+def create_user(name, password: Optional[Any] = None, admin: bool = False, groups: Optional[Any] = None) -> None:
     """Create a role that can login."""
     if groups is None:
         groups = []
@@ -193,7 +193,7 @@ def create_group(name, admin: bool = False) -> None:
     _create_role(name, login=False, password=None, admin=admin)
 
 
-def add_member(name, groups: Optional[Incomplete] = None) -> None:
+def add_member(name, groups: Optional[Any] = None) -> None:
     """Add name to groups."""
     if groups is None:
         groups = []
@@ -207,7 +207,7 @@ def add_member(name, groups: Optional[Incomplete] = None) -> None:
         logger.error("users.add_member(): %s %s", type(e), utils.utf8(e))
 
 
-def remove_member(name, groups: Optional[Incomplete] = None) -> None:
+def remove_member(name, groups: Optional[Any] = None) -> None:
     """Remove name from groups."""
     if groups is None:
         groups = []
@@ -277,7 +277,7 @@ def get_privileges(role) -> None:
     raise NotImplementedError
 
 
-_privileges: Incomplete = {
+_privileges: Any = {
     "read": ["connect", "select"],
     "write": [
         "connect",
@@ -293,9 +293,9 @@ _privileges: Incomplete = {
     "admin": ["all"],
 }
 
-_database_privs: Incomplete = ["create", "temporary", "temp"]
+_database_privs: Any = ["create", "temporary", "temp"]
 
-_table_privs: Incomplete = [
+_table_privs: Any = [
     "select",
     "insert",
     "update",
@@ -305,7 +305,7 @@ _table_privs: Incomplete = [
     "all",
 ]
 
-__sequence_privs: Incomplete = ["usage", "select", "update", "all"]
+__sequence_privs: Any = ["usage", "select", "update", "all"]
 
 
 def _parse_acl(acl):
@@ -462,7 +462,7 @@ def current_user():
     return db.current_user()
 
 
-def set_password(password, user: Optional[Incomplete] = None) -> None:
+def set_password(password, user: Optional[Any] = None) -> None:
     """Set a user's password."""
     if not user:
         user = current_user()
@@ -557,7 +557,7 @@ class UsersEditor(editor.GenericEditorView):
         path, column = tree.get_cursor()
         return tree.get_model()[path][0]
 
-    new_user_message: Incomplete = _("Enter a user name")
+    new_user_message: Any = _("Enter a user name")
 
     def on_add_button_clicked(self, button, *args) -> None:
         tree = self.widgets.users_tree
@@ -670,7 +670,7 @@ class UsersEditor(editor.GenericEditorView):
         self.get_window().run()
         self.cleanup()
 
-    buttons: Incomplete = {
+    buttons: Any = {
         "admin": "admin_button",
         "write": "write_button",
         "read": "read_button",
@@ -706,7 +706,7 @@ class UsersEditor(editor.GenericEditorView):
         else:
             _set_buttons(None)
 
-    def on_cell_edited(self, cell, path, new_text, data: Optional[Incomplete] = None):
+    def on_cell_edited(self, cell, path, new_text, data: Optional[Any] = None):
         model = self.widgets.users_tree.get_model()
         user = new_text
         if user == self.new_user_message:
@@ -731,7 +731,7 @@ class UsersEditor(editor.GenericEditorView):
 
 class UsersTool(pluginmgr.Tool):
     item_position: int = 5
-    label: Incomplete = _("Users")
+    label: Any = _("Users")
     icon_name: str = "system-users"
 
     @classmethod
@@ -744,7 +744,7 @@ class UsersTool(pluginmgr.Tool):
 
 class UsersPlugin(pluginmgr.Plugin):
 
-    tools: Incomplete = []
+    tools: Any = []
 
     @classmethod
     def init(cls) -> None:

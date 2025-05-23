@@ -98,7 +98,7 @@ def get_species_in_geographic_area(geo):
 
 
 class GeographicAreaMenu:
-    menu: Incomplete
+    menu: Any
     def __init__(self, callback) -> None:
         # Create an instance of Gtk.Menu instead of subclassing it
         self.menu = Gtk.Menu()
@@ -211,15 +211,15 @@ class GeographicArea(db.Base):
 
     :Constraints:
     """
-    id: Incomplete
+    id: Any
     __tablename__: str = "geographic_area"
 
     # columns
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name: Incomplete = Column(Unicode(255), nullable=False)
-    tdwg_code: Incomplete = Column(String(6))
-    iso_code: Incomplete = Column(String(7))
-    parent_id: Incomplete = Column(Integer, ForeignKey("geographic_area.id"))
+    name: Any = Column(Unicode(255), nullable=False)
+    tdwg_code: Any = Column(String(6))
+    iso_code: Any = Column(String(7))
+    parent_id: Any = Column(Integer, ForeignKey("geographic_area.id"))
 
     def __str__(self) -> str:
         return self.name

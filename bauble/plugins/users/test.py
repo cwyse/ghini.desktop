@@ -33,7 +33,7 @@ from bauble.test import check_dupids
 from typing import Any
 from collections.abc import Generator
 @pytest.fixture
-def test_user() -> Generator[Incomplete, None, None]:
+def test_user() -> Generator[Any, None, None]:
     """Fixture for setting up and tearing down a test user."""
     user = "_test_user"
     if user not in users.get_users():
@@ -43,7 +43,7 @@ def test_user() -> Generator[Incomplete, None, None]:
 
 
 @pytest.fixture
-def test_group() -> Generator[Incomplete, None, None]:
+def test_group() -> Generator[Any, None, None]:
     """Fixture for setting up and tearing down a test group."""
     group = "_test_group"
     if group not in users.get_groups():
@@ -53,7 +53,7 @@ def test_group() -> Generator[Incomplete, None, None]:
 
 
 @pytest.fixture
-def test_table() -> Generator[Incomplete, None, None]:
+def test_table() -> Generator[Any, None, None]:
     """Fixture for creating and dropping a test table."""
     table = Table(
         "test_users",
@@ -67,7 +67,7 @@ def test_table() -> Generator[Incomplete, None, None]:
 
 
 @pytest.fixture
-def test_connection() -> Generator[Incomplete, None, None]:
+def test_connection() -> Generator[Any, None, None]:
     """Fixture for creating and closing a database connection."""
     conn = db.engine.connect()
     yield conn

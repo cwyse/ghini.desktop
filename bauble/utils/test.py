@@ -155,7 +155,7 @@ def test_get_urls() -> None:
 
 
 @pytest.fixture
-def dependent_tables_metadata(db_session) -> Generator[Incomplete, None, None]:
+def dependent_tables_metadata(db_session) -> Generator[Any, None, None]:
     """
     Fixture to set up the test metadata and tables for dependency tests.
     Cleans up after the test.
@@ -242,7 +242,7 @@ def get_currval(session, col):
 
 
 @pytest.fixture
-def test_table(db_session) -> Generator[Incomplete, None, None]:
+def test_table(db_session) -> Generator[Any, None, None]:
     """
     Fixture to provide a simple test table for sequence-related operations.
     """
@@ -257,7 +257,7 @@ def test_table(db_session) -> Generator[Incomplete, None, None]:
 
 
 @pytest.fixture
-def test_table_with_sequence(db_session) -> Generator[Incomplete, None, None]:
+def test_table_with_sequence(db_session) -> Generator[Any, None, None]:
     """
     Fixture to provide a test table with an explicit sequence for the primary key.
     """

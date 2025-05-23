@@ -25,7 +25,7 @@ import pytest
 
 from typing import Any
 from collections.abc import Generator
-prefs_lock: Incomplete
+prefs_lock: Any
 gi.require_version("Gtk", "3.0")
 import copy
 import logging
@@ -41,7 +41,7 @@ from bauble.editor import MockDialog, MockView
 from bauble.prefs import prefs
 from bauble.test import check_dupids
 
-logger: Incomplete = logging.getLogger("bauble.connmgr")
+logger: Any = logging.getLogger("bauble.connmgr")
 logger._cache.clear()
 logger.setLevel(logging.INFO)
 
@@ -50,7 +50,7 @@ prefs_lock = threading.Lock()
 
 
 @pytest.fixture(scope="function")
-def mock_prefs() -> Generator[Incomplete, None, None]:
+def mock_prefs() -> Generator[Any, None, None]:
     """
     Create an independent, thread-safe copy of the global `prefs` object for each test.
     """
@@ -968,7 +968,7 @@ class TestOnDialogResponse:
 
 
 @pytest.fixture
-def temp_picture_folder() -> Generator[Incomplete, None, None]:
+def temp_picture_folder() -> Generator[Any, None, None]:
     """
     Fixture to create a temporary directory and clean it up after the test.
     """

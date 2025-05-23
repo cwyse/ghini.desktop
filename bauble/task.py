@@ -30,11 +30,11 @@ import gi
 import bauble
 
 from typing import Any
-schedule: Incomplete
+schedule: Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 # TODO: after some specified time the status bar should be cleared but not
 # too soon, maybe 30 seconds or so but only once the queue is empty, anytime
@@ -52,7 +52,7 @@ schedule = fibra.schedule()
 
 __running: bool = False
 __kill: bool = False
-__message_ids: Incomplete = None
+__message_ids: Any = None
 
 
 def running():

@@ -41,7 +41,7 @@ from typing import Union, Optional
 from bauble import editor
 from bauble import pluginmgr
 from typing import Any
-display: Incomplete
+display: Any
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkClutter", "1.0")
 gi.require_version("GtkChamplain", "0.12")
@@ -64,7 +64,7 @@ GtkClutter.init([])  # GtkClutter first
 Clutter.init([])  # Then Clutter
 
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 PADDING: int = 6
@@ -83,19 +83,19 @@ def safe_set_text(gtk_widget, text) -> None:
 
 
 class MapViewer:
-    dialog: Incomplete
-    result: Incomplete
-    map_widget: Incomplete
-    clutter_view: Incomplete
-    layer: Incomplete
-    plant_layer: Incomplete
-    plant_highlighted: Incomplete
-    buttons: Incomplete
-    place_button: Incomplete
-    marker_circle: Incomplete
-    marker_through: Incomplete
-    marker_centre: Incomplete
-    def __init__(self, title: str = "", parent: Optional[Incomplete] = None, *args, **kwargs) -> None:
+    dialog: Any
+    result: Any
+    map_widget: Any
+    clutter_view: Any
+    layer: Any
+    plant_layer: Any
+    plant_highlighted: Any
+    buttons: Any
+    place_button: Any
+    marker_circle: Any
+    marker_through: Any
+    marker_centre: Any
+    def __init__(self, title: str = "", parent: Optional[Any] = None, *args, **kwargs) -> None:
         self.dialog = Gtk.Dialog(
             title, parent, *args, **kwargs
         )  # Use composition instead of subclassing
@@ -390,7 +390,7 @@ class MapViewer:
         self.clutter_view.set_zoom_level(zoom_level)
         self.on_marker_through_button_release(self.marker_through, 0, 0, None)
 
-    def add_plant(self, text, lat, lon, icon: Optional[Incomplete] = None) -> None:
+    def add_plant(self, text, lat, lon, icon: Optional[Any] = None) -> None:
         black = Clutter.Color.new(0x00, 0x00, 0x00, 0x7F)
         plant_marker = Champlain.Point()
         plant_marker.set_location(lat, lon)
@@ -415,7 +415,7 @@ class Institution:
     its own table
     """
 
-    __properties: Incomplete = (
+    __properties: Any = (
         "name",
         "abbreviation",
         "code",
@@ -431,7 +431,7 @@ class Institution:
         "uuid",
     )
 
-    table: Incomplete = meta.BaubleMeta.__table__
+    table: Any = meta.BaubleMeta.__table__
 
     def __init__(self) -> None:
         # Initialize properties to None
@@ -480,9 +480,9 @@ class Institution:
 
 class InstitutionPresenter(editor.GenericEditorPresenter):
 
-    message_box: Incomplete
-    email_regexp: Incomplete
-    widget_to_field_map: Incomplete = {
+    message_box: Any
+    email_regexp: Any
+    widget_to_field_map: Any = {
         "inst_name": "name",
         "inst_abbr": "abbreviation",
         "inst_code": "code",
@@ -515,7 +515,7 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
             self.view.remove_box(self.message_box)
             self.message_box = None
 
-    def on_non_empty_text_entry_changed(self, widget, value: Optional[Incomplete] = None) -> None:
+    def on_non_empty_text_entry_changed(self, widget, value: Optional[Any] = None) -> None:
         value = super().on_non_empty_text_entry_changed(widget, value)
         box = self.message_box
         if value:
@@ -529,7 +529,7 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
             self.view.add_box(box)
             self.message_box = box
 
-    def on_email_text_entry_changed(self, widget, value: Optional[Incomplete] = None) -> None:
+    def on_email_text_entry_changed(self, widget, value: Optional[Any] = None) -> None:
         value = super().on_text_entry_changed(widget, value)
         self.view.widget_set_sensitive(
             "inst_register", self.email_regexp.match(value or "")
@@ -597,7 +597,7 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
         # disable button, so user will not send registration twice
         self.view.widget_set_sensitive("inst_register", False)
 
-    def on_inst_addr_tb_changed(self, widget, value: Optional[Incomplete] = None, attr: Optional[Incomplete] = None):
+    def on_inst_addr_tb_changed(self, widget, value: Optional[Any] = None, attr: Optional[Any] = None):
         return self.on_textbuffer_changed(widget, value, attr="address")
 
 
@@ -656,8 +656,8 @@ def start_institution_editor():
 
 
 class InstitutionCommand(pluginmgr.CommandHandler):
-    command: Incomplete = ("inst", "institution")
-    view: Incomplete = None
+    command: Any = ("inst", "institution")
+    view: Any = None
 
     def __call__(self, cmd, arg) -> None:
         InstitutionTool.start()
@@ -665,7 +665,7 @@ class InstitutionCommand(pluginmgr.CommandHandler):
 
 class InstitutionTool(pluginmgr.Tool):
     item_position: int = 2
-    label: Incomplete = _("Institution")
+    label: Any = _("Institution")
     icon_name: str = "x-office-presentation"
 
     @classmethod

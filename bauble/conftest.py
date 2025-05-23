@@ -30,7 +30,7 @@ from bauble.prefs import prefs
 from typing import Any
 from collections.abc import Generator
 SQLITE_URI: str
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 prefs.testing = True
 
@@ -93,7 +93,7 @@ def clean_db(db_session) -> None:
 
 
 @pytest.fixture
-def mock_logger(request) -> Generator[Incomplete, None, None]:
+def mock_logger(request) -> Generator[Any, None, None]:
     """
     Capture logs during tests. Automatically detects the test module's logger
     name unless overridden by the test class or function.

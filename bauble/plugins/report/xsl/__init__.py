@@ -54,7 +54,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy.orm import object_session
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 # from sqlalchemy import *
 
@@ -78,7 +78,7 @@ else:
 #    return ([os.path.join(p, e) for p in os.environ['PATH'].split(os.pathsep) if os.path.exists(os.path.join(p, e))] + [None])[0]
 
 # TODO: support FOray, see http://www.foray.org/
-renderers_map: Incomplete = {
+renderers_map: Any = {
     "Apache FOP": (fop_cmd + " -fo %(fo_filename)s " "-pdf %(out_filename)s"),
     "XEP": "xep -fo %(fo_filename)s -pdf %(out_filename)s",
     # 'xmlroff': 'xmlroff -o %(out_filename)s %(fo_filename)s',
@@ -108,10 +108,10 @@ class SpeciesABCDAdapter(ABCDAdapter):
     An adapter to convert a Species to an ABCD Unit, the SpeciesABCDAdapter
     does not create a valid ABCDUnit since we can't provide the required UnitID
     """
-    session: Incomplete
-    for_labels: Incomplete
-    species: Incomplete
-    _date_format: Incomplete
+    session: Any
+    for_labels: Any
+    species: Any
+    _date_format: Any
     def __init__(self, species, for_labels: bool = False) -> None:
         super().__init__(species)
 
@@ -209,7 +209,7 @@ class AccessionABCDAdapter(SpeciesABCDAdapter):
     """
     An adapter to convert a Plant to an ABCD Unit
     """
-    accession: Incomplete
+    accession: Any
     def __init__(self, accession, for_labels: bool = False) -> None:
         super().__init__(accession.species, for_labels)
         self.accession = accession
@@ -337,7 +337,7 @@ class PlantABCDAdapter(AccessionABCDAdapter):
     """
     An adapter to convert a Plant to an ABCD Unit
     """
-    plant: Incomplete
+    plant: Any
     def __init__(self, plant, for_labels: bool = False) -> None:
         super().__init__(plant.accession, for_labels)
         self.plant = plant
@@ -392,10 +392,10 @@ class PlantABCDAdapter(AccessionABCDAdapter):
 
 class XSLFormatterPlugin(FormatterPlugin):
 
-    title: Incomplete = _("XSL")
+    title: Any = _("XSL")
     extension: str = ".xsl"
-    domain_pattern: Incomplete = re.compile(r"^\s*<!--\s*DOMAIN\s+([a-z_]*)\s*-->\s*$")
-    option_pattern: Incomplete = re.compile(
+    domain_pattern: Any = re.compile(r"^\s*<!--\s*DOMAIN\s+([a-z_]*)\s*-->\s*$")
+    option_pattern: Any = re.compile(
         r"^\s*<!--\s*OPTION ([a-z_]*): \("
         "type: ([a-z_]*), "
         "default: '(.*)', "

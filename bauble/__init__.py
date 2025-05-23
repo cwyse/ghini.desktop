@@ -38,8 +38,8 @@ from typing import Any
 from gi.repository import Gdk as Gdk
 from gi.repository import GObject as GObject
 
-zipfile: Incomplete
-default_icon: Incomplete
+zipfile: Any
+default_icon: Any
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 import warnings
@@ -53,17 +53,17 @@ warnings.simplefilter("always", SAWarning)
 
 from bauble import _version
 
-version: Incomplete = _version.__version__
-version_tuple: Incomplete = tuple(
+version: Any = _version.__version__
+version_tuple: Any = tuple(
     int(part) if part.isdigit() else part for part in version.split(".")
 )
 
 # extract release date (assuming setuptools_scm local_scheme='node-and-date')
 import re
 
-match: Incomplete = re.search(r"\+g[0-9a-f]+\.d(\d{8})", version)
-release_date: Incomplete = match.group(1) if match else None
-installation_date: Incomplete = os.environ.get("BUILD_DATE", "1970-01-01T00:00:00Z")
+match: Any = re.search(r"\+g[0-9a-f]+\.d(\d{8})", version)
+release_date: Any = match.group(1) if match else None
+installation_date: Any = os.environ.get("BUILD_DATE", "1970-01-01T00:00:00Z")
 
 
 from bauble.connmgr import start_connection_manager
@@ -81,9 +81,9 @@ except ImportError as e:
 
 # debugpy.breakpoint()
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-consoleLevel: Incomplete = logging.INFO
+consoleLevel: Any = logging.INFO
 
 
 try:
@@ -151,7 +151,7 @@ sys.path.append(paths.lib_dir())
 
 logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
-gui: Incomplete = None
+gui: Any = None
 """bauble.gui is the instance :class:`bauble.ui.GUI`
 """
 
@@ -169,7 +169,7 @@ if not os.path.exists(default_icon):  # If fallback is also missing
 """The default icon.
 """
 
-conn_name: Incomplete = None
+conn_name: Any = None
 """The name of the current connection.
 """
 
@@ -207,7 +207,7 @@ def quit() -> None:
     sys.exit(1)
 
 
-last_handler: Incomplete = None
+last_handler: Any = None
 
 
 def command_handler(cmd, arg) -> None:
@@ -270,11 +270,11 @@ from bauble.view import DefaultCommandHandler
 
 class GhiniApp:
     """Manages application logic without subclassing Gtk.Application."""
-    gui: Incomplete
-    open_exc: Incomplete
-    conn_name: Incomplete
-    uri: Incomplete
-    gtk_app: Incomplete
+    gui: Any
+    open_exc: Any
+    conn_name: Any
+    uri: Any
+    gtk_app: Any
     def __init__(self) -> None:
         self.gui = None
         self.open_exc = None
@@ -498,8 +498,8 @@ class GhiniApp:
 
 
 # Define app as a global variable
-app: Incomplete = GhiniApp()  # 🔹 Now accessible globally
-gtk_app: Incomplete = app.gtk_app  # Shortcut to access Gtk.Application if needed
+app: Any = GhiniApp()  # 🔹 Now accessible globally
+gtk_app: Any = app.gtk_app  # Shortcut to access Gtk.Application if needed
 
 
 def main():

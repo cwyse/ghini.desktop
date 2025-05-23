@@ -32,12 +32,12 @@ from bauble.plugins.garden.accession import Accession as Accession, AccessionNot
 from bauble.plugins.garden.plant import Plant as Plant, PlantChange as PlantChange, PlantNote as PlantNote, branch_callback as branch_callback, is_code_unique as is_code_unique
 from bauble.plugins.garden.propagation import PropCutting as PropCutting, PropCuttingRooted as PropCuttingRooted, PropSeed as PropSeed, Propagation as Propagation
 from bauble.utils import ilike as ilike, remove_zws as remove_zws, update_gui as update_gui
-accession_test_data: Incomplete
-default_cutting_values: Incomplete
+accession_test_data: Any
+default_cutting_values: Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 prefs_testing: bool = True
 
@@ -47,17 +47,17 @@ accession_test_data = (
     {"id": 2, "code": "2001.2", "species_id": 2, "source_type": "Collection"},
 )
 
-plant_test_data: Incomplete = (
+plant_test_data: Any = (
     {"id": 1, "code": "1", "accession_id": 1, "location_id": 1, "quantity": 1},
     {"id": 2, "code": "1", "accession_id": 2, "location_id": 1, "quantity": 1},
     {"id": 3, "code": "2", "accession_id": 2, "location_id": 1, "quantity": 1},
 )
 
-location_test_data: Incomplete = ({"id": 1, "name": "Somewhere Over The Rainbow", "code": "RBW"},)
+location_test_data: Any = ({"id": 1, "name": "Somewhere Over The Rainbow", "code": "RBW"},)
 
-geographic_area_test_data: Incomplete = [{"id": 1, "name": "Somewhere"}]
+geographic_area_test_data: Any = [{"id": 1, "name": "Somewhere"}]
 
-collection_test_data: Incomplete = (
+collection_test_data: Any = (
     {
         "id": 1,
         "accession_id": 2,
@@ -298,7 +298,7 @@ default_cutting_values = {
     "rooted_pct": 90,
 }
 
-default_seed_values: Incomplete = {
+default_seed_values: Any = {
     "pretreatment": "Soaked in peroxide solution",
     "nseeds": 24,
     "date_sown": datetime.date(2017, 1, 1),

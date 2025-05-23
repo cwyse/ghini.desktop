@@ -86,7 +86,7 @@ from bauble.plugins.plants.family import Familia as Familia, Family as Family, F
 from bauble.plugins.plants.genus import Genus as Genus, GenusEditor as GenusEditor, GenusInfoBox as GenusInfoBox, GenusNote as GenusNote, genus_context_menu as genus_context_menu
 from bauble.plugins.plants.geography import GeographicArea as GeographicArea, get_species_in_geographic_area as get_species_in_geographic_area
 from bauble.plugins.plants.species import Species as Species, SpeciesDistribution as SpeciesDistribution, SpeciesEditor as SpeciesEditor, SpeciesInfoBox as SpeciesInfoBox, SpeciesNote as SpeciesNote, SynonymSearch as SynonymSearch, VernacularName as VernacularName, VernacularNameInfoBox as VernacularNameInfoBox, add_accession_action as add_accession_action, species_context_menu as species_context_menu, vernname_context_menu as vernname_context_menu
-logger: Incomplete
+logger: Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 
@@ -108,8 +108,8 @@ Familia, SpeciesDistribution,
 
 
 class LabelUpdater(Thread):
-    query: Incomplete
-    widget: Incomplete
+    query: Any
+    widget: Any
     def __init__(self, widget, query, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.query = query
@@ -132,8 +132,8 @@ class LabelUpdater(Thread):
 
 class SplashInfoBox(pluginmgr.View):
     """info box shown in the initial splash screen."""
-    widgets: Incomplete
-    name_tooltip_query: Incomplete
+    widgets: Any
+    name_tooltip_query: Any
     def __init__(self) -> None:
         """ """
         logger.debug("SplashInfoBox::__init__")
@@ -400,8 +400,8 @@ class SplashInfoBox(pluginmgr.View):
 
 
 class PlantsPlugin(pluginmgr.Plugin):
-    tools: Incomplete = [TaxonomyCheckTool, StoredQueryEditorTool]
-    provides: Incomplete = {
+    tools: Any = [TaxonomyCheckTool, StoredQueryEditorTool]
+    provides: Any = {
         "Family": Family,
         "FamilyNote": FamilyNote,
         "Genus": Genus,

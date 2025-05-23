@@ -32,7 +32,7 @@ from bauble.test import check_dupids
 
 from typing import Any
 from collections.abc import Generator
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 # Modify desktop.open here to avoid cyclic import

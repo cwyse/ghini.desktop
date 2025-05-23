@@ -32,16 +32,16 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GdkPixbuf, GLib, Gtk
 from sqlalchemy import select
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
-accno_re: Incomplete = re.compile(r"([12][0-9][0-9][0-9]\.[0-9][0-9][0-9][0-9])(?:\.([0-9]+))?")
-species_re: Incomplete = re.compile(r"([A-Z][a-z]+(?: [a-z-]*)?)")
-picname_re: Incomplete = re.compile(r"([A-Z]+[0-9]+)")
-number_re: Incomplete = re.compile(r"([0-9]+)")
+accno_re: Any = re.compile(r"([12][0-9][0-9][0-9]\.[0-9][0-9][0-9][0-9])(?:\.([0-9]+))?")
+species_re: Any = re.compile(r"([A-Z][a-z]+(?: [a-z-]*)?)")
+picname_re: Any = re.compile(r"([A-Z]+[0-9]+)")
+number_re: Any = re.compile(r"([0-9]+)")
 
 
-def decode_parts(name, acc_format: Optional[Incomplete] = None):
+def decode_parts(name, acc_format: Optional[Any] = None):
     """return the dictionary of parts in name
 
     name is matched against the basic concepts in a plant description, like
@@ -93,7 +93,7 @@ def decode_parts(name, acc_format: Optional[Incomplete] = None):
 
 
 class ListStoreHandler(logging.Handler):
-    container: Incomplete
+    container: Any
     def __init__(self, container, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.container = container
@@ -143,14 +143,14 @@ def get_first_or_none(session, stmt):
 
 
 class PictureImporterPresenter(GenericEditorPresenter):
-    panes: Incomplete
-    review_liststore: Incomplete
-    running_thread: Incomplete
-    keep_running: Incomplete
+    panes: Any
+    review_liststore: Any
+    running_thread: Any
+    keep_running: Any
     should_commit: bool
-    pixbufs_to_load: Incomplete
-    lock: Incomplete
-    widget_to_field_map: Incomplete = {
+    pixbufs_to_load: Any
+    lock: Any
+    widget_to_field_map: Any = {
         "accno_entry": "accno_format",
         "filepath_entry": "filepath",
         "recurse_checkbutton": "recurse",
@@ -538,10 +538,10 @@ class PictureImporterPresenter(GenericEditorPresenter):
 
 
 class PictureImporterTool(pluginmgr.Tool):
-    category: Incomplete = _("Import")
-    label: Incomplete = _("Picture Collection")
+    category: Any = _("Import")
+    label: Any = _("Picture Collection")
     icon_name: str = "emblem-photos"
-    model: Incomplete = type(
+    model: Any = type(
         "Model",
         (object,),
         {
@@ -558,7 +558,7 @@ class PictureImporterTool(pluginmgr.Tool):
 
     from bauble import paths
 
-    glade_path: Incomplete = os.path.join(
+    glade_path: Any = os.path.join(
         paths.lib_dir(), "plugins", "garden", "picture_importer.glade"
     )
 
