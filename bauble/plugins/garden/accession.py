@@ -69,10 +69,10 @@ from bauble import editor
 from typing import Any
 from bauble.plugins.garden.source import Collection as Collection, CollectionPresenter as CollectionPresenter, Contact as Contact, PropagationChooserPresenter as PropagationChooserPresenter, Source as Source, create_contact as create_contact
 from bauble.view import Action as Action, InfoBox as InfoBox, MapInfoExpander as MapInfoExpander, PropertiesExpander as PropertiesExpander, select_in_search_results as select_in_search_results
-wild_prov_status_values: Incomplete
-cultivated_prov_status_values: Incomplete
-purchase_prov_status_values: Incomplete
-recvd_type_values: Incomplete
+wild_prov_status_values: Any
+cultivated_prov_status_values: Any
+purchase_prov_status_values: Any
+recvd_type_values: Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango
 
@@ -94,7 +94,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import reconstructor, relationship, validates
 from sqlalchemy.orm.session import object_session
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -104,7 +104,7 @@ logger.setLevel(logging.INFO)
 # e.g. Malvaceae (sensu lato), Hibiscus (senso stricto)
 
 
-def get_species_instance(session, epithet, genus_epithet: Optional[Incomplete] = None, create: bool = False):
+def get_species_instance(session, epithet, genus_epithet: Optional[Any] = None, create: bool = False):
     """
     Retrieves a Species instance based on epithet and optional genus epithet.
     Returns a Species instance or None.
@@ -259,26 +259,26 @@ def remove_callback(accessions):
     return True
 
 
-edit_action: Incomplete = Action(
+edit_action: Any = Action(
     "acc_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
 )
-add_plant_action: Incomplete = Action(
+add_plant_action: Any = Action(
     "acc_add",
     _("_Add plants"),
     callback=add_plants_callback,
     accelerator="<ctrl>k",
 )
-remove_action: Incomplete = Action(
+remove_action: Any = Action(
     "acc_remove",
     _("_Delete"),
     callback=remove_callback,
     accelerator="<ctrl>Delete",
 )
 
-acc_context_menu: Incomplete = [edit_action, add_plant_action, remove_action]
+acc_context_menu: Any = [edit_action, add_plant_action, remove_action]
 
 
-ver_level_descriptions: Incomplete = {
+ver_level_descriptions: Any = {
     0: _("The name of the record has not been checked by any authority."),
     1: _("The name of the record determined by comparison with other " "named plants."),
     2: _(
@@ -336,23 +336,23 @@ class Verification(db.Base):
         table. What it was verified from.
 
     """
-    id: Incomplete
-    level: Incomplete
-    species_id: Incomplete
-    prev_species_id: Incomplete
-    species: Incomplete
+    id: Any
+    level: Any
+    species_id: Any
+    prev_species_id: Any
+    species: Any
     __tablename__: str = "verification"
 
     # columns
     id = Column(Integer, primary_key=True)
-    verifier: Incomplete = Column(Unicode(64), nullable=False)
-    date: Incomplete = Column(types.Date, nullable=False)
-    reference: Incomplete = Column(UnicodeText)
-    accession_id: Incomplete = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession: Incomplete = relationship(
+    verifier: Any = Column(Unicode(64), nullable=False)
+    date: Any = Column(types.Date, nullable=False)
+    reference: Any = Column(UnicodeText)
+    accession_id: Any = Column(Integer, ForeignKey("accession.id"), nullable=False)
+    accession: Any = relationship(
         "Accession", back_populates="verifications", uselist=False, active_history=True
     )
-    order_by: Incomplete = [asc(date)]
+    order_by: Any = [asc(date)]
 
     # the level of assurance of this verification
     level = Column(Integer, nullable=False, autoincrement=False)
@@ -372,7 +372,7 @@ class Verification(db.Base):
         overlaps="previous_verifications",
         active_history=True,
     )
-    prev_species: Incomplete = relationship(
+    prev_species: Any = relationship(
         "Species",
         primaryjoin="Verification.prev_species_id == Species.id",
         foreign_keys=[prev_species_id],
@@ -380,7 +380,7 @@ class Verification(db.Base):
         overlaps="verifications",
         active_history=True,
     )
-    notes: Incomplete = Column(UnicodeText)
+    notes: Any = Column(UnicodeText)
 
 
 # TODO: I have no internet, so I write this here. please remove this note
@@ -407,7 +407,7 @@ class Verification(db.Base):
 # the moment this is only partially the case for
 
 
-herbarium_codes: Incomplete = {}
+herbarium_codes: Any = {}
 
 
 class Voucher(db.Base):
@@ -428,18 +428,18 @@ class Voucher(db.Base):
     """
 
     __tablename__: str = "voucher"
-    id: Incomplete = Column(Integer, primary_key=True, nullable=False)
-    herbarium: Incomplete = Column(Unicode(5), nullable=False)
-    code: Incomplete = Column(Unicode(32), nullable=False)
-    parent_material: Incomplete = Column(Boolean, default=False)
-    accession_id: Incomplete = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession: Incomplete = relationship(
+    id: Any = Column(Integer, primary_key=True, nullable=False)
+    herbarium: Any = Column(Unicode(5), nullable=False)
+    code: Any = Column(Unicode(32), nullable=False)
+    parent_material: Any = Column(Boolean, default=False)
+    accession_id: Any = Column(Integer, ForeignKey("accession.id"), nullable=False)
+    accession: Any = relationship(
         "Accession", back_populates="vouchers", uselist=False, active_history=True
     )
 
 
 # ITF2 - E.1; Provenance Type Flag; Transfer code: prot
-prov_type_values: Incomplete = [
+prov_type_values: Any = [
     ("Wild", _("Accession of wild source")),  # W
     ("Cultivated", _("Propagule(s) from a wild source plant")),  # Z
     ("NotWild", _("Accession not of wild source")),  # G
@@ -532,7 +532,7 @@ recvd_type_values = {
     None: "",
 }
 
-accession_type_to_plant_material: Incomplete = {
+accession_type_to_plant_material: Any = {
     # u'Plant': _('Planting'),
     "BBPL": "Plant",
     "BRPL": "Plant",
@@ -649,24 +649,24 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     :Constraints:
 
     """
-    id: Incomplete
-    id_qual_rank: Incomplete
-    id_qual: Incomplete
-    private: Incomplete
-    intended_location_id: Incomplete
-    source: Incomplete
-    species: Incomplete
-    plants: Incomplete
-    __cached_species_str: Incomplete
+    id: Any
+    id_qual_rank: Any
+    id_qual: Any
+    private: Any
+    intended_location_id: Any
+    source: Any
+    species: Any
+    plants: Any
+    __cached_species_str: Any
     __warned_about_id_qual: bool
     __tablename__: str = "accession"
 
     # columns
     #: the accession code
     id = Column(Integer, primary_key=True)
-    code: Incomplete = Column(Unicode(20), nullable=False, unique=True)
+    code: Any = Column(Unicode(20), nullable=False, unique=True)
     code_format: str = "%Y%PD####"
-    order_by: Incomplete = [asc(code)]
+    order_by: Any = [asc(code)]
 
     @validates("code")
     def validate_stripping(self, key, value):
@@ -674,7 +674,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             return None
         return value.strip()
 
-    prov_type: Incomplete = Column(
+    prov_type: Any = Column(
         types.Enum(
             values=[i[0] for i in prov_type_values],
             translations=dict(prov_type_values),
@@ -683,7 +683,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         default=None,
     )
 
-    wild_prov_status: Incomplete = Column(
+    wild_prov_status: Any = Column(
         types.Enum(
             values=[i[0] for i in wild_prov_status_values],
             translations=dict(wild_prov_status_values),
@@ -692,10 +692,10 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         default=None,
     )
 
-    date_accd: Incomplete = Column(types.Date)
-    date_recvd: Incomplete = Column(types.Date)
-    quantity_recvd: Incomplete = Column(Integer, autoincrement=False)
-    recvd_type: Incomplete = Column(
+    date_accd: Any = Column(types.Date)
+    date_recvd: Any = Column(types.Date)
+    quantity_recvd: Any = Column(Integer, autoincrement=False)
+    recvd_type: Any = Column(
         types.Enum(
             values=list(recvd_type_values.keys()),
             translations=recvd_type_values,
@@ -721,11 +721,11 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
 
     # "private" new in 0.8b2
     private = Column(Boolean, default=False)
-    species_id: Incomplete = Column(Integer, ForeignKey("species.id"), nullable=False)
+    species_id: Any = Column(Integer, ForeignKey("species.id"), nullable=False)
 
     # intended location
     intended_location_id = Column(Integer, ForeignKey("location.id"))
-    intended2_location_id: Incomplete = Column(Integer, ForeignKey("location.id"))
+    intended2_location_id: Any = Column(Integer, ForeignKey("location.id"))
 
     # the source of the accession
     source = relationship(
@@ -756,7 +756,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         uselist=True,
         single_parent=True,
     )
-    verifications: Incomplete = (
+    verifications: Any = (
         relationship(
             "Verification",  # order_by='date',
             cascade="all, delete-orphan",
@@ -766,22 +766,22 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         )
         or []
     )
-    vouchers: Incomplete = relationship(
+    vouchers: Any = relationship(
         "Voucher",
         cascade="all, delete-orphan",
         back_populates="accession",
         uselist=True,
         single_parent=True,
     )
-    intended_location: Incomplete = relationship(
+    intended_location: Any = relationship(
         "Location", primaryjoin="Accession.intended_location_id==Location.id"
     )
-    intended2_location: Incomplete = relationship(
+    intended2_location: Any = relationship(
         "Location", primaryjoin="Accession.intended2_location_id==Location.id"
     )
 
     @classmethod
-    def get_next_code(cls, code_format: Optional[Incomplete] = None):
+    def get_next_code(cls, code_format: Optional[Any] = None):
         """
         Return the next available accession code.
 
@@ -1015,7 +1015,7 @@ def receive_after_update(mapper, connection, target) -> None:
     target.invalidate_str_cache()
 
 
-AccessionNote: Incomplete = db.make_note_class("Accession", Accession, compute_serializable_fields)
+AccessionNote: Any = db.make_note_class("Accession", Accession, compute_serializable_fields)
 Accession.notes = relationship(
     "AccessionNote",
     back_populates="accession",
@@ -1036,12 +1036,12 @@ class AccessionEditorView(editor.GenericEditorView):
     also provides some utility methods for changing widget states.
     """
 
-    expanders_pref_map: Incomplete = {
+    expanders_pref_map: Any = {
         # 'acc_notes_expander': 'editor.accession.notes.expanded',
         # 'acc_source_expander': 'editor.accession.source.expanded'
     }
 
-    _tooltips: Incomplete = {
+    _tooltips: Any = {
         "acc_species_entry": _(
             "The species must be selected from the list of completions. "
             "To add a species use the Species editor."
@@ -1092,7 +1092,7 @@ class AccessionEditorView(editor.GenericEditorView):
         "sources_code_entry": "ITF2 - E7 - Donor's Accession Identifier - donacc",
     }
 
-    def __init__(self, parent: Optional[Incomplete] = None) -> None:
+    def __init__(self, parent: Optional[Any] = None) -> None:
         """ """
         super().__init__(
             os.path.join(paths.lib_dir(), "plugins", "garden", "acc_editor.glade"),
@@ -1163,7 +1163,7 @@ class AccessionEditorView(editor.GenericEditorView):
 
     @staticmethod
     # staticmethod ensures the AccessionEditorView gets garbage collected.
-    def datum_match(completion, key, treeiter, data: Optional[Incomplete] = None):
+    def datum_match(completion, key, treeiter, data: Optional[Any] = None):
         datum = completion.get_model()[treeiter][0]
         words = datum.split(" ")
         for w in words:
@@ -1173,7 +1173,7 @@ class AccessionEditorView(editor.GenericEditorView):
 
     @staticmethod
     # staticmethod ensures the AccessionEditorView gets garbage collected.
-    def species_match_func(completion, key, treeiter, data: Optional[Incomplete] = None):
+    def species_match_func(completion, key, treeiter, data: Optional[Any] = None):
         species = completion.get_model()[treeiter][0]
         epg, eps = (species.str(remove_zws=True).lower() + " ").split(" ")[:2]
         key_epg, key_eps = (key.replace("\u200b", "").lower() + " ").split(" ")[:2]
@@ -1185,7 +1185,7 @@ class AccessionEditorView(editor.GenericEditorView):
 
     @staticmethod
     # staticmethod ensures the AccessionEditorView gets garbage collected.
-    def species_cell_data_func(column, renderer, model, treeiter, data: Optional[Incomplete] = None) -> None:
+    def species_cell_data_func(column, renderer, model, treeiter, data: Optional[Any] = None) -> None:
         v = model[treeiter][0]
         renderer.set_property(
             "text", f"{v.str(authors=True)} ({v.genus.family})"
@@ -1194,8 +1194,8 @@ class AccessionEditorView(editor.GenericEditorView):
 
 class VoucherPresenter(editor.GenericEditorPresenter):
 
-    parent_ref: Incomplete
-    session: Incomplete
+    parent_ref: Any
+    session: Any
     _dirty: bool
     def __init__(self, parent, model, view, session) -> None:
         super().__init__(model, view)
@@ -1321,10 +1321,10 @@ class VerificationPresenter(editor.GenericEditorPresenter):
     :param view:
     :param session:
     """
-    parent_ref: Incomplete
-    session: Incomplete
+    parent_ref: Any
+    session: Any
     _dirty: bool
-    PROBLEM_INVALID_DATE: Incomplete = random()
+    PROBLEM_INVALID_DATE: Any = random()
 
     def __init__(self, parent, model, view, session) -> None:
         super().__init__(model, view)
@@ -1359,7 +1359,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
     def on_add_clicked(self, *args) -> None:
         self.add_verification_box()
 
-    def add_verification_box(self, model: Optional[Incomplete] = None):
+    def add_verification_box(self, model: Optional[Any] = None):
         """
         :param model:
         """
@@ -1379,12 +1379,12 @@ class VerificationBox:
     allowing the user to input verification data such as date, verifier,
     species, and reference.
     """
-    box: Incomplete
-    presenter: Incomplete
-    model: Incomplete
-    widgets: Incomplete
-    date_entry: Incomplete
-    _sid: Incomplete
+    box: Any
+    presenter: Any
+    model: Any
+    widgets: Any
+    date_entry: Any
+    _sid: Any
     def __init__(self, parent, model) -> None:
         check(not model or isinstance(model, Verification))
 
@@ -1560,7 +1560,7 @@ class VerificationBox:
         level = combo.get_model()[i][0]
         self.set_model_attr("level", level)
 
-    def on_date_entry_changed(self, entry, data: Optional[Incomplete] = None) -> None:
+    def on_date_entry_changed(self, entry, data: Optional[Any] = None) -> None:
         """Handle date entry change."""
         from bauble.editor import ValidatorError
 
@@ -1652,16 +1652,16 @@ class SourcePresenter(editor.GenericEditorPresenter):
     :param view:
     :param session:
     """
-    parent_ref: Incomplete
-    session: Incomplete
+    parent_ref: Any
+    session: Any
     _dirty: bool
-    source: Incomplete
-    collection: Incomplete
-    propagation: Incomplete
-    source_prop_presenter: Incomplete
-    prop_chooser_presenter: Incomplete
-    collection_presenter: Incomplete
-    garden_prop_str: Incomplete = _("Garden Propagation")
+    source: Any
+    collection: Any
+    propagation: Any
+    source_prop_presenter: Any
+    prop_chooser_presenter: Any
+    collection_presenter: Any
+    garden_prop_str: Any = _("Garden Propagation")
 
     def __init__(self, parent, model, view, session) -> None:
         from bauble.plugins.garden.propagation import (
@@ -1878,7 +1878,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
             self.session.add(new_detail)
             self.populate_source_combo(new_detail)
 
-    def populate_source_combo(self, active: Optional[Incomplete] = None) -> None:
+    def populate_source_combo(self, active: Optional[Any] = None) -> None:
         """
         If active=None then set whatever was previously active before
         repopulating the combo.
@@ -2033,15 +2033,15 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
     initializing: bool
     _dirty: bool
-    session: Incomplete
-    _original_code: Incomplete
-    current_source_box: Incomplete
-    ver_presenter: Incomplete
-    voucher_presenter: Incomplete
-    source_presenter: Incomplete
-    notes_presenter: Incomplete
-    has_plants: Incomplete
-    widget_to_field_map: Incomplete = {
+    session: Any
+    _original_code: Any
+    current_source_box: Any
+    ver_presenter: Any
+    voucher_presenter: Any
+    source_presenter: Any
+    notes_presenter: Any
+    has_plants: Any
+    widget_to_field_map: Any = {
         "acc_code_entry": "code",
         "acc_id_qual_combo": "id_qual",
         "acc_date_accd_entry": "date_accd",
@@ -2057,9 +2057,9 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         "intended_loc_create_plant_checkbutton": "create_plant",
     }
 
-    PROBLEM_INVALID_DATE: Incomplete = random()
-    PROBLEM_DUPLICATE_ACCESSION: Incomplete = random()
-    PROBLEM_ID_QUAL_RANK_REQUIRED: Incomplete = random()
+    PROBLEM_INVALID_DATE: Any = random()
+    PROBLEM_DUPLICATE_ACCESSION: Any = random()
+    PROBLEM_ID_QUAL_RANK_REQUIRED: Any = random()
 
     def __init__(self, model, view) -> None:
         """
@@ -2353,7 +2353,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             self.view.widgets.acc_ok_and_add_button.set_sensitive(True)
         self.initializing = False
 
-    def populate_code_formats(self, entry_one: Optional[Incomplete] = None, values: Optional[Incomplete] = None) -> None:
+    def populate_code_formats(self, entry_one: Optional[Any] = None, values: Optional[Any] = None) -> None:
         logger.debug(f"populate_code_formats {entry_one} {values}")
         ls = self.view.widgets.acc_code_format_liststore
         if entry_one is None:
@@ -2536,7 +2536,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             self.add_problem(problem, entry)
             self.set_model_attr("recvd_type", None)
 
-    def on_acc_code_entry_changed(self, entry, data: Optional[Incomplete] = None) -> None:
+    def on_acc_code_entry_changed(self, entry, data: Optional[Any] = None) -> None:
         text = entry.get_text()
         from sqlalchemy import func
 
@@ -2582,7 +2582,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             self.remove_problem(PROBLEM, entry)
         self.set_model_attr(prop, value)
 
-    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
+    def set_model_attr(self, field, value, validator: Optional[Any] = None) -> None:
         """
         Set attributes on the model and update the GUI as expected.
         """
@@ -2733,14 +2733,14 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 class AccessionEditor(editor.GenericModelViewPresenterEditor):
 
     # these have to correspond to the response values in the view
-    parent: Incomplete
-    _committed: Incomplete
-    presenter: Incomplete
+    parent: Any
+    _committed: Any
+    presenter: Any
     RESPONSE_OK_AND_ADD: int = 11
     RESPONSE_NEXT: int = 22
-    ok_responses: Incomplete = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
+    ok_responses: Any = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model: Optional[Incomplete] = None, parent: Optional[Incomplete] = None) -> None:
+    def __init__(self, model: Optional[Any] = None, parent: Optional[Any] = None) -> None:
         """
         :param model: Accession instance or None
         :param parent: the parent widget
@@ -2930,8 +2930,8 @@ class GeneralAccessionExpander(InfoExpander):
     generic information about an accession like
     number of clones, provenance type, wild provenance type, speciess
     """
-    current_obj: Incomplete
-    private_image: Incomplete
+    current_obj: Any
+    private_image: Any
     def __init__(self, widgets) -> None:
         """ """
         super().__init__(_("General"), widgets)
@@ -3214,12 +3214,12 @@ class AccessionInfoBox(InfoBox):
     - general info
     - source
     """
-    widgets: Incomplete
-    general: Incomplete
-    source: Incomplete
-    links: Incomplete
-    mapinfo: Incomplete
-    properties_expander: Incomplete
+    widgets: Any
+    general: Any
+    source: Any
+    links: Any
+    mapinfo: Any
+    properties_expander: Any
     def __init__(self) -> None:
         super().__init__()
         filename = os.path.join(
@@ -3291,7 +3291,7 @@ class AccessionInfoBox(InfoBox):
 # http://www8.garmin.com/support/faqs/MapDatumList.pdf
 #
 # Abbreviation: Name
-datums: Incomplete = {
+datums: Any = {
     "Adindan": "Adindan- Ethiopia, Mali, Senegal, Sudan",
     "Afgooye": "Afgooye- Somalia",
     "AIN EL ABD": "'70 AIN EL ANBD 1970- Bahrain Island, Saudi Arabia",

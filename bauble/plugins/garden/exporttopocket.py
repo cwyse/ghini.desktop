@@ -33,7 +33,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from sqlalchemy import bindparam, select
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 def create_pocket(filename) -> None:
@@ -98,12 +98,12 @@ CREATE TABLE "plant" (
 
 
 class ExportToPocketThread(threading.Thread):
-    filename: Incomplete
-    callback: Incomplete
-    progressbar: Incomplete
-    include_private: Incomplete
+    filename: Any
+    callback: Any
+    progressbar: Any
+    include_private: Any
     keep_running: bool
-    def __init__(self, filename, progressbar: Optional[Incomplete] = None, callback: Optional[Incomplete] = None, include_private: bool = True) -> None:
+    def __init__(self, filename, progressbar: Optional[Any] = None, callback: Optional[Any] = None, include_private: bool = True) -> None:
         super().__init__(target=None, name=None)
         self.filename = filename
         self.callback = callback

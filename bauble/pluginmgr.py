@@ -55,13 +55,13 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 from sqlalchemy import Column, Integer, Unicode, select
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-plugins: Incomplete = {}
-commands: Incomplete = {}
-provided: Incomplete = {}
+plugins: Any = {}
+commands: Any = {}
+provided: Any = {}
 
 
 def register_command(handler) -> None:
@@ -108,7 +108,7 @@ def _create_dependency_pairs(plugs):
     return depends, unmet
 
 
-def load(path: Optional[Incomplete] = None) -> None:
+def load(path: Optional[Any] = None) -> None:
     """
     Search the plugin path for modules that provide a plugin. If path
     is a directory then search the directory for plugins. If path is
@@ -359,9 +359,9 @@ class PluginRegistry(db.Base):
     """
 
     __tablename__: str = "plugin"
-    id: Incomplete = Column(Integer, primary_key=True, autoincrement=False)
-    name: Incomplete = Column(Unicode(64), unique=True)
-    version: Incomplete = Column(Unicode(12))
+    id: Any = Column(Integer, primary_key=True, autoincrement=False)
+    name: Any = Column(Unicode(64), unique=True)
+    version: Any = Column(Unicode(12))
 
     @staticmethod
     def add(plugin) -> None:
@@ -382,7 +382,7 @@ class PluginRegistry(db.Base):
                 session.commit()
 
     @staticmethod
-    def remove(plugin: Optional[Incomplete] = None, name: Optional[Incomplete] = None) -> None:
+    def remove(plugin: Optional[Any] = None, name: Optional[Any] = None) -> None:
         """
         Remove a plugin from the registry by name.
         """
@@ -465,10 +465,10 @@ class Plugin:
       a short description of the plugin
     """
 
-    commands: Incomplete = []
-    tools: Incomplete = []
-    depends: Incomplete = []
-    provides: Incomplete = {}
+    commands: Any = []
+    tools: Any = []
+    depends: Any = []
+    provides: Any = {}
     description: str = ""
     version: str = "0.0"
 
@@ -496,14 +496,14 @@ class EditorPlugin(Plugin):
     implement the Editor interface
     """
 
-    editors: Incomplete = []
+    editors: Any = []
 
 
 class Tool:
-    category: Incomplete = None
-    label: Incomplete = None
+    category: Any = None
+    label: Any = None
     enabled: bool = True
-    icon_dir: Incomplete = None
+    icon_dir: Any = None
 
     @classmethod
     def start(cls) -> None:
@@ -517,9 +517,9 @@ class View(Gtk.Box):
 
     If a class extends this View and provides its own __init__ it *must* call its parent (this) __init__.
     """
-    widgets: Incomplete
-    view: Incomplete
-    running_threads: Incomplete
+    widgets: Any
+    view: Any
+    running_threads: Any
     def __init__(self, *args, **kwargs) -> None:
         """
         Initializes the view, optionally loading a UI from a .glade file.
@@ -589,7 +589,7 @@ class View(Gtk.Box):
 
 class CommandHandler:
 
-    command: Incomplete = None
+    command: Any = None
 
     def get_view(self) -> None:
         """

@@ -42,7 +42,7 @@ REGISTRY_KEY: str = "registry"
 DATE_FORMAT_KEY = "date_format"
 
 
-def get_default(name, default: Optional[Incomplete] = None, session: Optional[Incomplete] = None):
+def get_default(name, default: Optional[Any] = None, session: Optional[Any] = None):
     """
     Get a BaubleMeta object with name.  If the default value is not
     None then a BaubleMeta object is returned with name and the
@@ -103,6 +103,6 @@ class BaubleMeta(db.Base):
     """
 
     __tablename__: str = "bauble"
-    id: Incomplete = Column(Integer, primary_key=True)
-    name: Incomplete = Column(Unicode(64), unique=True)
-    value: Incomplete = Column(UnicodeText)
+    id: Any = Column(Integer, primary_key=True)
+    name: Any = Column(Unicode(64), unique=True)
+    value: Any = Column(UnicodeText)

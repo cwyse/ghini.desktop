@@ -43,7 +43,7 @@ from bauble import pluginmgr
 from .flat_export import FlatFileExportTool as FlatFileExportTool
 from .utils import PS as PS, SVG as SVG
 from typing import Any
-logger: Incomplete
+logger: Any
 config_list_pref: str
 default_config_pref: str
 gi.require_version("Gtk", "3.0")
@@ -348,7 +348,7 @@ class SettingsBox:
     implement this interface and return it from the formatter's get_settings
     method.
     """
-    vbox: Incomplete
+    vbox: Any
     def __init__(self) -> None:
         # Create an instance of Gtk.VBox instead of subclassing it
         self.vbox = Gtk.VBox()
@@ -561,13 +561,13 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
 
     """
     # to be populated by template plugins
-    formatter_class_map: Incomplete
-    hard_coded_options: Incomplete
-    options: Incomplete
-    defaults: Incomplete
-    selection: Incomplete
-    session: Incomplete
-    work_thread: Incomplete
+    formatter_class_map: Any
+    hard_coded_options: Any
+    options: Any
+    defaults: Any
+    selection: Any
+    session: Any
+    work_thread: Any
     running: bool
     formatter_class_map = {}  # title->class
 
@@ -1008,8 +1008,8 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
 
 
 class ReportTool(pluginmgr.Tool):
-    category: Incomplete = (_("Report"), "plugins/report/tool-report.png")
-    label: Incomplete = _("From Template")
+    category: Any = (_("Report"), "plugins/report/tool-report.png")
+    label: Any = _("From Template")
     icon_name: str = "text-x-generic-template"
 
     @classmethod
@@ -1054,7 +1054,7 @@ class ReportTool(pluginmgr.Tool):
 class ReportToolPlugin(pluginmgr.Plugin):
     """ """
 
-    tools: Incomplete = [
+    tools: Any = [
         ReportTool,
         FlatFileExportTool,
     ]

@@ -109,7 +109,7 @@ class TestTagMenu:
 
 
 @pytest.fixture
-def setup_family_and_tags(session) -> Generator[Incomplete, None, None]:
+def setup_family_and_tags(session) -> Generator[Any, None, None]:
     """Fixture to add a default family and clear tags before each test."""
     family = Family(family="family")
     session.add(family)
@@ -308,10 +308,10 @@ class TestTag:
 
 @pytest.mark.usefixtures("setup_session")
 class TestGetTagIds:
-    fam1: Incomplete
-    fam2: Incomplete
-    fam3: Incomplete
-    fam4: Incomplete
+    fam1: Any
+    fam2: Any
+    fam3: Any
+    fam4: Any
     @pytest.fixture(autouse=True)
     def setup_families_and_tags(self, session) -> Generator[None, None, None]:
         """Setup fixture for families and tags."""
@@ -393,9 +393,9 @@ class TestGetTagIds:
 class MockTagView(GenericEditorView):
     _dirty: bool
     sensitive: bool
-    dict: Incomplete
-    widgets: Incomplete
-    window: Incomplete
+    dict: Any
+    widgets: Any
+    window: Any
     def __init__(self) -> None:
         self._dirty = False
         self.sensitive = False
@@ -418,7 +418,7 @@ class MockTagView(GenericEditorView):
     def mark_problem(self, widget_name) -> None:
         pass
 
-    def widget_set_value(self, widget, value, markup: bool = False, default: Optional[Incomplete] = None, index: int = 0) -> None:
+    def widget_set_value(self, widget, value, markup: bool = False, default: Optional[Any] = None, index: int = 0) -> None:
         self.dict[widget] = value
 
     def widget_get_value(self, widget, index: int = 0):
@@ -540,8 +540,8 @@ class TestAttachedTo:
         assert Tag.attached_to(fam) == tags
 
 class FakeGui:
-    invoked: Incomplete
-    window: Incomplete
+    invoked: Any
+    window: Any
     def __init__(self) -> None:
         self.invoked = []
         self.window = self

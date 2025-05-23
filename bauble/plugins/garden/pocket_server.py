@@ -38,7 +38,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from sqlalchemy import select
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 def get_ip():
@@ -68,18 +68,18 @@ def get_code():
 
 
 class RequestHandler(SimpleXMLRPCRequestHandler):
-    rpc_paths: Incomplete = ("/API1",)
+    rpc_paths: Any = ("/API1",)
 
 
 class PocketServer(Thread):
-    presenter: Incomplete
-    log: Incomplete
-    clients: Incomplete
-    imei_to_user_name: Incomplete
-    ip: Incomplete
-    port: Incomplete
-    api: Incomplete
-    server: Incomplete
+    presenter: Any
+    log: Any
+    clients: Any
+    imei_to_user_name: Any
+    ip: Any
+    port: Any
+    api: Any
+    server: Any
     def __init__(self, presenter) -> None:
         super().__init__()
 
@@ -264,13 +264,13 @@ class PocketServer(Thread):
 
 class PocketServerPresenter(GenericEditorPresenter):
     """manage the xmlrpc server for pocket communication"""
-    clients_ls: Incomplete
+    clients_ls: Any
     is_exporting: bool
     opacity: float
     _dirty: bool
     angle: int
     keep_spinning: bool
-    widget_to_field_map: Incomplete = {
+    widget_to_field_map: Any = {
         "last_snapshot_date_entry": "last_snapshot_date",
         "code_entry": "code",
         "autorefresh_checkbutton": "autorefresh",
@@ -342,7 +342,7 @@ class PocketServerPresenter(GenericEditorPresenter):
         if self.session.in_transaction():
             self.session.commit()
 
-    def treeview_changed(self, widget, event, data: Optional[Incomplete] = None) -> None:
+    def treeview_changed(self, widget, event, data: Optional[Any] = None) -> None:
         adj = widget.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
 
@@ -436,7 +436,7 @@ class PocketServerPresenter(GenericEditorPresenter):
 class PocketServerTool(pluginmgr.Tool):
     port: int
     item_position: int = 32
-    label: Incomplete = _("Pocket Server…")
+    label: Any = _("Pocket Server…")
     icon_name: str = "server"
     # prepare fields
     port = 44464

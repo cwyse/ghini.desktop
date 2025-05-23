@@ -61,7 +61,7 @@ from bauble import editor
 from typing import Any
 from bauble.plugins.garden.constants import bottom_heat_unit_values as bottom_heat_unit_values, cutting_type_values as cutting_type_values, flower_buds_values as flower_buds_values, leaves_values as leaves_values, length_unit_values as length_unit_values, prop_type_values as prop_type_values, tip_values as tip_values, wound_values as wound_values
 from bauble.utils import add_to_relationship as add_to_relationship, count_relationship_items as count_relationship_items, get_object_session as get_object_session, handle_db_error as handle_db_error, parse_date as parse_date, remove_from_relationship as remove_from_relationship, sorted_relationship as sorted_relationship
-logger: Incomplete
+logger: Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -78,7 +78,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-PlantPropagation: Incomplete = Table(
+PlantPropagation: Any = Table(
     "plant_prop",
     db.Base.metadata,
     Column("plant_id", Integer, ForeignKey("plant.id"), primary_key=True),
@@ -109,11 +109,11 @@ class Propagation(db.Base, db.WithNotes):
     """
     Propagation
     """
-    source: Incomplete
-    used_source: Incomplete
+    source: Any
+    used_source: Any
     __tablename__: str = "propagation"
-    id: Incomplete = Column(Integer, primary_key=True, autoincrement=True)
-    prop_type: Incomplete = Column(
+    id: Any = Column(Integer, primary_key=True, autoincrement=True)
+    prop_type: Any = Column(
         types.Enum(
             values=list(prop_type_values.keys()),
             translations=prop_type_values,
@@ -121,9 +121,9 @@ class Propagation(db.Base, db.WithNotes):
         ),
         nullable=False,
     )
-    date: Incomplete = Column(types.Date)
+    date: Any = Column(types.Date)
 
-    plants: Incomplete = relationship(
+    plants: Any = relationship(
         "Plant",
         secondary="plant_prop",
         back_populates="propagations",
@@ -131,7 +131,7 @@ class Propagation(db.Base, db.WithNotes):
         single_parent=True,
     )
 
-    _cutting: Incomplete = relationship(
+    _cutting: Any = relationship(
         "PropCutting",
         primaryjoin="Propagation.id == PropCutting.propagation_id",
         cascade="all, delete-orphan",
@@ -140,7 +140,7 @@ class Propagation(db.Base, db.WithNotes):
         back_populates="propagation",
         active_history=True,
     )
-    _seed: Incomplete = relationship(
+    _seed: Any = relationship(
         "PropSeed",
         primaryjoin="Propagation.id == PropSeed.propagation_id",
         cascade="all, delete-orphan",
@@ -333,7 +333,7 @@ class Propagation(db.Base, db.WithNotes):
             self._cutting = None
 
 
-PropagationNote: Incomplete = db.make_note_class("Propagation", Propagation)
+PropagationNote: Any = db.make_note_class("Propagation", Propagation)
 Propagation.notes = relationship(
     "PropagationNote",
     back_populates="propagation",
@@ -346,14 +346,14 @@ class PropCuttingRooted(db.Base):
     """
     Rooting dates for cutting
     """
-    cutting: Incomplete
+    cutting: Any
     __tablename__: str = "prop_cutting_rooted"
 
-    id: Incomplete = Column(Integer, primary_key=True)
-    date: Incomplete = Column(types.Date)
-    quantity: Incomplete = Column(Integer, autoincrement=False, default=0, nullable=False)
-    cutting_id: Incomplete = Column(Integer, ForeignKey("prop_cutting.id"), nullable=False)
-    order_by: Incomplete = [asc(date)]
+    id: Any = Column(Integer, primary_key=True)
+    date: Any = Column(types.Date)
+    quantity: Any = Column(Integer, autoincrement=False, default=0, nullable=False)
+    cutting_id: Any = Column(Integer, ForeignKey("prop_cutting.id"), nullable=False)
+    order_by: Any = [asc(date)]
 
     # Add the missing relationship
     cutting = relationship("PropCutting", back_populates="rooted")
@@ -363,13 +363,13 @@ class PropCutting(db.Base):
     """
     A cutting
     """
-    wound: Incomplete
-    flower_buds: Incomplete
-    bottom_heat_temp: Incomplete
-    bottom_heat_unit: Incomplete
+    wound: Any
+    flower_buds: Any
+    bottom_heat_temp: Any
+    bottom_heat_unit: Any
     __tablename__: str = "prop_cutting"
-    id: Incomplete = Column(Integer, primary_key=True)
-    cutting_type: Incomplete = Column(
+    id: Any = Column(Integer, primary_key=True)
+    cutting_type: Any = Column(
         types.Enum(
             values=list(cutting_type_values.keys()),
             translations=cutting_type_values,
@@ -377,21 +377,21 @@ class PropCutting(db.Base):
         ),
         default="Other",
     )
-    tip: Incomplete = Column(
+    tip: Any = Column(
         types.Enum(
             values=list(tip_values.keys()), translations=tip_values, omit_aliases=False
         )
     )
-    leaves: Incomplete = Column(
+    leaves: Any = Column(
         types.Enum(
             values=list(leaves_values.keys()),
             translations=leaves_values,
             omit_aliases=False,
         )
     )
-    leaves_reduced_pct: Incomplete = Column(Integer, autoincrement=False)
-    length: Incomplete = Column(Integer, autoincrement=False)
-    length_unit: Incomplete = Column(
+    leaves_reduced_pct: Any = Column(Integer, autoincrement=False)
+    length: Any = Column(Integer, autoincrement=False)
+    length_unit: Any = Column(
         types.Enum(
             values=list(length_unit_values.keys()),
             translations=length_unit_values,
@@ -417,13 +417,13 @@ class PropCutting(db.Base):
         )
     )
 
-    fungicide: Incomplete = Column(UnicodeText)  # fungal soak
-    hormone: Incomplete = Column(UnicodeText)  # powder/liquid/None....solution
+    fungicide: Any = Column(UnicodeText)  # fungal soak
+    hormone: Any = Column(UnicodeText)  # powder/liquid/None....solution
 
-    media: Incomplete = Column(UnicodeText)
-    container: Incomplete = Column(UnicodeText)
-    location: Incomplete = Column(UnicodeText)
-    cover: Incomplete = Column(UnicodeText)  # vispore, poly, plastic dome, poly bag
+    media: Any = Column(UnicodeText)
+    container: Any = Column(UnicodeText)
+    location: Any = Column(UnicodeText)
+    cover: Any = Column(UnicodeText)  # vispore, poly, plastic dome, poly bag
 
     # temperature of bottom heat
     bottom_heat_temp = Column(Integer, autoincrement=False)
@@ -440,34 +440,34 @@ class PropCutting(db.Base):
         ),
         nullable=True,
     )
-    rooted_pct: Incomplete = Column(Integer, autoincrement=False)
+    rooted_pct: Any = Column(Integer, autoincrement=False)
 
-    propagation_id: Incomplete = Column(Integer, ForeignKey("propagation.id"), nullable=False)
+    propagation_id: Any = Column(Integer, ForeignKey("propagation.id"), nullable=False)
 
-    rooted: Incomplete = relationship(
+    rooted: Any = relationship(
         "PropCuttingRooted",
         cascade="all, delete-orphan",
         primaryjoin="PropCutting.id == PropCuttingRooted.cutting_id",
         back_populates="cutting",
     )
 
-    propagation: Incomplete = relationship(
+    propagation: Any = relationship(
         "Propagation", back_populates="_cutting", uselist=False, active_history=True
     )
 
 
 class PropSeed(db.Base):
     """ """
-    covered: Incomplete
-    location: Incomplete
-    moved_from: Incomplete
+    covered: Any
+    location: Any
+    moved_from: Any
     __tablename__: str = "prop_seed"
-    id: Incomplete = Column(Integer, primary_key=True)
-    pretreatment: Incomplete = Column(UnicodeText)
-    nseeds: Incomplete = Column(Integer, nullable=False, autoincrement=False)
-    date_sown: Incomplete = Column(types.Date, nullable=False)
-    container: Incomplete = Column(UnicodeText)  # 4" pot plug tray, other
-    media: Incomplete = Column(UnicodeText)  # seedling media, sphagnum, other
+    id: Any = Column(Integer, primary_key=True)
+    pretreatment: Any = Column(UnicodeText)
+    nseeds: Any = Column(Integer, nullable=False, autoincrement=False)
+    date_sown: Any = Column(types.Date, nullable=False)
+    container: Any = Column(UnicodeText)  # 4" pot plug tray, other
+    media: Any = Column(UnicodeText)  # seedling media, sphagnum, other
 
     # covered with #2 granite grit: no, yes, lightly heavily
     covered = Column(UnicodeText)
@@ -478,18 +478,18 @@ class PropSeed(db.Base):
 
     # TODO: do we need multiple moved to->moved from and date fields
     moved_from = Column(UnicodeText)
-    moved_to: Incomplete = Column(UnicodeText)
-    moved_date: Incomplete = Column(types.Date)
+    moved_to: Any = Column(UnicodeText)
+    moved_date: Any = Column(types.Date)
 
-    germ_date: Incomplete = Column(types.Date)
+    germ_date: Any = Column(types.Date)
 
-    nseedlings: Incomplete = Column(Integer, autoincrement=False)  # number of seedling
-    germ_pct: Incomplete = Column(Integer, autoincrement=False)  # % of germination
-    date_planted: Incomplete = Column(types.Date)
+    nseedlings: Any = Column(Integer, autoincrement=False)  # number of seedling
+    germ_pct: Any = Column(Integer, autoincrement=False)  # % of germination
+    date_planted: Any = Column(types.Date)
 
-    propagation_id: Incomplete = Column(Integer, ForeignKey("propagation.id"), nullable=False)
+    propagation_id: Any = Column(Integer, ForeignKey("propagation.id"), nullable=False)
 
-    propagation: Incomplete = relationship(
+    propagation: Any = relationship(
         "Propagation", back_populates="_seed", uselist=False, active_history=True
     )
 
@@ -507,8 +507,8 @@ class PropagationTabPresenter(editor.GenericEditorPresenter):
     :param view: an instance of PlantEditorView
     :param session:
     """
-    parent_ref: Incomplete
-    session: Incomplete
+    parent_ref: Any
+    session: Any
     _dirty: bool
     def __init__(self, parent, model, view, session) -> None:
         super().__init__(model, view)
@@ -682,9 +682,9 @@ class PropagationHandler:
 class PropagationEditorView(editor.GenericEditorView):
     """ """
 
-    _tooltips: Incomplete = {}
+    _tooltips: Any = {}
 
-    def __init__(self, parent: Optional[Incomplete] = None) -> None:
+    def __init__(self, parent: Optional[Any] = None) -> None:
         """ """
         super().__init__(
             os.path.join(paths.lib_dir(), "plugins", "garden", "prop_editor.glade"),
@@ -702,12 +702,12 @@ class PropagationEditorView(editor.GenericEditorView):
 
 class CuttingPresenter(editor.GenericEditorPresenter):
 
-    parent_ref: Incomplete
-    session: Incomplete
+    parent_ref: Any
+    session: Any
     _dirty: bool
-    propagation: Incomplete
-    model: Incomplete
-    widget_to_field_map: Incomplete = {
+    propagation: Any
+    model: Any
+    widget_to_field_map: Any = {
         "cutting_type_combo": "cutting_type",
         "cutting_length_entry": "length",
         "cutting_length_unit_combo": "length_unit",
@@ -888,7 +888,7 @@ class CuttingPresenter(editor.GenericEditorPresenter):
     def is_dirty(self):
         return self._dirty
 
-    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
+    def set_model_attr(self, field, value, validator: Optional[Any] = None) -> None:
         logger.debug(f"{field} = {value}")
         super().set_model_attr(field, value, validator)
         self._dirty = True
@@ -932,11 +932,11 @@ class CuttingPresenter(editor.GenericEditorPresenter):
 class SeedPresenter(editor.GenericEditorPresenter):
 
     _dirty: bool
-    parent_ref: Incomplete
-    session: Incomplete
-    propagation: Incomplete
-    model: Incomplete
-    widget_to_field_map: Incomplete = {
+    parent_ref: Any
+    session: Any
+    propagation: Any
+    model: Any
+    widget_to_field_map: Any = {
         "seed_pretreatment_textview": "pretreatment",
         "seed_nseeds_entry": "nseeds",
         "seed_sown_entry": "date_sown",
@@ -1039,7 +1039,7 @@ class SeedPresenter(editor.GenericEditorPresenter):
     def is_dirty(self):
         return self._dirty
 
-    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
+    def set_model_attr(self, field, value, validator: Optional[Any] = None) -> None:
         # debug('%s = %s' % (field, value))
         super().set_model_attr(field, value, validator)
         self._dirty = True
@@ -1059,11 +1059,11 @@ class PropagationPresenter(editor.ChildPresenter):
     PropagationEditorPresenter.
 
     """
-    session: Incomplete
-    _cutting_presenter: Incomplete
-    _seed_presenter: Incomplete
+    session: Any
+    _cutting_presenter: Any
+    _seed_presenter: Any
     _dirty: bool
-    widget_to_field_map: Incomplete = {
+    widget_to_field_map: Any = {
         "prop_type_combo": "prop_type",
         "prop_date_entry": "date",
     }
@@ -1127,7 +1127,7 @@ class PropagationPresenter(editor.ChildPresenter):
         else:
             return self._dirty
 
-    def set_model_attr(self, field, value, validator: Optional[Incomplete] = None) -> None:
+    def set_model_attr(self, field, value, validator: Optional[Any] = None) -> None:
         """
         Set attributes on the model and update the GUI as expected.
         """
@@ -1158,8 +1158,8 @@ class SourcePropagationPresenter(PropagationPresenter):
     :param view:  AccessionEditorView
     :param session: sqlalchemy.orm.sesssion
     """
-    parent_ref: Incomplete
-    parent_session: Incomplete
+    parent_ref: Any
+    parent_session: Any
     _dirty: bool
     def __init__(self, parent, model, view, session) -> None:
         self.parent_ref = weakref.ref(parent)
@@ -1206,7 +1206,7 @@ class SourcePropagationPresenter(PropagationPresenter):
             super().on_prop_type_changed(combo, *args)
         self._dirty = False
 
-    def set_model_attr(self, attr, value, validator: Optional[Incomplete] = None) -> None:
+    def set_model_attr(self, attr, value, validator: Optional[Any] = None) -> None:
         logger.debug(f"set_model_attr({attr}, {value})")
         super().set_model_attr(attr, value)
         self._dirty = True
@@ -1265,17 +1265,17 @@ class PropagationEditorPresenter(PropagationPresenter):
 class PropagationEditor(editor.GenericModelViewPresenterEditor):
 
     # these have to correspond to the response values in the view
-    view: Incomplete
-    presenter: Incomplete
-    session: Incomplete
-    model: Incomplete
-    parent: Incomplete
-    _return: Incomplete
+    view: Any
+    presenter: Any
+    session: Any
+    model: Any
+    parent: Any
+    _return: Any
     RESPONSE_OK_AND_ADD: int = 11
     RESPONSE_NEXT: int = 22
-    ok_responses: Incomplete = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
+    ok_responses: Any = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model, parent: Optional[Incomplete] = None) -> None:
+    def __init__(self, model, parent: Optional[Any] = None) -> None:
         """
         :param prop_parent: an instance with a propagation relation
         :param model: Propagation instance

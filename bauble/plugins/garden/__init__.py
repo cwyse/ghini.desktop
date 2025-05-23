@@ -84,7 +84,7 @@ from bauble.plugins.garden.institution import Institution as Institution, Instit
 from bauble.plugins.garden.location import Location as Location, LocationEditor as LocationEditor, LocationInfoBox as LocationInfoBox, loc_context_menu as loc_context_menu
 from bauble.plugins.garden.plant import Plant as Plant, PlantEditor as PlantEditor, PlantInfoBox as PlantInfoBox, PlantNote as PlantNote, PlantSearch as PlantSearch, default_plant_delimiter as default_plant_delimiter, plant_context_menu as plant_context_menu, plant_delimiter_key as plant_delimiter_key
 from bauble.plugins.garden.source import Collection as Collection, Contact as Contact, ContactInfoBox as ContactInfoBox, Source as Source, collection_context_menu as collection_context_menu, create_contact as create_contact, source_detail_context_menu as source_detail_context_menu
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -96,10 +96,10 @@ logger.setLevel(logging.INFO)
 
 
 class GardenPlugin(pluginmgr.Plugin):
-    depends: Incomplete = ["PlantsPlugin"]
-    tools: Incomplete = [InstitutionTool, PictureImporterTool, PocketServerTool]
-    commands: Incomplete = [InstitutionCommand]
-    provides: Incomplete = {
+    depends: Any = ["PlantsPlugin"]
+    tools: Any = [InstitutionTool, PictureImporterTool, PocketServerTool]
+    commands: Any = [InstitutionCommand]
+    provides: Any = {
         "Accession": Accession,
         "AccessionNote": AccessionNote,
         "Location": Location,

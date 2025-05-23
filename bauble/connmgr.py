@@ -41,7 +41,7 @@ from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import GdkPixbuf, Gtk
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger._cache.clear()
 logger.setLevel(logging.INFO)
 
@@ -56,8 +56,8 @@ def is_package_name(name):
         return False
 
 
-working_dbtypes: Incomplete = []
-dbtypes: Incomplete = []
+working_dbtypes: Any = []
+dbtypes: Any = []
 
 
 def populate_dbtypes(package_list) -> None:
@@ -85,7 +85,7 @@ populate_dbtypes(
 )
 
 
-def type_combo_cell_data_func(combo, renderer, model, iter, data: Optional[Incomplete] = None) -> None:
+def type_combo_cell_data_func(combo, renderer, model, iter, data: Optional[Any] = None) -> None:
     """passed to the gtk method set_cell_data_func
 
     item is sensitive iff in working_dbtypes
@@ -246,22 +246,22 @@ class ConnMgrPresenter(GenericEditorPresenter):
     :param default: the name of the connection to select from the list
       of connection names
     """
-    filename: Incomplete
+    filename: Any
     use_defaults: bool
     passwd: bool
-    model: Incomplete
-    view: Incomplete
-    connection_names: Incomplete
-    connections: Incomplete
-    connection_name: Incomplete
-    prev_connection_name: Incomplete
-    dbtype: Incomplete
-    pictureroot: Incomplete
-    database: Incomplete
-    host: Incomplete
-    port: Incomplete
-    user: Incomplete
-    widget_to_field_map: Incomplete = {
+    model: Any
+    view: Any
+    connection_names: Any
+    connections: Any
+    connection_name: Any
+    prev_connection_name: Any
+    dbtype: Any
+    pictureroot: Any
+    database: Any
+    host: Any
+    port: Any
+    user: Any
+    widget_to_field_map: Any = {
         "name_combo": "connection_name",  # and self.connection_names
         "usedefaults_chkbx": "use_defaults",
         "type_combo": "dbtype",
@@ -275,9 +275,9 @@ class ConnMgrPresenter(GenericEditorPresenter):
         "pictureroot_entry": "pictureroot",
     }
 
-    view_accept_buttons: Incomplete = ["cancel_button", "connect_button"]
+    view_accept_buttons: Any = ["cancel_button", "connect_button"]
 
-    def __init__(self, view: Optional[Incomplete] = None, prefs: Optional[Incomplete] = None) -> None:
+    def __init__(self, view: Optional[Any] = None, prefs: Optional[Any] = None) -> None:
         self.filename = self.database = self.host = self.port = self.user = (
             self.pictureroot
         ) = self.connection_name = self.prev_connection_name = None
@@ -436,7 +436,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         self.view.widget_set_sensitive("file_btnbrowse", x)
         self.view.widget_set_sensitive("pictureroot_btnbrowse", x)
 
-    def on_dialog_response(self, dialog, response, data: Optional[Incomplete] = None, mock_prefs: Optional[Incomplete] = None):
+    def on_dialog_response(self, dialog, response, data: Optional[Any] = None, mock_prefs: Optional[Any] = None):
         """
         The dialog's response signal handler.
         """
@@ -470,7 +470,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
 
         return response
 
-    def on_dialog_close_or_delete(self, widget, event: Optional[Incomplete] = None):
+    def on_dialog_close_or_delete(self, widget, event: Optional[Any] = None):
         self.view.get_window().hide()
         return True
 
@@ -485,7 +485,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         prefs.prefs[bauble.conn_list_pref] = self.connections
         prefs.prefs.save()
 
-    def on_remove_button_clicked(self, button, data: Optional[Incomplete] = None) -> None:
+    def on_remove_button_clicked(self, button, data: Optional[Any] = None) -> None:
         """
         remove the connection from connection list, this does not affect
         the database or its data
@@ -552,7 +552,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         params = copy.copy(self.get_params())
         return params == stored_params
 
-    def on_name_combo_changed(self, combo, data: Optional[Incomplete] = None) -> None:
+    def on_name_combo_changed(self, combo, data: Optional[Any] = None) -> None:
         """
         the name changed so fill in everything else
         """
@@ -746,7 +746,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
             os.mkdir(thumbs)
         return valid, msg
 
-    def get_params(self, new: Optional[Incomplete] = None):
+    def get_params(self, new: Optional[Any] = None):
         if new is not None:
             self.dbtype = "SQLite"
             self.use_defaults = True
@@ -774,7 +774,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         result["type"] = self.dbtype
         return result
 
-    def set_params(self, params: Optional[Incomplete] = None) -> None:
+    def set_params(self, params: Optional[Any] = None) -> None:
         if params is None:
             params = self.connections[self.connection_name]
             self.dbtype = params["type"]
@@ -792,7 +792,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
         self.refresh_view()
 
 
-def start_connection_manager(default_conn: Optional[Incomplete] = None):
+def start_connection_manager(default_conn: Optional[Any] = None):
     """activate connection manager and return connection name and uri"""
     glade_path = os.path.join(paths.lib_dir(), "connmgr.glade")
     view = GenericEditorView(glade_path, parent=None, root_widget_name="main_dialog")

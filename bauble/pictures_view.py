@@ -27,17 +27,17 @@ from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 class PicturesView:
     """Displays pictures corresponding to selection."""
-    fake: Incomplete
-    widgets: Incomplete
-    pictures_box: Incomplete
-    ghini_box: Incomplete
-    def __init__(self, parent: Optional[Incomplete] = None, fake: bool = False) -> None:
+    fake: Any
+    widgets: Any
+    pictures_box: Any
+    ghini_box: Any
+    def __init__(self, parent: Optional[Any] = None, fake: bool = False) -> None:
         logger.debug(
             f"entering PicturesView.__init__(parent={parent}, fake={fake})"
         )
@@ -91,7 +91,7 @@ class PicturesView:
 
         self.ghini_box.show_all()
 
-    def add_picture(self, picture: Optional[Incomplete] = None):
+    def add_picture(self, picture: Optional[Any] = None):
         """
         Adds a new picture to the model.
         """
@@ -114,7 +114,7 @@ class PicturesView:
         return self.pictures_box
 
 
-floating_window: Incomplete = None
+floating_window: Any = None
 
 
 def show_pictures_callback(selection) -> None:

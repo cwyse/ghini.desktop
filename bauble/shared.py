@@ -15,7 +15,7 @@ from bauble import prefs
 # from gi.repository import Pango
 from bauble.utils import set_widget_value
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 import logging
 
@@ -29,13 +29,13 @@ class InfoExpander:
     To extend this, implement the `update()` method.
     """
     # Preference for storing the expanded state
-    expanded_pref: Incomplete
-    expander: Incomplete
-    vbox: Incomplete
-    widgets: Incomplete
+    expanded_pref: Any
+    expander: Any
+    vbox: Any
+    widgets: Any
     expanded_pref = None
 
-    def __init__(self, label, widgets: Optional[Incomplete] = None) -> None:
+    def __init__(self, label, widgets: Optional[Any] = None) -> None:
         """
         :param label: The name of this info expander, displayed on the expander.
         :param widgets: A bauble.utils.BuilderWidgets instance.
@@ -87,7 +87,7 @@ class InfoExpander:
         else:
             logger.warning(f"Widgets for prefix '{prefix}' not found.")
 
-    def widget_set_value(self, widget_name, value, markup: bool = False, default: Optional[Incomplete] = None) -> None:
+    def widget_set_value(self, widget_name, value, markup: bool = False, default: Optional[Any] = None) -> None:
         """
         A shorthand for L{bauble.utils.set_widget_value()}
         """
@@ -107,15 +107,15 @@ class Action:
 
     Uses `Gio.SimpleAction`, as `Gtk.Action` is deprecated in GTK 4.
     """
-    name: Incomplete
-    label: Incomplete
-    tooltip: Incomplete
-    stock_id: Incomplete
-    callback: Incomplete
-    app: Incomplete
-    action: Incomplete
+    name: Any
+    label: Any
+    tooltip: Any
+    stock_id: Any
+    callback: Any
+    app: Any
+    action: Any
     def __init__(
-        self, name, label, tooltip: Optional[Incomplete] = None, stock_id: Optional[Incomplete] = None, callback: Optional[Incomplete] = None, app: Optional[Incomplete] = None
+        self, name, label, tooltip: Optional[Any] = None, stock_id: Optional[Any] = None, callback: Optional[Any] = None, app: Optional[Any] = None
     ) -> None:
         """
         :param name: Unique action name (e.g., "open").
@@ -154,7 +154,7 @@ class Action:
         """Check if the action is enabled."""
         return self.action.get_enabled()
 
-    enabled: Incomplete = property(get_enabled, set_enabled)
+    enabled: Any = property(get_enabled, set_enabled)
 
     def execute(self, *args) -> None:
         """Manually trigger the action execution."""

@@ -33,7 +33,7 @@ from bauble.plugins.garden import Accession, Location, Plant, PlantNote, Verific
 from bauble.plugins.plants import Family, Genus, Species
 
 from typing import Any
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 def get_genus(session, keys):

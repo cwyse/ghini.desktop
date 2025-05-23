@@ -62,23 +62,23 @@ from typing import Union, Optional
 from typing import Any
 from bauble.plugins.imex.unicode_utils import InvalidDataError as InvalidDataError, UnicodeReader as UnicodeReader, UnicodeWriter as UnicodeWriter
 from collections.abc import Generator
-logger: Incomplete = logging.getLogger(__name__)
-QUOTE_STYLE: Incomplete = csv.QUOTE_MINIMAL
+logger: Any = logging.getLogger(__name__)
+QUOTE_STYLE: Any = csv.QUOTE_MINIMAL
 QUOTE_CHAR: str = '"'
 
 
 class CSVProcessor:
-    table: Incomplete
-    filename: Incomplete
-    defaults: Incomplete
-    update_every: Incomplete
-    column_keys: Incomplete
-    insert_stmt: Incomplete
-    values: Incomplete
-    flush_count: Incomplete
-    steps_so_far: Incomplete
-    batch_queue: Incomplete
-    worker_thread: Incomplete
+    table: Any
+    filename: Any
+    defaults: Any
+    update_every: Any
+    column_keys: Any
+    insert_stmt: Any
+    values: Any
+    flush_count: Any
+    steps_so_far: Any
+    batch_queue: Any
+    worker_thread: Any
     def __init__(
         self, table, filename, defaults, update_every, flush_count: int = 0, steps_so_far: int = 0
     ) -> None:
@@ -280,7 +280,7 @@ class CSVProcessor:
         self.column_keys = list(csv_columns.union(self.defaults.keys()))
         self.insert_stmt = self.table.insert()
 
-    def process_rows(self) -> Generator[Incomplete, None, None]:
+    def process_rows(self) -> Generator[Any, None, None]:
         """
         Process the CSV rows, applying defaults and preparing for batch insertion.
         Yields control after every `update_every` rows for GUI updates.
@@ -420,7 +420,7 @@ class CSVProcessor:
 
             self.batch_queue.task_done()
 
-    def _insert_batch(self, batch_values: Optional[Incomplete] = None):
+    def _insert_batch(self, batch_values: Optional[Any] = None):
         """
         Insert the current batch of rows into the database.
         Convert any Enum values to their corresponding string/int representations.

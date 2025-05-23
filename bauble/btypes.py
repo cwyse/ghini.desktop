@@ -33,9 +33,9 @@ from typing import Union, Optional
 from bauble import error
 from sqlalchemy import types
 from typing import Any
-_prefs_lock: Incomplete = Lock()  # ✅ Add this at the module level
+_prefs_lock: Any = Lock()  # ✅ Add this at the module level
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 from typing import Protocol, runtime_checkable
 
@@ -108,11 +108,11 @@ class EnumError(error.BaubleError):
 #        types.Enum("s. lat.", "s. str.", "", name="qualifier_enum"),
 class Enum(types.TypeDecorator):
     """A database independent Enum type. The value is stored in the database as a Unicode string."""
-    values: Incomplete
-    strict: Incomplete
-    empty_to_none: Incomplete
-    translations: Incomplete
-    impl: Incomplete = types.Unicode  # Stored as Unicode in the database
+    values: Any
+    strict: Any
+    empty_to_none: Any
+    translations: Any
+    impl: Any = types.Unicode  # Stored as Unicode in the database
     cache_ok: bool = True
 
     def __hash__(self):
@@ -132,7 +132,7 @@ class Enum(types.TypeDecorator):
         )
 
     def __init__(
-        self, values, empty_to_none: bool = False, strict: bool = True, translations: Optional[Incomplete] = None, **kwargs
+        self, values, empty_to_none: bool = False, strict: bool = True, translations: Optional[Any] = None, **kwargs
     ) -> None:
         """
         :param values: A list of valid values for the column.
@@ -236,12 +236,12 @@ class DateTime(types.TypeDecorator):
     A DateTime type that ensures timezone-aware storage and retrieval.
     """
 
-    impl: Incomplete = types.DateTime
+    impl: Any = types.DateTime
     cache_ok: bool = True
 
     import re
 
-    _rx_tz: Incomplete = re.compile("[+-]")
+    _rx_tz: Any = re.compile("[+-]")
 
     def __init__(self) -> None:
         super().__init__()
@@ -309,9 +309,9 @@ class Date(types.TypeDecorator):
     """
     A Date type that allows Date strings
     """
-    _dayfirst: Incomplete
-    _yearfirst: Incomplete
-    impl: Incomplete = types.Date
+    _dayfirst: Any
+    _yearfirst: Any
+    impl: Any = types.Date
     cache_ok: bool = True  # SQLAlchemy caching compatibility
 
     def __init__(self) -> None:

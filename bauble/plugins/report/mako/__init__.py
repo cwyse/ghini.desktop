@@ -35,7 +35,7 @@ from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 class MakoFormatterPlugin(TemplateFormatterPlugin):
@@ -47,14 +47,14 @@ class MakoFormatterPlugin(TemplateFormatterPlugin):
 
     title: str = "Mako"
     extension: str = ".mako"
-    domain_pattern: Incomplete = re.compile(r"^##\s*DOMAIN\s+([a-z_]*)\s*$")
-    option_pattern: Incomplete = re.compile(
+    domain_pattern: Any = re.compile(r"^##\s*DOMAIN\s+([a-z_]*)\s*$")
+    option_pattern: Any = re.compile(
         r"^## OPTION ([a-z_]*): \("
         "type: ([a-z_]*), "
         "default: '(.*)', "
         r"tooltip: '(.*)'\)$"
     )
-    paths: Incomplete = []
+    paths: Any = []
 
     @classmethod
     def get_template(cls, name):

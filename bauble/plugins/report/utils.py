@@ -26,7 +26,7 @@ from typing import Callable, Optional, Union, cast
 
 from typing import Any
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from typing import Protocol
@@ -45,7 +45,7 @@ class AddQrCallable(Protocol):
 
 class SVG:
     '''not a class, more a namespace - cfr PS'''
-    font: Incomplete = {
+    font: Any = {
         '\\u200b': 0,
         '!': 20, 'A': 36, 'a': 31, 'á': 31, 'Á': 38,
         '"': 23, 'B': 34, 'b': 32, 'à': 31, 'À': 38,
@@ -166,7 +166,7 @@ class SVG:
 class PS:
     """not a class, more a namespace - cfr SVG"""
 
-    font: Incomplete = {
+    font: Any = {
         "serif": {
             " ": ("5F", 12),
             "\u200b": ("5F", 0),
@@ -641,7 +641,7 @@ class Code39:
     # and end with a single special symbol (we call it '!') which isn't
     # included in the 45 encodable characters.
 
-    MAP: Incomplete = {
+    MAP: Any = {
         "!": "b   b bbb bbb b",
         "7": "b b   b bbb bbb",
         "-": "b   b b bbb bbb",
@@ -722,8 +722,8 @@ class add_qr_functor:
     """
 
     import pyqrcode
-    pattern: Incomplete
-    buffer: Incomplete
+    pattern: Any
+    buffer: Any
     def __init__(self) -> None:
         self.pattern = {
             "svg": re.compile('<svg.*height="([0-9]*)".*>(<path.*>)</svg>'),

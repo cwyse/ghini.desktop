@@ -488,7 +488,7 @@ from bauble.plugins.plants.species import edit_species
 @pytest.mark.usefixtures("setup_plant_data")
 class TestSpecies:
     """Tests for the Species functionality."""
-    invoked: Incomplete
+    invoked: Any
     def test_species_editor(self, session) -> None:
         """
         Test the Species editor and its interaction with the database and garbage collection.
@@ -1064,9 +1064,9 @@ from bauble.plugins.plants.species_distribution import SpeciesDistribution
 @pytest.mark.usefixtures("setup_plant_data")
 class TestGeographicArea:
     """Tests for Geographic Area functionality."""
-    session: Incomplete
-    family: Incomplete
-    genus: Incomplete
+    session: Any
+    family: Any
+    genus: Any
     @pytest.fixture(autouse=True)
     def setup_class(self, session) -> None:
         """Setup for each test."""
@@ -1654,10 +1654,10 @@ import pytest
 @pytest.mark.usefixtures("setup_plant_data")
 class TestSpeciesInfraspecificProp:
     """Tests for infraspecific properties and cultivar epithet in Species."""
-    cinnamomum: Incomplete
-    cinnamomum_camphora: Incomplete
-    gleditsia: Incomplete
-    gleditsia_triacanthos: Incomplete
+    cinnamomum: Any
+    cinnamomum_camphora: Any
+    gleditsia: Any
+    gleditsia_triacanthos: Any
     def test_cultivar_epithet_1(self, session) -> None:
         obj = Species.retrieve_or_create(
             session,

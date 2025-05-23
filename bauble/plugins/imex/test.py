@@ -61,36 +61,36 @@ from bauble.plugins.garden import Accession as Accession, Contact as Contact, Fa
 from bauble.plugins.imex.csv_ import CSVExporter as CSVExporter, CSVImporter as CSVImporter, QUOTE_CHAR as QUOTE_CHAR, QUOTE_STYLE as QUOTE_STYLE
 from bauble.plugins.plants import SpeciesNote as SpeciesNote, VernacularName as VernacularName
 from collections.abc import Generator
-family_data: Incomplete
-logger: Incomplete = logging.getLogger(__name__)
+family_data: Any
+logger: Any = logging.getLogger(__name__)
 
 # Test Data Definitions
 family_data = [
     {"id": 1, "epithet": "Orchidaceae", "qualifier": None},
     {"id": 2, "epithet": "Myrtaceae"},
 ]
-genus_data: Incomplete = [
+genus_data: Any = [
     {"id": 1, "epithet": "Calopogon", "family_id": 1, "author": "R. Br."},
     {"id": 2, "epithet": "Panisea", "family_id": 1},
 ]
-species_data: Incomplete = [
+species_data: Any = [
     {"id": 1, "epithet": "tuberosus", "genus_id": 1, "author": None},
     {"id": 2, "epithet": "albiflora", "genus_id": 2, "author": "(Ridl.) Seidenf."},
     {"id": 3, "epithet": "distelidia", "genus_id": 2, "author": "I.D.Lund"},
     {"id": 4, "epithet": "zeylanica", "genus_id": 2, "author": "(Hook.f.) Aver."},
 ]
-species_note_test_data: Incomplete = [
+species_note_test_data: Any = [
     {"id": 1, "species_id": 18, "category": "CITES", "note": "I"},
     {"id": 2, "species_id": 20, "category": "IUCN", "note": "LC"},
     {"id": 3, "species_id": 18, "category": "<price>", "note": "19.50"},
 ]
-accession_data: Incomplete = [
+accession_data: Any = [
     {"id": 1, "species_id": 1, "code": "2015.0001"},
     {"id": 2, "species_id": 1, "code": "2015.0002"},
     {"id": 3, "species_id": 1, "code": "2015.0003", "private": True},
 ]
-location_data: Incomplete = [{"id": 1, "code": "1"}]
-plant_data: Incomplete = [
+location_data: Any = [{"id": 1, "code": "1"}]
+plant_data: Any = [
     {"id": 1, "accession_id": 1, "location_id": 1, "code": "1", "quantity": 1},
     {"id": 2, "accession_id": 3, "location_id": 1, "code": "1", "quantity": 1},
 ]
@@ -110,7 +110,7 @@ class TestImporter(CSVImporter):
 
 
 @pytest.fixture
-def test_directory() -> Generator[Incomplete, None, None]:
+def test_directory() -> Generator[Any, None, None]:
     """
     Fixture for setting up and tearing down a temporary directory for tests.
     """
@@ -357,7 +357,7 @@ class MockExportView:
     """
     Mock class for simulating export view interactions.
     """
-    __selection: Incomplete
+    __selection: Any
     def widget_set_value(self, *args) -> None:
         pass
 
@@ -385,7 +385,7 @@ from bauble.plugins.garden import Family, Genus, Species
 
 
 @pytest.fixture
-def temp_file() -> Generator[Incomplete, None, None]:
+def temp_file() -> Generator[Any, None, None]:
     """
     Fixture to create and clean up a temporary file for tests.
     """

@@ -23,18 +23,18 @@ from typing import Any, Callable, Optional, Union
 import requests
 from typing import Any
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 class AskTPL(threading.Thread):
     _stop: bool
-    binomial: Incomplete
-    threshold: Incomplete
-    callback: Incomplete
-    timeout: Incomplete
-    gui: Incomplete
-    running: Incomplete = None
+    binomial: Any
+    threshold: Any
+    callback: Any
+    timeout: Any
+    gui: Any
+    running: Any = None
 
     def __init__(
         self,

@@ -55,8 +55,8 @@ from sqlalchemy.exc import IntegrityError
 # from sqlalchemy.exc import DataError
 from sqlalchemy.orm import configure_mappers, sessionmaker
 
-logger: Incomplete = logging.getLogger(__name__)
-QUOTE_STYLE: Incomplete = csv.QUOTE_MINIMAL
+logger: Any = logging.getLogger(__name__)
+QUOTE_STYLE: Any = csv.QUOTE_MINIMAL
 QUOTE_CHAR: str = '"'
 
 # TODO: i've also had a problem with bad insert statements, e.g. importing a
@@ -120,8 +120,8 @@ class CSVImporter(Importer):
     __cancel: bool
     __pause: bool
     __error_exc: bool
-    q: Incomplete
-    job_done: Incomplete
+    q: Any
+    job_done: Any
     flush_count: int
     steps_so_far: int
     def __init__(self) -> None:
@@ -134,7 +134,7 @@ class CSVImporter(Importer):
         self.job_done = object()  # Sentinel for completion
         self.flush_count = 0
 
-    def start(self, filenames: Optional[Incomplete] = None, metadata: Optional[Incomplete] = None, force: bool = False) -> None:
+    def start(self, filenames: Optional[Any] = None, metadata: Optional[Any] = None, force: bool = False) -> None:
         """start the import process. this is a non blocking method: we queue
         the process as a bauble task. there is no callback informing whether
         it is successfully completed or not.
@@ -363,7 +363,7 @@ class CSVImporter(Importer):
             created_tables.append(table.name)
 
     # Ensure this is set up in your database initialization code
-    Session: Incomplete = sessionmaker(bind=db.engine, future=True)
+    Session: Any = sessionmaker(bind=db.engine, future=True)
 
     # Instead of recreating all tables, check for and create only missing ones
     def create_missing_tables(self, metadata, session) -> None:
@@ -648,7 +648,7 @@ class CSVImporter(Importer):
         fc.destroy()
         return filenames
 
-    def on_response(self, widget, response, data: Optional[Incomplete] = None) -> None:
+    def on_response(self, widget, response, data: Optional[Any] = None) -> None:
         logger.debug("on_response")
         logger.debug(response)
 
@@ -659,7 +659,7 @@ from sqlalchemy import select
 
 
 @contextmanager
-def open_file_safe(filename, mode: str = "w") -> Generator[Incomplete, None, None]:
+def open_file_safe(filename, mode: str = "w") -> Generator[Any, None, None]:
     """Context manager for opening a file safely."""
     try:
         f = open(filename, mode)
@@ -671,7 +671,7 @@ def open_file_safe(filename, mode: str = "w") -> Generator[Incomplete, None, Non
 class CSVExporter:
 
     steps_so_far: int
-    def start(self, path: Optional[Incomplete] = None) -> None:
+    def start(self, path: Optional[Any] = None) -> None:
         if path is None:
             d = Gtk.FileChooserDialog(
                 _("Select a directory"),
@@ -700,7 +700,7 @@ class CSVExporter:
         except Exception as e:
             logger.debug(f"{type(e).__name__}({e})")
 
-    def __export_task(self, path) -> Generator[None, None, Incomplete]:
+    def __export_task(self, path) -> Generator[None, None, Any]:
         filename_template = os.path.join(path, "%s.txt")
         self.steps_so_far = 0
         ntables = 0
@@ -798,12 +798,12 @@ class CSVExportCommandHandler(pluginmgr.CommandHandler):
 # plugin classes
 #
 
-backup_category: Incomplete = (_("Backup"), "plugins/imex/backup.png")
+backup_category: Any = (_("Backup"), "plugins/imex/backup.png")
 
 
 class CSVImportTool(pluginmgr.Tool):
     category = backup_category
-    label: Incomplete = _("Restore")
+    label: Any = _("Restore")
     icon_name: str = "backup-restore.png"
 
     @classmethod
@@ -824,7 +824,7 @@ class CSVImportTool(pluginmgr.Tool):
 
 class CSVExportTool(pluginmgr.Tool):
     category = backup_category
-    label: Incomplete = _("Create")
+    label: Any = _("Create")
     icon_name: str = "backup-create.png"
 
     @classmethod

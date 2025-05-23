@@ -53,7 +53,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.orm.session import object_session
 
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -99,16 +99,16 @@ def remove_callback(locations):
     return True
 
 
-edit_action: Incomplete = Action(
+edit_action: Any = Action(
     "loc_edit", _("_Edit"), callback=edit_callback, accelerator="<ctrl>e"
 )
-add_plant_action: Incomplete = Action(
+add_plant_action: Any = Action(
     "loc_add_plant",
     _("_Add plants"),
     callback=add_plants_callback,
     accelerator="<ctrl>k",
 )
-remove_action: Incomplete = Action(
+remove_action: Any = Action(
     "loc_remove",
     _("_Delete"),
     callback=remove_callback,
@@ -116,7 +116,7 @@ remove_action: Incomplete = Action(
     multiselect=True,
 )
 
-loc_context_menu: Incomplete = [edit_action, add_plant_action, remove_action]
+loc_context_menu: Any = [edit_action, add_plant_action, remove_action]
 
 
 def compute_serializable_fields(cls, session, keys):
@@ -143,17 +143,17 @@ class Location(db.Base, db.Serializable, db.WithNotes):
         *plants*:
 
     """
-    id: Incomplete
-    plants: Incomplete
+    id: Any
+    plants: Any
     __tablename__: str = "location"
 
     # columns
     # refers to beds by unique codes
     id = Column(Integer, primary_key=True, autoincrement=True)
-    code: Incomplete = Column(Unicode(12), unique=True, nullable=False)
-    name: Incomplete = Column(Unicode(80))
-    description: Incomplete = Column(UnicodeText)
-    order_by: Incomplete = [asc(name)]
+    code: Any = Column(Unicode(12), unique=True, nullable=False)
+    name: Any = Column(Unicode(80))
+    description: Any = Column(UnicodeText)
+    order_by: Any = [asc(name)]
 
     # relations
     plants = relationship("Plant", back_populates="location", uselist=True)
@@ -216,7 +216,7 @@ class Location(db.Base, db.Serializable, db.WithNotes):
         }
 
 
-LocationNote: Incomplete = db.make_note_class("Location", Location, compute_serializable_fields)
+LocationNote: Any = db.make_note_class("Location", Location, compute_serializable_fields)
 Location.notes = relationship(
     "LocationNote",
     back_populates="location",
@@ -241,7 +241,7 @@ class LocationEditorView(GenericEditorView):
 
     # source_expanded_pref = 'editor.accesssion.source.expanded'
     use_ok_and_add: bool
-    _tooltips: Incomplete = {
+    _tooltips: Any = {
         "loc_name_entry": _(
             "The name that you will use " "later to refer to this location."
         ),
@@ -252,7 +252,7 @@ class LocationEditorView(GenericEditorView):
         ),
     }
 
-    def __init__(self, parent: Optional[Incomplete] = None) -> None:
+    def __init__(self, parent: Optional[Any] = None) -> None:
         super().__init__(
             os.path.join(paths.lib_dir(), "plugins", "garden", "loc_editor.glade"),
             parent=parent,
@@ -282,11 +282,11 @@ class LocationEditorView(GenericEditorView):
 
 class LocationEditorPresenter(GenericEditorPresenter):
 
-    session: Incomplete
+    session: Any
     _dirty: bool
-    notes_presenter: Incomplete
-    merger_candidate: Incomplete
-    widget_to_field_map: Incomplete = {
+    notes_presenter: Any
+    merger_candidate: Any
+    widget_to_field_map: Any = {
         "loc_name_entry": "name",
         "loc_code_entry": "code",
         "loc_desc_textview": "description",
@@ -447,7 +447,7 @@ class LocationEditorPresenter(GenericEditorPresenter):
             sensitive = True
         self.view.set_accept_buttons_sensitive(sensitive)
 
-    def set_model_attr(self, attr, value, validator: Optional[Incomplete] = None) -> None:
+    def set_model_attr(self, attr, value, validator: Optional[Any] = None) -> None:
         super().set_model_attr(attr, value, validator)
         self._dirty = True
         self.refresh_sensitivity()
@@ -468,15 +468,15 @@ class LocationEditorPresenter(GenericEditorPresenter):
 class LocationEditor(GenericModelViewPresenterEditor):
 
     # these have to correspond to the response values in the view
-    view: Incomplete
-    presenter: Incomplete
-    parent: Incomplete
-    _committed: Incomplete
+    view: Any
+    presenter: Any
+    parent: Any
+    _committed: Any
     RESPONSE_OK_AND_ADD: int = 11
     RESPONSE_NEXT: int = 22
-    ok_responses: Incomplete = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
+    ok_responses: Any = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model: Optional[Incomplete] = None, parent: Optional[Incomplete] = None) -> None:
+    def __init__(self, model: Optional[Any] = None, parent: Optional[Any] = None) -> None:
         """
         :param model: Location instance or None
         :param parent: the parent widget or None
@@ -568,7 +568,7 @@ class LocationEditor(GenericModelViewPresenterEditor):
 
 class GeneralLocationExpander(InfoExpander):
 
-    current_obj: Incomplete
+    current_obj: Any
     def __init__(self, widgets) -> None:
         """ """
         super().__init__(_("General"), widgets)
@@ -630,11 +630,11 @@ class LocationInfoBox(InfoBox):
     """
     an InfoBox for a Location table row
     """
-    widgets: Incomplete
-    general: Incomplete
-    description: Incomplete
-    mapinfo: Incomplete
-    properties_expander: Incomplete
+    widgets: Any
+    general: Any
+    description: Any
+    mapinfo: Any
+    properties_expander: Any
     def __init__(self) -> None:
         """ """
         super().__init__()

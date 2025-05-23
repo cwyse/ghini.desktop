@@ -38,7 +38,7 @@ from bauble.test import check_dupids
 
 from typing import Any
 from collections.abc import Generator
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 logger._cache.clear()
 logger.setLevel(logging.INFO)
 prefs.testing = True
@@ -71,12 +71,12 @@ prefs.testing = True
 #     _TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
 class _TestEnum(db.Base):
     __tablename__: str = "test_enum_type"
-    id: Incomplete = Column(Integer, primary_key=True)
-    value: Incomplete = Column(types.Enum(values=["1", "2", ""], omit_aliases=False), default="")
+    id: Any = Column(Integer, primary_key=True)
+    value: Any = Column(types.Enum(values=["1", "2", ""], omit_aliases=False), default="")
 
 
 @pytest.fixture
-def clean_enum_table(db_session) -> Generator[Incomplete, None, None]:
+def clean_enum_table(db_session) -> Generator[Any, None, None]:
     """
     Fixture to clean and create the Enum test table for each test.
     """

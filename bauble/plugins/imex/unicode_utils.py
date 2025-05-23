@@ -7,8 +7,8 @@ from typing import Union, Optional
 from typing import Any
 class UnicodeReader:
 
-    reader: Incomplete
-    encoding: Incomplete
+    reader: Any
+    encoding: Any
     def __init__(self, f, dialect=csv.excel, encoding: str = "utf-8", **kwds) -> None:
         self.reader = csv.DictReader(f, dialect=dialect, **kwds)
         self.encoding = encoding
@@ -35,10 +35,10 @@ class InvalidDataError(Exception):
 # TODO: add support for exporting only specific tables
 class UnicodeWriter:
 
-    writer: Incomplete
-    field_order: Incomplete
-    encoding: Incomplete
-    def __init__(self, f, fields: Optional[Incomplete] = None, dialect=csv.excel, encoding: str = "utf-8", **kwds) -> None:
+    writer: Any
+    field_order: Any
+    encoding: Any
+    def __init__(self, f, fields: Optional[Any] = None, dialect=csv.excel, encoding: str = "utf-8", **kwds) -> None:
         self.writer = csv.writer(f, dialect=dialect, **kwds)
         self.field_order = fields
         self.encoding = encoding

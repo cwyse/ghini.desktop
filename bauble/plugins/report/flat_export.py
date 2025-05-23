@@ -42,19 +42,19 @@ from sqlalchemy.types import Boolean, Float, Integer
 
 class FlatFileExporter(GenericEditorPresenter):
 
-    domain_map: Incomplete
-    domain: Incomplete
-    mapper: Incomplete
-    results_model: Incomplete
-    signal_id: Incomplete
+    domain_map: Any
+    domain: Any
+    mapper: Any
+    results_model: Any
+    signal_id: Any
     toggling: bool
-    active_toggle: Incomplete
-    active_ls: Incomplete
-    schema_menu: Incomplete
-    view_accept_buttons: Incomplete = ["cancel_button", "confirm_button"]
-    logger: Incomplete = logging.getLogger(__name__)
+    active_toggle: Any
+    active_ls: Any
+    schema_menu: Any
+    view_accept_buttons: Any = ["cancel_button", "confirm_button"]
+    logger: Any = logging.getLogger(__name__)
 
-    def __init__(self, view: Optional[Incomplete] = None) -> None:
+    def __init__(self, view: Optional[Any] = None) -> None:
         super().__init__(model=self, view=view, refresh_view=False)
 
         self.domain_map = MapperSearch.get_domain_classes().copy()
@@ -85,7 +85,7 @@ class FlatFileExporter(GenericEditorPresenter):
         }
 
     def set_model_fields(
-        self, output_file: Optional[Incomplete] = None, domain: Optional[Incomplete] = None, exported_fields: Optional[Incomplete] = None, **kwargs
+        self, output_file: Optional[Any] = None, domain: Optional[Any] = None, exported_fields: Optional[Any] = None, **kwargs
     ) -> None:
         if exported_fields is None:
             exported_fields = []
@@ -314,10 +314,10 @@ class FlatFileExporter(GenericEditorPresenter):
 
 
 class FlatFileExportTool(pluginmgr.Tool):
-    category: Incomplete = _("Report")
-    label: Incomplete = _("Quick CSV")
+    category: Any = _("Report")
+    label: Any = _("Quick CSV")
     icon_name: str = "accessories-text-editor"
-    last_model: Incomplete = {}
+    last_model: Any = {}
 
     @classmethod
     def start(cls) -> None:

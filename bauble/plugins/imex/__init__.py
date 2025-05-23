@@ -48,14 +48,14 @@ from bauble import pluginmgr
 from typing import Any
 from bauble.plugins.imex.csv_ import CSVExportCommandHandler as CSVExportCommandHandler, CSVExportTool as CSVExportTool, CSVImportCommandHandler as CSVImportCommandHandler, CSVImportTool as CSVImportTool
 class ImexPlugin(pluginmgr.Plugin):
-    tools: Incomplete = [
+    tools: Any = [
         CSVImportTool,
         CSVExportTool,
         JSONImportTool,
         JSONExportTool,
         XMLExportTool,
     ]
-    commands: Incomplete = [
+    commands: Any = [
         CSVExportCommandHandler,
         CSVImportCommandHandler,
         XMLExportCommandHandler,
