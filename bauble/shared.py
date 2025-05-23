@@ -5,7 +5,7 @@ import logging
 import gi
 
 from typing import Union, Optional
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 # from bauble.utils import safe_set_text
 from gi.repository import Gio, Gtk

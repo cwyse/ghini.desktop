@@ -32,7 +32,7 @@ from bauble.utils import parse_date
 from typing import Union, Optional
 from bauble import error
 from sqlalchemy import types
-from _typeshed import Incomplete
+from typing import Any
 _prefs_lock: Incomplete = Lock()  # ✅ Add this at the module level
 
 logger: Incomplete = logging.getLogger(__name__)

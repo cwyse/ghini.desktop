@@ -27,7 +27,7 @@ import pytest
 
 from bauble.test import check_dupids
 
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.garden.accession import Accession as Accession, AccessionNote as AccessionNote, Voucher as Voucher
 from bauble.plugins.garden.plant import Plant as Plant, PlantChange as PlantChange, PlantNote as PlantNote, branch_callback as branch_callback, is_code_unique as is_code_unique
 from bauble.plugins.garden.propagation import PropCutting as PropCutting, PropCuttingRooted as PropCuttingRooted, PropSeed as PropSeed, Propagation as Propagation

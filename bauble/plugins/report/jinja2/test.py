@@ -28,7 +28,7 @@ from bauble.plugins.report import get_pertinent_objects
 from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
 from bauble.utils import natsort_key
 
-from _typeshed import Incomplete
+from typing import Any
 logger: Incomplete = logging.getLogger(__name__)
 
 

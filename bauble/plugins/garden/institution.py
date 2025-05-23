@@ -40,7 +40,7 @@ import bauble.utils as utils
 from typing import Union, Optional
 from bauble import editor
 from bauble import pluginmgr
-from _typeshed import Incomplete
+from typing import Any
 display: Incomplete
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkClutter", "1.0")

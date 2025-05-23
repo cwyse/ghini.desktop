@@ -56,7 +56,7 @@ from bauble.plugins.plants import (
 )
 from bauble.plugins.plants.geography import GeographicArea
 
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.garden import Accession as Accession, Contact as Contact, Family as Family, Genus as Genus, Location as Location, Plant as Plant, Source as Source, Species as Species
 from bauble.plugins.imex.csv_ import CSVExporter as CSVExporter, CSVImporter as CSVImporter, QUOTE_CHAR as QUOTE_CHAR, QUOTE_STYLE as QUOTE_STYLE
 from bauble.plugins.plants import SpeciesNote as SpeciesNote, VernacularName as VernacularName

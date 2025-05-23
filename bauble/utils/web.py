@@ -24,7 +24,7 @@ from typing import Any, Dict, Optional, Sequence, Union
 
 import bauble.utils.desktop as desktop
 import gi
-from _typeshed import Incomplete
+from typing import Any
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

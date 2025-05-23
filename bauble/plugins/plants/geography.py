@@ -26,7 +26,7 @@ import gi
 import bauble.db as db
 
 from bauble import db
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import Column, ForeignKey, Integer, String, Unicode, select

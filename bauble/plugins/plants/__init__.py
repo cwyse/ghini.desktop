@@ -81,7 +81,7 @@ from bauble.view import SearchView
 from bauble import pluginmgr
 from .stored_queries import StoredQueryEditorTool as StoredQueryEditorTool
 from .taxonomy_check import TaxonomyCheckTool as TaxonomyCheckTool
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.plants.family import Familia as Familia, Family as Family, FamilyEditor as FamilyEditor, FamilyInfoBox as FamilyInfoBox, FamilyNote as FamilyNote, family_context_menu as family_context_menu
 from bauble.plugins.plants.genus import Genus as Genus, GenusEditor as GenusEditor, GenusInfoBox as GenusInfoBox, GenusNote as GenusNote, genus_context_menu as genus_context_menu
 from bauble.plugins.plants.geography import GeographicArea as GeographicArea, get_species_in_geographic_area as get_species_in_geographic_area

@@ -14,7 +14,7 @@ from bauble.pluginmgr import (
     plugins,
 )
 
-from _typeshed import Incomplete
+from typing import Any
 from bauble.pluginmgr import Plugin as Plugin, PluginRegistry as PluginRegistry, _create_dependency_pairs as _create_dependency_pairs, init as init, install as install, plugins as plugins
 from collections.abc import Generator
 logger: Incomplete = logging.getLogger(__name__)

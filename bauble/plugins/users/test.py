@@ -30,7 +30,7 @@ from bauble import db
 from bauble.test import check_dupids
 
 
-from _typeshed import Incomplete
+from typing import Any
 from collections.abc import Generator
 @pytest.fixture
 def test_user() -> Generator[Incomplete, None, None]:

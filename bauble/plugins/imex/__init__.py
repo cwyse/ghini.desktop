@@ -45,7 +45,7 @@ from bauble.plugins.imex.xml import XMLExportCommandHandler, XMLExportTool
 
 
 from bauble import pluginmgr
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.imex.csv_ import CSVExportCommandHandler as CSVExportCommandHandler, CSVExportTool as CSVExportTool, CSVImportCommandHandler as CSVImportCommandHandler, CSVImportTool as CSVImportTool
 class ImexPlugin(pluginmgr.Plugin):
     tools: Incomplete = [

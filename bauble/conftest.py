@@ -27,7 +27,7 @@ from bauble.error import BaubleError
 from bauble.prefs import prefs
 
 # Global configuration
-from _typeshed import Incomplete
+from typing import Any
 from collections.abc import Generator
 SQLITE_URI: str
 logger: Incomplete = logging.getLogger(__name__)

@@ -48,7 +48,7 @@ from bauble.utils import safe_set_props
 
 from typing import Union, Optional
 from bauble import editor
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.plants.species_model import Habit as Habit, Species as Species, SpeciesDistribution as SpeciesDistribution, SpeciesSynonym as SpeciesSynonym, VernacularName as VernacularName, compare_rank as compare_rank, infrasp_rank_values as infrasp_rank_values
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk

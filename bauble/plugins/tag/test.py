@@ -20,7 +20,7 @@ import gi
 import pytest
 
 from typing import Union, Optional
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.tag import Tag as Tag, TagEditorPresenter as TagEditorPresenter, create_named_empty_tag as create_named_empty_tag, remove_callback as remove_callback, tag_objects as tag_objects, tags_menu_manager as tags_menu_manager, untag_objects as untag_objects
 from collections.abc import Generator
 gi.require_version("Gtk", "3.0")

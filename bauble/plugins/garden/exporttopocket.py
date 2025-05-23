@@ -28,7 +28,7 @@ from bauble.plugins.garden.accession import Accession
 from bauble.plugins.garden.plant import Plant
 
 from typing import Union, Optional
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from sqlalchemy import bindparam, select

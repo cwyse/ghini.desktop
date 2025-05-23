@@ -23,7 +23,7 @@ import os
 import gi
 import pytest
 
-from _typeshed import Incomplete
+from typing import Any
 from collections.abc import Generator
 prefs_lock: Incomplete
 gi.require_version("Gtk", "3.0")

@@ -18,7 +18,7 @@
 import math
 from typing import Optional, Union
 
-from _typeshed import Incomplete
+from typing import Any
 
 
 class OutOfRangeError(ValueError):

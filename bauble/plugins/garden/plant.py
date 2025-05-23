@@ -57,7 +57,7 @@ from bauble.view import (
 )
 
 from typing import Union, Optional
-from _typeshed import Incomplete
+from typing import Any
 from bauble.editor import GenericEditorPresenter as GenericEditorPresenter, GenericEditorView as GenericEditorView, GenericModelViewPresenterEditor as GenericModelViewPresenterEditor, NotesPresenter as NotesPresenter, PicturesPresenter as PicturesPresenter
 from bauble.view import Action as Action, InfoBox as InfoBox, MapInfoExpander as MapInfoExpander, PropertiesExpander as PropertiesExpander, select_in_search_results as select_in_search_results
 plant_delimiter_key: str

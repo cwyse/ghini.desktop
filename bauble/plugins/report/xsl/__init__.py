@@ -48,7 +48,7 @@ from bauble.plugins.garden.plant import Plant
 from bauble.plugins.plants.species import Species
 from bauble.plugins.report import FormatterPlugin
 
-from _typeshed import Incomplete
+from typing import Any
 fop_cmd: str
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

@@ -43,7 +43,7 @@ from bauble.view import InfoBox, PropertiesExpander, select_in_search_results
 from typing import Union, Optional
 from bauble import db
 from bauble import editor
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 import importlib
 

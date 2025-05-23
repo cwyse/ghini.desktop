@@ -30,7 +30,7 @@ from bauble.plugins.report import get_pertinent_objects
 from bauble.plugins.tag import Tag, tag_objects
 from bauble.test import check_dupids
 
-from _typeshed import Incomplete
+from typing import Any
 from collections.abc import Generator
 logger: Incomplete = logging.getLogger(__name__)
 

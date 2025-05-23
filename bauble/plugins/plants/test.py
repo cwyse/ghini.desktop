@@ -49,7 +49,7 @@ from bauble.plugins.plants.species_model import _remove_zws as remove_zws
 from bauble.test import check_dupids, mockfunc
 
 
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.plants.family import Family as Family, FamilySynonym as FamilySynonym, remove_callback as remove_callback
 from bauble.plugins.plants.geography import GeographicArea as GeographicArea, get_species_in_geographic_area as get_species_in_geographic_area
 from bauble.plugins.plants.species import DefaultVernacularName as DefaultVernacularName, Species as Species, SpeciesNote as SpeciesNote, SpeciesSynonym as SpeciesSynonym, edit_species as edit_species

@@ -29,7 +29,7 @@ import bauble.utils as utils
 from bauble.error import CheckConditionError
 from bauble.utils import topological_sort
 
-from _typeshed import Incomplete
+from typing import Any
 from collections.abc import Generator
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
