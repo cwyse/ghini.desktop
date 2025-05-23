@@ -24,7 +24,7 @@ import re
 from types import FrameType
 from typing import Callable, Optional, Union, cast
 
-from _typeshed import Incomplete
+from typing import Any
 
 logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

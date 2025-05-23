@@ -27,7 +27,7 @@ from typing import Any, Generator, Iterator, Optional, cast
 from unittest.mock import patch
 
 import pytest
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.plants.ask_tpl import AskTPL, what_to_do_with_it
 
 

@@ -35,7 +35,7 @@ import bauble.utils as utils
 
 from typing import Union, Optional
 from bauble import pluginmgr
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy import select

@@ -30,7 +30,7 @@ from bauble.plugins.garden.location import Location
 from bauble.plugins.garden.plant import Plant, PlantNote
 from bauble.plugins.plants import Familia, Genus, Species, SpeciesNote, VernacularName
 
-from _typeshed import Incomplete
+from typing import Any
 from collections.abc import Generator
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

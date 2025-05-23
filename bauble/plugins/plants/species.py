@@ -31,7 +31,7 @@ import bauble.search as search
 import bauble.utils as utils
 import bauble.view as view
 import gi
-from _typeshed import Incomplete
+from typing import Any
 from bauble import search
 from bauble.plugins.plants.genus import Genus, GenusSynonym
 from bauble.plugins.plants.species_editor import SpeciesDistribution

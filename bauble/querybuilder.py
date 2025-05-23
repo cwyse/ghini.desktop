@@ -29,7 +29,7 @@ from bauble.utils import safe_set_text
 from typing import Union, Optional
 from .querybuilderparser import BuiltQuery as BuiltQuery
 from .search import EmptyToken as EmptyToken, MapperSearch as MapperSearch
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from sqlalchemy.orm import class_mapper

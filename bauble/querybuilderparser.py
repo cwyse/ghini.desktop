@@ -23,7 +23,7 @@
 # if the query does not follow the grammar, start from scratch.
 from typing import Any, cast
 
-from _typeshed import Incomplete
+from typing import Any
 from pyparsing import (
     CaselessLiteral,
     Group,

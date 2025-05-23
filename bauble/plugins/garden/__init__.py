@@ -78,7 +78,7 @@ from bauble.utils import safe_set_props, safe_set_text
 from bauble.view import SearchView
 
 from bauble import pluginmgr
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.garden.accession import Accession as Accession, AccessionEditor as AccessionEditor, AccessionInfoBox as AccessionInfoBox, AccessionNote as AccessionNote, acc_context_menu as acc_context_menu
 from bauble.plugins.garden.institution import Institution as Institution, InstitutionCommand as InstitutionCommand, InstitutionTool as InstitutionTool, start_institution_editor as start_institution_editor
 from bauble.plugins.garden.location import Location as Location, LocationEditor as LocationEditor, LocationInfoBox as LocationInfoBox, loc_context_menu as loc_context_menu

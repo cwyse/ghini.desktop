@@ -31,7 +31,7 @@ from bauble.querybuilder import SchemaMenu
 from bauble.search import MapperSearch
 
 from typing import Union, Optional
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, Gtk
 from sqlalchemy import select

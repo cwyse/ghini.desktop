@@ -58,7 +58,7 @@ from bauble.utils import (
 from typing import Union, Optional
 from bauble import db
 from bauble import editor
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.garden.constants import bottom_heat_unit_values as bottom_heat_unit_values, cutting_type_values as cutting_type_values, flower_buds_values as flower_buds_values, leaves_values as leaves_values, length_unit_values as length_unit_values, prop_type_values as prop_type_values, tip_values as tip_values, wound_values as wound_values
 from bauble.utils import add_to_relationship as add_to_relationship, count_relationship_items as count_relationship_items, get_object_session as get_object_session, handle_db_error as handle_db_error, parse_date as parse_date, remove_from_relationship as remove_from_relationship, sorted_relationship as sorted_relationship
 logger: Incomplete

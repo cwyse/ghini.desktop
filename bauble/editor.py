@@ -41,7 +41,7 @@ from bauble.error import CheckConditionError, check
 from bauble.utils import handle_db_error, parse_date, safe_set_props
 
 from typing import Union, Optional
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import GdkPixbuf, GLib, Pango
 from sqlalchemy import select

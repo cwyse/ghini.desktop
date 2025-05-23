@@ -43,7 +43,7 @@ from bauble.plugins.imex.unicode_utils import UnicodeWriter
 
 from typing import Union, Optional
 from bauble import pluginmgr
-from _typeshed import Incomplete
+from typing import Any
 from collections.abc import Generator
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

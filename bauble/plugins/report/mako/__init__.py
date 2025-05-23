@@ -31,7 +31,7 @@ from bauble import paths as bpaths
 from bauble import utils as butils
 from bauble.plugins.report import TemplateFormatterPlugin
 
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 

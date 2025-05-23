@@ -38,7 +38,7 @@ from bauble.plugins.report import SVG, get_pertinent_objects
 from bauble.plugins.report.mako import MakoFormatterPlugin
 from bauble.plugins.report.utils import Code39
 
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.plants import Family as Family, Genus as Genus, GeographicArea as GeographicArea, Species as Species, SpeciesDistribution as SpeciesDistribution, VernacularName as VernacularName
 logger: Incomplete = logging.getLogger(__name__)
 

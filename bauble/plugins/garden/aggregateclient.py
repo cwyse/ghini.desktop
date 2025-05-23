@@ -22,7 +22,7 @@ import xml.etree.ElementTree as ET
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import requests
-from _typeshed import Incomplete
+from typing import Any
 from requests.auth import HTTPDigestAuth
 
 

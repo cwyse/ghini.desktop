@@ -23,7 +23,7 @@ from logging import LogRecord
 # Global configuration
 from typing import Any, Dict, List, Optional, Union
 
-from _typeshed import Incomplete
+from typing import Any
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

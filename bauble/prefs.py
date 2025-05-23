@@ -27,7 +27,7 @@ import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import gi
-from _typeshed import Incomplete
+from typing import Any
 from bauble import pluginmgr
 
 default_filename: str

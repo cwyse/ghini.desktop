@@ -32,7 +32,7 @@ from bauble import db
 from bauble.plugins.garden import Accession, Location, Plant, PlantNote, Verification
 from bauble.plugins.plants import Family, Genus, Species
 
-from _typeshed import Incomplete
+from typing import Any
 logger: Incomplete = logging.getLogger(__name__)
 
 

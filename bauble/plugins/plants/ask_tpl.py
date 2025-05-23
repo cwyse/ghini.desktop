@@ -21,7 +21,7 @@ import threading
 from typing import Any, Callable, Optional, Union
 
 import requests
-from _typeshed import Incomplete
+from typing import Any
 
 logger: Incomplete = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

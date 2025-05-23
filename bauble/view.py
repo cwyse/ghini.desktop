@@ -38,7 +38,7 @@ from bauble import db, editor, paths, pictures_view, pluginmgr, search, utils
 from bauble.error import BaubleError, check
 
 from typing import Union, Optional
-from _typeshed import Incomplete
+from typing import Any
 from bauble import db as db, editor as editor, gui as gui, paths as paths, pictures_view as pictures_view, pluginmgr as pluginmgr, search as search, utils as utils
 display: Incomplete
 _substr_tmpl: str

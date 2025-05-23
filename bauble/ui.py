@@ -40,7 +40,7 @@ from bauble.view import SearchView
 
 from typing import Union, Optional
 from bauble import pluginmgr
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 

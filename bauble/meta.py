@@ -26,7 +26,7 @@ import bauble.db as db
 
 from typing import Union, Optional
 from bauble import db
-from _typeshed import Incomplete
+from typing import Any
 DATE_FORMAT_KEY: str
 VERSION_KEY: str = "version"
 CREATED_KEY: str = "created"

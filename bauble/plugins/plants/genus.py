@@ -38,7 +38,7 @@ import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.view as view
 import gi
-from _typeshed import Incomplete
+from typing import Any
 from bauble import db, editor
 from bauble.plugins.plants.family import Family, FamilySynonym
 from bauble.plugins.plants.species_model import Species

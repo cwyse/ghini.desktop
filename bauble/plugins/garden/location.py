@@ -42,7 +42,7 @@ from bauble.view import Action, InfoBox, MapInfoExpander, PropertiesExpander
 
 from typing import Union, Optional
 from bauble import db
-from _typeshed import Incomplete
+from typing import Any
 from bauble.editor import GenericEditorPresenter as GenericEditorPresenter, GenericEditorView as GenericEditorView, GenericModelViewPresenterEditor as GenericModelViewPresenterEditor, NotesPresenter as NotesPresenter, UnicodeOrNoneValidator as UnicodeOrNoneValidator
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

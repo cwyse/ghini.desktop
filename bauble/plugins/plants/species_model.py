@@ -26,7 +26,7 @@ import bauble.btypes as types
 import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
-from _typeshed import Incomplete
+from typing import Any
 from bauble import db
 from sqlalchemy import (
     Boolean,

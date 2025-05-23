@@ -38,7 +38,7 @@ from bauble.utils import safe_set_text
 from bauble.view import Action, InfoBox, SearchView
 
 from typing import Union, Optional
-from _typeshed import Incomplete
+from typing import Any
 from bauble.types import BaseModelProtocol as BaseModelProtocol
 from collections.abc import Generator
 import sqlalchemy.orm

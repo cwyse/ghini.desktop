@@ -36,7 +36,7 @@ from bauble import db, meta, prefs
 from bauble.plugins.plants import Family
 from bauble.test import check_dupids
 
-from _typeshed import Incomplete
+from typing import Any
 from collections.abc import Generator
 logger: Incomplete = logging.getLogger(__name__)
 logger._cache.clear()

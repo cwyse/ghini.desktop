@@ -37,7 +37,7 @@ import bauble.plugins.plants.test as plants_test
 from bauble.plugins.abcd import ABCDElement, ABCDExporter, DataSets, plants_to_abcd
 from bauble.plugins.garden import Accession, Collection, Plant, Source
 
-from _typeshed import Incomplete
+from typing import Any
 logger: Incomplete = logging.getLogger(__name__)
 
 

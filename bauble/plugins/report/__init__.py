@@ -42,7 +42,7 @@ from bauble.prefs import prefs
 from bauble import pluginmgr
 from .flat_export import FlatFileExportTool as FlatFileExportTool
 from .utils import PS as PS, SVG as SVG
-from _typeshed import Incomplete
+from typing import Any
 logger: Incomplete
 config_list_pref: str
 default_config_pref: str

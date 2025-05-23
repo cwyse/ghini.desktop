@@ -37,7 +37,7 @@ from bauble import paths, prefs
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 
 from typing import Union, Optional
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import GdkPixbuf, Gtk
 

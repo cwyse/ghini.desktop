@@ -22,7 +22,7 @@ import pytest
 
 from bauble import prefs, version_tuple
 
-from _typeshed import Incomplete
+from typing import Any
 from collections.abc import Generator
 prefs.testing = True
 

@@ -34,7 +34,7 @@ import bauble.pluginmgr as pluginmgr
 
 # import debugpy
 import gi
-from _typeshed import Incomplete
+from typing import Any
 from gi.repository import Gdk as Gdk
 from gi.repository import GObject as GObject
 

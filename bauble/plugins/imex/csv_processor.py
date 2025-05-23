@@ -59,7 +59,7 @@ from bauble.plugins.imex.unicode_utils import (
 )
 
 from typing import Union, Optional
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.imex.unicode_utils import InvalidDataError as InvalidDataError, UnicodeReader as UnicodeReader, UnicodeWriter as UnicodeWriter
 from collections.abc import Generator
 logger: Incomplete = logging.getLogger(__name__)

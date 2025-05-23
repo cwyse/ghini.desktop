@@ -27,7 +27,7 @@ from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.plugins.plants import Species
 
 from typing import Union, Optional
-from _typeshed import Incomplete
+from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Pango
 

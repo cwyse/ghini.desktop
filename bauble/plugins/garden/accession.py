@@ -66,7 +66,7 @@ from bauble.view import (
 from typing import Union, Optional
 from bauble import db
 from bauble import editor
-from _typeshed import Incomplete
+from typing import Any
 from bauble.plugins.garden.source import Collection as Collection, CollectionPresenter as CollectionPresenter, Contact as Contact, PropagationChooserPresenter as PropagationChooserPresenter, Source as Source, create_contact as create_contact
 from bauble.view import Action as Action, InfoBox as InfoBox, MapInfoExpander as MapInfoExpander, PropertiesExpander as PropertiesExpander, select_in_search_results as select_in_search_results
 wild_prov_status_values: Incomplete

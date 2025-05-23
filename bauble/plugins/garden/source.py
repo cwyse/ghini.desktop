@@ -42,7 +42,7 @@ from bauble.utils import safe_set_text
 from typing import Union, Optional
 from bauble import db
 from bauble import editor
-from _typeshed import Incomplete
+from typing import Any
 view: Incomplete
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk

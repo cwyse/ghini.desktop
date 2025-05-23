@@ -23,7 +23,7 @@ import re
 from typing import Generator, List, Pattern
 
 import pytest
-from _typeshed import Incomplete
+from typing import Any
 from babel.messages.pofile import read_po
 
 logger = logging.getLogger(__name__)

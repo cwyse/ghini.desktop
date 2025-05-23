@@ -19,7 +19,7 @@
 #
 from gettext import gettext as _
 
-from _typeshed import Incomplete
+from typing import Any
 prop_type_values: Incomplete = {
     "Seed": _("Seed"),
     "UnrootedCutting": _("Unrooted cutting"),
