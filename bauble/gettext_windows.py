@@ -48,9 +48,7 @@ import os
 import sys
 from typing import TYPE_CHECKING, Any, Optional, cast
 
-from _typeshed import Incomplete
-
-OS_WINDOWS: Incomplete = sys.platform == "win32"
+OS_WINDOWS: Any = sys.platform == "win32"
 
 
 def setup_env_windows(system_lang: bool = True) -> None:

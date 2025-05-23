@@ -27,15 +27,17 @@ import sys
 import traceback
 from gettext import gettext as _
 
-# import debugpy
-import gi
-
 import bauble.error as err
 import bauble.i18n
 import bauble.paths as paths
+import bauble.pluginmgr as pluginmgr
 
+# import debugpy
+import gi
 from _typeshed import Incomplete
-from gi.repository import GObject as GObject, Gdk as Gdk
+from gi.repository import Gdk as Gdk
+from gi.repository import GObject as GObject
+
 zipfile: Incomplete
 default_icon: Incomplete
 gi.require_version("Gtk", "3.0")
@@ -44,6 +46,8 @@ import warnings
 
 from gi.repository import Gtk
 from sqlalchemy.exc import SAWarning
+
+__all__ = ["pluginmgr"]
 
 warnings.simplefilter("always", SAWarning)
 
@@ -62,9 +66,8 @@ release_date: Incomplete = match.group(1) if match else None
 installation_date: Incomplete = os.environ.get("BUILD_DATE", "1970-01-01T00:00:00Z")
 
 
-from gi.repository import Gdk, Gio, GLib
-
 from bauble.connmgr import start_connection_manager
+from gi.repository import Gdk, Gio, GLib
 
 try:
     from gi.repository import GObject  # Ensures compatibility
