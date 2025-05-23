@@ -30,32 +30,31 @@ import re
 import textwrap
 import threading
 import traceback
+from collections.abc import Generator
 
 # import xml.sax.saxutils as saxutils
 from gettext import gettext as _
+from logging import Logger
+from typing import Any, Optional, Union
 
+import bauble
 import dateutil.parser
 import gi
 import sqlalchemy
-
-import bauble
 from bauble import paths
+from bauble import paths as paths
+from bauble import utils as utils
 from bauble.error import check
 
-from typing import Union, Optional
-from _typeshed import Incomplete
-from bauble import paths as paths, utils as utils
-from collections.abc import Generator
 gi.require_version("Gtk", "3.0")
+from bauble import utils
 from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk
 
 # from sqlalchemy.exc import DBAPIError
 from sqlalchemy import distinct, select
 from sqlalchemy.orm.session import object_session
 
-from bauble import utils
-
-logger: Incomplete = logging.getLogger(__name__)
+logger: Logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -203,7 +202,7 @@ def safe_set_props(widget, prop, value) -> None:
         widget.set_property(prop, value)
 
 
-def read_in_chunks(file_object, chunk_size: int = 1024) -> Generator[Incomplete, None, None]:
+def read_in_chunks(file_object, chunk_size: int = 1024) -> Generator[Any, None, None]:
     """read a chunk from a stream
 
     Lazy function (generator) to read piece by piece from a file-like object.
@@ -229,8 +228,8 @@ class Cache:
     the image, the value is a pair with first the timestamp of the last usage
     of that key and second the value.
     """
-    size: Incomplete
-    storage: Incomplete
+    size: int
+    storage: dict[str, Any]
     def __init__(self, size) -> None:
         self.size = size
         self.storage = {}
@@ -258,7 +257,7 @@ class Cache:
         return value
 
 
-def copy_picture_with_thumbnail(path, basename: Optional[Incomplete] = None):
+def copy_picture_with_thumbnail(path, basename: Optional[Any] = None):
     """copy file from path to picture_root, and make thumbnail, preserving name
 
     return base64 representation of thumbnail
@@ -1326,10 +1325,9 @@ def reset_sequence(column):
     This function only works for PostgreSQL database.  It does nothing
     for other database engines.
     """
+    import bauble.db as db
     from sqlalchemy import schema
     from sqlalchemy.types import Integer
-
-    import bauble.db as db
 
     if db.engine.name != "postgresql":
         return

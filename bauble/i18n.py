@@ -42,7 +42,6 @@ from typing import Callable, cast
 
 import bauble.gettext_windows
 import bauble.paths as paths
-from _typeshed import Incomplete
 from bauble._version import __version__
 
 # the following has effect on Windows: to set the environment variables as

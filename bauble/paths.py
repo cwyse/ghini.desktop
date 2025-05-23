@@ -26,10 +26,9 @@ Access to standard paths used by Ghini.
 import logging
 import os
 import sys
+from typing import Any
 
-from _typeshed import Incomplete
-
-logger: Incomplete = logging.getLogger(__name__)
+logger: Any = logging.getLogger(__name__)
 
 
 def main_is_frozen() -> bool:

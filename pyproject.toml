@@ -136,3 +136,13 @@ extend-select = ["I", "E", "F", "B", "UP", "N", "W", "C90"]
 python_version = "3.11"
 strict = true
 files = "src"
+
+[tool.pyright]
+include = ["src"]
+exclude = ["**/node_modules", "**/__pycache__"]
+typeCheckingMode = "strict"
+pythonVersion = "3.9"
+venvPath = "."
+venv = ".venv"
+reportMissingImports = true
+reportMissingTypeStubs = false
