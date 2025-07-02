@@ -24,24 +24,25 @@
 import logging
 import os
 import traceback
+from collections.abc import Generator
 from gettext import gettext as _
+from typing import Any, ClassVar, Optional, Union
 
 import bauble
 import gi
+import sqlalchemy.orm
 import sqlalchemy.orm.exc as orm_exc
 
 # from bauble import ui
 from bauble import db, editor, paths, pluginmgr, search, utils
+from bauble.btypes import BaseModelProtocol as BaseModelProtocol
 from bauble.editor import GenericEditorPresenter, GenericEditorView
+from bauble.plugins.garden.plant import Plant
 from bauble.shared import InfoExpander
 from bauble.utils import safe_set_text
 from bauble.view import Action, InfoBox, SearchView
+from sqlalchemy.orm import Mapped
 
-from typing import Union, Optional
-from typing import Any
-from bauble.types import BaseModelProtocol as BaseModelProtocol
-from collections.abc import Generator
-import sqlalchemy.orm
 gi.require_version("Gtk", "3.0")
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Optional
@@ -581,7 +582,6 @@ class Tag(db.Base, db.WithNotes):
         A description of this tag.
     """
     id: Any
-    _objects: Any
     __tablename__: str = "tag"
 
     # columns
@@ -590,15 +590,17 @@ class Tag(db.Base, db.WithNotes):
     description: Any = Column(UnicodeText)
 
     # relations
-    _objects = relationship(
+    _objects: Mapped[list["TaggedObj"]] = relationship(
         "TaggedObj",
         cascade="all, delete-orphan",
         back_populates="tag",
         single_parent=True,
     )
 
-    __my_own_timestamp: Any = None
-    __last_objects: Any = None
+    import datetime
+
+    __my_own_timestamp: ClassVar[Optional[datetime.datetime]] = None
+    __last_objects: ClassVar[Optional[list[Any]]] = None
 
     # Use a lambda to defer attribute access until runtime
     @staticmethod
@@ -769,7 +771,7 @@ class TaggedObj(db.Base):
     obj_id: Any = Column(Integer, autoincrement=False)
     obj_class: Any = Column(String(128))
     tag_id: Any = Column(Integer, ForeignKey("tag.id"))
-    tag: Any = relationship(
+    tag: Mapped["Tag"] = relationship(
         "Tag",
         cascade="all, delete-orphan",
         back_populates="_objects",

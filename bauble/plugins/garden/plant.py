@@ -21,13 +21,14 @@
 """
 Defines the plant table and handled editing plants
 """
+from __future__ import annotations
+
 import logging
 import os
 import traceback
 from gettext import gettext as _
 from random import random
-
-import gi
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
 
 import bauble.btypes as types
 import bauble.db as db
@@ -36,15 +37,19 @@ import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 import bauble.view as view
+import gi
+from bauble.editor import GenericEditorPresenter
+from bauble.editor import GenericEditorPresenter as GenericEditorPresenter
+from bauble.editor import GenericEditorView
+from bauble.editor import GenericEditorView as GenericEditorView
+from bauble.editor import GenericModelViewPresenterEditor
 from bauble.editor import (
-    GenericEditorPresenter,
-    GenericEditorView,
-    GenericModelViewPresenterEditor,
-    NotesPresenter,
-    PicturesPresenter,
+    GenericModelViewPresenterEditor as GenericModelViewPresenterEditor,
 )
+from bauble.editor import NotesPresenter, PicturesPresenter
 from bauble.error import CheckConditionError
-from bauble.plugins.garden.location import Location, LocationEditor
+
+#from bauble.plugins.garden.location import Location
 from bauble.search import SearchStrategy
 from bauble.shared import InfoExpander
 from bauble.utils import handle_db_error, safe_set_text
@@ -55,11 +60,14 @@ from bauble.view import (
     PropertiesExpander,
     select_in_search_results,
 )
+from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
 
-from typing import Union, Optional
-from typing import Any
-from bauble.editor import GenericEditorPresenter as GenericEditorPresenter, GenericEditorView as GenericEditorView, GenericModelViewPresenterEditor as GenericModelViewPresenterEditor, NotesPresenter as NotesPresenter, PicturesPresenter as PicturesPresenter
-from bauble.view import Action as Action, InfoBox as InfoBox, MapInfoExpander as MapInfoExpander, PropertiesExpander as PropertiesExpander, select_in_search_results as select_in_search_results
+if TYPE_CHECKING:
+    from bauble.plugins.garden.accession import Accession
+    from bauble.plugins.garden.location import Location
+    from bauble.plugins.garden.propagation import Propagation
+
+
 plant_delimiter_key: str
 gi.require_version("Gtk", "3.0")
 from datetime import datetime
@@ -85,6 +93,9 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import object_mapper, relationship, validates
 from sqlalchemy.orm.session import object_session
 
+#if TYPE_CHECKING:
+#    from .location import Location
+    
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -181,7 +192,7 @@ def get_next_code(acc):
     """
     # auto generate/increment the accession code
     session = db.Session()
-    from bauble.plugins.garden import Accession
+    from bauble.plugins.garden.accession import Accession
 
     codes = (
         session.execute(
@@ -202,11 +213,15 @@ def get_next_code(acc):
     return utils.utf8(next)
 
 
+from typing import TYPE_CHECKING
+
 import db
 import utils
 from sqlalchemy import bindparam
 
-from bauble.plugins.garden import Accession, Plant
+#if TYPE_CHECKING:
+#    from bauble.plugins.garden.accession import Accession
+
 
 
 def is_code_unique(plant, code):
@@ -270,7 +285,7 @@ class PlantSearch(SearchStrategy):
         logger.debug(f"ac: {acc_code}, pl: {plant_code}")
 
         try:
-            from bauble.plugins.garden import Accession
+            from bauble.plugins.garden.accession import Accession
 
             query = session.execute(
                 select(Plant)
@@ -364,27 +379,23 @@ change_reasons: Any = {
 
 class PlantChange(db.Base):
     """ """
-    from_location_id: Any
-    person: Any
-    date: Any
-    plant: Any
     __tablename__: str = "plant_change"
 
-    id: Any = Column(Integer, primary_key=True)
-    plant_id: Any = Column(Integer, ForeignKey("plant.id"), nullable=False)
-    parent_plant_id: Any = Column(Integer, ForeignKey("plant.id"))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    plant_id: Mapped[int] = mapped_column(Integer, ForeignKey("plant.id"), nullable=False)
+    parent_plant_id: Mapped[int] = mapped_column(Integer, ForeignKey("plant.id"))
 
     # - if to_location_id is None changeis a removal
     # - if from_location_id is None then this change is a creation
     # - if to_location_id != from_location_id change is a transfer
-    from_location_id = Column(Integer, ForeignKey("location.id"))
-    to_location_id: Any = Column(Integer, ForeignKey("location.id"))
+    from_location_id: Mapped[int] = mapped_column(Integer, ForeignKey("location.id"))
+    to_location_id: Mapped[int] = mapped_column(Integer, ForeignKey("location.id"))
 
     # the name of the person who made the change
-    person = Column(Unicode(64))
+    person: Mapped[str] = mapped_column(Unicode(64))
 
-    quantity: Any = Column(Integer, autoincrement=False, nullable=False)
-    note_id: Any = Column(Integer, ForeignKey("plant_note.id"))
+    quantity: Mapped[int] = mapped_column(Integer, autoincrement=False, nullable=False)
+    note_id: Mapped[int] = mapped_column(Integer, ForeignKey("plant_note.id"))
 
     reason: Any = Column(
         types.Enum(
@@ -395,25 +406,24 @@ class PlantChange(db.Base):
     )
 
     # date of change
-    date = Column(types.DateTime, default=datetime.utcnow)
+    date: Mapped[types.DateTime] = mapped_column(types.DateTime, default=datetime.utcnow)
     order_by: Any = [asc(date)]
 
     # Relationships
-    plant = relationship(
+    plant: Mapped["Plant"] = relationship(
         "Plant",
+        foreign_keys=[plant_id],
         back_populates="changes",
-        primaryjoin="PlantChange.plant_id == Plant.id",
-        uselist=True,
+        uselist=False,
         cascade="all, delete-orphan",
         single_parent=True,
         overlaps="changes",
     )
 
-    parent_plant: Any = relationship(
+    parent_plant: Mapped["Plant"] = relationship(
         "Plant",
+        foreign_keys=[parent_plant_id],
         back_populates="branches",
-        primaryjoin="PlantChange.parent_plant_id == Plant.id",
-        foreign_keys="PlantChange.parent_plant_id",
         uselist=False,
         cascade="delete, delete-orphan",
         single_parent=True,
@@ -421,18 +431,7 @@ class PlantChange(db.Base):
         active_history=True,
     )
 
-    from_location: Any = relationship(
-        "Location",
-        primaryjoin="PlantChange.from_location_id == Location.id",
-        uselist=False,  # One-to-one relationship with Location
-        active_history=True,
-    )
-    to_location: Any = relationship(
-        "Location",
-        primaryjoin="PlantChange.to_location_id == Location.id",
-        uselist=False,  # One-to-one relationship with Location
-        active_history=True,
-    )
+
 
 
 # TODO: should sex be recorded at the species, accession or plant
@@ -490,14 +489,12 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     :Constraints:
         The combination of code and accession_id must be unique.
     """
-    id: Any
-    accession: Any
     __tablename__: str = "plant"
     __table_args__: Any = (UniqueConstraint("code", "accession_id"), {})
 
     # columns
-    id = Column(Integer, primary_key=True)
-    code: Any = Column(Unicode(6), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(Unicode(6), nullable=False)
 
     @validates("code")
     def validate_stripping(self, key, value):
@@ -513,15 +510,15 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         ),
         default=None,
     )
-    memorial: Any = Column(Boolean, default=False)
-    quantity: Any = Column(Integer, autoincrement=False, nullable=False)
+    memorial: Mapped[bool] = mapped_column(Boolean, default=False)
+    quantity: Mapped[int] = mapped_column(Integer, autoincrement=False, nullable=False)
 
-    accession_id: Any = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    location_id: Any = Column(Integer, ForeignKey("location.id"), nullable=False)
+    accession_id: Mapped[int] = mapped_column(Integer, ForeignKey("accession.id"), nullable=False)
+    location_id: Mapped[int] = mapped_column(Integer, ForeignKey("location.id"), nullable=False)
     order_by: Any = [asc(accession_id), asc(code)]
 
     # Relationships
-    accession = relationship(
+    accession: Mapped["Accession"] = relationship(
         "Accession",
         back_populates="plants",
         uselist=False,
@@ -529,7 +526,7 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         active_history=True,
     )
 
-    propagations: Any = relationship(
+    propagations: Mapped["Propagation"] = relationship(
         "Propagation",
         secondary="plant_prop",
         back_populates="plants",
@@ -537,33 +534,32 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         single_parent=True,
     )
 
-    changes: Any = relationship(
+    changes: Mapped["PlantChange"] = relationship(
         "PlantChange",
         back_populates="plant",
-        primaryjoin="PlantChange.plant_id == Plant.id",
         cascade="all, delete-orphan",
         single_parent=True,
-        overlaps="plant",
+        overlaps="plant,changes"
     )
 
-    branches: Any = relationship(
+    branches: Mapped["PlantChange"] = relationship(
         "PlantChange",
         back_populates="parent_plant",
-        primaryjoin="PlantChange.parent_plant_id == Plant.id",
-        foreign_keys="PlantChange.parent_plant_id",
         cascade="delete, delete-orphan",
         single_parent=True,
-        overlaps="parent_plant",
+        overlaps="parent_plant,branches"
     )
 
-    location: Any = relationship(
+    location: Mapped["Location"] = relationship(
         "Location",
         back_populates="plants",
         uselist=False,  # A Plant belongs to one Location
         cascade="save-update",
         active_history=True,
     )
-    _delimiter: Any = None
+
+
+    _delimiter: ClassVar[Any] = None
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
@@ -707,11 +703,29 @@ class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             (8, "Sources"): set(sd and [sd.id] or []),
         }
 
+#from .location import Location
 
+PlantChange.from_location: Mapped["Location"] = relationship(
+        "bauble.plugins.garden.location.Location",
+        foreign_keys=[PlantChange.from_location_id],
+        #primaryjoin="PlantChange.from_location_id == foreign(Location.id)",
+        uselist=False,  # One-to-one relationship with Location
+        active_history=True,
+        overlaps="from_location",
+        back_populates="plants_from_location"
+    )
+PlantChange.to_location: Mapped["Location"] = relationship(
+        "bauble.plugins.garden.location.Location",
+        foreign_keys=[PlantChange.to_location_id],
+        uselist=False,  # One-to-one relationship with Location
+        active_history=True,
+        overlaps="to_location",
+        back_populates="plants_to_location"
+    )
 PlantNote: Any = db.make_note_class(
     "Plant", Plant, compute_serializable_fields, as_dict, retrieve
 )
-Plant.notes = relationship(
+Plant.notes: Mapped["PlantNote"] = relationship(
     "PlantNote",
     back_populates="plant",
     cascade="all, delete-orphan",
@@ -1715,3 +1729,14 @@ class PlantInfoBox(InfoBox):
 
         # Properties expander
         self.properties_expander.update(row)
+
+#from bauble.plugins.garden.accession import Accession
+#from sqlalchemy.orm import configure_mappers
+
+#configure_mappers()
+if typing.TYPE_CHECKING:
+    from bauble.plugins.garden.source import Accession, Location, Plant    
+else:
+    __import__('bauble.plugins.garden.accession.Accession')
+    __import__('bauble.plugins.garden.plant.Plant')
+    __import__('bauble.plugins.garden.location.Location') 

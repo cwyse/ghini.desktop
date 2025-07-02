@@ -19,13 +19,13 @@
 import logging
 import os.path
 from gettext import gettext as _
-
-import gi
+from typing import Any, ClassVar, List, Optional, Union
 
 import bauble
+import gi
 from bauble import db, editor, meta, paths, pluginmgr
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from typing import Union, Optional
 gi.require_version("Gtk", "3.0")
 from gi.repository import Pango
 from sqlalchemy import select

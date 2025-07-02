@@ -19,31 +19,42 @@
 #
 # location.py
 #
+from __future__ import annotations
+
+import datetime
 import logging
 import os
 import traceback
 from gettext import gettext as _
-
-import gi
+from typing import TYPE_CHECKING, Any, ClassVar, List, Optional, Union
 
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.utils as utils
+import gi
+from bauble import db
+from bauble.editor import GenericEditorPresenter
+from bauble.editor import GenericEditorPresenter as GenericEditorPresenter
+from bauble.editor import GenericEditorView
+from bauble.editor import GenericEditorView as GenericEditorView
+from bauble.editor import GenericModelViewPresenterEditor
 from bauble.editor import (
-    GenericEditorPresenter,
-    GenericEditorView,
-    GenericModelViewPresenterEditor,
-    NotesPresenter,
-    UnicodeOrNoneValidator,
+    GenericModelViewPresenterEditor as GenericModelViewPresenterEditor,
 )
+from bauble.editor import NotesPresenter
+from bauble.editor import NotesPresenter as NotesPresenter
+from bauble.editor import UnicodeOrNoneValidator
+from bauble.editor import UnicodeOrNoneValidator as UnicodeOrNoneValidator
+
+if TYPE_CHECKING:
+    from bauble.plugins.garden.plant import Plant
+    from bauble.plugins.garden.plant import PlantChange
+
 from bauble.shared import InfoExpander
 from bauble.view import Action, InfoBox, MapInfoExpander, PropertiesExpander
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from typing import Union, Optional
-from bauble import db
-from typing import Any
-from bauble.editor import GenericEditorPresenter as GenericEditorPresenter, GenericEditorView as GenericEditorView, GenericModelViewPresenterEditor as GenericModelViewPresenterEditor, NotesPresenter as NotesPresenter, UnicodeOrNoneValidator as UnicodeOrNoneValidator
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -138,25 +149,24 @@ class Location(db.Base, db.Serializable, db.WithNotes):
         *name*:
 
         *description*:
+    
 
     :Relation:
         *plants*:
 
     """
-    id: Any
-    plants: Any
     __tablename__: str = "location"
 
     # columns
     # refers to beds by unique codes
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    code: Any = Column(Unicode(12), unique=True, nullable=False)
-    name: Any = Column(Unicode(80))
-    description: Any = Column(UnicodeText)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(Unicode(12), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(Unicode(80))
+    description: Mapped[str] = mapped_column(UnicodeText)
     order_by: Any = [asc(name)]
 
     # relations
-    plants = relationship("Plant", back_populates="location", uselist=True)
+    plants: Mapped[List["Plant"]] = relationship("Plant", back_populates="location", uselist=True, overlaps="location")
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
@@ -215,9 +225,24 @@ class Location(db.Base, db.Serializable, db.WithNotes):
             },
         }
 
+from .plant import PlantChange
+
+Location.plants_from_location = relationship(
+    "bauble.plugins.garden.plant.PlantChange",
+    primaryjoin="Location.id == foreign(PlantChange.from_location_id)",
+    back_populates="from_location",
+    overlaps="plants_from_location"
+)
+
+Location.plants_to_location = relationship(
+    "bauble.plugins.garden.plant.PlantChange",
+    primaryjoin="Location.id == foreign(PlantChange.to_location_id)",
+    back_populates="to_location",
+    overlaps="plants_to_location"
+)
 
 LocationNote: Any = db.make_note_class("Location", Location, compute_serializable_fields)
-Location.notes = relationship(
+Location.notes: Mapped[List["LocationNote"]] = relationship(
     "LocationNote",
     back_populates="location",
     cascade="all, delete-orphan",
@@ -666,3 +691,9 @@ class LocationInfoBox(InfoBox):
         self.description.update(row)
         self.mapinfo.update(row)
         self.properties_expander.update(row)
+
+if typing.TYPE_CHECKING:
+    from bauble.plugins.garden.source import Location, Plant    
+else:
+    __import__('bauble.plugins.garden.plant.Plant')
+    __import__('bauble.plugins.garden.location.Location')    

@@ -20,13 +20,12 @@
 import logging
 from gettext import gettext as _
 from itertools import chain
-from typing import Optional, Union
+from typing import Any, ClassVar, List, Optional, Union
 
 import bauble.btypes as types
 import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
-from typing import Any
 from bauble import db
 from sqlalchemy import (
     Boolean,
@@ -45,7 +44,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 
 # from sqlalchemy.orm import foreign
-from sqlalchemy.orm import relationship, synonym
+from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 from sqlalchemy.orm.exc import MultipleResultsFound
 
 __all__ = ["Species"]
@@ -195,33 +194,29 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         The combination of epithet, author, hybrid, sp_qual,
         cv_group, trade_name, genus_id
     """
-    genus: Any
     label_distribution: Any
     synonyms: Any
-    _synonyms_synonym: Any
-    vernacular_names: Any
-    verifications: Any
     awards: Any
     __tablename__: str = "species"
-    id: Any = Column(Integer, primary_key=True, nullable=False)
-    epithet: Any = Column(Unicode(64), index=True)
-    genus_id: Any = Column(Integer, ForeignKey("genus.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
+    epithet: Mapped[str] = mapped_column(Unicode(64), index=True)
+    genus_id: Mapped[int] = mapped_column(ForeignKey("genus.id"), nullable=False)
     __table_args__: Any = (
         UniqueConstraint("genus_id", "epithet", name="_genus_epithet_uc"),
     )
     order_by: Any = [text("species.epithet"), text("species.author")]
 
     # Define relationship to Genus
-    genus = relationship(
+    genus: Mapped["Genus"] = relationship(
         "Genus",
         back_populates="species",
         lazy="joined",
         uselist=False,
         active_history=True,
     )
-    accessions: Any = relationship("Accession", back_populates="species", uselist=True)
+    accessions: Mapped[List["Accession"]] = relationship("Accession", back_populates="species", uselist=True)
 
-    rank: str = "species"
+    rank: ClassVar[str] = "species"
     link_keys: Any = ["accepted"]
 
     @hybrid_property
@@ -396,10 +391,10 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         return ""
 
     # columns
-    sp: Any = synonym("epithet")
+    sp: ClassVar[str] = synonym("epithet")
     sp2: Any = Column(Unicode(64), index=True)  # in case hybrid=True
-    author: Any = Column(Unicode(128))
-    hybrid: Any = Column(Boolean, default=False)
+    author: Mapped[Optional[str]] = mapped_column(Unicode(128))
+    hybrid: Mapped[bool] = mapped_column(Boolean, default=False)
     sp_qual: Any = Column(
         types.Enum(values=["agg.", "s. lat.", "s. str.", None], omit_aliases=False),
         default=None,
@@ -454,7 +449,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
     # relations
     synonyms = association_proxy("_synonyms", "synonym")
-    _synonyms: Any = relationship(
+    _synonyms: Mapped[List["SpeciesSynonym"]] = relationship(
         "SpeciesSynonym",
         primaryjoin="Species.id==SpeciesSynonym.species_id",
         cascade="all, delete-orphan",
@@ -465,7 +460,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     # this is a dummy relation, it is only here to make cascading work
     # correctly and to ensure that all synonyms related to this genus
     # get deleted if this genus gets deleted
-    _synonyms_synonym = relationship(
+    _synonyms_synonym: Mapped[List["SpeciesSynonym"]] = relationship(
         "SpeciesSynonym",
         primaryjoin="Species.id==SpeciesSynonym.synonym_id",
         cascade="all, delete-orphan",
@@ -473,7 +468,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     )
 
     # VernacularName.species gets defined here too.
-    vernacular_names = relationship(
+    vernacular_names: Mapped[List["VernacularName"]] = relationship(
         "VernacularName",
         cascade="all, delete-orphan",
         collection_class=VNList,
@@ -482,7 +477,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         single_parent=False,
     )
 
-    _default_vernacular_name: Any = relationship(
+    _default_vernacular_name: Mapped[Optional["DefaultVernacularName"]] = relationship(
         "DefaultVernacularName",
         uselist=False,
         single_parent=False,
@@ -490,7 +485,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         back_populates="species",
         active_history=True,
     )
-    distribution: Any = (
+    distribution: Mapped[Optional["SpeciesDistribution"]] = (
         relationship(
             "SpeciesDistribution",
             cascade="all, delete-orphan",
@@ -503,17 +498,17 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     )
 
     habit_id: Any = Column(Integer, ForeignKey("habit.id"), default=None)
-    habit: Any = relationship(
+    habit: Mapped[Optional["Habit"]] = relationship(
         "Habit", uselist=False, back_populates="species", active_history=True
     )
 
     flower_color_id: Any = Column(Integer, ForeignKey("color.id"), default=None)
-    flower_color: Any = relationship(
+    flower_color: Mapped[Optional["Color"]] = relationship(
         "Color", uselist=False, back_populates="species", active_history=True
     )
 
     # Relationships
-    verifications = relationship(
+    verifications: Mapped[List["Verification"]] = relationship(
         "Verification",
         primaryjoin="Verification.species_id == Species.id",
         back_populates="species",
@@ -521,7 +516,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         uselist=True,
         overlaps="prev_species",
     )
-    previous_verifications: Any = relationship(
+    previous_verifications: Mapped[List["Verification"]] = relationship(
         "Verification",
         primaryjoin="Verification.prev_species_id == Species.id",
         back_populates="prev_species",
@@ -888,8 +883,6 @@ class SpeciesSynonym(db.Base):
     :Table name: species_synonym
     """
     id: Any
-    species: Any
-    synonym: Any
     __tablename__: str = "species_synonym"
 
     # columns
@@ -898,7 +891,7 @@ class SpeciesSynonym(db.Base):
     synonym_id: Any = Column(Integer, ForeignKey("species.id"), nullable=False, unique=True)
 
     # Relationship to the main Species entity
-    species = relationship(
+    species: Mapped["Species"] = relationship(
         "Species",
         uselist=False,  # One-to-one relationship
         back_populates="_synonyms",
@@ -907,7 +900,7 @@ class SpeciesSynonym(db.Base):
     )
 
     # relations
-    synonym = relationship(
+    synonym: Mapped["Species"] = relationship(
         "Species",
         back_populates="_synonyms_synonym",
         uselist=False,  # One-to-one relationship
@@ -954,7 +947,7 @@ class VernacularName(db.Base, db.Serializable):
         UniqueConstraint("name", "language", "species_id", name="vn_index"),
         {},
     )
-    species: Any = relationship(
+    species: Mapped["Species"] = relationship(
         "Species",
         back_populates="vernacular_names",
         uselist=False,
@@ -1049,8 +1042,7 @@ class DefaultVernacularName(db.Base):
 
     :Constraints:
     """
-    id: Any
-    vernacular_name: Any
+
     __tablename__: str = "default_vernacular_name"
     __table_args__: Any = (
         UniqueConstraint("species_id", "vernacular_name_id", name="default_vn_index"),
@@ -1058,15 +1050,15 @@ class DefaultVernacularName(db.Base):
     )
 
     # columns
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     species_id: Any = Column(Integer, ForeignKey("species.id"), nullable=False)
     vernacular_name_id: Any = Column(
         Integer, ForeignKey("vernacular_name.id"), nullable=False
     )
 
     # relations
-    vernacular_name = relationship(VernacularName, uselist=False)
-    species: Any = relationship(
+    vernacular_name: Mapped["VernacularName"] = relationship(VernacularName, uselist=False)
+    species: Mapped["Species"] = relationship(
         "Species",
         uselist=False,
         back_populates="_default_vernacular_name",
@@ -1097,7 +1089,7 @@ class SpeciesDistribution(db.Base):
         Integer, ForeignKey("geographic_area.id"), nullable=False
     )
     species_id: Any = Column(Integer, ForeignKey("species.id"), nullable=False)
-    species: Any = relationship(
+    species: Mapped["Species"] = relationship(
         "Species",
         back_populates="distribution",
         single_parent=False,
@@ -1123,7 +1115,7 @@ class Habit(db.Base):
     id: Any = Column(Integer, primary_key=True, autoincrement=True)
     name: Any = Column(Unicode(64))
     code: Any = Column(Unicode(8), unique=True)
-    species: Any = relationship(
+    species: Mapped[List["Species"]] = relationship(
         "Species",
         back_populates="habit",
         uselist=True,
@@ -1142,7 +1134,7 @@ class Color(db.Base):
     id: Any = Column(Integer, primary_key=True)
     name: Any = Column(Unicode(32))
     code: Any = Column(Unicode(8), unique=True)
-    species: Any = relationship(
+    species: Mapped[List["Species"]] = relationship(
         "Species",
         back_populates="flower_color",
         uselist=True,

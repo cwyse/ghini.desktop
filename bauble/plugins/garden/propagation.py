@@ -25,8 +25,7 @@ import os
 import traceback
 import weakref
 from gettext import gettext as _
-
-import gi
+from typing import TYPE_CHECKING, Any, ClassVar, List, Optional, Union
 
 import bauble
 import bauble.btypes as types
@@ -35,8 +34,13 @@ import bauble.editor as editor
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
+import gi
+from bauble import db, editor
+from bauble.plugins.garden.constants import bottom_heat_unit_values
 from bauble.plugins.garden.constants import (
-    bottom_heat_unit_values,
+    bottom_heat_unit_values as bottom_heat_unit_values,
+)
+from bauble.plugins.garden.constants import (
     cutting_type_values,
     flower_buds_values,
     leaves_values,
@@ -45,22 +49,22 @@ from bauble.plugins.garden.constants import (
     tip_values,
     wound_values,
 )
+
+if TYPE_CHECKING:
+    from bauble.plugins.garden.source import Source
+    from bauble.plugins.garden.plant import Plant
+
 from bauble.utils import (
     add_to_relationship,
     count_relationship_items,
     get_object_session,
     handle_db_error,
-    parse_date,
-    remove_from_relationship,
-    sorted_relationship,
 )
+from bauble.utils import parse_date
+from bauble.utils import parse_date as parse_date
+from bauble.utils import remove_from_relationship, sorted_relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from typing import Union, Optional
-from bauble import db
-from bauble import editor
-from typing import Any
-from bauble.plugins.garden.constants import bottom_heat_unit_values as bottom_heat_unit_values, cutting_type_values as cutting_type_values, flower_buds_values as flower_buds_values, leaves_values as leaves_values, length_unit_values as length_unit_values, prop_type_values as prop_type_values, tip_values as tip_values, wound_values as wound_values
-from bauble.utils import add_to_relationship as add_to_relationship, count_relationship_items as count_relationship_items, get_object_session as get_object_session, handle_db_error as handle_db_error, parse_date as parse_date, remove_from_relationship as remove_from_relationship, sorted_relationship as sorted_relationship
 logger: Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
@@ -69,7 +73,7 @@ from gi.repository import Gtk
 from sqlalchemy import Column, ForeignKey, Integer, Table, UnicodeText, asc
 
 # from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.orm.session import object_session
 
 # from sqlalchemy.ext.declarative import declared_attr
@@ -109,11 +113,9 @@ class Propagation(db.Base, db.WithNotes):
     """
     Propagation
     """
-    source: Any
-    used_source: Any
     __tablename__: str = "propagation"
-    id: Any = Column(Integer, primary_key=True, autoincrement=True)
-    prop_type: Any = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    prop_type: Mapped[str] = mapped_column(
         types.Enum(
             values=list(prop_type_values.keys()),
             translations=prop_type_values,
@@ -121,9 +123,9 @@ class Propagation(db.Base, db.WithNotes):
         ),
         nullable=False,
     )
-    date: Any = Column(types.Date)
+    date: Mapped[Optional[datetime.date]] = mapped_column(types.Date)
 
-    plants: Any = relationship(
+    plants: Mapped[List["Plant"]] = relationship(
         "Plant",
         secondary="plant_prop",
         back_populates="propagations",
@@ -131,7 +133,7 @@ class Propagation(db.Base, db.WithNotes):
         single_parent=True,
     )
 
-    _cutting: Any = relationship(
+    _cutting: Mapped[Optional["PropCutting"]] = relationship(
         "PropCutting",
         primaryjoin="Propagation.id == PropCutting.propagation_id",
         cascade="all, delete-orphan",
@@ -140,7 +142,7 @@ class Propagation(db.Base, db.WithNotes):
         back_populates="propagation",
         active_history=True,
     )
-    _seed: Any = relationship(
+    _seed: Mapped[Optional["PropSeed"]] = relationship(
         "PropSeed",
         primaryjoin="Propagation.id == PropSeed.propagation_id",
         cascade="all, delete-orphan",
@@ -151,7 +153,7 @@ class Propagation(db.Base, db.WithNotes):
     )
 
     # One-to-one relationship with Source for propagation
-    source = relationship(
+    source: Mapped[Optional["Source"]] = relationship(
         "Source",
         uselist=False,
         back_populates="propagation",
@@ -161,7 +163,7 @@ class Propagation(db.Base, db.WithNotes):
     )
 
     # One-to-many relationship with Source for plant_propagation
-    used_source = relationship(
+    used_source: Mapped[List["Source"]] = relationship(
         "Source",
         back_populates="plant_propagation",
         foreign_keys="Source.plant_propagation_id",
@@ -346,17 +348,16 @@ class PropCuttingRooted(db.Base):
     """
     Rooting dates for cutting
     """
-    cutting: Any
     __tablename__: str = "prop_cutting_rooted"
 
-    id: Any = Column(Integer, primary_key=True)
-    date: Any = Column(types.Date)
-    quantity: Any = Column(Integer, autoincrement=False, default=0, nullable=False)
-    cutting_id: Any = Column(Integer, ForeignKey("prop_cutting.id"), nullable=False)
-    order_by: Any = [asc(date)]
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    date: Mapped[types.Date] = mapped_column(types.Date)
+    quantit: Mapped[int] = mapped_column(Integer, autoincrement=False, default=0, nullable=False)
+    cutting_id: Mapped[int] = mapped_column(Integer, ForeignKey("prop_cutting.id"), nullable=False)
+    order_by: ClassVar = [asc(date)]
 
     # Add the missing relationship
-    cutting = relationship("PropCutting", back_populates="rooted")
+    cutting: Mapped["PropCutting"] = relationship("PropCutting", back_populates="rooted")
 
 
 class PropCutting(db.Base):
@@ -368,7 +369,7 @@ class PropCutting(db.Base):
     bottom_heat_temp: Any
     bottom_heat_unit: Any
     __tablename__: str = "prop_cutting"
-    id: Any = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     cutting_type: Any = Column(
         types.Enum(
             values=list(cutting_type_values.keys()),
@@ -389,8 +390,8 @@ class PropCutting(db.Base):
             omit_aliases=False,
         )
     )
-    leaves_reduced_pct: Any = Column(Integer, autoincrement=False)
-    length: Any = Column(Integer, autoincrement=False)
+    leaves_reduced_pct: Mapped[int] = mapped_column(Integer, autoincrement=False)
+    length: Mapped[int] = mapped_column(Integer, autoincrement=False)
     length_unit: Any = Column(
         types.Enum(
             values=list(length_unit_values.keys()),
@@ -417,16 +418,16 @@ class PropCutting(db.Base):
         )
     )
 
-    fungicide: Any = Column(UnicodeText)  # fungal soak
-    hormone: Any = Column(UnicodeText)  # powder/liquid/None....solution
+    fungicide: Mapped[str] = mapped_column(UnicodeText)  # fungal soak
+    hormone: Mapped[str] = mapped_column(UnicodeText)  # powder/liquid/None....solution
 
-    media: Any = Column(UnicodeText)
-    container: Any = Column(UnicodeText)
-    location: Any = Column(UnicodeText)
-    cover: Any = Column(UnicodeText)  # vispore, poly, plastic dome, poly bag
+    media: Mapped[str] = mapped_column(UnicodeText)
+    container: Mapped[str] = mapped_column(UnicodeText)
+    location: Mapped[str] = mapped_column(UnicodeText)
+    cover: Mapped[str] = mapped_column(UnicodeText)  # vispore, poly, plastic dome, poly bag
 
     # temperature of bottom heat
-    bottom_heat_temp = Column(Integer, autoincrement=False)
+    bottom_heat_temp: Mapped[int] = mapped_column(Integer, autoincrement=False)
 
     # TODO: make the bottom heat unit required if bottom_heat_temp is
     # not null
@@ -440,18 +441,18 @@ class PropCutting(db.Base):
         ),
         nullable=True,
     )
-    rooted_pct: Any = Column(Integer, autoincrement=False)
+    rooted_pct: Mapped[int] = mapped_column(Integer, autoincrement=False)
 
-    propagation_id: Any = Column(Integer, ForeignKey("propagation.id"), nullable=False)
+    propagation_id: Mapped[int] = mapped_column(Integer, ForeignKey("propagation.id"), nullable=False)
 
-    rooted: Any = relationship(
+    rooted: Mapped[list["PropCuttingRooted"]] = relationship(
         "PropCuttingRooted",
         cascade="all, delete-orphan",
         primaryjoin="PropCutting.id == PropCuttingRooted.cutting_id",
         back_populates="cutting",
     )
 
-    propagation: Any = relationship(
+    propagation: Mapped["Propagation"] = relationship(
         "Propagation", back_populates="_cutting", uselist=False, active_history=True
     )
 
@@ -462,34 +463,34 @@ class PropSeed(db.Base):
     location: Any
     moved_from: Any
     __tablename__: str = "prop_seed"
-    id: Any = Column(Integer, primary_key=True)
-    pretreatment: Any = Column(UnicodeText)
-    nseeds: Any = Column(Integer, nullable=False, autoincrement=False)
-    date_sown: Any = Column(types.Date, nullable=False)
-    container: Any = Column(UnicodeText)  # 4" pot plug tray, other
-    media: Any = Column(UnicodeText)  # seedling media, sphagnum, other
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pretreatment: Mapped[str] = mapped_column(UnicodeText)
+    nseeds: Mapped[int] = mapped_column(Integer, nullable=False, autoincrement=False)
+    date_sown: Mapped[types.Date] = mapped_column(types.Date, nullable=False)
+    container: Mapped[str] = mapped_column(UnicodeText)  # 4" pot plug tray, other
+    media: Mapped[str] = mapped_column(UnicodeText)  # seedling media, sphagnum, other
 
     # covered with #2 granite grit: no, yes, lightly heavily
-    covered = Column(UnicodeText)
+    covered: Mapped[str] = mapped_column(UnicodeText)
 
     # not same as location table, glasshouse(bottom heat, no bottom
     # heat), polyhouse, polyshade house, fridge in polybag
-    location = Column(UnicodeText)
+    location: Mapped[str] = mapped_column(UnicodeText)
 
     # TODO: do we need multiple moved to->moved from and date fields
-    moved_from = Column(UnicodeText)
-    moved_to: Any = Column(UnicodeText)
-    moved_date: Any = Column(types.Date)
+    moved_from: Mapped[str] = mapped_column(UnicodeText)
+    moved_to: Mapped[str] = mapped_column(UnicodeText)
+    moved_date: Mapped[types.Date] = mapped_column(types.Date)
 
-    germ_date: Any = Column(types.Date)
+    germ_date: Mapped[types.Date] = mapped_column(types.Date)
 
-    nseedlings: Any = Column(Integer, autoincrement=False)  # number of seedling
-    germ_pct: Any = Column(Integer, autoincrement=False)  # % of germination
-    date_planted: Any = Column(types.Date)
+    nseedlings: Mapped[int] = mapped_column(Integer, autoincrement=False)  # number of seedling
+    germ_pct: Mapped[int] = mapped_column(Integer, autoincrement=False)  # % of germination
+    date_planted: Mapped[types.Date] = mapped_column(types.Date)
 
-    propagation_id: Any = Column(Integer, ForeignKey("propagation.id"), nullable=False)
+    propagation_id: Mapped[int] = mapped_column(Integer, ForeignKey("propagation.id"), nullable=False)
 
-    propagation: Any = relationship(
+    propagation: Mapped["Propagation"] = relationship(
         "Propagation", back_populates="_seed", uselist=False, active_history=True
     )
 

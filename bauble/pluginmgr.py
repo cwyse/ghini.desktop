@@ -38,19 +38,17 @@ import re
 import sys
 import traceback
 from gettext import gettext as _
-
-import gi
-import sqlalchemy.orm.exc as orm_exc
+from typing import Any, Optional, Union
 
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.utils as utils
+import gi
+import sqlalchemy.orm.exc as orm_exc
+from bauble import db
 from bauble.error import BaubleError
 
-from typing import Union, Optional
-from bauble import db
-from typing import Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 from sqlalchemy import Column, Integer, Unicode, select
@@ -243,6 +241,11 @@ def init(force: bool = False) -> None:
             )
         )
 
+    # Ensure mappers are configured
+    from sqlalchemy.orm import configure_mappers
+
+    configure_mappers()
+    
     # call init() for each ofthe plugins
     for plugin in ordered:
         logger.debug(f"about to invoke init on: {plugin}")
@@ -291,7 +294,6 @@ def init(force: bool = False) -> None:
     if type(bauble.gui).__name__ == "GUI":
         bauble.gui.build_tools_menu()
 
-
 def install(plugins_to_install, import_defaults: bool = True, force: bool = False) -> None:
     """
     :param plugins_to_install: A list of plugins to install. If the
@@ -306,6 +308,12 @@ def install(plugins_to_install, import_defaults: bool = True, force: bool = Fals
     :param force:  Force, don't ask questions.
     :type force: book
     """
+    # pluginmgr.py - top of `install()` or right before the install loop
+    import bauble.plugins.garden.accession
+    import bauble.plugins.garden.location
+    import bauble.plugins.garden.plant
+    from sqlalchemy.orm import configure_mappers
+    configure_mappers()
 
     logger.debug(f"pluginmgr.install({str(plugins_to_install)})")
     if plugins_to_install == "all":
@@ -658,7 +666,9 @@ def _find_plugins(path):
             mod = sys.modules[name]
         else:
             try:
-                mod = importlib.import_module(name, bauble.plugins)
+                print("DEBUG: bauble =", bauble)
+                print("DEBUG: type(bauble) =", type(bauble))
+                mod = importlib.import_module(name, package='bauble.plugins')
             except Exception as e:
                 msg = _("Could not import the %(module)s module.\n\n" "%(error)s") % {
                     "module": name,
