@@ -10,5 +10,5 @@ if [ "$DEBUG" = "true" ]; then
     exec python3 -m debugpy --wait-for-client --log-to /app/debugpy.log --listen 0.0.0.0:5678 /app/scripts/ghini
 else
     echo "🚀 Starting normally..."
-    exec /app/scripts/ghini
+    exec python3 -m modulefinder /app/scripts/ghini
 fi

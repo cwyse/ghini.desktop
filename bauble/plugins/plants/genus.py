@@ -26,7 +26,7 @@ import traceback
 import weakref
 import xml
 from gettext import gettext as _
-from typing import Optional, Union
+from typing import Any, ClassVar, List, Optional, Union
 
 import bauble
 import bauble.btypes as types
@@ -38,7 +38,6 @@ import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.view as view
 import gi
-from typing import Any
 from bauble import db, editor
 from bauble.plugins.plants.family import Family, FamilySynonym
 from bauble.plugins.plants.species_model import Species
@@ -46,6 +45,7 @@ from bauble.prefs import prefs
 from bauble.shared import InfoExpander
 from bauble.utils import safe_set_props, safe_set_text
 from bauble.view import Action, InfoBox, PropertiesExpander, select_in_search_results
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
@@ -246,9 +246,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         The combination of genus, author, qualifier
         and family_id must be unique.
     """
-    species_editor: Any
-    synonyms: Any
-    _synonyms_synonym: Any
+    species_editor: ClassVar[Any]
     __tablename__: str = "genus"
     id: Any = Column(Integer, primary_key=True)
     epithet: Any = Column(String(64), nullable=False, index=True)
@@ -260,7 +258,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     rank: str = "genus"
     link_keys: Any = ["accepted"]
 
-    family: Any = relationship(
+    family: Mapped["Family"] = relationship(
         "Family",
         back_populates="genera",
         lazy="joined",
@@ -345,7 +343,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     # relations
     # `species` relation is defined outside of `Genus` class definition
     synonyms = association_proxy("_synonyms", "synonym")
-    _synonyms: Any = relationship(
+    _synonyms: Mapped[List["GenusSynonym"]] = relationship(
         "GenusSynonym",
         primaryjoin="Genus.id==GenusSynonym.genus_id",
         uselist=True,
@@ -354,7 +352,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
     )
 
     # New relationship for synonyms via synonym_id
-    _synonyms_synonym = relationship(
+    _synonyms_synonym: Mapped[List["GenusSynonym"]] = relationship(
         "GenusSynonym",
         primaryjoin="Genus.id==GenusSynonym.synonym_id",
         cascade="all, delete-orphan",
@@ -553,24 +551,20 @@ class GenusSynonym(db.Base):
     """
     :Table name: genus_synonym
     """
-    id: Any
-    synonym_id: Any
-    genus: Any
-    synonym: Any
     __tablename__: str = "genus_synonym"
 
     # columns
-    id = Column(Integer, primary_key=True)
-    genus_id: Any = Column(Integer, ForeignKey("genus.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    genus_id: Mapped[int] = mapped_column(ForeignKey("genus.id"), nullable=False)
 
     # a genus can only be a synonum of one other genus
-    synonym_id = Column(Integer, ForeignKey("genus.id"), nullable=False, unique=True)
+    synonym_id: Mapped[int] = mapped_column(ForeignKey("genus.id"), nullable=False, unique=True)
 
     # Primary relationship to Genus via genus_id
-    genus = relationship("Genus", back_populates="_synonyms", foreign_keys=[genus_id])
+    genus: Mapped["Genus"] = relationship("Genus", back_populates="_synonyms", foreign_keys=[genus_id])
 
     # Secondary relationship to Genus via synonym_id (if applicable)
-    synonym = relationship(
+    synonym: Mapped["Genus"] = relationship(
         "Genus",
         uselist=False,
         back_populates="_synonyms_synonym",

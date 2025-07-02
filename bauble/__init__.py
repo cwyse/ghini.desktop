@@ -26,6 +26,7 @@ import os
 import sys
 import traceback
 from gettext import gettext as _
+from typing import Any
 
 import bauble.error as err
 import bauble.i18n
@@ -34,16 +35,16 @@ import bauble.pluginmgr as pluginmgr
 
 # import debugpy
 import gi
-from typing import Any
-from gi.repository import Gdk as Gdk
 from gi.repository import GObject as GObject
 
 zipfile: Any
 default_icon: Any
 gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
 gi.require_version("GLib", "2.0")
 import warnings
 
+from gi.repository import Gdk as Gdk
 from gi.repository import Gtk
 from sqlalchemy.exc import SAWarning
 

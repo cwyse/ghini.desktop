@@ -25,8 +25,7 @@ import os
 import traceback
 import weakref
 from gettext import gettext as _
-
-import gi
+from typing import Any, List, Optional, Union
 
 import bauble
 import bauble.btypes as types
@@ -35,15 +34,14 @@ import bauble.editor as editor
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
+import gi
+from bauble import db, editor
 from bauble.prefs import prefs
 from bauble.shared import InfoExpander
 from bauble.utils import handle_db_error, safe_set_props
 from bauble.view import InfoBox, PropertiesExpander, select_in_search_results
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from typing import Union, Optional
-from bauble import db
-from bauble import editor
-from typing import Any
 gi.require_version("Gtk", "3.0")
 import importlib
 
@@ -190,30 +188,27 @@ class FamilySynonym(db.Base):
 
         *family*:
     """
-    id: Any
-    synonym: Any
-    family: Any
     __tablename__: str = "family_synonym"
 
     # columns
-    id = Column(Integer, primary_key=True, nullable=False)
-    family_id: Any = Column(Integer, ForeignKey("family.id"), nullable=False)
-    synonym_id: Any = Column(Integer, ForeignKey("family.id"), nullable=False, unique=True)
+    id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
+    family_id: Mapped[int] = mapped_column(ForeignKey("family.id"), nullable=False)
+    synonym_id: Mapped[int] = mapped_column(ForeignKey("family.id"), nullable=False, unique=True)
 
     # Relationships
-    synonym = relationship(
+    synonym: Mapped["Family"] = relationship(
         "Family",
         primaryjoin="FamilySynonym.synonym_id==Family.id",
     )
     #                       back_populates='synonyms_relationship')  # Renamed for clarity
 
-    family = relationship(
+    family: Mapped["Family"] = relationship(
         "Family",
         back_populates="_synonyms",
         primaryjoin="FamilySynonym.family_id==Family.id",
     )
 
-    def __init__(self, synonym: Optional[Any] = None, **kwargs) -> None:
+    def __init__(self, synonym: Optional["Family"] = None, **kwargs) -> None:
         # it is necessary that the first argument here be synonym for
         # the Family.synonyms association_proxy to work
         self.synonym = synonym
@@ -276,7 +271,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         return cites_notes[0]
 
     # columns
-    epithet: Any = Column(String(45), nullable=False, index=True)
+    epithet: Mapped[str] = mapped_column(String(45), nullable=False, index=True)
     # family = synonym("epithet")
 
     # Use hybrid property for the 'family' synonym
@@ -293,11 +288,11 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         return cls.epithet
 
     # use '' instead of None so that the constraints will work propertly
-    author: Any = Column(Unicode(255), default="")
+    author: Mapped[str] = mapped_column(Unicode(255), default="")
 
     # we use the blank string here instead of None so that the
     # contraints will work properly,
-    qualifier = Column(
+    qualifier: Mapped[str] = mapped_column(
         types.Enum(values=["s. lat.", "s. str.", ""], omit_aliases=False), default=""
     )
     order_by: Any = [asc(epithet), asc(qualifier)]
@@ -305,7 +300,8 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     # relations
     # `genera` relation is defined outside of `Family` class definition
     synonyms = association_proxy("_synonyms", "synonym")
-    _synonyms: Any = relationship(
+
+    _synonyms: Mapped[List["FamilySynonym"]] = relationship(
         "FamilySynonym",
         primaryjoin="Family.id==FamilySynonym.family_id",
         cascade="all, delete-orphan",

@@ -20,14 +20,18 @@ import os.path
 import re
 import threading
 from gettext import gettext as _
+from typing import Any, Optional, Union
 
 import gi
-from bauble import db, pluginmgr, utils
+from bauble import db
+from bauble import db as db
+from bauble import paths as paths
+from bauble import pluginmgr
+from bauble import pluginmgr as pluginmgr
+from bauble import utils
+from bauble import utils as utils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 
-from typing import Union, Optional
-from typing import Any
-from bauble import db as db, paths as paths, pluginmgr as pluginmgr, utils as utils
 gi.require_version("Gtk", "3.0")
 from gi.repository import GdkPixbuf, GLib, Gtk
 from sqlalchemy import select
@@ -259,7 +263,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
             d = decode_parts(name, self.model.accno_format)
             if d is None:
                 continue
-            from bauble.plugins.garden import Plant
+            from bauble.plugins.garden.plant import Plant
 
             complete_plant_code = d["accession"] + Plant.get_delimiter() + d["plant"]
             row = [

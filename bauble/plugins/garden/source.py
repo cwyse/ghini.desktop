@@ -28,21 +28,25 @@ import traceback
 import weakref
 from gettext import gettext as _
 from random import random
+from typing import TYPE_CHECKING, Any, Optional, Union
 
-import gi
+from bauble.plugins.garden.propagation import Propagation
+from sqlalchemy.orm import Mapped, relationship
+
+if TYPE_CHECKING:
+    from bauble.plugins.garden.accession import Accession, Propagation
 
 import bauble.btypes as types
 import bauble.db as db
 import bauble.editor as editor
 import bauble.paths as paths
 import bauble.utils as utils
+import gi
+from bauble import db, editor
 from bauble.plugins.plants.geography import GeographicArea, GeographicAreaMenu
 from bauble.utils import safe_set_text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from typing import Union, Optional
-from bauble import db
-from bauble import editor
-from typing import Any
 view: Any
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
@@ -62,7 +66,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 # from bauble.plugins.garden.propagation import Propagation
-# from sqlalchemy.orm import configure_mappers
 # from sqlalchemy.ext.declarative import declared_attr
 
 view = importlib.import_module("bauble.view")
@@ -114,28 +117,28 @@ collection_context_menu: Any = [
 ]
 
 
-class SourceBase:
-    def __init_subclass__(cls, **kwargs) -> None:
-        super().__init_subclass__(**kwargs)
+# class SourceBase:
+#     def __init_subclass__(cls, **kwargs) -> None:
+#         super().__init_subclass__(**kwargs)
 
-        # This propagation relationship links a Source to a specific
-        # Propagation that is not tied to a Plant. It likely represents
-        # a propagation trial or source-related propagation activity
-        # independent of the plant hierarchy.
+#         # This propagation relationship links a Source to a specific
+#         # Propagation that is not tied to a Plant. It likely represents
+#         # a propagation trial or source-related propagation activity
+#         # independent of the plant hierarchy.
 
-        # Add the propagation_id column dynamically to the subclass
-        cls.propagation_id = Column(Integer, ForeignKey("propagation.id"))
+#         # Add the propagation_id column dynamically to the subclass
+#         cls.propagation_id: Mapped[int] = mapped_column(ForeignKey("propagation.id"))
 
-        # Add the propagation relationship dynamically to the subclass
-        cls.propagation = relationship(
-            "Propagation",
-            uselist=False,
-            back_populates="source",
-            cascade="all, delete-orphan",
-            single_parent=True,
-            foreign_keys=[cls.propagation_id],
-            active_history=True,
-        )
+#         # Add the propagation relationship dynamically to the subclass
+#         cls.propagation: Mapped["Propagation"] = relationship(
+#             lambda: Propagation,
+#             uselist=False,
+#             back_populates="source",
+#             cascade="all, delete-orphan",
+#             single_parent=True,
+#             foreign_keys=[cls.propagation_id],
+#             active_history=True,
+#         )
 
 
 class Source(db.Base):
@@ -149,18 +152,17 @@ class Source(db.Base):
 
     """
     sources_code: Any
-    propagation_id: Any
     __tablename__: str = "source"
     # ITF2 - E7 - Donor's Accession Identifier - donacc
-    sources_code = Column(Unicode(32))
+    sources_code: Mapped[str] = mapped_column(Unicode(32))
 
-    id: Any = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    accession_id: Any = Column(Integer, ForeignKey("accession.id"), unique=True)
-    accession: Any = relationship("Accession", back_populates="source")
+    accession_id: Mapped[int] = mapped_column(ForeignKey("accession.id"), unique=True)
+    accession: Mapped["Accession"] = relationship("Accession", back_populates="source")
 
-    source_detail_id: Any = Column(Integer, ForeignKey("contact.id"))
-    source_detail: Any = relationship(
+    source_detail_id: Mapped[int] = mapped_column(ForeignKey("contact.id"))
+    source_detail: Mapped["Contact"] = relationship(
         "Contact",
         uselist=False,
         back_populates="sources",
@@ -169,7 +171,7 @@ class Source(db.Base):
         active_history=True,
     )
 
-    collection: Any = relationship(
+    collection: Mapped["Collection"] = relationship(
         "Collection",
         uselist=False,
         back_populates="source",
@@ -181,8 +183,8 @@ class Source(db.Base):
     # Propagation that is not tied to a Plant. It likely represents
     # a propagation trial or source-related propagation activity
     # independent of the plant hierarchy.
-    propagation_id = Column(Integer, ForeignKey("propagation.id"))
-    propagation: Any = relationship(
+    propagation_id: Mapped[int] = mapped_column(ForeignKey("propagation.id"))
+    propagation: Mapped["Propagation"] = relationship(
         "Propagation",
         uselist=False,
         back_populates="source",
@@ -192,22 +194,13 @@ class Source(db.Base):
         active_history=True,
     )
 
-    plant_propagation_id: Any = Column(Integer, ForeignKey("propagation.id"))
-    plant_propagation: Any = relationship(
-        "Propagation",
-        primaryjoin="Source.plant_propagation_id == Propagation.id",
-        back_populates="used_source",
-        uselist=True,
-        foreign_keys=[plant_propagation_id],
-    )
-
     # an Accession of known Source (what we are describing here) may be in
     # relation to a successful Plant Propagation trial. In this case, the
     # Propagation points back to all Accessions that resulted from it, via
     # `used_source[i].accession`. Arguably not practical.
-    plant_propagation_id = Column(Integer, ForeignKey("propagation.id"))
+    plant_propagation_id: Mapped[int] = mapped_column(ForeignKey("propagation.id"))
 
-    plant_propagation = relationship(
+    plant_propagation: Mapped["Propagation"] = relationship(
         "Propagation",
         primaryjoin="Source.plant_propagation_id==Propagation.id",
         back_populates="used_source",
@@ -296,49 +289,38 @@ class Collection(db.Base):
 
     :Constraints:
     """
-    id: Any
-    collector: Any
-    collectors_code: Any
-    date: Any
-    latitude: Any
-    longitude: Any
-    geo_accy: Any
-    elevation: Any
-    elevation_accy: Any
-    habitat: Any
-    notes: Any
     __tablename__: str = "collection"
 
     # columns
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     # ITF2 - F24 - Primary Collector's Name
-    collector = Column(Unicode(64))
+    collector: Mapped[str] = mapped_column(Unicode(64))
     # ITF2 - F.25 - Collector's Identifier
-    collectors_code = Column(Unicode(50))
+    collectors_code: Mapped[str] = mapped_column(Unicode(50))
     # ITF2 - F.27 - Collection Date
-    date = Column(types.Date)
-    locale: Any = Column(UnicodeText, nullable=False)
+    date: Mapped[types.Date] = mapped_column(types.Date)
+    locale: Mapped[str] = mapped_column(UnicodeText, nullable=False)
     # ITF2 - F1, F2, F3, F4 - Latitude, Degrees, Minutes, Seconds, Direction
-    latitude = Column(Unicode(15))
+    latitude: Mapped[str] = mapped_column(Unicode(15))
     # ITF2 - F5, F6, F7, F8 - Longitude, Degrees, Minutes, Seconds, Direction
-    longitude = Column(Unicode(15))
-    gps_datum: Any = Column(Unicode(32))
+    longitude: Mapped[str] = mapped_column(Unicode(15))
+    gps_datum: Mapped[str] = mapped_column(Unicode(32))
     # ITF2 - F9 - Accuracy of Geographical Referencing Data
-    geo_accy = Column(Float)
+    geo_accy: Mapped[float] = mapped_column(Float)
     # ITF2 - F17 - Altitude
-    elevation = Column(Float)
+    elevation: Mapped[float] = mapped_column(Float)
     # ITF2 - F18 - Accuracy of Altitude
-    elevation_accy = Column(Float)
+    elevation_accy: Mapped[float] = mapped_column(Float)
     # ITF2 - F22 - Habitat
-    habitat = Column(UnicodeText)
+    habitat: Mapped[str] = mapped_column(UnicodeText)
     # ITF2 - F18 - Collection Notes
-    notes = Column(UnicodeText)
+    notes: Mapped[str] = mapped_column(UnicodeText)
 
-    geographic_area_id: Any = Column(Integer, ForeignKey("geographic_area.id"))
-    region: Any = relationship(GeographicArea, uselist=False, active_history=True)
+    geographic_area_id: Mapped[int] = mapped_column(ForeignKey("geographic_area.id"))
+    region: Mapped["GeographicArea"] = relationship("GeographicArea", uselist=False, active_history=True)
 
-    source_id: Any = Column(Integer, ForeignKey("source.id"), unique=True)
-    source: Any = relationship("Source", back_populates="collection")
+    source_id: Mapped[int] = mapped_column(ForeignKey("source.id"), unique=True)
+    source: Mapped["Source"] = relationship("Source", back_populates="collection")
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
@@ -517,10 +499,7 @@ class CollectionPresenter(editor.ChildPresenter):
         return self._dirty
 
     def refresh_view(self) -> None:
-        from bauble.plugins.garden.accession import (
-            latitude_to_dms,
-            longitude_to_dms,
-        )
+        from bauble.plugins.garden.accession import latitude_to_dms, longitude_to_dms
 
         for widget, field in list(self.widget_to_field_map.items()):
             value = getattr(self.model, field)
@@ -971,13 +950,12 @@ def compute_serializable_fields(cls, session, keys):
 
 
 class Contact(db.Base, db.Serializable, db.WithNotes):
-    id: Any
     description: Any
     source_type: Any
     __tablename__: str = "contact"
 
     # ITF2 - E6 - Donor
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Any = Column(Unicode(75), unique=True)
     # extra description, not included in E6
     description = Column(UnicodeText)
@@ -992,7 +970,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
     )
     order_by: Any = [asc(name)]
 
-    sources: Any = relationship(
+    sources: Mapped["Source"] = relationship(
         "Source",
         uselist=False,
         back_populates="source_detail",
@@ -1022,7 +1000,7 @@ class Contact(db.Base, db.Serializable, db.WithNotes):
 
 
 ContactNote: Any = db.make_note_class("Contact", Contact, compute_serializable_fields)
-Contact.notes = relationship(
+Contact.notes: Mapped["ContactNote"] = relationship(
     "ContactNote",
     back_populates="contact",
     cascade="all, delete-orphan",

@@ -24,14 +24,13 @@ import datetime
 import logging
 import os
 import traceback
+import typing
 import weakref
 from decimal import ROUND_DOWN, Decimal
 from functools import reduce
 from gettext import gettext as _
 from random import random
-
-import gi
-import lxml.etree as etree
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
 
 import bauble
 import bauble.btypes as types
@@ -41,16 +40,14 @@ import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 import bauble.view as view
-from bauble import meta
+import gi
+import lxml.etree as etree
+from bauble import db, editor, meta
 from bauble.error import check
-from bauble.plugins.garden.source import (
-    Collection,
-    CollectionPresenter,
-    Contact,
-    PropagationChooserPresenter,
-    Source,
-    create_contact,
-)
+
+if TYPE_CHECKING:
+    from bauble.plugins.garden.plant import Plant
+
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species_model import Species, SpeciesSynonym
 from bauble.shared import InfoExpander
@@ -62,17 +59,13 @@ from bauble.view import (
     PropertiesExpander,
     select_in_search_results,
 )
+from sqlalchemy.orm import Mapped, mapped_column
 
-from typing import Union, Optional
-from bauble import db
-from bauble import editor
-from typing import Any
-from bauble.plugins.garden.source import Collection as Collection, CollectionPresenter as CollectionPresenter, Contact as Contact, PropagationChooserPresenter as PropagationChooserPresenter, Source as Source, create_contact as create_contact
-from bauble.view import Action as Action, InfoBox as InfoBox, MapInfoExpander as MapInfoExpander, PropertiesExpander as PropertiesExpander, select_in_search_results as select_in_search_results
-wild_prov_status_values: Any
-cultivated_prov_status_values: Any
-purchase_prov_status_values: Any
-recvd_type_values: Any
+wild_prov_status_values: ClassVar[list[tuple[str, str]]]
+cultivated_prov_status_values: ClassVar[list[tuple[str, str]]]
+purchase_prov_status_values: ClassVar[list[tuple[str, str]]]
+recvd_type_values: ClassVar[dict[Optional[str], str]]
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango
 
@@ -215,7 +208,9 @@ def edit_callback(accessions):
 
 
 def add_plants_callback(accessions):
-    from bauble.plugins.garden.plant import Plant, PlantEditor
+    
+    if TYPE_CHECKING:
+        from bauble.plugins.garden.plant import Plant, PlantEditor
 
     session = db.Session()
     acc = session.merge(accessions[0])
@@ -278,7 +273,7 @@ remove_action: Any = Action(
 acc_context_menu: Any = [edit_action, add_plant_action, remove_action]
 
 
-ver_level_descriptions: Any = {
+ver_level_descriptions: ClassVar[dict[str, str]] = {
     0: _("The name of the record has not been checked by any authority."),
     1: _("The name of the record determined by comparison with other " "named plants."),
     2: _(
@@ -344,27 +339,27 @@ class Verification(db.Base):
     __tablename__: str = "verification"
 
     # columns
-    id = Column(Integer, primary_key=True)
-    verifier: Any = Column(Unicode(64), nullable=False)
-    date: Any = Column(types.Date, nullable=False)
-    reference: Any = Column(UnicodeText)
-    accession_id: Any = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession: Any = relationship(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    verifier: Mapped[str] = mapped_column(Unicode(64), nullable=False)
+    date: Mapped[types.Date] = mapped_column(types.Date, nullable=False)
+    reference: Mapped[str] = mapped_column(UnicodeText)
+    accession_id: Mapped[int] = mapped_column(Integer, ForeignKey("accession.id"), nullable=False)
+    accession: Mapped["Accession"] = relationship(
         "Accession", back_populates="verifications", uselist=False, active_history=True
     )
     order_by: Any = [asc(date)]
 
     # the level of assurance of this verification
-    level = Column(Integer, nullable=False, autoincrement=False)
+    level: Mapped[int] = mapped_column(Integer, nullable=False, autoincrement=False)
 
     # what it was verified as
-    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
+    species_id: Mapped[int] = mapped_column(Integer, ForeignKey("species.id"), nullable=False)
 
     # what it was verified from
-    prev_species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
+    prev_species_id: Mapped[int] = mapped_column(Integer, ForeignKey("species.id"), nullable=False)
 
     # Relationships
-    species = relationship(
+    species: Mapped["Species"] = relationship(
         "Species",
         primaryjoin="Verification.species_id == Species.id",
         foreign_keys=[species_id],
@@ -372,7 +367,7 @@ class Verification(db.Base):
         overlaps="previous_verifications",
         active_history=True,
     )
-    prev_species: Any = relationship(
+    prev_species: Mapped["Species"] = relationship(
         "Species",
         primaryjoin="Verification.prev_species_id == Species.id",
         foreign_keys=[prev_species_id],
@@ -380,7 +375,7 @@ class Verification(db.Base):
         overlaps="verifications",
         active_history=True,
     )
-    notes: Any = Column(UnicodeText)
+    notes: Mapped[str] = mapped_column(UnicodeText)
 
 
 # TODO: I have no internet, so I write this here. please remove this note
@@ -428,12 +423,12 @@ class Voucher(db.Base):
     """
 
     __tablename__: str = "voucher"
-    id: Any = Column(Integer, primary_key=True, nullable=False)
-    herbarium: Any = Column(Unicode(5), nullable=False)
-    code: Any = Column(Unicode(32), nullable=False)
-    parent_material: Any = Column(Boolean, default=False)
-    accession_id: Any = Column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession: Any = relationship(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
+    herbarium: Mapped[str] = mapped_column(Unicode(5), nullable=False)
+    code: Mapped[str] = mapped_column(Unicode(32), nullable=False)
+    parent_material: Mapped[bool] = mapped_column(Boolean, default=False)
+    accession_id: Mapped[int] = mapped_column(Integer, ForeignKey("accession.id"), nullable=False)
+    accession: Mapped["Accession"] = relationship(
         "Accession", back_populates="vouchers", uselist=False, active_history=True
     )
 
@@ -460,7 +455,7 @@ prov_type_values: Any = [
 # to and importing will collapse from the standard value. Giving all four
 # options after the user has already selected W or Z works only confusing to
 # user not familiar with ITF2 standard.
-wild_prov_status_values = [
+wild_prov_status_values: ClassVar[list[tuple[str, str]]] = [
     # Endemic found within indigenous range
     ("WildNative", _("Wild native")),
     # found outside indigenous range
@@ -482,7 +477,7 @@ wild_prov_status_values = [
 
 # not ITF2
 # - further specifies the Z prov type flag value
-cultivated_prov_status_values = [
+cultivated_prov_status_values: ClassVar[list[tuple[str, str]]] = [
     ("InVitro", _("In vitro")),
     ("Division", _("Division")),
     ("Seed", _("Seed")),
@@ -492,7 +487,7 @@ cultivated_prov_status_values = [
 
 # not ITF2
 # - further specifies the G prov type flag value
-purchase_prov_status_values = [
+purchase_prov_status_values: ClassVar[list[tuple[str, str]]] = [
     ("National", _("National")),
     ("Imported", _("Imported")),
     ("Unknown", _("Unknown")),
@@ -500,7 +495,7 @@ purchase_prov_status_values = [
 ]
 
 # not ITF2
-recvd_type_values = {
+recvd_type_values: ClassVar[dict[Optional[str], str]] = {
     "ALAY": _("Air layer"),
     "BBPL": _("Balled & burlapped plant"),
     "BRPL": _("Bare root plant"),
@@ -532,7 +527,7 @@ recvd_type_values = {
     None: "",
 }
 
-accession_type_to_plant_material: Any = {
+accession_type_to_plant_material: ClassVar[dict[Optional[str], str]] = {
     # u'Plant': _('Planting'),
     "BBPL": "Plant",
     "BRPL": "Plant",
@@ -649,32 +644,23 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     :Constraints:
 
     """
-    id: Any
-    id_qual_rank: Any
-    id_qual: Any
-    private: Any
-    intended_location_id: Any
-    source: Any
-    species: Any
-    plants: Any
-    __cached_species_str: Any
-    __warned_about_id_qual: bool
     __tablename__: str = "accession"
+    __cached_species_str: ClassVar[dict[tuple[bool, bool], str]] = {}
+    __warned_about_id_qual: ClassVar[bool] = False
+
 
     # columns
     #: the accession code
-    id = Column(Integer, primary_key=True)
-    code: Any = Column(Unicode(20), nullable=False, unique=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(Unicode(20), nullable=False, unique=True)
     code_format: str = "%Y%PD####"
     order_by: Any = [asc(code)]
 
     @validates("code")
-    def validate_stripping(self, key, value):
-        if value is None:
-            return None
-        return value.strip()
+    def validate_stripping(self, key: str, value: Optional[str]) -> Optional[str]:
+        return value.strip() if value else None
 
-    prov_type: Any = Column(
+    prov_type: Mapped[Optional[str]] = mapped_column(
         types.Enum(
             values=[i[0] for i in prov_type_values],
             translations=dict(prov_type_values),
@@ -683,7 +669,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         default=None,
     )
 
-    wild_prov_status: Any = Column(
+    wild_prov_status: Mapped[Optional[str]] = mapped_column(
         types.Enum(
             values=[i[0] for i in wild_prov_status_values],
             translations=dict(wild_prov_status_values),
@@ -692,10 +678,10 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         default=None,
     )
 
-    date_accd: Any = Column(types.Date)
-    date_recvd: Any = Column(types.Date)
-    quantity_recvd: Any = Column(Integer, autoincrement=False)
-    recvd_type: Any = Column(
+    date_accd: Mapped[types.Date] = mapped_column(types.Date)
+    date_recvd: Mapped[types.Date] = mapped_column(types.Date)
+    quantity_recvd: Mapped[int] = mapped_column(Integer, autoincrement=False)
+    recvd_type: Mapped[Optional[str]] = mapped_column(
         types.Enum(
             values=list(recvd_type_values.keys()),
             translations=recvd_type_values,
@@ -707,10 +693,10 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     # ITF2 - C24 - Rank Qualified Flag - Transfer code: rkql
     # B: Below Family; F: Family; G: Genus; S: Species; I: first
     # Infraspecific Epithet; J: second Infraspecific Epithet; C: Cultivar;
-    id_qual_rank = Column(Unicode(10))
+    id_qual_rank: Mapped[str] = mapped_column(Unicode(10))
 
     # ITF2 - C25 - Identification Qualifier - Transfer code: idql
-    id_qual = Column(
+    id_qual: Mapped[Optional[str]] = mapped_column(
         types.Enum(
             values=["aff.", "cf.", "incorrect", "forsan", "near", "?", ""],
             omit_aliases=False,
@@ -720,15 +706,15 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     )
 
     # "private" new in 0.8b2
-    private = Column(Boolean, default=False)
-    species_id: Any = Column(Integer, ForeignKey("species.id"), nullable=False)
+    private: Mapped[bool] = mapped_column(Boolean, default=False)
+    species_id: Mapped[int] = mapped_column(Integer, ForeignKey("species.id"), nullable=False)
 
     # intended location
-    intended_location_id = Column(Integer, ForeignKey("location.id"))
-    intended2_location_id: Any = Column(Integer, ForeignKey("location.id"))
+    intended_location_id: Mapped[int] = mapped_column(Integer, ForeignKey("location.id"))
+    intended2_location_id: Mapped[int] = mapped_column(Integer, ForeignKey("location.id"))
 
     # the source of the accession
-    source = relationship(
+    source: Mapped[Optional["Source"]] = relationship(
         "Source",
         uselist=False,
         cascade="all, delete-orphan",
@@ -738,7 +724,7 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
     )
 
     # relations
-    species = relationship(
+    species: Mapped["Species"] = relationship(
         "Species",
         uselist=False,
         back_populates="accessions",
@@ -747,36 +733,25 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
         active_history=True,
     )
 
-    # use Plant.code for the order_by to avoid ambiguous column names
-    plants = relationship(
-        "Plant",
+    verifications: Mapped[list["Verification"]] = relationship(
+        "Verification",  # order_by='date',
         cascade="all, delete-orphan",
-        # order_by='plant.code',
         back_populates="accession",
-        uselist=True,
         single_parent=True,
-    )
-    verifications: Any = (
-        relationship(
-            "Verification",  # order_by='date',
-            cascade="all, delete-orphan",
-            back_populates="accession",
-            single_parent=True,
-            uselist=True,  # An Accession can have multiple Vouchers
+        uselist=True,  # An Accession can have multiple Vouchers
         )
-        or []
-    )
-    vouchers: Any = relationship(
+
+    vouchers: Mapped[list["Voucher"]] = relationship(
         "Voucher",
         cascade="all, delete-orphan",
         back_populates="accession",
         uselist=True,
         single_parent=True,
     )
-    intended_location: Any = relationship(
+    intended_location: Mapped[Optional["Location"]] = relationship(
         "Location", primaryjoin="Accession.intended_location_id==Location.id"
     )
-    intended2_location: Any = relationship(
+    intended2_location: Mapped[Optional["Location"]] = relationship(
         "Location", primaryjoin="Accession.intended2_location_id==Location.id"
     )
 
@@ -1007,7 +982,17 @@ class Accession(db.Base, db.Serializable, db.WithNotes):
             (8, "Sources"): set(sd and [sd.id] or []),
         }
 
+#from .plant import Plant  # explicit import at runtime
 
+# use Plant.code for the order_by to avoid ambiguous column names
+Accession.plants: Mapped[list["Plant"]] = relationship(
+        "bauble.plugins.garden.plant.Plant",
+        cascade="all, delete-orphan",
+        # order_by='plant.code',
+        back_populates="accession",
+        uselist=True,
+        single_parent=True,
+    )
 # invalidate an accessions string cache after it has been updated
 # Register the after_update event
 @event.listens_for(Accession, "after_update")
@@ -1016,7 +1001,7 @@ def receive_after_update(mapper, connection, target) -> None:
 
 
 AccessionNote: Any = db.make_note_class("Accession", Accession, compute_serializable_fields)
-Accession.notes = relationship(
+Accession.notes: Mapped["AccessionNote"] = relationship(
     "AccessionNote",
     back_populates="accession",
     cascade="all, delete-orphan",
@@ -1668,7 +1653,14 @@ class SourcePresenter(editor.GenericEditorPresenter):
             Propagation,
             SourcePropagationPresenter,
         )
-
+        from bauble.plugins.garden.source import (
+            Collection,
+            CollectionPresenter,
+            Contact,
+            PropagationChooserPresenter,
+            Source,
+        )
+        
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
         self.session = session
@@ -1871,6 +1863,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         Opens a new ContactEditor when clicked and repopulates the
         source combo if a new Contact is created.
         """
+        from bauble.plugins.garden.source import create_contact
         committed = create_contact(parent=self.view.get_window())
         new_detail = None
         if committed:
@@ -1883,6 +1876,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         If active=None then set whatever was previously active before
         repopulating the combo.
         """
+        from bauble.plugins.garden.source import Contact
         combo = self.view.widgets.acc_source_comboentry
         if not active:
             treeiter = combo.get_active_iter()
@@ -1918,6 +1912,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
 
         :param on_select: called when an item is selected
         """
+        from bauble.plugins.garden.source import Contact
         PROBLEM = "unknown_source"
 
         def cell_data_func(col, cell, model, treeiter, data=None):
@@ -2765,7 +2760,8 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         """
         handle the response from self.presenter.start() in self.start()
         """
-        from bauble.plugins.garden.plant import Plant, PlantEditor
+        if TYPE_CHECKING:
+            from bauble.plugins.garden.plant import Plant, PlantEditor
 
         not_ok_msg = _("Are you sure you want to lose your changes?")
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
@@ -2824,9 +2820,8 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         return True
 
     def start(self):
-        from sqlalchemy import func
-
         from bauble.plugins.plants.species_model import Species
+        from sqlalchemy import func
 
         if self.session.execute(select(func.count()).select_from(Species)) == 0:
             msg = _(
@@ -3255,6 +3250,7 @@ class AccessionInfoBox(InfoBox):
         return result
 
     def update(self, row) -> None:
+        from bauble.plugins.garden.source import Collection
         if isinstance(row, Collection):
             row = row.source.accession
 
@@ -3404,3 +3400,14 @@ datums: Any = {
     "Zanderij": "Zanderij- Surinam (excluding San Salvador Island)",
     "User": "User-defined custom datum",
 }
+
+
+if typing.TYPE_CHECKING:
+    from bauble.plugins.garden.source import Location, Plant, Source    
+else:
+    __import__('bauble.plugins.garden.source')
+    __import__('bauble.plugins.garden.plant.Plant')
+    __import__('bauble.plugins.garden.location.Location')    
+#from sqlalchemy.orm import configure_mappers
+
+#configure_mappers()

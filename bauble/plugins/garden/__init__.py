@@ -21,9 +21,7 @@
 import logging
 import re
 from gettext import gettext as _
-
-from sqlalchemy import select
-from sqlalchemy.orm import object_session, selectinload
+from typing import Any
 
 import bauble
 import bauble.db as db
@@ -37,8 +35,6 @@ from bauble.plugins.garden.accession import (
     AccessionNote,
     acc_context_menu,
 )
-
-# from bauble.plugins.garden.accession import Verification
 from bauble.plugins.garden.institution import (
     Institution,
     InstitutionCommand,
@@ -52,8 +48,12 @@ from bauble.plugins.garden.location import (
     loc_context_menu,
 )
 from bauble.plugins.garden.picture_importer import PictureImporterTool
+
+# Then import editors, infoboxes, context menus, tools, etc.
+# Import all ORM classes to ensure registration!
 from bauble.plugins.garden.plant import (
     Plant,
+    PlantChange,
     PlantEditor,
     PlantInfoBox,
     PlantNote,
@@ -63,8 +63,7 @@ from bauble.plugins.garden.plant import (
     plant_delimiter_key,
 )
 from bauble.plugins.garden.pocket_server import PocketServerTool
-
-# from bauble.plugins.garden.source import ContactPresenter
+from bauble.plugins.garden.propagation import Propagation  # if this exists
 from bauble.plugins.garden.source import (
     Collection,
     Contact,
@@ -76,14 +75,9 @@ from bauble.plugins.garden.source import (
 )
 from bauble.utils import safe_set_props, safe_set_text
 from bauble.view import SearchView
+from sqlalchemy import select
+from sqlalchemy.orm import Mapped, object_session, selectinload
 
-from bauble import pluginmgr
-from typing import Any
-from bauble.plugins.garden.accession import Accession as Accession, AccessionEditor as AccessionEditor, AccessionInfoBox as AccessionInfoBox, AccessionNote as AccessionNote, acc_context_menu as acc_context_menu
-from bauble.plugins.garden.institution import Institution as Institution, InstitutionCommand as InstitutionCommand, InstitutionTool as InstitutionTool, start_institution_editor as start_institution_editor
-from bauble.plugins.garden.location import Location as Location, LocationEditor as LocationEditor, LocationInfoBox as LocationInfoBox, loc_context_menu as loc_context_menu
-from bauble.plugins.garden.plant import Plant as Plant, PlantEditor as PlantEditor, PlantInfoBox as PlantInfoBox, PlantNote as PlantNote, PlantSearch as PlantSearch, default_plant_delimiter as default_plant_delimiter, plant_context_menu as plant_context_menu, plant_delimiter_key as plant_delimiter_key
-from bauble.plugins.garden.source import Collection as Collection, Contact as Contact, ContactInfoBox as ContactInfoBox, Source as Source, collection_context_menu as collection_context_menu, create_contact as create_contact, source_detail_context_menu as source_detail_context_menu
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 

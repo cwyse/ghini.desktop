@@ -428,7 +428,7 @@ acc_type_map = {
 
 
 def do_plant(filename):
-    from bauble.plugins.garden import Plant, PlantNote
+    from bauble.plugins.garden.plant import Plant, PlantNote
 
     reader = UnicodeReader(open(filename))
 

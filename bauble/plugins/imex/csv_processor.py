@@ -31,37 +31,34 @@ import queue  # For producer-consumer handling
 # import traceback
 # from gettext import gettext as _
 import threading
-
-import sqlalchemy as sa
-from sqlalchemy import Boolean
-
-# from sqlalchemy import ColumnDefault
-# from sqlalchemy import inspect
-# from sqlalchemy import func
-# from sqlalchemy.exc import DataError
-# from sqlalchemy.orm import configure_mappers
-# from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql.elements import ClauseElement
+from collections.abc import Generator
+from typing import Any, Optional, Union
 
 # import bauble.pluginmgr as pluginmgr
 # import bauble.task
 import bauble.utils as utils
+import sqlalchemy as sa
 from bauble.btypes import Enum
 from bauble.db import Session
 
 # from bauble import pb_set_fraction
 # from bauble.error import BaubleError
 # from gi.repository import Gtk
-from bauble.plugins.imex.unicode_utils import (
-    InvalidDataError,
-    UnicodeReader,
-    UnicodeWriter,
-)
+from bauble.plugins.imex.unicode_utils import InvalidDataError
+from bauble.plugins.imex.unicode_utils import InvalidDataError as InvalidDataError
+from bauble.plugins.imex.unicode_utils import UnicodeReader
+from bauble.plugins.imex.unicode_utils import UnicodeReader as UnicodeReader
+from bauble.plugins.imex.unicode_utils import UnicodeWriter
+from bauble.plugins.imex.unicode_utils import UnicodeWriter as UnicodeWriter
+from sqlalchemy import Boolean
 
-from typing import Union, Optional
-from typing import Any
-from bauble.plugins.imex.unicode_utils import InvalidDataError as InvalidDataError, UnicodeReader as UnicodeReader, UnicodeWriter as UnicodeWriter
-from collections.abc import Generator
+# from sqlalchemy import ColumnDefault
+# from sqlalchemy import inspect
+# from sqlalchemy import func
+# from sqlalchemy.exc import DataError
+# from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql.elements import ClauseElement
+
 logger: Any = logging.getLogger(__name__)
 QUOTE_STYLE: Any = csv.QUOTE_MINIMAL
 QUOTE_CHAR: str = '"'
