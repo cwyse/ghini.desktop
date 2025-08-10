@@ -38,6 +38,7 @@ from bauble.test import check_dupids
 
 from typing import Any
 from collections.abc import Generator
+
 logger: Any = logging.getLogger(__name__)
 logger._cache.clear()
 logger.setLevel(logging.INFO)
@@ -72,7 +73,9 @@ prefs.testing = True
 class _TestEnum(db.Base):
     __tablename__: str = "test_enum_type"
     id: Any = Column(Integer, primary_key=True)
-    value: Any = Column(types.Enum(values=["1", "2", ""], omit_aliases=False), default="")
+    value: Any = Column(
+        types.Enum(values=["1", "2", ""], omit_aliases=False), default=""
+    )
 
 
 @pytest.fixture
@@ -168,7 +171,9 @@ class TestEnumModel:
         db_session.add(instance)
         db_session.flush()
 
-    def test_insert_by_value_wrong_value_seen_late(self, db_session, clean_enum_table) -> None:
+    def test_insert_by_value_wrong_value_seen_late(
+        self, db_session, clean_enum_table
+    ) -> None:
         from sqlalchemy.exc import StatementError
 
         instance = clean_enum_table(value="33")
@@ -255,7 +260,9 @@ class TestEnumModel:
         ).scalars()
         assert query.all() == [row2]
 
-    def test_function_creating_enum_with_fixture(self, db_session, clean_enum_table) -> None:
+    def test_function_creating_enum_with_fixture(
+        self, db_session, clean_enum_table
+    ) -> None:
         """
         Ensure the `function_creating_enum` works with the clean_enum_table fixture.
         """

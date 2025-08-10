@@ -32,6 +32,8 @@ from bauble.test import check_dupids
 
 from typing import Any
 from collections.abc import Generator
+
+
 @pytest.fixture
 def test_user() -> Generator[Any, None, None]:
     """Fixture for setting up and tearing down a test user."""

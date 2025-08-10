@@ -27,7 +27,6 @@ import datetime
 import logging
 import os
 import re
-import textwrap
 import threading
 import traceback
 from collections.abc import Generator
@@ -35,20 +34,15 @@ from collections.abc import Generator
 # import xml.sax.saxutils as saxutils
 from gettext import gettext as _
 from logging import Logger
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import bauble
 import dateutil.parser
-import gi
 import sqlalchemy
-from bauble import paths
 from bauble import paths as paths
 from bauble import utils as utils
 from bauble.error import check
-
-gi.require_version("Gtk", "3.0")
-from bauble import utils
-from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk
+from bauble.gtkinit import Gdk, GdkPixbuf, GLib, GObject, Gtk
 
 # from sqlalchemy.exc import DBAPIError
 from sqlalchemy import distinct, select
@@ -56,6 +50,19 @@ from sqlalchemy.orm.session import object_session
 
 logger: Logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def _install_css(css: str) -> None:
+
+    from bauble.gtkinit import Gdk, Gtk
+
+    provider = Gtk.CssProvider()
+    provider.load_from_data(css.encode("utf-8"))
+    # For GTK 3
+    screen = Gdk.Screen.get_default()
+    Gtk.StyleContext.add_provider_for_screen(
+        screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+    )
 
 
 def get_object_session(obj):
@@ -228,8 +235,10 @@ class Cache:
     the image, the value is a pair with first the timestamp of the last usage
     of that key and second the value.
     """
+
     size: int
     storage: dict[str, Any]
+
     def __init__(self, size) -> None:
         self.size = size
         self.storage = {}
@@ -296,9 +305,7 @@ def copy_picture_with_thumbnail(path, basename: Optional[Any] = None):
     except OSError:
         logger.warning("can't make thumbnail")
     except Exception as e:
-        logger.warning(
-            "unexpected exception making thumbnail: " f"({type(e)}){e}"
-        )
+        logger.warning("unexpected exception making thumbnail: " f"({type(e)}){e}")
     return result
 
 
@@ -443,7 +450,9 @@ class BuilderWidgets:
     Provides dictionary and attribute access for a
     :class:`Gtk.Builder` object.
     """
+
     builder: Any
+
     def __init__(self, ui) -> None:
         """
         :params filename: a Gtk.Builder XML UI file
@@ -630,7 +639,9 @@ def get_widget_value(w, index: int = 0):
         )
 
 
-def set_widget_value(widget, value, markup: bool = False, default: Optional[Any] = None, index: int = 0):
+def set_widget_value(
+    widget, value, markup: bool = False, default: Optional[Any] = None, index: int = 0
+):
     """
     :param widget: an instance of Gtk.Widget
     :param value: the value to put in the widget
@@ -741,7 +752,10 @@ def none(function, *args) -> None:
 
 
 def create_message_dialog(
-    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent: Optional[Any] = None
+    msg,
+    type=Gtk.MessageType.INFO,
+    buttons=Gtk.ButtonsType.OK,
+    parent: Optional[Any] = None,
 ):
     """Create a message dialog, display and return it ready to be run.
 
@@ -788,7 +802,10 @@ def create_message_dialog(
 
 
 def idle_message(
-    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent: Optional[Any] = None
+    msg,
+    type=Gtk.MessageType.INFO,
+    buttons=Gtk.ButtonsType.OK,
+    parent: Optional[Any] = None,
 ) -> None:
     """create and run message_dialog in GUI thread, once."""
 
@@ -801,7 +818,10 @@ def idle_message(
 
 
 def message_dialog(
-    msg, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.OK, parent: Optional[Any] = None
+    msg,
+    type=Gtk.MessageType.INFO,
+    buttons=Gtk.ButtonsType.OK,
+    parent: Optional[Any] = None,
 ):
     """Create and run a temporary MessageDialog.
 
@@ -816,7 +836,9 @@ def message_dialog(
     return r
 
 
-def create_yes_no_dialog(msg, parent: Optional[Any] = None, buttons=Gtk.ButtonsType.YES_NO):
+def create_yes_no_dialog(
+    msg, parent: Optional[Any] = None, buttons=Gtk.ButtonsType.YES_NO
+):
     """
     Create a dialog with yes/no buttons.
     """
@@ -852,7 +874,12 @@ def create_yes_no_dialog(msg, parent: Optional[Any] = None, buttons=Gtk.ButtonsT
 
 
 def yes_no_cancel_dialog(
-    msg, yes_label, no_label, cancel_label, parent: Optional[Any] = None, callback: Optional[Any] = None
+    msg,
+    yes_label,
+    no_label,
+    cancel_label,
+    parent: Optional[Any] = None,
+    callback: Optional[Any] = None,
 ) -> None:
     """
     Displays a dialog with Yes, No, and Cancel options.
@@ -911,7 +938,7 @@ def yes_no_dialog(msg, parent: Optional[Any] = None, yes_delay: int = -1):
                 d.set_response_sensitive(Gtk.ResponseType.YES, True)
             return False
 
-        from gi.repository import GObject
+        from bauble.gtkinit import GObject
 
         GObject.timeout_add(yes_delay * 1000, on_timeout)
     r = d.run()
@@ -924,7 +951,7 @@ def create_message_details_dialog(
     details,
     type=Gtk.MessageType.INFO,
     buttons=Gtk.ButtonsType.OK,
-    parent: Optional[Any] = None
+    parent: Optional[Any] = None,
 ):
     """
     Create a message dialog with a details expander.
@@ -959,7 +986,7 @@ def create_message_details_dialog(
         parent.connect("destroy", lambda *_: d.destroy())
 
     # Ensure the dialog has a reasonable width
-    from gi.repository import Pango
+    from bauble.gtkinit import Pango
 
     context = d.get_pango_context()
     font_metrics = context.get_metrics(
@@ -1012,7 +1039,7 @@ def message_details_dialog(
     details,
     type=Gtk.MessageType.INFO,
     buttons=Gtk.ButtonsType.OK,
-    parent: Optional[Any] = None
+    parent: Optional[Any] = None,
 ):
     """
     Create and run a message dialog with a details expander.
@@ -1023,7 +1050,9 @@ def message_details_dialog(
     return r
 
 
-def setup_text_combobox(combo, values: Optional[Any] = None, cell_data_func: Optional[Any] = None):
+def setup_text_combobox(
+    combo, values: Optional[Any] = None, cell_data_func: Optional[Any] = None
+):
     """
     Configure a Gtk.ComboBox as a text combobox
 
@@ -1119,7 +1148,10 @@ def today_str(format: Optional[Any] = None):
 
 
 def set_button_contents(
-    button, label_text: Optional[Any] = None, icon_name: Optional[Any] = None, orientation=Gtk.Orientation.HORIZONTAL
+    button,
+    label_text: Optional[Any] = None,
+    icon_name: Optional[Any] = None,
+    orientation=Gtk.Orientation.HORIZONTAL,
 ) -> None:
     """
     Set button contents with optional icon and label.
@@ -1366,6 +1398,7 @@ def reset_sequence(column):
 
 class WidgetStyler:
     css_provider: Any
+
     def __init__(self) -> None:
         self.css_provider = Gtk.CssProvider()
         self.css_provider.load_from_data(
@@ -1675,43 +1708,89 @@ def topological_sort(items, partial_order):
     return sorted
 
 
-import gi
-
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Pango
+from bauble.gtkinit import Gtk, Pango
 
 
 class GenericMessageBox:  # identify_subclassing_issues (Consider using composition instead of subclassing GtkWidget)
     """
     Abstract class for showing a message box at the top of an editor.
     """
+
     event_box: Any
     box: Any
+
     def __init__(self) -> None:
         self.event_box = Gtk.EventBox()
         self.box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.event_box.add(self.box)
 
-    def set_color(self, attr, state, color) -> None:
-        """Sets background or foreground color dynamically using CSS."""
-        context = self.event_box.get_style_context()
+    # def set_color(self, attr, state, color) -> None:
+    #     """Sets background or foreground color dynamically using CSS."""
+    #     context = self.event_box.get_style_context()
 
-        # Convert the color to RGBA string
-        color_str = f"rgba({int(color.red * 255)}, {int(color.green * 255)}, {int(color.blue * 255)})"
+    #     # Convert the color to RGBA string
+    #     color_str = f"rgba({int(color.red * 255)}, {int(color.green * 255)}, {int(color.blue * 255)})"
 
-        # Create a dynamic CSS rule based on the provided attribute, state, and color
-        css_rule = f"""
-        .{attr}:{state} {{
-            {attr}: {color_str};
-        }}
+    #     # Create a dynamic CSS rule based on the provided attribute, state, and color
+    #     css_rule = f"""
+    #     .{attr}:{state} {{
+    #         {attr}: {color_str};
+    #     }}
+    #     """
+
+    #     # Create the CSS provider
+    #     css_provider = Gtk.CssProvider()
+    #     css_provider.load_from_data(css_rule.encode("utf-8"))
+
+    #     # Apply the CSS provider to the widget's style context
+    #     context.add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    def set_color(self, *color) -> None:
+        """
+        Accepts (r,g,b) or (r,g,b,a) with 0..255 for rgb and 0..1 for a.
+        Writes a safe CSS rule with no pseudo-classes.
         """
 
-        # Create the CSS provider
-        css_provider = Gtk.CssProvider()
-        css_provider.load_from_data(css_rule.encode("utf-8"))
+        # tolerate leading property label
+        if color and isinstance(color[0], str):
+            color = color[1:]
 
-        # Apply the CSS provider to the widget's style context
-        context.add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        # normalize inputs
+        if len(color) == 1 and isinstance(color[0], (tuple, list)):
+            color = tuple(color[0])
+        if len(color) not in (3, 4):
+            # fall back to a neutral color instead of raising
+            color = (240, 240, 240, 1.0)
+
+        r, g, b = color[0], color[1], color[2]
+        a = color[3] if len(color) == 4 else 1.0
+
+        # clamp values
+        r = max(0, min(255, int(float(r))))
+        g = max(0, min(255, int(float(g))))
+        b = max(0, min(255, int(float(b))))
+        try:
+            a = float(a)
+        except Exception:
+            a = 1.0
+        a = max(0.0, min(1.0, a))
+
+        # apply the class to a real Gtk.Widget we own
+        target = getattr(self, "event_box", None) or getattr(self, "box", None)
+        if target is None or not hasattr(target, "get_style_context"):
+            return  # nothing to style
+
+        # ensure our widget has the class we target
+        ctx = target.get_style_context()
+        ctx.add_class("message-box")
+
+        css = f"""
+        .message-box {{
+            background-color: rgba({r}, {g}, {b}, {a});
+            border-radius: 4px;
+            padding: 6px;
+        }}
+        """
+        _install_css(css)
 
     def show_all(self) -> None:
         """
@@ -1735,13 +1814,17 @@ class MessageBox(GenericMessageBox):
     """
     A MessageBox that can display a message label at the top of an editor.
     """
+
     box: Any
     vbox: Any
     label: Any
     buffer: Any
     details_expander: Any
     details_label: Any
-    def __init__(self, msg: Optional[Any] = None, details: Optional[Any] = None) -> None:
+
+    def __init__(
+        self, msg: Optional[Any] = None, details: Optional[Any] = None
+    ) -> None:
         super().__init__()
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -1852,10 +1935,14 @@ class YesNoMessageBox(GenericMessageBox):
     """
     A message box that can present a Yes or No question to the user
     """
+
     label: Any
     yes_button: Any
     no_button: Any
-    def __init__(self, msg: Optional[Any] = None, on_response: Optional[Any] = None) -> None:
+
+    def __init__(
+        self, msg: Optional[Any] = None, on_response: Optional[Any] = None
+    ) -> None:
         """
         on_response: callback method when the yes or no buttons are
         clicked.  The signature of the function should be

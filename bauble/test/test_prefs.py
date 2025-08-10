@@ -24,6 +24,7 @@ from bauble import prefs, version_tuple
 
 from typing import Any
 from collections.abc import Generator
+
 prefs.testing = True
 
 

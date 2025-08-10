@@ -18,34 +18,26 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
+from datetime import date, datetime, timedelta
 from gettext import gettext as _
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Set,
+    Tuple,
+    Union,
+    runtime_checkable,
+)
 
 import bauble.utils as utils
-import gi
-from pyparsing import ParserElement, ParseResults, WordEnd, WordStart
-from sqlalchemy import and_, func, inspect, or_, select
-from sqlalchemy.orm import DeclarativeMeta, RelationshipProperty, Session, aliased
-from sqlalchemy.sql.selectable import Select
-
-logger: logging.Logger = logging.getLogger(__name__)
-wordStart: ParserElement
-wordEnd: ParserElement
-
 
 # from bauble.db import get_orm_entity_by_name
 from bauble.error import check
-from gi.repository import Gtk
-from pyparsing import ParserElement
-from sqlalchemy import inspect, select
-from sqlalchemy.orm import DeclarativeMeta, Session
-from sqlalchemy.sql.elements import ColumnElement as ColumnElement
-from sqlalchemy.sql.selectable import Select
-
-gi.require_version("Gtk", "3.0")
-from datetime import date, datetime, timedelta
-
-from gi.repository import Gtk
+from bauble.gtkinit import Gtk
 from pyparsing import (
     CaselessKeyword,
     CaselessLiteral,
@@ -57,6 +49,8 @@ from pyparsing import (
     MatchFirst,
     OneOrMore,
     OpAssoc,
+    ParserElement,
+    ParseResults,
     Regex,
     Word,
     WordEnd,
@@ -73,53 +67,42 @@ from pyparsing import (
     stringEnd,
 )
 
-# from sqlalchemy import not_
-# from pyparsing import alphanums
-# from pyparsing import alphas
-# from pyparsing import alphas8bit
-# from pyparsing import CaselessLiteral
-# from pyparsing import DelimitedList
-# from pyparsing import Forward
-# from pyparsing import Group
-# from pyparsing import infix_notation
-# from pyparsing import Keyword
-# from pyparsing import Literal
-# from pyparsing import one_of
-# from pyparsing import OneOrMore
-# from pyparsing import OpAssoc
-# from pyparsing import quotedString
-# from pyparsing import Regex
-# from pyparsing import removeQuotes
-# from pyparsing import srange
-# from pyparsing import stringEnd
-# from pyparsing import Word
-# from pyparsing import WordEnd
-# from pyparsing import WordStart
-# from pyparsing import ZeroOrMore
-from sqlalchemy import and_, or_, select
+# Core SQLAlchemy
+from sqlalchemy import and_, func, inspect, or_, select
+
+# Errors
 from sqlalchemy.exc import NoResultFound
 
-# from sqlalchemy import Unicode
-# from sqlalchemy import UnicodeText
-from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import Session  # ✅ Add this import
-from sqlalchemy.orm import aliased
-from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
+# ORM-specific
+from sqlalchemy.orm import (
+    ColumnProperty,
+    DeclarativeMeta,
+    RelationshipProperty,
+    Session,
+    aliased,
+)
 from sqlalchemy.orm.util import AliasedClass
-from sqlalchemy.sql import func
+from sqlalchemy.sql.selectable import Select
+
+logger: logging.Logger = logging.getLogger(__name__)
+wordStart: ParserElement
+wordEnd: ParserElement
+
+
+
 
 logger.setLevel(logging.INFO)
 
 
 RelationProperty = RelationshipProperty
 
-from typing import Any, List, Tuple
 
 from sqlalchemy.orm import RelationshipProperty
-from sqlalchemy.sql.selectable import Select
 
 
-def resolve_relationships(cls: Any, steps: List[str], env: Dict[str, Any]) -> Tuple[Select, Any]:
+def resolve_relationships(
+    cls: Any, steps: List[str], env: Dict[str, Any]
+) -> Tuple[Select, Any]:
     """
     Dynamically resolve relationships for a given class and steps.
 
@@ -171,7 +154,7 @@ def resolve_relationships(cls: Any, steps: List[str], env: Dict[str, Any]) -> Tu
     return stmt, current_cls
 
 
-from typing import Any, List, Optional
+
 
 
 def search(text: str, session: Optional[Session] = None) -> List[Any]:
@@ -217,6 +200,7 @@ class EmptyToken:
 class ValueABC:
     # abstract base class.
     value: Any  # Explicitly declare type
+
     def express(self) -> Any:
         return self.value
 
@@ -224,6 +208,7 @@ class ValueABC:
 class ValueToken:
 
     value: Any
+
     def __init__(self, t: Any) -> None:
         self.value = t[0]
 
@@ -236,6 +221,7 @@ class ValueToken:
 
 class StringToken(ValueABC):
     value: Any
+
     def __init__(self, t: Any) -> None:
         self.value = t[0]  # no need to parse the string
 
@@ -245,11 +231,13 @@ class StringToken(ValueABC):
 
 class NumericToken(ValueABC):
     value: Any
+
     def __init__(self, t: Any) -> None:
         self.value = float(t[0])  # store the float value
 
     def __repr__(self) -> str:
         return f"{self.value}"
+
 
 def smartdatetime(year_or_offset: int, *args: int) -> datetime:
     """return either datetime.datetime, or a day with given offset.
@@ -260,6 +248,7 @@ def smartdatetime(year_or_offset: int, *args: int) -> datetime:
 
     """
     from datetime import datetime as dt
+
     if not args:
         return dt.today().replace(
             hour=0, minute=0, second=0, microsecond=0
@@ -304,11 +293,10 @@ class TypedValueToken(ValueABC):
         return f"{self.value}"
 
 
-
-
 class IdentifierAction:
     steps: List[str]
     leaf: str
+
     def __init__(self, t: Any) -> None:
         logger.debug(f"IdentifierAction::__init__({t})")
         self.steps = t[0][:-2:2]
@@ -468,6 +456,7 @@ class FilteredIdentifierAction:
     filter_value: Any
     leaf: str
     operation: Optional[Callable[[Any, Any], Any]]
+
     def __init__(self, t: Any) -> None:
         logger.debug(f"FilteredIdentifierAction::__init__({t})")
         self.steps = t[0][:-7:2]
@@ -524,7 +513,7 @@ class FilteredIdentifierAction:
 
         if self.operation is None:
             raise ValueError(f"Unsupported filter operation: {self.filter_op}")
-        
+
         op = self.operation  # type: Callable[[Any, Any], Any]
 
         def clause(x: Any) -> Any:
@@ -549,6 +538,7 @@ class IdentExpression:
     op: ParserElement
     operation: Optional[Callable[[Any, Any], Any]]
     operands: List[Any]
+
     def __init__(self, t: Any) -> None:
         logger.debug(f"IdentExpression::__init__({t})")
         self.op = t[0][1]
@@ -579,8 +569,7 @@ class IdentExpression:
     def __repr__(self) -> str:
         return f"({self.operands[0]} {self.op} {self.operands[1]})"
 
-    from sqlalchemy.orm import ColumnProperty, RelationshipProperty
-    from sqlalchemy.sql.elements import ColumnElement
+
 
     def evaluate(self, env: Dict[str, Any]) -> Tuple[Select, Any]:
         """
@@ -670,13 +659,15 @@ class IdentExpression:
         if isinstance(attr.property, RelationshipProperty):
             if comparison_value is None or comparison_value == "":
                 if self.op in ("is", "=", "=="):
-                    return stmt.filter(
-                        or_(attr.is_(None), attr == "")
-                    ), attr  # ✅ WHERE author IS NULL
+                    return (
+                        stmt.filter(or_(attr.is_(None), attr == "")),
+                        attr,
+                    )  # ✅ WHERE author IS NULL
                 elif self.op in ("is not", "not", "<>", "!="):
-                    return stmt.filter(
-                        and_(attr.is_not(None), attr != "")
-                    ), attr  # ✅ WHERE author IS NOT NULL
+                    return (
+                        stmt.filter(and_(attr.is_not(None), attr != "")),
+                        attr,
+                    )  # ✅ WHERE author IS NOT NULL
 
             elif self.operands[1].express() == set():
                 if self.op in ("is", "=", "=="):
@@ -818,10 +809,10 @@ class AggregatedExpression(IdentExpression):
 
         if self.operation is None:
             raise ValueError(f"Unsupported aggregate operation: {f}")
-        
+
         op = self.operation  # type: Callable[[Any, Any], Any]
 
-        # Create HAVING clause 
+        # Create HAVING clause
         def clause(x: Any) -> Any:
             return op(f(attr), x)
 
@@ -833,6 +824,7 @@ class AggregatedExpression(IdentExpression):
 
 class BetweenExpressionAction:
     operands: Any
+
     def __init__(self, t: Any) -> None:
         self.operands = t[0][0::2]  # every second object is an operand
 
@@ -864,13 +856,15 @@ class BetweenExpressionAction:
 
     def needs_join(self, env: Dict[str, Any]) -> List[Any]:
         return [self.operands[0].needs_join(env)]
-    
-from typing import Any, Dict, List, Protocol, cast, runtime_checkable
+
+
+
 
 
 @runtime_checkable
 class NeedsJoinProtocol(Protocol):
     def needs_join(self, env: Dict[str, Any]) -> List[Any]: ...
+
 
 class UnaryLogical:
     ## abstract base class. `name` is defined in derived classes
@@ -1010,6 +1004,7 @@ class SearchNotAction(UnaryLogical):
 
         return stmt, attr
 
+
 from typing import Dict, List, Protocol, Tuple
 
 from sqlalchemy.sql.selectable import Select
@@ -1019,8 +1014,10 @@ class Evaluatable(Protocol):
     def evaluate(self, env: Dict[str, Any]) -> Tuple[Select, Any]: ...
     def needs_join(self, env: Dict[str, Any]) -> List[Any]: ...
 
+
 class ParenthesisedQuery:
     content: Evaluatable
+
     def __init__(self, t: Any) -> None:
         self.content = t[1]
 
@@ -1067,9 +1064,11 @@ class QueryAction:
             Executes the query using the given search strategy and returns results.
 
     """
+
     domain: str
     filter: Any
     domains: List[Any]
+
     def __init__(self, t: Any) -> None:
         """
         QueryAction represents a structured database query.
@@ -1124,9 +1123,7 @@ class QueryAction:
         print(f"DEBUG: Compiled SQL Query:\n{compiled_sql}")
 
         # ✅ Ensure only primary key (`id`) is selected
-        inspect(domain_class).primary_key[
-            0
-        ]  # Get the primary key column
+        inspect(domain_class).primary_key[0]  # Get the primary key column
         # stmt = select(primary_key_column).where(stmt.whereclause)  # Modify query to select only the primary key
 
         # if isinstance(stmt, CompoundSelect):
@@ -1150,11 +1147,14 @@ class QueryAction:
             result.discard(None)
 
         return result
+
+
 from typing import Any, Protocol
 
 
 class Invokable(Protocol):
     def invoke(self, search_strategy: Any) -> Any: ...
+
 
 class StatementAction:
     """
@@ -1179,7 +1179,9 @@ class StatementAction:
             using the provided search strategy.
 
     """
+
     content: Invokable
+
     def __init__(self, t: list[Any]) -> None:
         """
         Initializes the StatementAction object with parsed content.
@@ -1262,24 +1264,18 @@ class StatementAction:
             logger.error(f"Error executing statement: {e}")
             raise RuntimeError(f"Statement execution failed: {e}")
 
-from typing import TYPE_CHECKING, Any, Set
 
-from sqlalchemy import and_, or_, select
-from sqlalchemy.orm import Session
-from sqlalchemy.sql.selectable import Select
 
-if TYPE_CHECKING:
-    # Only imported for typing; avoids runtime issues and circular imports
-    from bauble.plugins.plants.genus import Genus as GenusType
-    from bauble.plugins.plants.species_model import Species as SpeciesType
 
 class BinomialNameAction:
     """created when the parser hits a binomial_name token.
 
     Searching using binomial names returns one or more species objects.
     """
+
     genus_epithet: str
     species_epithet: str
+
     def __init__(self, t: list[str]) -> None:
         """
         Initializes a BinomialNameAction.
@@ -1302,7 +1298,7 @@ class BinomialNameAction:
 
     def invoke(self, search_strategy: Any) -> Set[Any]:
         from bauble.plugins.plants.genus import Genus
-        from bauble.plugins.plants.species_model import Species  
+        from bauble.plugins.plants.species_model import Species
 
         logger.debug("BinomialNameAction:invoke")
 
@@ -1318,7 +1314,10 @@ class BinomialNameAction:
             .where(
                 or_(
                     Species.sp.startswith(self.species_epithet),
-                    and_(self.species_epithet == "sp", getattr(Species, "infrasp1") == "sp"),
+                    and_(
+                        self.species_epithet == "sp",
+                        getattr(Species, "infrasp1") == "sp",
+                    ),
                 )
             )
             .join(Genus)
@@ -1341,9 +1340,11 @@ class DomainExpressionAction:
     property (as passed to add_meta) matching (according to the binop)
     the value.
     """
+
     domain: str
     cond: str
     values: Any
+
     def __init__(self, t: List[Any]) -> None:
         if not t or len(t) < 3:
             raise ValueError(
@@ -1452,26 +1453,27 @@ class DomainExpressionAction:
         }  # exclude "=" since it's handled separately
 
         if self.cond in ("like", "ilike"):
+
             def condition(col_name: str) -> Callable[[Any], Any]:
-                return lambda val: utils.ilike(
-                            getattr(cls, col_name), f"{val}"
-                        )
+                return lambda val: utils.ilike(getattr(cls, col_name), f"{val}")
+
         elif self.cond in ("contains", "icontains", "has", "ihas"):
+
             def condition(col_name: str) -> Callable[[Any], Any]:
-                return lambda val: utils.ilike(
-                            getattr(cls, col_name), f"%{val}%"
-                        )
+                return lambda val: utils.ilike(getattr(cls, col_name), f"%{val}%")
+
         elif self.cond == "=":
+
             def condition(col_name: str) -> Callable[[Any], Any]:
                 return lambda val: getattr(cls, col_name) == val
+
         elif self.cond in op_map:
+
             def condition(col_name: str) -> Callable[[Any], Any]:
-                return lambda val: op_map[self.cond](
-                            getattr(cls, col_name), val
-                        )
+                return lambda val: op_map[self.cond](getattr(cls, col_name), val)
+
         else:
             raise ValueError(f"Unsupported or unsafe operator: {self.cond}")
-
 
         filters: List[Any] = []
         for col_name in properties:
@@ -1500,6 +1502,7 @@ class AggregatingAction:
 
     function: str
     identifier: Any
+
     def __init__(self, t: Any) -> None:
         logger.debug(f"AggregatingAction::__init__({t})")
         self.function = t[0]
@@ -1527,6 +1530,7 @@ class AggregatingAction:
 class ValueListAction:
 
     values: List[ValueABC]
+
     def __init__(self, t: Any) -> None:
         logger.debug(f"ValueListAction::__init__({t})")
         self.values = t[0]
@@ -1609,7 +1613,10 @@ wordStart, wordEnd = WordStart(), WordEnd()
 
 class SearchParser:
     """The parser for bauble.search.MapperSearch"""
-    def debug_parse_action(self, name: str) -> Callable[[str, int, ParseResults], ParseResults]:
+
+    def debug_parse_action(
+        self, name: str
+    ) -> Callable[[str, int, ParseResults], ParseResults]:
         """Returns a parse action that prints the parsed tokens with a label."""
 
         def action(s: str, loc: int, tokens: ParseResults) -> Any:
@@ -1621,9 +1628,9 @@ class SearchParser:
         return action
 
     def __init__(self) -> None:
-        numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?").set_parse_action(NumericToken)(
-            "number"
-        )
+        numeric_value = Regex(r"[-]?\d+(\.\d*)?([eE]\d+)?").set_parse_action(
+            NumericToken
+        )("number")
         unquoted_string = Word(alphanums + alphas8bit + "%.-_*;:")
         string_value = (
             (quotedString.set_parse_action(removeQuotes) | unquoted_string)
@@ -1644,7 +1651,13 @@ class SearchParser:
 
         self.value_list: Forward = Forward()
         typed_value = (
-            (Literal("|") + unquoted_string + Literal("|") + self.value_list + Literal("|"))
+            (
+                Literal("|")
+                + unquoted_string
+                + Literal("|")
+                + self.value_list
+                + Literal("|")
+            )
             .set_parse_action(self.debug_parse_action("typed_value"))
             .set_parse_action(TypedValueToken)
         )
@@ -1788,6 +1801,7 @@ class SearchStrategy:
     """
     Interface for adding search strategies to a view.
     """
+
     def search(self, text: str, session: Optional[Session] = None) -> Set[Any]:
         """
         :param text: the search string
@@ -1810,6 +1824,7 @@ class MapperSearch(SearchStrategy):
     3. query searchs: searches of the form domain where ident.ident = value,
     resolve the domain and identifiers and search for value
     """
+
     _results: Set[Any]
     parser: Any
     _session: Optional[Session]
@@ -1826,7 +1841,7 @@ class MapperSearch(SearchStrategy):
         self,
         domain: Union[str, List[str], Tuple[str, ...]],
         cls: Any,
-        properties: List[str]
+        properties: List[str],
     ) -> None:
         """Add a domain to the search space
 
@@ -1968,6 +1983,7 @@ class MapperSearch(SearchStrategy):
 # list of search strategies to be tried on each search string
 _search_strategies: Dict[str, SearchStrategy] = {"MapperSearch": MapperSearch()}
 
+
 def add_strategy(strategy: Callable[[], SearchStrategy]) -> None:
     obj = strategy()
     _search_strategies[obj.__class__.__name__] = obj
@@ -1986,10 +2002,12 @@ class SchemaBrowser:
     """
     A UI component for browsing schema properties.
     """
+
     container: Any
     domain_map: Dict[str, Any]
     table_combo: Any
     prop_tree: Any
+
     def __init__(self) -> None:
         self.container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
 
@@ -2025,7 +2043,9 @@ class SchemaBrowser:
         frame.add(sw)
         self.container.pack_start(frame, True, True, 0)
 
-    def _insert_props(self, mapper: Any, model: Gtk.TreeStore, treeiter: Gtk.TreeIter) -> None:
+    def _insert_props(
+        self, mapper: Any, model: Gtk.TreeStore, treeiter: Gtk.TreeIter
+    ) -> None:
         """
         Insert the properties from mapper into the model at treeiter
         """
@@ -2052,7 +2072,9 @@ class SchemaBrowser:
             it = model.append(treeiter, [prop.key, prop])
             model.append(it, ["", None])
 
-    def on_row_expanded(self, treeview: Gtk.TreeView, treeiter: Gtk.TreeIter, path: Gtk.TreePath) -> None:
+    def on_row_expanded(
+        self, treeview: Gtk.TreeView, treeiter: Gtk.TreeIter, path: Gtk.TreePath
+    ) -> None:
         """
         Called before the row is expanded and populates the children of the
         row.
@@ -2068,6 +2090,7 @@ class SchemaBrowser:
         # prop should always be a RelationProperty
         prop = treeview.props.model[treeiter][1]
         self._insert_props(prop.mapper, model, treeiter)
+
     def on_table_combo_changed(self, combo: Gtk.ComboBoxText, *args: Any) -> None:
         """
         Change the table to use for the query

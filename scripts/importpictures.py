@@ -38,7 +38,7 @@ with open(os.path.join(path, "settings.json")) as f:
 
 import bauble.db
 import bauble.utils
-from bauble.plugins.garden import Accession, Location, Plant, PlantNote
+from bauble.plugins.garden.models import Accession, Location, Plant, PlantNote
 from bauble.plugins.plants import Genus, Species
 from sqlalchemy import select
 

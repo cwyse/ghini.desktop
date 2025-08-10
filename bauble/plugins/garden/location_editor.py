@@ -21,47 +21,30 @@
 #
 from __future__ import annotations
 
-import datetime
 import logging
 import os
 import traceback
 from gettext import gettext as _
-from typing import TYPE_CHECKING, Any, ClassVar, List, Optional, Union
+from typing import Any, Optional
 
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.utils as utils
-import gi
-from bauble import db
-from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorPresenter as GenericEditorPresenter
-from bauble.editor import GenericEditorView
 from bauble.editor import GenericEditorView as GenericEditorView
-from bauble.editor import GenericModelViewPresenterEditor
 from bauble.editor import (
     GenericModelViewPresenterEditor as GenericModelViewPresenterEditor,
 )
-from bauble.editor import NotesPresenter
 from bauble.editor import NotesPresenter as NotesPresenter
-from bauble.editor import UnicodeOrNoneValidator
 from bauble.editor import UnicodeOrNoneValidator as UnicodeOrNoneValidator
-
-if TYPE_CHECKING:
-    from bauble.plugins.garden.plant import Plant
-    from bauble.plugins.garden.plant import PlantChange
-
+from bauble.gtkinit import Gtk
 from bauble.shared import InfoExpander
 from bauble.view import Action, InfoBox, MapInfoExpander, PropertiesExpander
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
 
 # from sqlalchemy import text
-from sqlalchemy import Column, Integer, Unicode, UnicodeText, asc, select
+from sqlalchemy import select
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import relationship, validates
 from sqlalchemy.orm.session import object_session
 
 logger: Any = logging.getLogger(__name__)
@@ -76,7 +59,8 @@ def edit_callback(locations):
 def add_plants_callback(locations):
     session = db.Session()
     loc = session.merge(locations[0])
-    from bauble.plugins.garden.plant import Plant, PlantEditor
+    from bauble.plugins.garden.models import Plant
+    from bauble.plugins.garden.plant import PlantEditor
 
     e = PlantEditor(model=Plant(location=loc))
     # session creates unbound object.  editor decides what to do with it.
@@ -85,6 +69,7 @@ def add_plants_callback(locations):
 
 
 def remove_callback(locations):
+    from bauble.plugins.garden import Location
     loc = locations[0]
     s = f"{loc.__class__.__name__}: {str(loc)}"
     if len(loc.plants) > 0:
@@ -128,126 +113,6 @@ remove_action: Any = Action(
 )
 
 loc_context_menu: Any = [edit_action, add_plant_action, remove_action]
-
-
-def compute_serializable_fields(cls, session, keys):
-    result = {"location": None}
-
-    annotated_object_keys = {"code": keys["location"]}
-    result["location"] = Location.retrieve_or_create(
-        session, annotated_object_keys, create=False
-    )
-
-    return result
-
-
-class Location(db.Base, db.Serializable, db.WithNotes):
-    """
-    :Table name: location
-
-    :Columns:
-        *name*:
-
-        *description*:
-    
-
-    :Relation:
-        *plants*:
-
-    """
-    __tablename__: str = "location"
-
-    # columns
-    # refers to beds by unique codes
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    code: Mapped[str] = mapped_column(Unicode(12), unique=True, nullable=False)
-    name: Mapped[str] = mapped_column(Unicode(80))
-    description: Mapped[str] = mapped_column(UnicodeText)
-    order_by: Any = [asc(name)]
-
-    # relations
-    plants: Mapped[List["Plant"]] = relationship("Plant", back_populates="location", uselist=True, overlaps="location")
-
-    def search_view_markup_pair(self):
-        """provide the two lines describing object for SearchView row."""
-        if self.description is not None:
-            return (
-                utils.xml_safe(str(self)),
-                utils.xml_safe(str(self.description)),
-            )
-        else:
-            return utils.xml_safe(str(self))
-
-    @validates("code", "name")
-    def validate_stripping(self, key, value):
-        if value is None:
-            return None
-        return value.strip()
-
-    def __str__(self) -> str:
-        if self.name:
-            return f"({self.code}) {self.name}"
-        else:
-            return str(self.code)
-
-    def has_accessions(self):
-        """true if location is linked to at least one accession"""
-
-        return False
-
-    @classmethod
-    def retrieve(cls, session, keys):
-        try:
-            return (
-                session.execute(select(cls).where(cls.code == keys["code"]))
-                .scalars()
-                .one()
-            )
-        except:
-            return None
-
-    def top_level_count(self):
-        accessions = {p.accession for p in self.plants}
-        species = {a.species for a in accessions}
-        genera = {s.genus for s in species}
-        return {
-            (1, "Locations"): 1,
-            (2, "Plantings"): len(self.plants),
-            (3, "Living plants"): sum(p.quantity for p in self.plants),
-            (4, "Accessions"): {a.id for a in accessions},
-            (5, "Species"): {s.id for s in species},
-            (6, "Genera"): {g.id for g in genera},
-            (7, "Families"): {g.family.id for g in genera},
-            (8, "Sources"): {
-                a.source.source_detail.id
-                for a in accessions
-                if a.source and a.source.source_detail
-            },
-        }
-
-from .plant import PlantChange
-
-Location.plants_from_location = relationship(
-    "bauble.plugins.garden.plant.PlantChange",
-    primaryjoin="Location.id == foreign(PlantChange.from_location_id)",
-    back_populates="from_location",
-    overlaps="plants_from_location"
-)
-
-Location.plants_to_location = relationship(
-    "bauble.plugins.garden.plant.PlantChange",
-    primaryjoin="Location.id == foreign(PlantChange.to_location_id)",
-    back_populates="to_location",
-    overlaps="plants_to_location"
-)
-
-LocationNote: Any = db.make_note_class("Location", Location, compute_serializable_fields)
-Location.notes: Mapped[List["LocationNote"]] = relationship(
-    "LocationNote",
-    back_populates="location",
-    cascade="all, delete-orphan",
-    single_parent=True,
-)
 
 
 def mergevalues(value1, value2, formatter):
@@ -367,9 +232,7 @@ class LocationEditorPresenter(GenericEditorPresenter):
                 f"'{entry_widget.get_text()}' does not identify a valid location"
             )
             return
-        logger.debug(
-            f"request to merge {self.model} into {self.merger_candidate}"
-        )
+        logger.debug(f"request to merge {self.model} into {self.merger_candidate}")
 
         md = Gtk.MessageDialog(
             transient_for=self.view.get_window(),
@@ -402,7 +265,7 @@ class LocationEditorPresenter(GenericEditorPresenter):
 
         # step 1: update tables plant and plant_changes, by altering all
         # references to self.merger_candidate into references to self.model.
-        from bauble.plugins.garden.plant import Plant, PlantChange
+        from bauble.plugins.garden.models import Plant, PlantChange
 
         for p in (
             self.session.execute(
@@ -501,11 +364,15 @@ class LocationEditor(GenericModelViewPresenterEditor):
     RESPONSE_NEXT: int = 22
     ok_responses: Any = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model: Optional[Any] = None, parent: Optional[Any] = None) -> None:
+    def __init__(
+        self, model: Optional[Any] = None, parent: Optional[Any] = None
+    ) -> None:
         """
         :param model: Location instance or None
         :param parent: the parent widget or None
         """
+        from bauble.plugins.garden import Location
+
         # view and presenter are created in self.start()
         self.view = None
         self.presenter = None
@@ -565,7 +432,8 @@ class LocationEditor(GenericModelViewPresenterEditor):
             e = LocationEditor(parent=self.parent)
             more_committed = e.start()
         elif response == self.RESPONSE_OK_AND_ADD:
-            from bauble.plugins.garden.plant import Plant, PlantEditor
+            from bauble.plugins.garden.models import Plant
+            from bauble.plugins.garden.plant import PlantEditor
 
             e = PlantEditor(Plant(location=self.model), self.parent)
             more_committed = e.start()
@@ -594,6 +462,7 @@ class LocationEditor(GenericModelViewPresenterEditor):
 class GeneralLocationExpander(InfoExpander):
 
     current_obj: Any
+
     def __init__(self, widgets) -> None:
         """ """
         super().__init__(_("General"), widgets)
@@ -611,7 +480,7 @@ class GeneralLocationExpander(InfoExpander):
     def update(self, row) -> None:
         """ """
         self.current_obj = row
-        from bauble.plugins.garden.plant import Plant
+        from bauble.plugins.garden.models import Plant
 
         self.widget_set_value(
             "loc_name_data",
@@ -655,11 +524,13 @@ class LocationInfoBox(InfoBox):
     """
     an InfoBox for a Location table row
     """
+
     widgets: Any
     general: Any
     description: Any
     mapinfo: Any
     properties_expander: Any
+
     def __init__(self) -> None:
         """ """
         super().__init__()
@@ -691,9 +562,3 @@ class LocationInfoBox(InfoBox):
         self.description.update(row)
         self.mapinfo.update(row)
         self.properties_expander.update(row)
-
-if typing.TYPE_CHECKING:
-    from bauble.plugins.garden.source import Location, Plant    
-else:
-    __import__('bauble.plugins.garden.plant.Plant')
-    __import__('bauble.plugins.garden.location.Location')    

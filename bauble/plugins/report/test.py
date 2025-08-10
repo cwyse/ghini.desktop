@@ -20,18 +20,17 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
 import os
+from collections.abc import Generator
+from typing import Any
 
 import pytest
-from sqlalchemy import select
-
-from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
+from bauble.plugins.garden.models import Accession, Contact, Location, Plant, Source
 from bauble.plugins.plants import Family, Genus, Species, VernacularName
 from bauble.plugins.report import get_pertinent_objects
 from bauble.plugins.tag import Tag, tag_objects
 from bauble.test import check_dupids
+from sqlalchemy import select
 
-from typing import Any
-from collections.abc import Generator
 logger: Any = logging.getLogger(__name__)
 
 
@@ -185,10 +184,10 @@ class TestReport:
         Family = dynamic_import("bauble.plugins.plants", "Family")
         Genus = dynamic_import("bauble.plugins.plants", "Genus")
         Species = dynamic_import("bauble.plugins.plants", "Species")
-        Accession = dynamic_import("bauble.plugins.garden", "Accession")
-        Contact = dynamic_import("bauble.plugins.garden", "Contact")
-        Plant = dynamic_import("bauble.plugins.garden", "Plant")
-        Location = dynamic_import("bauble.plugins.garden", "Location")
+        Accession = dynamic_import("bauble.plugins.garden.models", "Accession")
+        Contact = dynamic_import("bauble.plugins.garden.models", "Contact")
+        Plant = dynamic_import("bauble.plugins.garden.models", "Plant")
+        Location = dynamic_import("bauble.plugins.garden.models", "Location")
         VernacularName = dynamic_import("bauble.plugins.plants", "VernacularName")
         Tag = dynamic_import("bauble.plugins.tag", "Tag")
 

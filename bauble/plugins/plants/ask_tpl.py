@@ -21,7 +21,6 @@ import threading
 from typing import Any, Callable, Optional, Union
 
 import requests
-from typing import Any
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -39,13 +38,19 @@ class AskTPL(threading.Thread):
     def __init__(
         self,
         binomial: Optional[str],
-        callback: Callable[[Optional[dict[str, Any]], Optional[Union[dict[str, Any], list[dict[str, Any]]]]], None],
+        callback: Callable[
+            [
+                Optional[dict[str, Any]],
+                Optional[Union[dict[str, Any], list[dict[str, Any]]]],
+            ],
+            None,
+        ],
         threshold: float = 0.8,
         timeout: int = 4,
         gui: bool = False,
         group: Optional[Any] = None,
         verbose: Optional[bool] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         super().__init__(group=group, target=None, name=None)
         logger.debug(
@@ -279,9 +284,7 @@ class AskTPL(threading.Thread):
             if len(candidates) > 1:
                 for item in candidates:
                     g, s = item["Genus"], item["Species"]
-                    seq = difflib.SequenceMatcher(
-                        a=self.binomial, b=f"{g} {s}"
-                    )
+                    seq = difflib.SequenceMatcher(a=self.binomial, b=f"{g} {s}")
                     item["_score_"] = seq.ratio()
 
                 found = sorted(
@@ -334,10 +337,7 @@ class AskTPL(threading.Thread):
         self.__class__.running = None
         logger.debug(f"{self.name} before invoking callback")
         if self.gui:
-            import gi
-
-            gi.require_version("Gtk", "3.0")
-            from gi.repository import GLib
+            from bauble.gtkinit import GLib
 
             GLib.idle_add(self.callback, found, accepted)
         else:
@@ -359,7 +359,7 @@ from typing import Any
 
 def what_to_do_with_it(
     found: Optional[dict[str, Any]],
-    accepted: Optional[Union[dict[str, Any], list[dict[str, Any]]]]
+    accepted: Optional[Union[dict[str, Any], list[dict[str, Any]]]],
 ) -> None:
     if found is None and accepted is None:
         logger.info("nothing matches")

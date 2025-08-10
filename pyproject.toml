@@ -146,3 +146,7 @@ venvPath = "."
 venv = ".venv"
 reportMissingImports = true
 reportMissingTypeStubs = false
+# pyproject.toml
+executionEnvironments = [
+  { extraPaths = ["src", "lib", "bauble/plugins"] }
+]

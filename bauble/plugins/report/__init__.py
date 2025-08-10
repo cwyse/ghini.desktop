@@ -23,8 +23,7 @@ import os
 import traceback
 from gettext import gettext as _
 from threading import Thread
-
-import gi
+from typing import Any
 
 import bauble
 import bauble.paths as bpaths
@@ -32,26 +31,18 @@ import bauble.pluginmgr as pluginmgr
 import bauble.utils as butils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.error import BaubleError
-from bauble.plugins.garden import Accession, Contact, Location, Plant, Source
+from bauble.gtkinit import GLib, Gtk
+from bauble.plugins.garden.models import Accession, Contact, Location, Plant, Source
 from bauble.plugins.plants import Family, Genus, Species, VernacularName
 from bauble.plugins.tag import Tag
 from bauble.prefs import prefs
+from sqlalchemy import select, union
 
-# from gi.repository import Gdk
-
-from bauble import pluginmgr
 from .flat_export import FlatFileExportTool as FlatFileExportTool
-from .utils import PS as PS, SVG as SVG
-from typing import Any
+
 logger: Any
 config_list_pref: str
 default_config_pref: str
-gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk
-from sqlalchemy import select, union
-
-from .flat_export import FlatFileExportTool
-from .utils import PS, SVG
 
 #
 # __init__.py
@@ -348,7 +339,9 @@ class SettingsBox:
     implement this interface and return it from the formatter's get_settings
     method.
     """
+
     vbox: Any
+
     def __init__(self) -> None:
         # Create an instance of Gtk.VBox instead of subclassing it
         self.vbox = Gtk.VBox()
@@ -486,9 +479,7 @@ class FormatterPlugin(pluginmgr.Plugin):
                     )
                     domain = ""
         except Exception as e:
-            logger.debug(
-                f"template {name} can't be read - {type(e).__name__}({e})"
-            )
+            logger.debug(f"template {name} can't be read - {type(e).__name__}({e})")
             domain = ""
 
         return domain
@@ -560,6 +551,7 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
     function, and die.
 
     """
+
     # to be populated by template plugins
     formatter_class_map: Any
     hard_coded_options: Any
@@ -807,7 +799,9 @@ class ReportToolDialogPresenter(GenericEditorPresenter):
     def set_bool_option(self, widget, fname) -> None:
         self.options[fname] = widget.get_active()
 
-    def add_name_to_combo_and_select_it(self, name, plugin, is_package_template) -> None:
+    def add_name_to_combo_and_select_it(
+        self, name, plugin, is_package_template
+    ) -> None:
         """the names tells it all
 
         scan through the names_ls, first compare with column:1, which holds

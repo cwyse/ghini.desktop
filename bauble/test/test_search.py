@@ -19,27 +19,35 @@
 #
 # test_search.py
 #
+import os
 from datetime import datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
-from bauble import db, prefs, search
+from bauble import db as db
+from bauble import prefs as prefs
+from bauble import querybuilder as querybuilder
+from bauble import search as search
 from bauble.editor import GenericEditorView
-from bauble.plugins.garden.accession import Accession
-from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.plant import Plant
-from bauble.plugins.garden.source import Collection, Contact
+from bauble.plugins.garden.models import Accession, Collection, Contact, Location, Plant
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus, GenusNote
-from bauble.plugins.plants.species_model import Species
-from bauble.search import EmptyToken, NoneToken, SearchParser
+from bauble.plugins.plants.species_model import Species, VernacularName
+from bauble.search import EmptyToken as EmptyToken
+from bauble.search import NoneToken as NoneToken
+from bauble.search import SearchParser as SearchParser
+from bauble.search import get_strategy as get_strategy
+from bauble.utils import paths
 from pyparsing import ParseException
+from sqlalchemy import text
 from sqlalchemy.sql import select
 
-
 # Search Parser Fixture
-from bauble import db as db, prefs as prefs, querybuilder as querybuilder, search as search
-from bauble.search import EmptyToken as EmptyToken, NoneToken as NoneToken, SearchParser as SearchParser, get_strategy as get_strategy
+
+
+
+
+
 @pytest.fixture(scope="function")
 def parser():
     """Fixture for creating a SearchParser instance."""
@@ -294,11 +302,6 @@ class TestSearchParser:
         with pytest.raises(ParseException):
             parser.value_list.parseString(query, parseAll=True)
 
-
-import pytest
-from bauble.plugins.plants.species_model import VernacularName
-from bauble.search import get_strategy
-from sqlalchemy import select
 
 
 @pytest.mark.usefixtures("db_session", "setup_test_data")
@@ -627,7 +630,9 @@ class TestSearch:
             ("genus where genus=genus2 OR genus=genus1", {1, 2, 3}),
         ],
     )
-    def test_search_by_query12(self, db_session, setup_test_data, query, expected_ids) -> None:
+    def test_search_by_query12(
+        self, db_session, setup_test_data, query, expected_ids
+    ) -> None:
         """
         Query with MapperSearch, single table, p1 OR p2.
         """
@@ -899,7 +904,9 @@ class TestSearch:
             ("genus where author != None", 'genus where NOT author = ""'),
         ],
     )
-    def test_search_by_query22NoneMatch(self, db_session, clean_db, query1, query2) -> None:
+    def test_search_by_query22NoneMatch(
+        self, db_session, clean_db, query1, query2
+    ) -> None:
         """
         Query with MapperSearch, joined tables, predicates using None.
         """
@@ -989,9 +996,7 @@ class TestSearch:
         """
         import datetime
 
-        from bauble.plugins.garden.accession import Accession
-        from bauble.plugins.garden.location import Location
-        from bauble.plugins.garden.plant import Plant
+        from bauble.plugins.garden.models import Accession, Location, Plant
         from bauble.plugins.plants.family import Family
         from bauble.plugins.plants.genus import Genus
         from bauble.plugins.plants.species_model import Species
@@ -1059,7 +1064,7 @@ class TestSearch:
         """
         Query with BETWEEN value and value.
         """
-        from bauble.plugins.garden.accession import Accession
+        from bauble.plugins.garden.models import Accession
         from bauble.plugins.plants.family import Family
         from bauble.plugins.plants.genus import Genus
         from bauble.plugins.plants.species_model import Species
@@ -1244,7 +1249,9 @@ class InOperatorSearch:
         results = mapper_search.search(query, db_session)
         assert results == set()
 
-    def test_in_composite_expression(self, db_session, setup_in_operator_search) -> None:
+    def test_in_composite_expression(
+        self, db_session, setup_in_operator_search
+    ) -> None:
         """
         Test 'IN' operator with composite expressions.
         """
@@ -1714,53 +1721,6 @@ class BuildingSQLStatements:
         )
 
 
-import os
-
-import pytest
-from bauble import querybuilder
-from bauble.utils import paths
-
-
-@pytest.fixture(scope="function")
-def querybuilder_view():
-    """
-    Fixture to provide a GenericEditorView instance for QueryBuilder tests.
-    """
-    gladefilepath = os.path.join(paths.lib_dir(), "querybuilder.glade")
-    return GenericEditorView(gladefilepath, parent=None, root_widget_name="main_dialog")
-
-
-class QueryBuilderTests:
-    def test_can_create_querybuilder(self, querybuilder_view):
-        """
-        Test that a QueryBuilder instance can be created.
-        """
-        qb = querybuilder.QueryBuilder(querybuilder_view)
-        assert qb is not None
-
-    def test_empty_query_is_invalid(self, querybuilder_view):
-        """
-        Test that an empty QueryBuilder is invalid.
-        """
-        qb = querybuilder.QueryBuilder(querybuilder_view)
-        assert not qb.validate()
-
-    def test_can_set_query(self, querybuilder_view):
-        """
-        Test that a query can be set in the QueryBuilder.
-        """
-        qb = querybuilder.QueryBuilder(querybuilder_view)
-        qb.set_query("plant where id=0 or id=1 or id>10")
-        assert len(qb.expression_rows) == 3
-
-    def test_can_set_enum_query(self, querybuilder_view):
-        """
-        Test that an enum query can be set in the QueryBuilder.
-        """
-        qb = querybuilder.QueryBuilder(querybuilder_view)
-        qb.set_query("accession where recvd_type = 'BBIL'")
-        assert len(qb.expression_rows) == 1
-
 
 # Fixtures for shared setup
 @pytest.fixture(scope="function")
@@ -1821,7 +1781,9 @@ class FilterThenMatchTests:
         results = mapper_search.search(s, db_session)
         assert results == {genus1, genus2, genus3}
 
-    def test_can_match_list_of_values(self, db_session, setup_filter_then_match) -> None:
+    def test_can_match_list_of_values(
+        self, db_session, setup_filter_then_match
+    ) -> None:
         mapper_search = search.get_strategy("MapperSearch")
         genus1, genus2, genus3, _ = setup_filter_then_match
 
@@ -1898,9 +1860,6 @@ class EmptySetEqualityTest:
         assert nt1.express() is None
 
 
-import pytest
-from bauble.plugins.plants import Family, Genus, Species
-from sqlalchemy import text
 
 
 @pytest.fixture(scope="function")

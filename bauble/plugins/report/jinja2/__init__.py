@@ -28,15 +28,11 @@ import re
 # import shutil
 # import tempfile
 from gettext import gettext as _
-
-import gi
+from typing import Any
 
 from bauble import paths, utils
+from bauble.gtkinit import Gtk
 from bauble.plugins.report import PS, SVG, TemplateFormatterPlugin
-
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
 
 logger: Any = logging.getLogger(__name__)
 

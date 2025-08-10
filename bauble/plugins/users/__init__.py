@@ -21,9 +21,7 @@ import logging
 import os
 import re
 from gettext import gettext as _
-
-# from bauble.error import CheckConditionError
-import gi
+from typing import Any, Optional
 
 import bauble
 import bauble.db as db
@@ -33,13 +31,11 @@ import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 from bauble.error import check
 
-from typing import Union, Optional
-from bauble import editor
-from bauble import pluginmgr
-from typing import Any
+# from bauble.error import CheckConditionError
+
+
 logger: Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from bauble.gtkinit import Gtk
 
 # from sqlalchemy import *
 from sqlalchemy import Integer
@@ -146,7 +142,9 @@ def get_groups():
     return [r[0] for r in db.engine.execute(stmt)]
 
 
-def _create_role(name, password: Optional[Any] = None, login: bool = False, admin: bool = False) -> None:
+def _create_role(
+    name, password: Optional[Any] = None, login: bool = False, admin: bool = False
+) -> None:
     """Internal helper to create a role."""
     try:
         with db.engine.begin() as conn:
@@ -163,7 +161,12 @@ def _create_role(name, password: Optional[Any] = None, login: bool = False, admi
         raise
 
 
-def create_user(name, password: Optional[Any] = None, admin: bool = False, groups: Optional[Any] = None) -> None:
+def create_user(
+    name,
+    password: Optional[Any] = None,
+    admin: bool = False,
+    groups: Optional[Any] = None,
+) -> None:
     """Create a role that can login."""
     if groups is None:
         groups = []
@@ -367,9 +370,7 @@ def has_privileges(role, privilege):
 
     # if admin check that the user can also create roles
     if privilege == "admin":
-        stmt = (
-            f"select rolname from pg_roles where rolcreaterole is true and rolname = '{role}'"
-        )
+        stmt = f"select rolname from pg_roles where rolcreaterole is true and rolname = '{role}'"
         r = db.engine.execute(stmt).fetchone()
         if not r:
             return False
@@ -478,9 +479,7 @@ def set_password(password, user: Optional[Any] = None) -> None:
 class UsersEditor(editor.GenericEditorView):
     """ """
 
-    def __init__(
-        self
-    ) -> None:
+    def __init__(self) -> None:
         """ """
         filename = os.path.join(paths.lib_dir(), "plugins", "users", "ui.glade")
         super().__init__(filename)
@@ -538,9 +537,7 @@ class UsersEditor(editor.GenericEditorView):
         self.connect("admin_button", "toggled", on_toggled, "admin")
 
         # only superusers can toggle the admin flag
-        stmt = (
-            f"select rolname from pg_roles where rolsuper is true and rolname = '{current_user()}'"
-        )
+        stmt = f"select rolname from pg_roles where rolsuper is true and rolname = '{current_user()}'"
         r = db.engine.execute(stmt).fetchone()
         if r:
             self.widgets.admin_button.set_sensitive = True

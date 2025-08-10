@@ -17,25 +17,47 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
-import datetime
+
+
 import glob
 import logging
 import os
-
-import gi
-import pytest
-
-from bauble.test import check_dupids
-
+import sqlite3
+import tempfile
+from datetime import datetime
+from decimal import Decimal
 from typing import Any
-from bauble.plugins.garden.accession import Accession as Accession, AccessionNote as AccessionNote, Voucher as Voucher
-from bauble.plugins.garden.plant import Plant as Plant, PlantChange as PlantChange, PlantNote as PlantNote, branch_callback as branch_callback, is_code_unique as is_code_unique
-from bauble.plugins.garden.propagation import PropCutting as PropCutting, PropCuttingRooted as PropCuttingRooted, PropSeed as PropSeed, Propagation as Propagation
-from bauble.utils import ilike as ilike, remove_zws as remove_zws, update_gui as update_gui
+
+import pytest
+from bauble.meta import BaubleMeta
+from bauble.plugins.garden.exporttopocket import ExportToPocketThread, create_pocket
+from bauble.plugins.garden.institution import Institution, InstitutionPresenter
+from bauble.plugins.garden.models import Accession as Accession
+from bauble.plugins.garden.models import AccessionNote as AccessionNote
+from bauble.plugins.garden.models import Collection, Location
+from bauble.plugins.garden.models import Plant as Plant
+from bauble.plugins.garden.models import PlantChange as PlantChange
+from bauble.plugins.garden.models import PlantNote as PlantNote
+from bauble.plugins.garden.models import (
+    Propagation,
+    PropCutting,
+    PropCuttingRooted,
+    PropSeed,
+    Source,
+)
+from bauble.plugins.garden.models import Voucher as Voucher
+from bauble.plugins.garden.plant import branch_callback, is_code_unique
+from bauble.plugins.plants.family import Family
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.species_model import Species
+from bauble.test import check_dupids
+from bauble.utils import ilike, remove_zws, update_gui
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+
 accession_test_data: Any
 default_cutting_values: Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from bauble.gtkinit import Gtk
 
 logger: Any = logging.getLogger(__name__)
 
@@ -53,7 +75,9 @@ plant_test_data: Any = (
     {"id": 3, "code": "2", "accession_id": 2, "location_id": 1, "quantity": 1},
 )
 
-location_test_data: Any = ({"id": 1, "name": "Somewhere Over The Rainbow", "code": "RBW"},)
+location_test_data: Any = (
+    {"id": 1, "name": "Somewhere Over The Rainbow", "code": "RBW"},
+)
 
 geographic_area_test_data: Any = [{"id": 1, "name": "Somewhere"}]
 
@@ -106,24 +130,6 @@ def test_duplicate_ids() -> None:
         assert not check_dupids(file), f"Duplicate IDs found in file: {file}"
 
 
-
-import pytest
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-
-from bauble.plugins.garden.accession import Accession
-from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.plant import (
-    Plant,
-    PlantChange,
-    PlantNote,
-    branch_callback,
-    is_code_unique,
-)
-from bauble.plugins.plants.family import Family
-from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.species_model import Species
-from bauble.utils import update_gui
 
 
 @pytest.fixture
@@ -268,15 +274,6 @@ def test_setting_quantity_to_zero_defines_date_of_death(db_session, plant_data) 
 
 
 
-import pytest
-
-from bauble.plugins.garden.accession import Voucher
-from bauble.plugins.garden.propagation import (
-    Propagation,
-    PropCutting,
-    PropCuttingRooted,
-    PropSeed,
-)
 
 # Constants for test data
 default_cutting_values = {
@@ -443,15 +440,9 @@ def test_propagation_get_summary_cutting(db_session, setup_plants) -> None:
     assert summary == expected
 
 
-import datetime
-
-import pytest
-
-from bauble.utils import remove_zws
-
 
 @pytest.fixture
-def setup_accession(db_session, setup_species):
+def setup_accession2(db_session, setup_species):
     """Fixture to create an accession and related entities."""
     species = setup_species["species"]
     accession = Accession(species=species, code="1")
@@ -471,9 +462,9 @@ def setup_location(db_session):
     return location
 
 
-def test_source_propagation_cleanup(db_session, setup_accession) -> None:
+def test_source_propagation_cleanup(db_session, setup_accession2) -> None:
     """Test cleanup of propagation when disassociated from a source."""
-    accession = setup_accession["accession"]
+    accession = setup_accession2["accession"]
     source = Source(accession=accession)
     propagation = Propagation(prop_type="Seed", source=source)
     seed = PropSeed(
@@ -504,9 +495,9 @@ def test_source_propagation_cleanup(db_session, setup_accession) -> None:
     )
 
 
-def test_accession_species_str(db_session, setup_accession) -> None:
+def test_accession_species_str(db_session, setup_accession2) -> None:
     """Test species string generation for accessions."""
-    accession = setup_accession["accession"]
+    accession = setup_accession2["accession"]
     sp_str = accession.species_str()
     expected = "Echinocactus grusonii"
     assert remove_zws(sp_str) == expected
@@ -518,9 +509,9 @@ def test_accession_species_str(db_session, setup_accession) -> None:
     assert remove_zws(sp_str) == expected
 
 
-def test_accession_delete_cascades(db_session, setup_accession, setup_location) -> None:
+def test_accession_delete_cascades(db_session, setup_accession2, setup_location) -> None:
     """Test cascading delete of accession and dependent entities."""
-    accession = setup_accession["accession"]
+    accession = setup_accession2["accession"]
     location = setup_location
     plant = Plant(accession=accession, location=location, code="1", quantity=1)
     db_session.add(plant)
@@ -538,9 +529,9 @@ def test_accession_delete_cascades(db_session, setup_accession, setup_location) 
     assert db_session.execute(select(Plant).filter_by(id=plant_id)).first() is None
 
 
-def test_accession_unique_constraint(db_session, setup_accession) -> None:
+def test_accession_unique_constraint(db_session, setup_accession2) -> None:
     """Test unique constraint on accession codes."""
-    species = setup_accession["species"]
+    species = setup_accession2["species"]
     accession = Accession(species=species, code="1")
     db_session.add(accession)
     with pytest.raises(IntegrityError):
@@ -548,9 +539,9 @@ def test_accession_unique_constraint(db_session, setup_accession) -> None:
             db_session.commit()
 
 
-def test_voucher_management(db_session, setup_accession):
+def test_voucher_management2(db_session, setup_accession2):
     """Test addition and removal of vouchers."""
-    accession = setup_accession["accession"]
+    accession = setup_accession2["accession"]
     voucher = Voucher(herbarium="ABC", code="1234567", accession=accession)
     db_session.add(voucher)
     if db_session.in_transaction():
@@ -594,17 +585,9 @@ def test_location_editor_interactions(db_session, setup_location) -> None:
     editor.session.close()
 
 
-import pytest
-
-from bauble.meta import BaubleMeta
-from bauble.plugins.garden.collection import Collection
-from bauble.plugins.garden.institution import Institution, InstitutionPresenter
-from bauble.plugins.garden.source import Source
-from bauble.utils import ilike
-
 
 @pytest.fixture
-def setup_accession(db_session, setup_species):
+def setup_accession3(db_session, setup_species):
     """Fixture to create an accession with a source."""
     species = setup_species["species"]
     accession = Accession(code="2001.0002", species=species, source=Source())
@@ -615,9 +598,9 @@ def setup_accession(db_session, setup_species):
 
 
 @pytest.fixture
-def setup_collection(db_session, setup_accession):
+def setup_collection(db_session, setup_accession3):
     """Fixture to create a collection associated with an accession."""
-    collection = Collection(locale="some location", source=setup_accession.source)
+    collection = Collection(locale="some location", source=setup_accession3.source)
     db_session.add(collection)
     if db_session.in_transaction():
         db_session.commit()
@@ -752,12 +735,6 @@ def test_institution_presenter_registration_logs_info() -> None:
     assert "desktop.open" in invoked
 
 
-from datetime import datetime
-from decimal import Decimal
-
-import pytest
-
-from bauble.plugins.garden.accession import AccessionNote
 
 
 @pytest.fixture
@@ -785,7 +762,7 @@ def parse_lat_lon_data():
 
 def test_dms_to_decimal(conversion_test_data) -> None:
     """Test converting DMS to decimal degrees."""
-    from bauble.plugins.garden.accession import dms_to_decimal
+    from bauble.plugins.garden.models import dms_to_decimal
 
     for data in conversion_test_data:
         dms, _, decimal_deg = data[:3]
@@ -797,7 +774,7 @@ def test_dms_to_decimal(conversion_test_data) -> None:
 
 def test_decimal_to_dms(conversion_test_data) -> None:
     """Test converting decimal degrees to DMS."""
-    from bauble.plugins.garden.accession import latitude_to_dms, longitude_to_dms
+    from bauble.plugins.garden.models import latitude_to_dms, longitude_to_dms
 
     for data in conversion_test_data:
         dms, _, decimal_deg = data[:3]
@@ -867,15 +844,6 @@ def test_location_retrieve_or_create_with_timestamps(db_session) -> None:
     Location.retrieve_or_create(db_session, {"code": "1", "_created": "2001-12-10"})
     location = Location.retrieve_or_create(db_session, {"code": "1"})
     assert location._created == datetime(2001, 12, 10)
-
-
-import sqlite3
-import tempfile
-
-import pytest
-
-from bauble.plugins.garden.exporttopocket import ExportToPocketThread, create_pocket
-
 
 @pytest.fixture
 def setup_pocket_data(db_session, setup_species):

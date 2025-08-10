@@ -20,32 +20,26 @@
 #
 # Family table definition
 #
+import importlib
 import logging
 import os
 import traceback
 import weakref
 from gettext import gettext as _
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 import bauble
 import bauble.btypes as types
-import bauble.db as db
 import bauble.editor as editor
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-import gi
-from bauble import db, editor
+from bauble.db import Base, Serializable, WithNotes, engine, make_note_class
+from bauble.gtkinit import Gtk
 from bauble.prefs import prefs
 from bauble.shared import InfoExpander
 from bauble.utils import handle_db_error, safe_set_props
 from bauble.view import InfoBox, PropertiesExpander, select_in_search_results
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-gi.require_version("Gtk", "3.0")
-import importlib
-
-from gi.repository import Gtk
 
 # from sqlalchemy.types import Enum
 # from sqlalchemy import text
@@ -67,7 +61,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 
 # from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Session, relationship, validates
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship, validates
 from sqlalchemy.orm.session import object_session
 
 view: Any = importlib.import_module("bauble.view")
@@ -86,7 +80,7 @@ def add_genera_callback(families):
     """
     Callback to add a genus to the first family in the provided list.
     """
-    with Session(db.engine) as session:  # Use SQLAlchemy 2.0 context manager
+    with Session(engine) as session:  # Use SQLAlchemy 2.0 context manager
         family = session.merge(families[0])  # Ensure family is in the session
         genus_instance = get_genus_class()
         genus_editor = get_genus_editor()
@@ -102,7 +96,7 @@ def remove_callback(families):
     family = families[0]
     from bauble.plugins.plants.genus import Genus
 
-    with Session(db.engine) as session:  # Use SQLAlchemy 2.0 context manager
+    with Session(engine) as session:  # Use SQLAlchemy 2.0 context manager
         family = session.merge(family)  # Ensure the family is in the session
 
         # Use SQLAlchemy 2.0-style query
@@ -174,7 +168,7 @@ def compute_serializable_fields(cls, session, keys):
     return result
 
 
-class FamilySynonym(db.Base):
+class FamilySynonym(Base):
     """
     :Table name: family_synonyms
 
@@ -188,12 +182,15 @@ class FamilySynonym(db.Base):
 
         *family*:
     """
+
     __tablename__: str = "family_synonym"
 
     # columns
     id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
     family_id: Mapped[int] = mapped_column(ForeignKey("family.id"), nullable=False)
-    synonym_id: Mapped[int] = mapped_column(ForeignKey("family.id"), nullable=False, unique=True)
+    synonym_id: Mapped[int] = mapped_column(
+        ForeignKey("family.id"), nullable=False, unique=True
+    )
 
     # Relationships
     synonym: Mapped["Family"] = relationship(
@@ -218,7 +215,7 @@ class FamilySynonym(db.Base):
         return Family.str(self.synonym)
 
 
-class Family(db.Base, db.Serializable, db.WithNotes):
+class Family(Base, Serializable, WithNotes):
     """
     :Table name: family
 
@@ -244,6 +241,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     :Constraints:
         The family table has a unique constraint on family/qualifier.
     """
+
     qualifier: Any
     synonyms: Any
     __tablename__: str = "family"
@@ -324,7 +322,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
     def str(family, qualifier: bool = False, author: bool = False):
         # author is not in the model but it really should
         if family.epithet is None:
-            return db.Base.__repr__(family)
+            return Base.__repr__(family)
         else:
             return " ".join(
                 [s for s in [family.epithet, family.qualifier] if s not in (None, "")]
@@ -371,7 +369,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
         return False
 
     def as_dict(self, recurse: bool = True):
-        result = db.Serializable.as_dict(self)
+        result = Serializable.as_dict(self)
         if "qualifier" in result:
             del result["qualifier"]
         result["object"] = "taxon"
@@ -460,7 +458,7 @@ class Family(db.Base, db.Serializable, db.WithNotes):
 # defining the latin alias to the class.
 Familia = Family
 
-FamilyNote: Any = db.make_note_class("Family", Family, compute_serializable_fields)
+FamilyNote: Any = make_note_class("Family", Family, compute_serializable_fields)
 Family.notes = relationship(
     "FamilyNote",
     back_populates="family",
@@ -899,7 +897,9 @@ class FamilyEditor(editor.GenericModelViewPresenterEditor):
     RESPONSE_NEXT: int = 22
     ok_responses: Any = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model: Optional[Any] = None, parent: Optional[Any] = None) -> None:
+    def __init__(
+        self, model: Optional[Any] = None, parent: Optional[Any] = None
+    ) -> None:
         """
         :param model: Family instance or None
         :param parent: the parent window or None
@@ -986,7 +986,9 @@ class GeneralFamilyExpander(InfoExpander):
     generic information about an family like number of genus, species,
     accessions and plants
     """
+
     current_obj: Any
+
     def __init__(self, widgets) -> None:
         """
 
@@ -1042,6 +1044,7 @@ class GeneralFamilyExpander(InfoExpander):
         :param row: the row to get the values from
         """
         genus_instance = get_genus_class()
+        species = get_species()
 
         self.current_obj = row
         self.widget_set_value("fam_name_data", f"<big>{row}</big>", markup=True)
@@ -1085,8 +1088,7 @@ class GeneralFamilyExpander(InfoExpander):
             return
 
         # get the number of accessions in the family
-        from bauble.plugins.garden.accession import Accession
-        from bauble.plugins.garden.plant import Plant
+        from bauble.plugins.garden.models import Accession, Plant
 
         nacc = session.execute(
             select(func.count())
@@ -1111,9 +1113,7 @@ class GeneralFamilyExpander(InfoExpander):
                 .scalars()
                 .all()
             )
-            self.widget_set_value(
-                "fam_nacc_data", f"{nacc} in {nsp_in_acc} species"
-            )
+            self.widget_set_value("fam_nacc_data", f"{nacc} in {nsp_in_acc} species")
 
         # get the number of plants in the family
         nplants = session.execute(
@@ -1212,11 +1212,13 @@ class SynonymsExpander(InfoExpander):
 
 class FamilyInfoBox(InfoBox):
     """ """
+
     widgets: Any
     general: Any
     synonyms: Any
     links: Any
     properties_expander: Any
+
     def __init__(self) -> None:
         """ """
 
@@ -1288,6 +1290,3 @@ class FamilyInfoBox(InfoBox):
         self.synonyms.update(row)
         self.links.update(row)
         self.properties_expander.update(row)
-
-
-db.Family = Family

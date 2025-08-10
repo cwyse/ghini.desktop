@@ -24,34 +24,29 @@ import os
 import traceback
 import weakref
 from gettext import gettext as _
-
-import gi
+from typing import Any, Optional
 
 import bauble
 import bauble.editor as editor
 import bauble.paths as paths
 import bauble.utils as utils
+from bauble.gtkinit import GLib, Gtk
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus, GenusSynonym
 from bauble.plugins.plants.geography import GeographicAreaMenu
+from bauble.plugins.plants.species_model import Habit as Habit
+from bauble.plugins.plants.species_model import Species as Species
 from bauble.plugins.plants.species_model import (
-    Habit,
-    Species,
-    SpeciesDistribution,
-    SpeciesSynonym,
-    VernacularName,
-    compare_rank,
-    infrasp_rank_values,
+    SpeciesDistribution as SpeciesDistribution,
+)
+from bauble.plugins.plants.species_model import SpeciesSynonym as SpeciesSynonym
+from bauble.plugins.plants.species_model import VernacularName as VernacularName
+from bauble.plugins.plants.species_model import compare_rank as compare_rank
+from bauble.plugins.plants.species_model import (
+    infrasp_rank_values as infrasp_rank_values,
 )
 from bauble.prefs import prefs
 from bauble.utils import safe_set_props
-
-from typing import Union, Optional
-from bauble import editor
-from typing import Any
-from bauble.plugins.plants.species_model import Habit as Habit, Species as Species, SpeciesDistribution as SpeciesDistribution, SpeciesSynonym as SpeciesSynonym, VernacularName as VernacularName, compare_rank as compare_rank, infrasp_rank_values as infrasp_rank_values
-gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk
 from sqlalchemy import func, select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm.session import object_session
@@ -501,8 +496,10 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         building the fullname string in the sp_fullname_label widget
         """
         self.refresh_fullname_label()
+
         def refresh(*args):
             return self.refresh_fullname_label(*args)
+
         widgets = [
             "sp_genus_entry",
             "sp_species_entry",
@@ -641,9 +638,11 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
 
 class InfraspPresenter(editor.GenericEditorPresenter):
     """ """
+
     parent_ref: Any
     _dirty: bool
     table_rows: Any
+
     def __init__(self, parent) -> None:
         """
         :param parent: the parent SpeciesEditorPresenter
@@ -689,6 +688,7 @@ class InfraspPresenter(editor.GenericEditorPresenter):
         epithet_entry: Any
         author_entry: Any
         remove_button: Any
+
         def __init__(self, presenter, level) -> None:
             """ """
             self.presenter = presenter
@@ -812,11 +812,13 @@ class InfraspPresenter(editor.GenericEditorPresenter):
 
 class DistributionPresenter(editor.GenericEditorPresenter):
     """ """
+
     parent_ref: Any
     session: Any
     _dirty: bool
     remove_menu: Any
     geo_menu: Any
+
     def __init__(self, parent) -> None:
         """
         :param parent: the parent SpeciesEditorPresenter
@@ -923,6 +925,7 @@ class VernacularNamePresenter(editor.GenericEditorPresenter):
     session: Any
     _dirty: bool
     treeview: Any
+
     def __init__(self, parent) -> None:
         """
         :param parent: the parent SpeciesEditorPresenter
@@ -1360,15 +1363,17 @@ class SpeciesEditorView(editor.GenericEditorView):
         self.widgets.sp_next_button.connect("clicked", lambda b: dialog.response(22))
 
     @staticmethod
-    def genus_completion_cell_data_func(column, renderer, model, treeiter, data: Optional[Any] = None) -> None:
+    def genus_completion_cell_data_func(
+        column, renderer, model, treeiter, data: Optional[Any] = None
+    ) -> None:
         """ """
         v = model[treeiter][0]
-        renderer.set_property(
-            "text", f"{Genus.str(v)} ({Family.str(v.family)})"
-        )
+        renderer.set_property("text", f"{Genus.str(v)} ({Family.str(v.family)})")
 
     @staticmethod
-    def syn_cell_data_func(column, renderer, model, treeiter, data: Optional[Any] = None) -> None:
+    def syn_cell_data_func(
+        column, renderer, model, treeiter, data: Optional[Any] = None
+    ) -> None:
         """ """
         v = model[treeiter][0]
         renderer.set_property("text", str(v))
@@ -1406,7 +1411,12 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
     RESPONSE_NEXT: int = 22
     ok_responses: Any = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model: Optional[Any] = None, parent: Optional[Any] = None, is_dependent_window: bool = False) -> None:
+    def __init__(
+        self,
+        model: Optional[Any] = None,
+        parent: Optional[Any] = None,
+        is_dependent_window: bool = False,
+    ) -> None:
         """
         :param model: a species instance or None
         :param parent: the parent window or None
@@ -1482,10 +1492,8 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
             e = SpeciesEditor(Species(genus=self.model.genus), self.parent)
             more_committed = e.start()
         elif response == self.RESPONSE_OK_AND_ADD:
-            from bauble.plugins.garden.accession import (
-                Accession,
-                AccessionEditor,
-            )
+            from bauble.plugins.garden import AccessionEditor
+            from bauble.plugins.garden.models import Accession
 
             e = AccessionEditor(Accession(species=self.model), parent=self.parent)
             more_committed = e.start()
@@ -1538,7 +1546,11 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
         return self._committed
 
 
-def edit_species(model: Optional[Any] = None, parent_view: Optional[Any] = None, is_dependent_window: bool = False):
+def edit_species(
+    model: Optional[Any] = None,
+    parent_view: Optional[Any] = None,
+    is_dependent_window: bool = False,
+):
     kkk = SpeciesEditor(model, parent_view, is_dependent_window)
     kkk.start()
     result = kkk._committed

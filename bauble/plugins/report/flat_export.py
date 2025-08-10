@@ -20,20 +20,15 @@ import logging
 import os.path
 from gettext import gettext as _
 from os.path import dirname, isdir
-
-import gi
+from typing import Any, Optional
 
 import bauble
 from bauble import paths, pluginmgr
 from bauble import utils as butils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
+from bauble.gtkinit import Gdk, Gtk
 from bauble.querybuilder import SchemaMenu
 from bauble.search import MapperSearch
-
-from typing import Union, Optional
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, Gtk
 from sqlalchemy import select
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.properties import ColumnProperty
@@ -85,14 +80,16 @@ class FlatFileExporter(GenericEditorPresenter):
         }
 
     def set_model_fields(
-        self, output_file: Optional[Any] = None, domain: Optional[Any] = None, exported_fields: Optional[Any] = None, **kwargs
+        self,
+        output_file: Optional[Any] = None,
+        domain: Optional[Any] = None,
+        exported_fields: Optional[Any] = None,
+        **kwargs,
     ) -> None:
         if exported_fields is None:
             exported_fields = []
         if kwargs:
-            self.logger.warning(
-                f"set_model_fields received extra parameters {kwargs}"
-            )
+            self.logger.warning(f"set_model_fields received extra parameters {kwargs}")
 
         self.view.widget_set_value("output_file", output_file)
 
@@ -259,9 +256,8 @@ class FlatFileExporter(GenericEditorPresenter):
     def do_export(self):
         import csv
 
-        from sqlalchemy.orm.collections import InstrumentedList
-
         from bauble import db
+        from sqlalchemy.orm.collections import InstrumentedList
 
         filename = self.view.widget_get_value("output_file")
         rows_count = 0

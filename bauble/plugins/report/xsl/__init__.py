@@ -35,23 +35,20 @@ import re
 import sys
 import tempfile
 from gettext import gettext as _
-
-import gi
+from typing import Any
 
 # import bauble.db as db
 import bauble.paths as bpaths
 import bauble.prefs as prefs
 import bauble.utils as butils
 from bauble.plugins.abcd import ABCDAdapter, ABCDElement, create_abcd
-from bauble.plugins.garden.accession import Accession
-from bauble.plugins.garden.plant import Plant
+from bauble.plugins.garden.models import Accession, Plant
 from bauble.plugins.plants.species import Species
 from bauble.plugins.report import FormatterPlugin
 
-from typing import Any
 fop_cmd: str
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+
+from bauble.gtkinit import Gtk
 from sqlalchemy.orm import object_session
 
 logger: Any = logging.getLogger(__name__)
@@ -108,10 +105,12 @@ class SpeciesABCDAdapter(ABCDAdapter):
     An adapter to convert a Species to an ABCD Unit, the SpeciesABCDAdapter
     does not create a valid ABCDUnit since we can't provide the required UnitID
     """
+
     session: Any
     for_labels: Any
     species: Any
     _date_format: Any
+
     def __init__(self, species, for_labels: bool = False) -> None:
         super().__init__(species)
 
@@ -209,7 +208,9 @@ class AccessionABCDAdapter(SpeciesABCDAdapter):
     """
     An adapter to convert a Plant to an ABCD Unit
     """
+
     accession: Any
+
     def __init__(self, accession, for_labels: bool = False) -> None:
         super().__init__(accession.species, for_labels)
         self.accession = accession
@@ -337,7 +338,9 @@ class PlantABCDAdapter(AccessionABCDAdapter):
     """
     An adapter to convert a Plant to an ABCD Unit
     """
+
     plant: Any
+
     def __init__(self, plant, for_labels: bool = False) -> None:
         super().__init__(plant.accession, for_labels)
         self.plant = plant

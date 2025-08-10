@@ -1,18 +1,12 @@
 # shared.py
 
 import logging
-
-import gi
-
-from typing import Union, Optional
-from typing import Any
-gi.require_version("Gtk", "3.0")
-# from bauble.utils import safe_set_text
-from gi.repository import Gio, Gtk
+from typing import Any, Optional
 
 from bauble import prefs
+from bauble.gtkinit import Gio, Gtk
 
-# from gi.repository import Pango
+# from bauble.gtkinit import Pango
 from bauble.utils import set_widget_value
 
 logger: Any = logging.getLogger(__name__)
@@ -28,6 +22,7 @@ class InfoExpander:
 
     To extend this, implement the `update()` method.
     """
+
     # Preference for storing the expanded state
     expanded_pref: Any
     expander: Any
@@ -87,7 +82,9 @@ class InfoExpander:
         else:
             logger.warning(f"Widgets for prefix '{prefix}' not found.")
 
-    def widget_set_value(self, widget_name, value, markup: bool = False, default: Optional[Any] = None) -> None:
+    def widget_set_value(
+        self, widget_name, value, markup: bool = False, default: Optional[Any] = None
+    ) -> None:
         """
         A shorthand for L{bauble.utils.set_widget_value()}
         """
@@ -107,6 +104,7 @@ class Action:
 
     Uses `Gio.SimpleAction`, as `Gtk.Action` is deprecated in GTK 4.
     """
+
     name: Any
     label: Any
     tooltip: Any
@@ -114,8 +112,15 @@ class Action:
     callback: Any
     app: Any
     action: Any
+
     def __init__(
-        self, name, label, tooltip: Optional[Any] = None, stock_id: Optional[Any] = None, callback: Optional[Any] = None, app: Optional[Any] = None
+        self,
+        name,
+        label,
+        tooltip: Optional[Any] = None,
+        stock_id: Optional[Any] = None,
+        callback: Optional[Any] = None,
+        app: Optional[Any] = None,
     ) -> None:
         """
         :param name: Unique action name (e.g., "open").

@@ -16,15 +16,13 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from sqlalchemy import text
-
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
-
-from .taxonomy_check import species_to_fix
-
+from sqlalchemy import text
 
 from .taxonomy_check import species_to_fix as species_to_fix
+
+
 @pytest.fixture(scope="function")
 def setup_data(db_session):
     """

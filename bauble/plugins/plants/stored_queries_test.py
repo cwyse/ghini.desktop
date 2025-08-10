@@ -16,17 +16,18 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-
+from bauble import prefs
 from bauble.editor import MockView
-from bauble.plugins.plants.stored_queries import (
-    StoredQueriesModel,
-    StoredQueriesPresenter,
-)
-from bauble.prefs import testing
 
 # Enable testing mode
-from bauble.plugins.plants.stored_queries import StoredQueriesModel as StoredQueriesModel, StoredQueriesPresenter as StoredQueriesPresenter
-testing = True
+from bauble.plugins.plants.stored_queries import (
+    StoredQueriesModel as StoredQueriesModel,
+)
+from bauble.plugins.plants.stored_queries import (
+    StoredQueriesPresenter as StoredQueriesPresenter,
+)
+
+prefs.testing = True
 
 
 @pytest.mark.usefixtures("db_session")

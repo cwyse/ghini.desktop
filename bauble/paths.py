@@ -148,7 +148,9 @@ def appdata_dir() -> str:
         except Exception:
             raise Exception(
                 "Could not get path for user settings: "
-                "could not expand $HOME for user {username}".format(**dict(username=os.environ["USER"]))
+                "could not expand $HOME for user {username}".format(
+                    **dict(username=os.environ["USER"])
+                )
             )
     else:
         raise Exception("Could not get path for user settings: " "unsupported platform")

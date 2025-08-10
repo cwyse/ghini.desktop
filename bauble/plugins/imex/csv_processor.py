@@ -32,7 +32,7 @@ import queue  # For producer-consumer handling
 # from gettext import gettext as _
 import threading
 from collections.abc import Generator
-from typing import Any, Optional, Union
+from typing import Any
 
 # import bauble.pluginmgr as pluginmgr
 # import bauble.task
@@ -40,15 +40,8 @@ import bauble.utils as utils
 import sqlalchemy as sa
 from bauble.btypes import Enum
 from bauble.db import Session
-
-# from bauble import pb_set_fraction
-# from bauble.error import BaubleError
-# from gi.repository import Gtk
-from bauble.plugins.imex.unicode_utils import InvalidDataError
 from bauble.plugins.imex.unicode_utils import InvalidDataError as InvalidDataError
-from bauble.plugins.imex.unicode_utils import UnicodeReader
 from bauble.plugins.imex.unicode_utils import UnicodeReader as UnicodeReader
-from bauble.plugins.imex.unicode_utils import UnicodeWriter
 from bauble.plugins.imex.unicode_utils import UnicodeWriter as UnicodeWriter
 from sqlalchemy import Boolean
 
@@ -62,6 +55,29 @@ from sqlalchemy.sql.elements import ClauseElement
 logger: Any = logging.getLogger(__name__)
 QUOTE_STYLE: Any = csv.QUOTE_MINIMAL
 QUOTE_CHAR: str = '"'
+# TOP OF FILE (add)
+from collections.abc import Mapping
+
+
+def _as_mapping(row) -> Mapping:
+    """
+    Return a mapping view over a row that might be:
+      - SQLAlchemy Row (has ._mapping)
+      - plain dict
+      - sequence of (key, value) pairs
+    """
+    # SQLAlchemy Row / RowMapping
+    mapping = getattr(row, "_mapping", None)
+    if mapping is not None:
+        return mapping
+    # Already a dict / mapping
+    if isinstance(row, Mapping):
+        return row
+    # Last resort: try to coerce to dict
+    try:
+        return dict(row)
+    except Exception:
+        raise TypeError(f"Cannot treat object as mapping: {type(row)!r}")
 
 
 class CSVProcessor:
@@ -76,8 +92,15 @@ class CSVProcessor:
     steps_so_far: Any
     batch_queue: Any
     worker_thread: Any
+
     def __init__(
-        self, table, filename, defaults, update_every, flush_count: int = 0, steps_so_far: int = 0
+        self,
+        table,
+        filename,
+        defaults,
+        update_every,
+        flush_count: int = 0,
+        steps_so_far: int = 0,
     ) -> None:
         """
         Initialize the CSV processor.
@@ -417,33 +440,36 @@ class CSVProcessor:
 
             self.batch_queue.task_done()
 
-    def _insert_batch(self, batch_values: Optional[Any] = None):
+    from typing import Any, Iterable, Mapping, Optional
+
+    def _insert_batch(
+        self, batch_values: Optional[Iterable[Mapping[str, Any]]] = None
+    ) -> None:
         """
-        Insert the current batch of rows into the database.
-        Convert any Enum values to their corresponding string/int representations.
+        Queue a batch of rows for insertion, converting Enum values to their stored form.
 
-        :param batch_values: Optional. List of rows to insert instead of self.values.
+        Accepts rows either as plain dicts or SQLAlchemy Row objects (with ._mapping).
+        If `batch_values` is None, uses `self.values` and clears it after queuing.
         """
-        from btypes import Enum
+        # Use the correct Enum import for this codebase
+        from bauble.btypes import Enum
 
-        # Check for Enum types in batch_values or self.values
-        def convert_enum(value):
-            if isinstance(value, Enum):
-                return value.value  # Convert Enum to its stored value (string/int)
-            return value
+        def convert_enum(value: Any) -> Any:
+            return value.value if isinstance(value, Enum) else value
 
-        # Use batch_values if provided, otherwise fallback to self.values
         values_to_insert = batch_values if batch_values is not None else self.values
+        if not values_to_insert:
+            return
 
-        # Apply conversion to each row in the batch
-        fixed_values = [
-            {key: convert_enum(value) for key, value in row._mapping.items()}
-            for row in values_to_insert
-        ]
+        fixed_values = []
+        for row in values_to_insert:
+            # Support both dicts and SQLAlchemy Row objects
+            mapping = row._mapping if hasattr(row, "_mapping") else row
+            fixed_values.append({k: convert_enum(v) for k, v in mapping.items()})
 
-        # ✅ **Put batch in the queue instead of inserting directly**
+        # Put the processed batch on the queue for the consumer to insert
         self.batch_queue.put(fixed_values)
 
-        # Clear batch only if using self.values (to avoid clearing passed batch_values)
+        # Only clear the producer's buffer when we consumed self.values
         if batch_values is None:
             self.values.clear()

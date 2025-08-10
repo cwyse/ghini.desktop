@@ -23,16 +23,11 @@ The bauble.task module allows you to queue up long running tasks. The
 running tasks still block but allows the GUI to update.
 """
 import logging
-
-import fibra
-import gi
+from typing import Any
 
 import bauble
-
-from typing import Any
-schedule: Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+import fibra
+from bauble.gtkinit import Gtk
 
 logger: Any = logging.getLogger(__name__)
 
@@ -48,11 +43,14 @@ logger: Any = logging.getLogger(__name__)
 # ==0.17 since fibra doesn't seem to ensure any sort of API
 # compatibility
 
-schedule = fibra.schedule()
+schedule: Any = fibra.schedule()
 
 __running: bool = False
 __kill: bool = False
-__message_ids: Any = None
+
+# Define once at module level
+_context_id: int | None = None
+__message_ids: list[int] = []
 
 
 def running():
@@ -111,8 +109,7 @@ def queue(task) -> None:
     __running = True
     try:
         schedule.run()
-        __running = False
-    except:
+    except Exception:
         raise
     finally:
         __running = False
@@ -123,23 +120,15 @@ def queue(task) -> None:
             bauble.gui.set_busy(False)
         clear_messages()
 
-
-__message_ids = []
-
-
 def set_message(msg):
     """
     A convenience function for setting a message on the
     statusbar. Returns the message id
     """
-    if bauble.gui is None or bauble.gui.widgets is None:
+    if not (bauble.gui and bauble.gui.widgets and bauble.gui.widgets.statusbar):
         return
     global _context_id
-    try:
-        _context_id
-    except NameError as e:
-        # this is expected to happen, it's normal behaviour.
-        logger.info(e)  # global name '_context_id' is not defined
+    if _context_id is None:
         _context_id = bauble.gui.widgets.statusbar.get_context_id("__task")
         logger.info(f"new context id: {_context_id}")
     msg_id = bauble.gui.widgets.statusbar.push(_context_id, msg)
@@ -152,12 +141,9 @@ def clear_messages() -> None:
     Clear all the messages from the statusbar that were set with
     :func:`bauble.task.set_message`
     """
-    if (
-        bauble.gui is None
-        or bauble.gui.widgets is None
-        or bauble.gui.widgets.statusbar is None
-    ):
+    if not (bauble.gui and bauble.gui.widgets and bauble.gui.widgets.statusbar):
         return
-    global _context_id, __message_ids
+
     for mid in __message_ids:
         bauble.gui.widgets.statusbar.remove(_context_id, mid)
+    __message_ids.clear()

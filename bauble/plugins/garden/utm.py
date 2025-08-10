@@ -16,9 +16,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import math
-from typing import Optional, Union
-
-from typing import Any
+from typing import Any, Optional
 
 
 class OutOfRangeError(ValueError):
@@ -60,7 +58,7 @@ def to_latlon(
     zone_number: int,
     zone_letter: Optional[str] = None,
     northern: Optional[bool] = None,
-    strict: bool = True
+    strict: bool = True,
 ) -> tuple[float, float]:
     """This function convert an UTM coordinate into Latitude and Longitude
 
@@ -174,7 +172,9 @@ def to_latlon(
     )
 
 
-def from_latlon(latitude: float, longitude: float, force_zone_number: Optional[int] = None) -> tuple[float, float, int, Optional[str]]:
+def from_latlon(
+    latitude: float, longitude: float, force_zone_number: Optional[int] = None
+) -> tuple[float, float, int, Optional[str]]:
     """This function convert Latitude and Longitude to UTM coordinate
 
     Parameters

@@ -20,13 +20,15 @@
 import logging
 from gettext import gettext as _
 from itertools import chain
-from typing import Any, ClassVar, List, Optional, Union
+from typing import Any, ClassVar, List, Optional
 
 import bauble.btypes as types
-import bauble.db as db
 import bauble.error as error
 import bauble.utils as utils
-from bauble import db
+from bauble.db import Base, DefiningPictures, Serializable, WithNotes, make_note_class
+from bauble.plugins.plants.accession import Accession
+from bauble.plugins.plants.genus import Genus
+from bauble.plugins.plants.verification import Verification
 from sqlalchemy import (
     Boolean,
     Column,
@@ -46,6 +48,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 # from sqlalchemy.orm import foreign
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.orm.session import object_session
 
 __all__ = ["Species"]
 logger: Any = logging.getLogger(__name__)
@@ -133,7 +136,7 @@ def get_genus():
     return Genus
 
 
-class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
+class Species(Base, Serializable, DefiningPictures, WithNotes):
     """
     :Table name: species
 
@@ -194,6 +197,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         The combination of epithet, author, hybrid, sp_qual,
         cv_group, trade_name, genus_id
     """
+
     label_distribution: Any
     synonyms: Any
     awards: Any
@@ -214,7 +218,9 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         uselist=False,
         active_history=True,
     )
-    accessions: Mapped[List["Accession"]] = relationship("Accession", back_populates="species", uselist=True)
+    accessions: Mapped[List["Accession"]] = relationship(
+        "Accession", back_populates="species", uselist=True
+    )
 
     rank: ClassVar[str] = "species"
     link_keys: Any = ["accepted"]
@@ -585,7 +591,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         markup: bool = False,
         remove_zws: bool = False,
         genus: bool = True,
-        qualification: Optional[Any] = None
+        qualification: Optional[Any] = None,
     ):
         """
         returns a string for species
@@ -615,9 +621,11 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             escape = utils.xml_safe
 
             def italicize(s):
-                return "<i>{}</i>".format(escape(  # all but the multiplication signs
-                    s
-                ).replace("×", "</i>×<i>"))
+                return "<i>{}</i>".format(
+                    escape(s).replace(  # all but the multiplication signs
+                        "×", "</i>×<i>"
+                    )
+                )
 
             genus = italicize(genus)
             if epithet is not None:
@@ -713,7 +721,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         if self == value or self in value.synonyms:
             return  # Prevent cycles or redundant assignment
 
-        session = db.object_session(self)
+        session = object_session(self)
         if not session:
             logger.warning("species:accepted.setter - object not in session")
             return
@@ -830,7 +838,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
 
 
 def as_dict(self):
-    result = db.Serializable.as_dict(self)
+    result = Serializable.as_dict(self)
     result["species"] = self.species.str(self.species, remove_zws=True)
     return result
 
@@ -866,7 +874,7 @@ def retrieve(session, keys):
         return None
 
 
-SpeciesNote: Any = db.make_note_class(
+SpeciesNote: Any = make_note_class(
     "Species", Species, compute_serializable_fields, as_dict, retrieve
 )
 Species.notes = relationship(
@@ -878,17 +886,20 @@ Species.notes = relationship(
 )
 
 
-class SpeciesSynonym(db.Base):
+class SpeciesSynonym(Base):
     """
     :Table name: species_synonym
     """
+
     id: Any
     __tablename__: str = "species_synonym"
 
     # columns
     id = Column(Integer, primary_key=True, nullable=False)
     species_id: Any = Column(Integer, ForeignKey("species.id"), nullable=False)
-    synonym_id: Any = Column(Integer, ForeignKey("species.id"), nullable=False, unique=True)
+    synonym_id: Any = Column(
+        Integer, ForeignKey("species.id"), nullable=False, unique=True
+    )
 
     # Relationship to the main Species entity
     species: Mapped["Species"] = relationship(
@@ -918,7 +929,7 @@ class SpeciesSynonym(db.Base):
         return str(self.synonym)
 
 
-class VernacularName(db.Base, db.Serializable):
+class VernacularName(Base, Serializable):
     """
     :Table name: vernacular_name
 
@@ -970,7 +981,7 @@ class VernacularName(db.Base, db.Serializable):
         return self.species
 
     def as_dict(self):
-        result = db.Serializable.as_dict(self)
+        result = Serializable.as_dict(self)
         result["species"] = self.species.str(remove_zws=True)
         return result
 
@@ -1020,7 +1031,7 @@ class VernacularName(db.Base, db.Serializable):
         return self.species.pictures
 
 
-class DefaultVernacularName(db.Base):
+class DefaultVernacularName(Base):
     """
     :Table name: default_vernacular_name
 
@@ -1057,7 +1068,9 @@ class DefaultVernacularName(db.Base):
     )
 
     # relations
-    vernacular_name: Mapped["VernacularName"] = relationship(VernacularName, uselist=False)
+    vernacular_name: Mapped["VernacularName"] = relationship(
+        VernacularName, uselist=False
+    )
     species: Mapped["Species"] = relationship(
         "Species",
         uselist=False,
@@ -1070,7 +1083,7 @@ class DefaultVernacularName(db.Base):
         return str(self.vernacular_name)
 
 
-class SpeciesDistribution(db.Base):
+class SpeciesDistribution(Base):
     """
     :Table name: species_distribution
 
@@ -1080,6 +1093,7 @@ class SpeciesDistribution(db.Base):
 
     :Constraints:
     """
+
     id: Any
     __tablename__: str = "species_distribution"
 
@@ -1109,7 +1123,7 @@ SpeciesDistribution.geographic_area = relationship(
 )
 
 
-class Habit(db.Base):
+class Habit(Base):
     __tablename__: str = "habit"
 
     id: Any = Column(Integer, primary_key=True, autoincrement=True)
@@ -1128,7 +1142,7 @@ class Habit(db.Base):
             return str(self.code)
 
 
-class Color(db.Base):
+class Color(Base):
     __tablename__: str = "color"
 
     id: Any = Column(Integer, primary_key=True)
@@ -1145,8 +1159,3 @@ class Color(db.Base):
             return f"{self.name} ({self.code})"
         else:
             return str(self.code)
-
-
-db.Species = Species
-db.SpeciesNote = SpeciesNote
-db.VernacularName = VernacularName

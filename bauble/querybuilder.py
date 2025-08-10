@@ -19,24 +19,18 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
 from gettext import gettext as _
-
-import gi
+from typing import Any, Optional
 
 import bauble
 from bauble.editor import GenericEditorPresenter
+from bauble.gtkinit import Gtk
 from bauble.utils import safe_set_text
-
-from typing import Union, Optional
-from .querybuilderparser import BuiltQuery as BuiltQuery
-from .search import EmptyToken as EmptyToken, MapperSearch as MapperSearch
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.properties import ColumnProperty, RelationshipProperty
 
-from .querybuilderparser import BuiltQuery
-from .search import EmptyToken, MapperSearch
+from .querybuilderparser import BuiltQuery as BuiltQuery
+from .search import EmptyToken as EmptyToken
+from .search import MapperSearch as MapperSearch
 
 logger: Any = logging.getLogger(__name__)
 
@@ -70,17 +64,19 @@ class SchemaMenu:
     :param relation_filter: Function to filter relations.
     :param leading_items: List of leading items to append to the menu.
     """
+
     mapper: Any
     activate_cb: Any
     relation_filter: Any
     leading_items: Any
     menu: Any
+
     def __init__(
         self,
         mapper,
         activate_cb: Optional[Any] = None,
         relation_filter=lambda c, p: True,
-        leading_items: Optional[Any] = None
+        leading_items: Optional[Any] = None,
     ) -> None:
         if leading_items is None:
             leading_items = []
@@ -123,7 +119,9 @@ class SchemaMenu:
             self.append_menuitems(prop.mapper, prop, target=submenu)
         submenu.show_all()
 
-    def append_menuitems(self, mapper, container: Optional[Any] = None, target: Optional[Any] = None):
+    def append_menuitems(
+        self, mapper, container: Optional[Any] = None, target: Optional[Any] = None
+    ):
         """Populate target menu
 
         Construct as manu Gtk.MenuItem as the properties of `mapper` and
@@ -197,6 +195,7 @@ class SchemaMenu:
 
 class ExpressionRow:
     """ """
+
     table: Any
     presenter: Any
     menu_item_activated: bool

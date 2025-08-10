@@ -20,26 +20,21 @@ import os.path
 import re
 import threading
 from gettext import gettext as _
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
-import gi
-from bauble import db
 from bauble import db as db
-from bauble import paths as paths
-from bauble import pluginmgr
 from bauble import pluginmgr as pluginmgr
-from bauble import utils
 from bauble import utils as utils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
-
-gi.require_version("Gtk", "3.0")
-from gi.repository import GdkPixbuf, GLib, Gtk
+from bauble.gtkinit import GdkPixbuf, GLib, Gtk
 from sqlalchemy import select
 
 logger: Any = logging.getLogger(__name__)
 
 
-accno_re: Any = re.compile(r"([12][0-9][0-9][0-9]\.[0-9][0-9][0-9][0-9])(?:\.([0-9]+))?")
+accno_re: Any = re.compile(
+    r"([12][0-9][0-9][0-9]\.[0-9][0-9][0-9][0-9])(?:\.([0-9]+))?"
+)
 species_re: Any = re.compile(r"([A-Z][a-z]+(?: [a-z-]*)?)")
 picname_re: Any = re.compile(r"([A-Z]+[0-9]+)")
 number_re: Any = re.compile(r"([0-9]+)")
@@ -98,6 +93,7 @@ def decode_parts(name, acc_format: Optional[Any] = None):
 
 class ListStoreHandler(logging.Handler):
     container: Any
+
     def __init__(self, container, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.container = container
@@ -137,7 +133,7 @@ full_filename_col: int = 8
 orig_binomial_col: int = 9
 edited_binomial_col: int = 10
 
-from gi.repository import Gio
+from bauble.gtkinit import Gio
 
 
 def get_first_or_none(session, stmt):
@@ -159,7 +155,6 @@ class PictureImporterPresenter(GenericEditorPresenter):
         "filepath_entry": "filepath",
         "recurse_checkbutton": "recurse",
     }
-
 
     def create_actions(self) -> None:
         actions = {
@@ -254,16 +249,14 @@ class PictureImporterPresenter(GenericEditorPresenter):
             except GLib.GError as e:
                 logger.debug(f"picture {fname} caused GLib.GError {e}")
             except Exception as e:
-                logger.warning(
-                    f"picture {fname} caused Exception {type(e)}:{e}"
-                )
+                logger.warning(f"picture {fname} caused Exception {type(e)}:{e}")
 
     def add_rows(self, arg, dirname, fnames) -> None:
         for name in fnames:
             d = decode_parts(name, self.model.accno_format)
             if d is None:
                 continue
-            from bauble.plugins.garden.plant import Plant
+            from bauble.plugins.garden.models import Plant
 
             complete_plant_code = d["accession"] + Plant.get_delimiter() + d["plant"]
             row = [
@@ -284,7 +277,9 @@ class PictureImporterPresenter(GenericEditorPresenter):
             )
             self.review_liststore.append(row)
 
-    def on_cellrenderertext_edited(self, widget, path, new_text, *args, **kwargs) -> None:
+    def on_cellrenderertext_edited(
+        self, widget, path, new_text, *args, **kwargs
+    ) -> None:
         if widget == self.view.widgets.accno_crtext:
             self.review_liststore[path][accno_col] = self.review_liststore[path][
                 edited_accno_col
@@ -323,7 +318,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         handler = ListStoreHandler(self.view.widgets.log_liststore)
         logger.addHandler(handler)
         self.view.widgets.log_treeview.scroll_to_point(0, 0)
-        from bauble.plugins.garden import Accession, Location, Plant, PlantNote
+        from bauble.plugins.garden.models import Accession, Location, Plant, PlantNote
         from bauble.plugins.plants import Genus, Species
 
         # make sure selected location exists

@@ -18,23 +18,22 @@
 import json
 import logging
 import os
+from collections.abc import Generator
 from gettext import gettext as _
-
-import gi
-from sqlalchemy import bindparam
+from typing import Any
 
 import bauble.task
 from bauble import db, editor, paths, pb_set_fraction, pluginmgr
-from bauble.plugins.garden.accession import Accession, AccessionNote
-from bauble.plugins.garden.location import Location
-from bauble.plugins.garden.plant import Plant, PlantNote
+from bauble.gtkinit import Gtk
+from bauble.plugins.garden.models import (
+    Accession,
+    AccessionNote,
+    Location,
+    Plant,
+    PlantNote,
+)
 from bauble.plugins.plants import Familia, Genus, Species, SpeciesNote, VernacularName
-
-from typing import Any
-from collections.abc import Generator
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-from sqlalchemy import select
+from sqlalchemy import bindparam, select
 
 logger: Any = logging.getLogger(__name__)
 
@@ -61,6 +60,7 @@ class JSONExporter(editor.GenericEditorPresenter):
     """Export taxonomy and plants in JSON format.
 
     the Presenter ((M)VP)"""
+
     selection_based_on: str
     export_includes: str
     include_private: bool
@@ -446,6 +446,7 @@ class JSONImporter(editor.GenericEditorPresenter):
     the Presenter ((M)VP)
     Model (attributes container) is the Presenter itself.
     """
+
     filename: str
     update: bool
     create: bool
@@ -517,9 +518,7 @@ class JSONImporter(editor.GenericEditorPresenter):
                 if session.in_transaction():
                     if session.in_transaction():
                         session.rollback()
-                logger.warning(
-                    f"could not import {obj} ({type(e).__name__}: {e.args})"
-                )
+                logger.warning(f"could not import {obj} ({type(e).__name__}: {e.args})")
             pb_set_fraction(float(i) / n)
             yield
         if session.in_transaction():

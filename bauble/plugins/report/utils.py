@@ -22,9 +22,7 @@ import math
 import os.path
 import re
 from types import FrameType
-from typing import Callable, Optional, Union, cast
-
-from typing import Any
+from typing import Any, Optional
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -43,46 +41,190 @@ class AddQrCallable(Protocol):
         format: str = "svg",
     ) -> str: ...
 
+
 class SVG:
-    '''not a class, more a namespace - cfr PS'''
+    """not a class, more a namespace - cfr PS"""
+
     font: Any = {
-        '\\u200b': 0,
-        '!': 20, 'A': 36, 'a': 31, 'á': 31, 'Á': 38,
-        '"': 23, 'B': 34, 'b': 32, 'à': 31, 'À': 38,
-        '#': 40, 'C': 35, 'c': 28, 'â': 31, 'Â': 38,
-        '$': 32, 'D': 39, 'd': 31, 'å': 31, 'Å': 38,
-        '%': 50, 'E': 32, 'e': 30, 'ä': 31, 'Ä': 38,
-        '&': 46, 'F': 29, 'f': 18, 'ã': 31, 'Ã': 38, 'æ': 31, 'Æ': 38,
-        "'": 13, 'G': 39, 'g': 31, 'ç': 28, 'Ç': 35,
-        '(': 22, 'H': 38, 'h': 32, 'ð': 31, 'Ð': 39,
-        ')': 23, 'I': 11, 'i': 11, 'é': 30, 'É': 32,
-        '*': 32, 'J': 22, 'j': 11, 'è': 30, 'È': 31,
-        '+': 41, 'K': 35, 'k': 29, 'ê': 30, 'Ê': 32,
-        ',': 18, 'L': 28, 'l': 11, 'ë': 29, 'Ë': 32,
-        '-': 41, 'M': 39, 'm': 52, 'í': 11, 'Í': 11, 'ì': 11, 'Ì': 11,
-        '.': 18, 'N': 37, 'n': 31, 'î': 11, 'Î': 11,
-        '/': 23, 'O': 40, 'o': 31, 'ï': 11, 'Ï': 11,
-        '0': 32, 'P': 31, 'p': 32, 'ñ': 30, 'Ñ': 37,
-        '1': 32, 'Q': 39, 'q': 32, 'ó': 31, 'Ó': 40,
-        '2': 32, 'R': 35, 'r': 22, 'ò': 31, 'Ò': 40,
-        '3': 32, 'S': 34, 's': 27, 'ô': 31, 'Ô': 40,
-        '4': 32, 'T': 29, 't': 18, 'ö': 31, 'Ö': 40,
-        '5': 32, 'U': 37, 'u': 32, 'õ': 31, 'Õ': 40,
-        '6': 32, 'V': 36, 'v': 27, 'ø': 31, 'Ø': 40,
-        '7': 32, 'W': 49, 'w': 41, 'ú': 32, 'Ú': 37,
-        '8': 32, 'X': 34, 'x': 29, 'ù': 31, 'Ù': 36,
-        '9': 32, 'Y': 31, 'y': 27, 'û': 32, 'Û': 37,
-        ':': 18, 'Z': 34, 'z': 26, 'ü': 32, 'Ü': 37,
-        ';': 18, '[': 23, '{': 32, 'ý': 29, 'Ý': 30,
-        '<': 41, '\\': 23, '|': 23, 'ÿ': 30, 'Ÿ': 31,
-        '=': 41, ']': 23, '}': 32, 'ń': 31, 'Ń': 38,
-        '>': 41, '^': 40, '~': 41, 'ł': 15, 'Ł': 27,
-        '?': 27, '_': 32, ' ': 18, 'č': 26, 'Č': 35,
-        '@': 50, '`': 32, '×': 26, 'š': 26, 'Š': 35,
+        "\\u200b": 0,
+        "!": 20,
+        "A": 36,
+        "a": 31,
+        "á": 31,
+        "Á": 38,
+        '"': 23,
+        "B": 34,
+        "b": 32,
+        "à": 31,
+        "À": 38,
+        "#": 40,
+        "C": 35,
+        "c": 28,
+        "â": 31,
+        "Â": 38,
+        "$": 32,
+        "D": 39,
+        "d": 31,
+        "å": 31,
+        "Å": 38,
+        "%": 50,
+        "E": 32,
+        "e": 30,
+        "ä": 31,
+        "Ä": 38,
+        "&": 46,
+        "F": 29,
+        "f": 18,
+        "ã": 31,
+        "Ã": 38,
+        "æ": 31,
+        "Æ": 38,
+        "'": 13,
+        "G": 39,
+        "g": 31,
+        "ç": 28,
+        "Ç": 35,
+        "(": 22,
+        "H": 38,
+        "h": 32,
+        "ð": 31,
+        "Ð": 39,
+        ")": 23,
+        "I": 11,
+        "i": 11,
+        "é": 30,
+        "É": 32,
+        "*": 32,
+        "J": 22,
+        "j": 11,
+        "è": 30,
+        "È": 31,
+        "+": 41,
+        "K": 35,
+        "k": 29,
+        "ê": 30,
+        "Ê": 32,
+        ",": 18,
+        "L": 28,
+        "l": 11,
+        "ë": 29,
+        "Ë": 32,
+        "-": 41,
+        "M": 39,
+        "m": 52,
+        "í": 11,
+        "Í": 11,
+        "ì": 11,
+        "Ì": 11,
+        ".": 18,
+        "N": 37,
+        "n": 31,
+        "î": 11,
+        "Î": 11,
+        "/": 23,
+        "O": 40,
+        "o": 31,
+        "ï": 11,
+        "Ï": 11,
+        "0": 32,
+        "P": 31,
+        "p": 32,
+        "ñ": 30,
+        "Ñ": 37,
+        "1": 32,
+        "Q": 39,
+        "q": 32,
+        "ó": 31,
+        "Ó": 40,
+        "2": 32,
+        "R": 35,
+        "r": 22,
+        "ò": 31,
+        "Ò": 40,
+        "3": 32,
+        "S": 34,
+        "s": 27,
+        "ô": 31,
+        "Ô": 40,
+        "4": 32,
+        "T": 29,
+        "t": 18,
+        "ö": 31,
+        "Ö": 40,
+        "5": 32,
+        "U": 37,
+        "u": 32,
+        "õ": 31,
+        "Õ": 40,
+        "6": 32,
+        "V": 36,
+        "v": 27,
+        "ø": 31,
+        "Ø": 40,
+        "7": 32,
+        "W": 49,
+        "w": 41,
+        "ú": 32,
+        "Ú": 37,
+        "8": 32,
+        "X": 34,
+        "x": 29,
+        "ù": 31,
+        "Ù": 36,
+        "9": 32,
+        "Y": 31,
+        "y": 27,
+        "û": 32,
+        "Û": 37,
+        ":": 18,
+        "Z": 34,
+        "z": 26,
+        "ü": 32,
+        "Ü": 37,
+        ";": 18,
+        "[": 23,
+        "{": 32,
+        "ý": 29,
+        "Ý": 30,
+        "<": 41,
+        "\\": 23,
+        "|": 23,
+        "ÿ": 30,
+        "Ÿ": 31,
+        "=": 41,
+        "]": 23,
+        "}": 32,
+        "ń": 31,
+        "Ń": 38,
+        ">": 41,
+        "^": 40,
+        "~": 41,
+        "ł": 15,
+        "Ł": 27,
+        "?": 27,
+        "_": 32,
+        " ": 18,
+        "č": 26,
+        "Č": 35,
+        "@": 50,
+        "`": 32,
+        "×": 26,
+        "š": 26,
+        "Š": 35,
     }
 
     @classmethod
-    def add_text(cls, x: float, y: float, s: str, size: float, align: int = 0, italic: bool = False, strokes: int = 1, rotate: int = 0) -> tuple[str, float, float]:
+    def add_text(
+        cls,
+        x: float,
+        y: float,
+        s: str,
+        size: float,
+        align: int = 0,
+        italic: bool = False,
+        strokes: int = 1,
+        rotate: int = 0,
+    ) -> tuple[str, float, float]:
         """compute the `use` elements to be added and the width of the result
 
         align 0: left; align 1: right; align 0.5: centre
@@ -133,7 +275,16 @@ class SVG:
         )
 
     @classmethod
-    def add_code39(cls, x: float, y: float, s: str, unit: int = 1, height: int = 10, align: int = 0, colour: str = "#0000ff") -> tuple[str, float, float]:
+    def add_code39(
+        cls,
+        x: float,
+        y: float,
+        s: str,
+        unit: int = 1,
+        height: int = 10,
+        align: int = 0,
+        colour: str = "#0000ff",
+    ) -> tuple[str, float, float]:
         """return svg code corresponding to barcode for string s"""
         result_list = []
         cumulative_x = 0
@@ -151,15 +302,15 @@ class SVG:
         shift = -align * cumulative_x
         result_list.insert(
             0,
-            (
-                f'<g transform="translate({x},{y})scale({unit},1)translate({shift},0)">'
-            ),
+            (f'<g transform="translate({x},{y})scale({unit},1)translate({shift},0)">'),
         )
         result_list.append("</g>")
         return "".join(result_list), x + cumulative_x + shift, y
 
     @classmethod
-    def add_qr(cls, x: float, y: float, text: str, scale: int = 1, side: Optional[int] = None) -> str:
+    def add_qr(
+        cls, x: float, y: float, text: str, scale: int = 1, side: Optional[int] = None
+    ) -> str:
         return add_qr(x, y, text, scale, side, format="svg")
 
 
@@ -497,9 +648,16 @@ class PS:
 
     @classmethod
     def add_text(
-        cls, x: float, y: float, s: str, style: str = "sans", size: int = 12, align: int = 0, stretch: int = 1, maxwidth: Optional[int] = None
+        cls,
+        x: float,
+        y: float,
+        s: str,
+        style: str = "sans",
+        size: int = 12,
+        align: int = 0,
+        stretch: int = 1,
+        maxwidth: Optional[int] = None,
     ) -> str:
-        import sys
 
         s = (s or "").replace("\u200b", "")
         glyphs = ["<"]
@@ -534,11 +692,20 @@ class PS:
         return "\n".join(result)
 
     @classmethod
-    def add_qr(cls, x: float, y: float, text: str, scale: int = 1, side: Optional[int] = None) -> str:
+    def add_qr(
+        cls, x: float, y: float, text: str, scale: int = 1, side: Optional[int] = None
+    ) -> str:
         return add_qr(x, y, text, scale, side, format="ps")
 
     @classmethod
-    def insert_picture(cls, left: int, bottom: int, width: Optional[float], height: Optional[float], name: str) -> str:
+    def insert_picture(
+        cls,
+        left: int,
+        bottom: int,
+        width: Optional[float],
+        height: Optional[float],
+        name: str,
+    ) -> str:
         """postscript string that corresponds to placing image in page
 
         left, bottom specify position of bottom-left corner of picture.
@@ -566,7 +733,7 @@ class PS:
             raise ValueError("Either width or height must be provided.")
 
         assert width is not None and height is not None  # For Mypy
-    
+
         channels = len(image.mode.strip("A"))
         try:
             chain = list(
@@ -590,7 +757,14 @@ class PS:
         return result
 
     @classmethod
-    def insert_jpeg_picture(cls, left: int, bottom: int, width: Optional[float], height: Optional[float], name: str) -> str:
+    def insert_jpeg_picture(
+        cls,
+        left: int,
+        bottom: int,
+        width: Optional[float],
+        height: Optional[float],
+        name: str,
+    ) -> str:
         """postscript string that corresponds to placing JPEG image in page
 
         left, bottom specify position of bottom-left corner of picture.
@@ -707,7 +881,13 @@ class Code39:
         return format % d
 
     @classmethod
-    def letter(cls, letter: str, height: int, translate: Optional[tuple[int, int]] = None, colour: str = "#0000ff") -> str:
+    def letter(
+        cls,
+        letter: str,
+        height: int,
+        translate: Optional[tuple[int, int]] = None,
+        colour: str = "#0000ff",
+    ) -> str:
         if translate is not None:
             transform_text = ' transform="translate({},{})"'.format(*translate)
         else:
@@ -722,15 +902,25 @@ class add_qr_functor:
     """
 
     import pyqrcode
+
     pattern: Any
     buffer: Any
+
     def __init__(self) -> None:
         self.pattern = {
             "svg": re.compile('<svg.*height="([0-9]*)".*>(<path.*>)</svg>'),
             "ps": re.compile(".* ([0-9]*).*(^/M.*)%%EOF.*", re.MULTILINE | re.DOTALL),
         }
 
-    def __call__(self, x: float, y: float, text: str, scale: int = 1, side: Optional[float] = None, format: str = "svg") -> str:
+    def __call__(
+        self,
+        x: float,
+        y: float,
+        text: str,
+        scale: int = 1,
+        side: Optional[float] = None,
+        format: str = "svg",
+    ) -> str:
         import io
 
         qr = self.pyqrcode.create(text)
@@ -752,9 +942,7 @@ class add_qr_functor:
         if side is not None:
             orig_side = float(match.group(1))
             if format == "ps":
-                transform.append(
-                    f"{side / orig_side} {side / orig_side} scale"
-                )
+                transform.append(f"{side / orig_side} {side / orig_side} scale")
             else:
                 transform.append("scale(%s)" % (side / orig_side))
         if transform:
@@ -771,7 +959,6 @@ class add_qr_functor:
 
 
 add_qr: AddQrCallable = add_qr_functor()
-
 
 
 def get_caller_template_location() -> str:

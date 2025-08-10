@@ -1,22 +1,18 @@
 import logging
 import os
+from collections.abc import Generator
+from typing import Any
 
 import pytest
-
 from bauble import db
 from bauble.error import BaubleError
-from bauble.pluginmgr import (
-    Plugin,
-    PluginRegistry,
-    _create_dependency_pairs,
-    init,
-    install,
-    plugins,
-)
+from bauble.pluginmgr import Plugin as Plugin
+from bauble.pluginmgr import PluginRegistry as PluginRegistry
+from bauble.pluginmgr import _create_dependency_pairs as _create_dependency_pairs
+from bauble.pluginmgr import init as init
+from bauble.pluginmgr import install as install
+from bauble.pluginmgr import plugins as plugins
 
-from typing import Any
-from bauble.pluginmgr import Plugin as Plugin, PluginRegistry as PluginRegistry, _create_dependency_pairs as _create_dependency_pairs, init as init, install as install, plugins as plugins
-from collections.abc import Generator
 logger: Any = logging.getLogger(__name__)
 
 
@@ -162,9 +158,8 @@ class PluginMgrTests:
                     raise
 
                 # Verify the expected record count
-                from sqlalchemy import func, select
-
                 from bauble.plugins.plants import Family
+                from sqlalchemy import func, select
 
                 stmt = select(func.count()).select_from(Family)
                 count = db_session.execute(stmt).scalar_one()

@@ -28,29 +28,22 @@ import os
 import traceback
 from gettext import gettext as _
 from random import random
-from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
-import bauble.btypes as types
 import bauble.db as db
-import bauble.meta as meta
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 import bauble.view as view
-import gi
-from bauble.editor import GenericEditorPresenter
 from bauble.editor import GenericEditorPresenter as GenericEditorPresenter
-from bauble.editor import GenericEditorView
 from bauble.editor import GenericEditorView as GenericEditorView
-from bauble.editor import GenericModelViewPresenterEditor
 from bauble.editor import (
     GenericModelViewPresenterEditor as GenericModelViewPresenterEditor,
 )
 from bauble.editor import NotesPresenter, PicturesPresenter
 from bauble.error import CheckConditionError
-
-#from bauble.plugins.garden.location import Location
-from bauble.search import SearchStrategy
+from bauble.gtkinit import Gtk
+from bauble.plugins.garden.constants import acc_type_values, change_reasons
 from bauble.shared import InfoExpander
 from bauble.utils import handle_db_error, safe_set_text
 from bauble.view import (
@@ -60,42 +53,25 @@ from bauble.view import (
     PropertiesExpander,
     select_in_search_results,
 )
-from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
-
-if TYPE_CHECKING:
-    from bauble.plugins.garden.accession import Accession
-    from bauble.plugins.garden.location import Location
-    from bauble.plugins.garden.propagation import Propagation
-
-
-plant_delimiter_key: str
-gi.require_version("Gtk", "3.0")
-from datetime import datetime
-
-from gi.repository import Gtk
 
 # from sqlalchemy import text
-from sqlalchemy import (
-    Boolean,
-    Column,
-    ForeignKey,
-    Integer,
-    Unicode,
-    UniqueConstraint,
-    and_,
-    asc,
-    func,
-    select,
-)
+from sqlalchemy import and_, bindparam, func, select
 
 # from sqlalchemy.exc import DBAPIError
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import object_mapper, relationship, validates
+from sqlalchemy.orm import object_mapper
 from sqlalchemy.orm.session import object_session
 
-#if TYPE_CHECKING:
+if TYPE_CHECKING:
+    from bauble.plugins.garden.models import Accession, Location
+
+
+
+
+
+# if TYPE_CHECKING:
 #    from .location import Location
-    
+
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -104,7 +80,7 @@ logger.setLevel(logging.INFO)
 # location combo that shows the description of the currently selected
 # location
 
-plant_delimiter_key = "plant_delimiter"
+plant_delimiter_key: str = "plant_delimiter"
 default_plant_delimiter: str = "."
 
 
@@ -127,6 +103,7 @@ def branch_callback(plants):
 
 
 def remove_callback(plants):
+    from bauble.plugins.garden import Plant
     s = ", ".join([str(p) for p in plants])
     msg = _(
         "Are you sure you want to remove the following plants?\n\n%s"
@@ -190,9 +167,11 @@ def get_next_code(acc):
 
     If there is an error getting the next code the None is returned.
     """
+    from bauble.plugins.garden import Plant
+
     # auto generate/increment the accession code
     session = db.Session()
-    from bauble.plugins.garden.accession import Accession
+    from bauble.plugins.garden.models import Accession
 
     codes = (
         session.execute(
@@ -213,14 +192,6 @@ def get_next_code(acc):
     return utils.utf8(next)
 
 
-from typing import TYPE_CHECKING
-
-import db
-import utils
-from sqlalchemy import bindparam
-
-#if TYPE_CHECKING:
-#    from bauble.plugins.garden.accession import Accession
 
 
 
@@ -231,6 +202,8 @@ def is_code_unique(plant, code):
     This method will also take range values for code that can be passed
     to utils.range_builder().
     """
+    from bauble.plugins.garden import Plant
+
     # if the range builder only creates one number then we assume the
     # code is not a range and so we test against the string version of
     # code
@@ -258,479 +231,6 @@ def is_code_unique(plant, code):
     count = session.execute(stmt, {"codes": codes}).scalar_one()
     session.close()
     return count == 0
-
-
-class PlantSearch(SearchStrategy):
-
-    def __init__(self) -> None:
-        super().__init__()
-
-    def search(self, text, session):
-        """returns a result if the text looks like a quoted plant code
-
-        special search strategy, can't be obtained in MapperSearch
-        """
-        super().search(text, session)
-
-        if text[0] == text[-1] and text[0] in ['"', "'"]:
-            text = text[1:-1]
-        else:
-            logger.debug("text is not quoted, should strategy apply?")
-            # return []
-        delimiter = Plant.get_delimiter()
-        if delimiter not in text:
-            logger.debug("delimiter not found, can't split the code")
-            return []
-        acc_code, plant_code = text.rsplit(delimiter, 1)
-        logger.debug(f"ac: {acc_code}, pl: {plant_code}")
-
-        try:
-            from bauble.plugins.garden.accession import Accession
-
-            query = session.execute(
-                select(Plant)
-                .join(Accession, Plant.accession_id == Accession.id)
-                .where(
-                    Plant.code == str(plant_code),
-                    utils.ilike(Accession.code, f"%{acc_code}%"),
-                )
-            )
-            return query.scalars().all()
-        except Exception as e:
-            logger.debug(f"{e.__class__.__name__} {e}")
-            return []
-
-
-def as_dict(self):
-    result = db.Serializable.as_dict(self)
-    result["plant"] = (
-        self.plant.accession.code + Plant.get_delimiter() + self.plant.code
-    )
-    return result
-
-
-def retrieve(cls, session, keys):
-    from bauble.plugins.garden.accession import Accession
-
-    stmt = select(cls)
-    if "plant" in keys:
-        acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
-        stmt = (
-            stmt.join(Plant)
-            .where(Plant.code == str(plant_code))
-            .join(Accession)
-            .where(Accession.code == str(acc_code))
-        )
-    if "date" in keys:
-        stmt = stmt.where(cls.date == keys["date"])
-    if "category" in keys:
-        stmt = stmt.where(cls.category == keys["category"])
-    try:
-        return session.execute(stmt).scalars().one()
-    except:
-        return None
-
-
-def compute_serializable_fields(cls, session, keys):
-    "plant is given as text, should be object"
-    from bauble.plugins.garden.accession import Accession
-
-    result = {"plant": None}
-
-    acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
-    logger.debug(f"acc-plant: {acc_code}-{plant_code}")
-    q = session.execute(
-        select(Plant)
-        .where(Plant.code == str(plant_code))
-        .join(Accession)
-        .where(Accession.code == str(acc_code))
-    )
-    plant = q.scalars().one()
-
-    result["plant"] = plant
-
-    return result
-
-
-# TODO: some of these reasons are specific to UBC and could probably be culled.
-change_reasons: Any = {
-    "DEAD": _("Dead"),
-    "DISC": _("Discarded"),
-    "DISW": _("Discarded, weedy"),
-    "LOST": _("Lost, whereabouts unknown"),
-    "STOL": _("Stolen"),
-    "WINK": _("Winter kill"),
-    "ERRO": _("Error correction"),
-    "DIST": _("Distributed elsewhere"),
-    "DELE": _("Deleted, yr. dead. unknown"),
-    "ASS#": _("Transferred to another acc.no."),
-    "FOGS": _("Given to FOGs to sell"),
-    "PLOP": _("Area transf. to Plant Ops."),
-    "BA40": _("Given to Back 40 (FOGs)"),
-    "TOTM": _("Transfered to Totem Field"),
-    "SUMK": _("Summer Kill"),
-    "DNGM": _("Did not germinate"),
-    "DISN": _("Discarded seedling in nursery"),
-    "GIVE": _("Given away (specify person)"),
-    "OTHR": _("Other"),
-    None: "",
-}
-
-
-class PlantChange(db.Base):
-    """ """
-    __tablename__: str = "plant_change"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    plant_id: Mapped[int] = mapped_column(Integer, ForeignKey("plant.id"), nullable=False)
-    parent_plant_id: Mapped[int] = mapped_column(Integer, ForeignKey("plant.id"))
-
-    # - if to_location_id is None changeis a removal
-    # - if from_location_id is None then this change is a creation
-    # - if to_location_id != from_location_id change is a transfer
-    from_location_id: Mapped[int] = mapped_column(Integer, ForeignKey("location.id"))
-    to_location_id: Mapped[int] = mapped_column(Integer, ForeignKey("location.id"))
-
-    # the name of the person who made the change
-    person: Mapped[str] = mapped_column(Unicode(64))
-
-    quantity: Mapped[int] = mapped_column(Integer, autoincrement=False, nullable=False)
-    note_id: Mapped[int] = mapped_column(Integer, ForeignKey("plant_note.id"))
-
-    reason: Any = Column(
-        types.Enum(
-            values=list(change_reasons.keys()),
-            translations=change_reasons,
-            omit_aliases=False,
-        )
-    )
-
-    # date of change
-    date: Mapped[types.DateTime] = mapped_column(types.DateTime, default=datetime.utcnow)
-    order_by: Any = [asc(date)]
-
-    # Relationships
-    plant: Mapped["Plant"] = relationship(
-        "Plant",
-        foreign_keys=[plant_id],
-        back_populates="changes",
-        uselist=False,
-        cascade="all, delete-orphan",
-        single_parent=True,
-        overlaps="changes",
-    )
-
-    parent_plant: Mapped["Plant"] = relationship(
-        "Plant",
-        foreign_keys=[parent_plant_id],
-        back_populates="branches",
-        uselist=False,
-        cascade="delete, delete-orphan",
-        single_parent=True,
-        overlaps="branches",
-        active_history=True,
-    )
-
-
-
-
-# TODO: should sex be recorded at the species, accession or plant
-# level or just as part of a check since sex can change in some species
-sex_values: Any = {"Female": _("Female"), "Male": _("Male"), "Both": ""}
-
-acc_type_values: Any = {
-    "Plant": _("Planting"),
-    "Seed": _("Seed/Spore"),
-    "Vegetative": _("Vegetative Part"),
-    "Tissue": _("Tissue Culture"),
-    "Other": _("Other"),
-    None: "",
-}
-
-
-class Plant(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
-    """
-    :Table name: plant
-
-    :Columns:
-        *code*: :class:`sqlalchemy.types.Unicode`
-            The plant code
-
-        *acc_type*: :class:`bauble.types.Enum`
-            The accession type
-
-            Possible values:
-                * Plant: Whole plant
-
-                * Seed/Spore: Seed or Spore
-
-                * Vegetative Part: Vegetative Part
-
-                * Tissue Culture: Tissue culture
-
-                * Other: Other, probably see notes for more information
-
-                * None: no information, unknown
-
-        *accession_id*: :class:`sqlalchemy.types.Integer`
-            Required.
-
-        *location_id*: :class:`sqlalchemy.types.Integer`
-            Required.
-
-    :Properties:
-        *accession*:
-            The accession for this plant.
-        *location*:
-            The location for this plant.
-        *notes*:
-            The notes for this plant.
-
-    :Constraints:
-        The combination of code and accession_id must be unique.
-    """
-    __tablename__: str = "plant"
-    __table_args__: Any = (UniqueConstraint("code", "accession_id"), {})
-
-    # columns
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    code: Mapped[str] = mapped_column(Unicode(6), nullable=False)
-
-    @validates("code")
-    def validate_stripping(self, key, value):
-        if value is None:
-            return None
-        return value.strip()
-
-    acc_type: Any = Column(
-        types.Enum(
-            values=list(acc_type_values.keys()),
-            translations=acc_type_values,
-            omit_aliases=False,
-        ),
-        default=None,
-    )
-    memorial: Mapped[bool] = mapped_column(Boolean, default=False)
-    quantity: Mapped[int] = mapped_column(Integer, autoincrement=False, nullable=False)
-
-    accession_id: Mapped[int] = mapped_column(Integer, ForeignKey("accession.id"), nullable=False)
-    location_id: Mapped[int] = mapped_column(Integer, ForeignKey("location.id"), nullable=False)
-    order_by: Any = [asc(accession_id), asc(code)]
-
-    # Relationships
-    accession: Mapped["Accession"] = relationship(
-        "Accession",
-        back_populates="plants",
-        uselist=False,
-        cascade="save-update",
-        active_history=True,
-    )
-
-    propagations: Mapped["Propagation"] = relationship(
-        "Propagation",
-        secondary="plant_prop",
-        back_populates="plants",
-        cascade="all, delete-orphan",
-        single_parent=True,
-    )
-
-    changes: Mapped["PlantChange"] = relationship(
-        "PlantChange",
-        back_populates="plant",
-        cascade="all, delete-orphan",
-        single_parent=True,
-        overlaps="plant,changes"
-    )
-
-    branches: Mapped["PlantChange"] = relationship(
-        "PlantChange",
-        back_populates="parent_plant",
-        cascade="delete, delete-orphan",
-        single_parent=True,
-        overlaps="parent_plant,branches"
-    )
-
-    location: Mapped["Location"] = relationship(
-        "Location",
-        back_populates="plants",
-        uselist=False,  # A Plant belongs to one Location
-        cascade="save-update",
-        active_history=True,
-    )
-
-
-    _delimiter: ClassVar[Any] = None
-
-    def search_view_markup_pair(self):
-        """provide the two lines describing object for SearchView row."""
-        import inspect
-
-        logger.debug(
-            f"entering search_view_markup_pair {self}, {str(inspect.stack()[1])}"
-        )
-        sp_str = self.accession.species_str(markup=True, authors=True)
-        dead_color = "#9900ff"
-        if self.quantity <= 0:
-            dead_markup = f'<span foreground="{dead_color}">{utils.xml_safe(self)}</span>'
-            return dead_markup, sp_str
-        else:
-            located_counted = (
-                f'{utils.xml_safe(self)} <span foreground="#555555" size="small" '
-                f'weight="light">- {self.quantity} alive in {utils.xml_safe(self.location)}</span>'
-            )
-            return located_counted, sp_str
-
-    @classmethod
-    def get_delimiter(cls, refresh: bool = False):
-        """
-        Get the plant delimiter from the BaubleMeta table.
-
-        The delimiter is cached the first time it is retrieved.  To refresh
-        the delimiter from the database call with refresh=True.
-
-        """
-        if cls._delimiter is None or refresh:
-            cls._delimiter = meta.get_default(
-                plant_delimiter_key, default_plant_delimiter
-            ).value
-        return cls._delimiter
-
-    @property
-    def date_of_death(self):
-        if self.quantity != 0:
-            return None
-        try:
-            return max([i.date for i in self.changes])
-        except ValueError:
-            return None
-
-    def _get_delimiter(self):
-        return Plant.get_delimiter()
-
-    delimiter: Any = property(lambda self: self._get_delimiter())
-
-    def __str__(self) -> str:
-        return f"{self.accession}{self.delimiter}{self.code}"
-
-    def duplicate(self, code: Optional[Any] = None, session: Optional[Any] = None):
-        """Return a Plant that is a flat (not deep) duplicate of self. For notes,
-        changes and propagations, you should refer to the original plant.
-
-        """
-        plant = Plant()
-        if not session:
-            session = object_session(self)
-            if session:
-                session.add(plant)
-
-        ignore = ("id", "code", "changes", "notes", "propagations", "_created")
-        properties = [
-            p for p in object_mapper(self).iterate_properties if p.key not in ignore
-        ]
-        for prop in properties:
-            setattr(plant, prop.key, getattr(self, prop.key))
-        plant.code = code
-
-        return plant
-
-    def markup(self):
-        return f"{self.accession}{self.delimiter}{self.code} ({self.accession.species_str(markup=True, authors=True)})"
-
-    def as_dict(self):
-        result = db.Serializable.as_dict(self)
-        result["accession"] = self.accession.code
-        result["location"] = self.location.code
-        return result
-
-    @classmethod
-    def compute_serializable_fields(cls, session, keys):
-        from bauble.plugins.garden.accession import Accession
-
-        result = {"accession": None, "location": None}
-
-        acc_keys = {}
-        acc_keys.update(keys)
-        acc_keys["code"] = keys["accession"]
-        accession = Accession.retrieve_or_create(
-            session,
-            acc_keys,
-            create=("taxon" in acc_keys and "rank" in acc_keys),
-        )
-
-        loc_keys = {}
-        loc_keys.update(keys)
-        if "location" in keys:
-            loc_keys["code"] = keys["location"]
-            location = Location.retrieve_or_create(session, loc_keys)
-        else:
-            location = None
-
-        result["accession"] = accession
-        result["location"] = location
-
-        return result
-
-    @classmethod
-    def retrieve(cls, session, keys):
-        from bauble.plugins.garden.accession import Accession
-
-        try:
-            return (
-                session.execute(
-                    select(cls)
-                    .join(Accession, cls.accession_id == Accession.id)
-                    .where(
-                        cls.code == keys["code"],
-                        Accession.code == keys["accession"],
-                    )
-                )
-                .scalars()
-                .one()
-            )
-        except:
-            return None
-
-    def top_level_count(self):
-        sd = self.accession.source and self.accession.source.source_detail
-        return {
-            (1, "Plantings"): 1,
-            (2, "Accessions"): {self.accession.id},
-            (3, "Species"): {self.accession.species.id},
-            (4, "Genera"): {self.accession.species.genus.id},
-            (5, "Families"): {self.accession.species.genus.family.id},
-            (6, "Living plants"): self.quantity,
-            (7, "Locations"): {self.location.id},
-            (8, "Sources"): set(sd and [sd.id] or []),
-        }
-
-#from .location import Location
-
-PlantChange.from_location: Mapped["Location"] = relationship(
-        "bauble.plugins.garden.location.Location",
-        foreign_keys=[PlantChange.from_location_id],
-        #primaryjoin="PlantChange.from_location_id == foreign(Location.id)",
-        uselist=False,  # One-to-one relationship with Location
-        active_history=True,
-        overlaps="from_location",
-        back_populates="plants_from_location"
-    )
-PlantChange.to_location: Mapped["Location"] = relationship(
-        "bauble.plugins.garden.location.Location",
-        foreign_keys=[PlantChange.to_location_id],
-        uselist=False,  # One-to-one relationship with Location
-        active_history=True,
-        overlaps="to_location",
-        back_populates="plants_to_location"
-    )
-PlantNote: Any = db.make_note_class(
-    "Plant", Plant, compute_serializable_fields, as_dict, retrieve
-)
-Plant.notes: Mapped["PlantNote"] = relationship(
-    "PlantNote",
-    back_populates="plant",
-    cascade="all, delete-orphan",
-    single_parent=True,
-)
 
 
 class PlantEditorView(GenericEditorView):
@@ -822,6 +322,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         :param model: should be an instance of Plant class
         :param view: should be an instance of PlantEditorView
         """
+        from bauble.plugins.garden.models import PlantChange
         super().__init__(model, view)
         self.create_toolbar()
         self.session = object_session(model)
@@ -851,7 +352,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         pictures_parent.foreach(pictures_parent.remove)
         self.pictures_presenter = PicturesPresenter(self, "notes", pictures_parent)
 
-        from bauble.plugins.garden.propagation import PropagationTabPresenter
+        from bauble.plugins.garden.propagation_editor import PropagationTabPresenter
 
         self.prop_presenter = PropagationTabPresenter(
             self, self.model, self.view, self.session
@@ -909,7 +410,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         # assign signal handlers to monitor changes now that the view has
         # been filled in
         def acc_get_completions(text):
-            from bauble.plugins.garden.accession import Accession
+            from bauble.plugins.garden.models import Accession
 
             query = self.session.execute(
                 select(Accession)
@@ -1091,6 +592,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         self.refresh_sensitivity()
 
     def on_loc_button_clicked(self, button, cmd: Optional[Any] = None) -> None:
+        from bauble.plugins.garden import LocationEditor as LocationEditor
         location = self.model.location
         combo = self.view.widgets.plant_loc_comboentry
         if cmd == "edit" and location:
@@ -1139,7 +641,11 @@ class PlantEditorPresenter(GenericEditorPresenter):
         return self.view.start()
 
 
-def move_quantity_between_plants(from_plant, to_plant, to_plant_change: Optional[Any] = None) -> None:
+def move_quantity_between_plants(
+    from_plant, to_plant, to_plant_change: Optional[Any] = None
+) -> None:
+    from bauble.plugins.garden.models import PlantChange as PlantChange
+
     ######################################################
     s = object_session(to_plant)
     if to_plant_change is None:
@@ -1173,12 +679,18 @@ class PlantEditor(GenericModelViewPresenterEditor):
     RESPONSE_NEXT: int = 22
     ok_responses: Any = (RESPONSE_NEXT,)
 
-    def __init__(self, model: Optional[Any] = None, parent: Optional[Any] = None, branch_mode: bool = False) -> None:
+    def __init__(
+        self,
+        model: Optional[Any] = None,
+        parent: Optional[Any] = None,
+        branch_mode: bool = False,
+    ) -> None:
         """
         :param model: Plant instance or None
         :param parent: None
         :param branch_mode:
         """
+        from bauble.plugins.garden.models import Plant as Plant
         if branch_mode:
             if model is None:
                 raise CheckConditionError("branch_mode requires a model")
@@ -1227,6 +739,9 @@ class PlantEditor(GenericModelViewPresenterEditor):
 
     def commit_changes(self) -> None:
         """ """
+        from bauble.plugins.garden.models import Plant as Plant
+        from bauble.plugins.garden.models import PlantNote as PlantNote
+
         codes = utils.range_builder(self.model.code)
         if (
             len(codes) <= 1
@@ -1302,6 +817,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
         self._committed.extend(plants)
 
     def handle_response(self, response):
+        from bauble.plugins.garden.models import Plant as Plant
         not_ok_msg = _("Are you sure you want to lose your changes?")
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
             if self.presenter.dirty():
@@ -1340,8 +856,8 @@ class PlantEditor(GenericModelViewPresenterEditor):
         return True
 
     def start(self):
-        from bauble.plugins.garden.accession import Accession
-
+        from bauble.plugins.garden import LocationEditor as LocationEditor
+        from bauble.plugins.garden.models import Accession as Accession
         sub_editor = None
         from sqlalchemy import func
 
@@ -1409,7 +925,9 @@ class GeneralPlantExpander(InfoExpander):
     """
     general expander for the PlantInfoBox
     """
+
     current_obj: Any
+
     def __init__(self, widgets) -> None:
         """ """
         super().__init__(_("General"), widgets)
@@ -1476,7 +994,9 @@ class ChangesExpander(InfoExpander):
     """
     ChangesExpander
     """
+
     table: Any
+
     def __init__(self, widgets) -> None:
         """ """
         super().__init__(_("Changes"), widgets)
@@ -1520,19 +1040,21 @@ class ChangesExpander(InfoExpander):
             label.set_alignment(0, 0)
             self.table.attach(label, 0, current_row, 1, 1)
             if change.to_location and change.from_location:
-                s = "{quantity} Transferred from {from_loc} to {to}".format(**dict(
-                    quantity=change.quantity,
-                    from_loc=change.from_location,
-                    to=change.to_location,
-                ))
+                s = "{quantity} Transferred from {from_loc} to {to}".format(
+                    **dict(
+                        quantity=change.quantity,
+                        from_loc=change.from_location,
+                        to=change.to_location,
+                    )
+                )
             elif change.quantity < 0:
-                s = "{quantity} Removed from {location}".format(**dict(
-                    quantity=-change.quantity, location=change.from_location
-                ))
+                s = "{quantity} Removed from {location}".format(
+                    **dict(quantity=-change.quantity, location=change.from_location)
+                )
             elif change.quantity > 0:
-                s = "{quantity} Added to {location}".format(**dict(
-                    quantity=change.quantity, location=change.to_location
-                ))
+                s = "{quantity} Added to {location}".format(
+                    **dict(quantity=change.quantity, location=change.to_location)
+                )
             else:
                 s = f"{change.quantity}: {change.from_location} -> {change.to_location}"
             if change.reason is not None:
@@ -1580,15 +1102,6 @@ class ChangesExpander(InfoExpander):
 def label_size_allocate(widget, rect) -> None:
     widget.set_size_request(rect.width, -1)
 
-
-import gi
-
-gi.require_version("Gtk", "3.0")
-gi.require_version("Pango", "1.0")
-
-
-from bauble import utils
-from bauble.shared import InfoExpander
 
 
 class PropagationExpander(InfoExpander):
@@ -1659,6 +1172,7 @@ class PlantInfoBox(InfoBox):
     """
     An InfoBox for a Plants table row.
     """
+
     widgets: Any
     general: Any
     transfers: Any
@@ -1666,6 +1180,7 @@ class PlantInfoBox(InfoBox):
     links: Any
     mapinfo: Any
     properties_expander: Any
+
     def __init__(self) -> None:
         """Initialize PlantInfoBox."""
         super().__init__()
@@ -1729,14 +1244,3 @@ class PlantInfoBox(InfoBox):
 
         # Properties expander
         self.properties_expander.update(row)
-
-#from bauble.plugins.garden.accession import Accession
-#from sqlalchemy.orm import configure_mappers
-
-#configure_mappers()
-if typing.TYPE_CHECKING:
-    from bauble.plugins.garden.source import Accession, Location, Plant    
-else:
-    __import__('bauble.plugins.garden.accession.Accession')
-    __import__('bauble.plugins.garden.plant.Plant')
-    __import__('bauble.plugins.garden.location.Location') 

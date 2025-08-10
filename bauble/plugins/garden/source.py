@@ -28,65 +28,37 @@ import traceback
 import weakref
 from gettext import gettext as _
 from random import random
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import Any, Optional
 
-from bauble.plugins.garden.propagation import Propagation
-from sqlalchemy.orm import Mapped, relationship
-
-if TYPE_CHECKING:
-    from bauble.plugins.garden.accession import Accession, Propagation
-
-import bauble.btypes as types
 import bauble.db as db
 import bauble.editor as editor
 import bauble.paths as paths
 import bauble.utils as utils
-import gi
-from bauble import db, editor
+from bauble.gtkinit import Gdk, GLib, Gtk
+from bauble.plugins.garden.models import Contact, Source
 from bauble.plugins.plants.geography import GeographicArea, GeographicAreaMenu
 from bauble.utils import safe_set_text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import select
 
-view: Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, GLib, Gtk
-
-# from bauble.shared import InfoExpander
-# from sqlalchemy import text
-from sqlalchemy import (
-    Column,
-    Float,
-    ForeignKey,
-    Integer,
-    Unicode,
-    UnicodeText,
-    asc,
-    select,
-)
-from sqlalchemy.orm import relationship
-
-# from bauble.plugins.garden.propagation import Propagation
-# from sqlalchemy.ext.declarative import declared_attr
-
-view = importlib.import_module("bauble.view")
+view: Any = importlib.import_module("bauble.view")
 logger: Any = logging.getLogger(__name__)
 
 
 def collection_edit_callback(coll):
-    from bauble.plugins.garden.accession import edit_callback
+    from bauble.plugins.garden.accession_editor import edit_callback
 
     # TODO: set the tab to the source tab on the accession editor
     return edit_callback([coll[0].source.accession])
 
 
 def collection_add_plants_callback(coll):
-    from bauble.plugins.garden.accession import add_plants_callback
+    from bauble.plugins.garden.accession_editor import add_plants_callback
 
     return add_plants_callback([coll[0].source.accession])
 
 
 def collection_remove_callback(coll):
-    from bauble.plugins.garden.accession import remove_callback
+    from bauble.plugins.garden.accession_editor import remove_callback
 
     return remove_callback([coll[0].source.accession])
 
@@ -117,115 +89,6 @@ collection_context_menu: Any = [
 ]
 
 
-# class SourceBase:
-#     def __init_subclass__(cls, **kwargs) -> None:
-#         super().__init_subclass__(**kwargs)
-
-#         # This propagation relationship links a Source to a specific
-#         # Propagation that is not tied to a Plant. It likely represents
-#         # a propagation trial or source-related propagation activity
-#         # independent of the plant hierarchy.
-
-#         # Add the propagation_id column dynamically to the subclass
-#         cls.propagation_id: Mapped[int] = mapped_column(ForeignKey("propagation.id"))
-
-#         # Add the propagation relationship dynamically to the subclass
-#         cls.propagation: Mapped["Propagation"] = relationship(
-#             lambda: Propagation,
-#             uselist=False,
-#             back_populates="source",
-#             cascade="all, delete-orphan",
-#             single_parent=True,
-#             foreign_keys=[cls.propagation_id],
-#             active_history=True,
-#         )
-
-
-class Source(db.Base):
-    """connected 1-1 to Accession.
-
-    Source objects have the function to add fields to one Accession.  From
-    an Accession, to access the fields added here you obviously still need
-    to go through its `.source` member.
-
-    Create an Accession a, then create a Source s, then assign a.source = s
-
-    """
-    sources_code: Any
-    __tablename__: str = "source"
-    # ITF2 - E7 - Donor's Accession Identifier - donacc
-    sources_code: Mapped[str] = mapped_column(Unicode(32))
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-
-    accession_id: Mapped[int] = mapped_column(ForeignKey("accession.id"), unique=True)
-    accession: Mapped["Accession"] = relationship("Accession", back_populates="source")
-
-    source_detail_id: Mapped[int] = mapped_column(ForeignKey("contact.id"))
-    source_detail: Mapped["Contact"] = relationship(
-        "Contact",
-        uselist=False,
-        back_populates="sources",
-        cascade="all, delete-orphan",
-        single_parent=True,
-        active_history=True,
-    )
-
-    collection: Mapped["Collection"] = relationship(
-        "Collection",
-        uselist=False,
-        back_populates="source",
-        single_parent=True,
-        active_history=True,
-    )
-
-    # This propagation relationship links a Source to a specific
-    # Propagation that is not tied to a Plant. It likely represents
-    # a propagation trial or source-related propagation activity
-    # independent of the plant hierarchy.
-    propagation_id: Mapped[int] = mapped_column(ForeignKey("propagation.id"))
-    propagation: Mapped["Propagation"] = relationship(
-        "Propagation",
-        uselist=False,
-        back_populates="source",
-        cascade="all, delete-orphan",
-        single_parent=True,
-        foreign_keys=[propagation_id],
-        active_history=True,
-    )
-
-    # an Accession of known Source (what we are describing here) may be in
-    # relation to a successful Plant Propagation trial. In this case, the
-    # Propagation points back to all Accessions that resulted from it, via
-    # `used_source[i].accession`. Arguably not practical.
-    plant_propagation_id: Mapped[int] = mapped_column(ForeignKey("propagation.id"))
-
-    plant_propagation: Mapped["Propagation"] = relationship(
-        "Propagation",
-        primaryjoin="Source.plant_propagation_id==Propagation.id",
-        back_populates="used_source",
-        uselist=True,
-        foreign_keys=[plant_propagation_id],
-    )
-
-
-source_type_values: Any = [
-    ("Expedition", _("Expedition")),
-    ("GeneBank", _("Gene Bank")),
-    ("BG", _("Botanic Garden or Arboretum")),
-    ("Research/FieldStation", _("Research/Field Station")),
-    ("Staff", _("Staff member")),
-    ("UniversityDepartment", _("University Department")),
-    ("Club", _("Horticultural Association/Garden Club")),
-    ("MunicipalDepartment", _("Municipal department")),
-    ("Commercial", _("Nursery/Commercial")),
-    ("Individual", _("Individual")),
-    ("Other", _("Other")),
-    ("Unknown", _("Unknown")),
-    (None, ""),
-]
-
-
 # TODO: should have a label next to lat/lon entry to show what value will be
 # stored in the database, might be good to include both DMS and the float
 # so the user can see both no matter what is in the entry. it could change in
@@ -244,96 +107,6 @@ source_type_values: Any = [
 # TODO: create a DMS column type to hold latitude and longitude,
 # should probably store the DMS data as a string in decimal degrees
 
-############################################################
-#
-# Collection
-#
-
-
-class Collection(db.Base):
-    """
-    :Table name: collection
-
-    :Columns:
-            *collector*: :class:`sqlalchemy.types.Unicode`
-
-            *collectors_code*: :class:`sqlalchemy.types.Unicode`
-
-            *date*: :class:`sqlalchemy.types.Date`
-
-            *locale*: :class:`sqlalchemy.types.UnicodeText`
-
-            *latitude*: :class:`sqlalchemy.types.Float`
-
-            *longitude*: :class:`sqlalchemy.types.Float`
-
-            *gps_datum*: :class:`sqlalchemy.types.Unicode`
-
-            *geo_accy*: :class:`sqlalchemy.types.Float`
-
-            *elevation*: :class:`sqlalchemy.types.Float`
-
-            *elevation_accy*: :class:`sqlalchemy.types.Float`
-
-            *habitat*: :class:`sqlalchemy.types.UnicodeText`
-
-            *geographic_area_id*: :class:`sqlalchemy.types.Integer`
-
-            *notes*: :class:`sqlalchemy.types.UnicodeText`
-
-            *accession_id*: :class:`sqlalchemy.types.Integer`
-
-
-    :Properties:
-
-
-    :Constraints:
-    """
-    __tablename__: str = "collection"
-
-    # columns
-    id: Mapped[int] = mapped_column(primary_key=True)
-    # ITF2 - F24 - Primary Collector's Name
-    collector: Mapped[str] = mapped_column(Unicode(64))
-    # ITF2 - F.25 - Collector's Identifier
-    collectors_code: Mapped[str] = mapped_column(Unicode(50))
-    # ITF2 - F.27 - Collection Date
-    date: Mapped[types.Date] = mapped_column(types.Date)
-    locale: Mapped[str] = mapped_column(UnicodeText, nullable=False)
-    # ITF2 - F1, F2, F3, F4 - Latitude, Degrees, Minutes, Seconds, Direction
-    latitude: Mapped[str] = mapped_column(Unicode(15))
-    # ITF2 - F5, F6, F7, F8 - Longitude, Degrees, Minutes, Seconds, Direction
-    longitude: Mapped[str] = mapped_column(Unicode(15))
-    gps_datum: Mapped[str] = mapped_column(Unicode(32))
-    # ITF2 - F9 - Accuracy of Geographical Referencing Data
-    geo_accy: Mapped[float] = mapped_column(Float)
-    # ITF2 - F17 - Altitude
-    elevation: Mapped[float] = mapped_column(Float)
-    # ITF2 - F18 - Accuracy of Altitude
-    elevation_accy: Mapped[float] = mapped_column(Float)
-    # ITF2 - F22 - Habitat
-    habitat: Mapped[str] = mapped_column(UnicodeText)
-    # ITF2 - F18 - Collection Notes
-    notes: Mapped[str] = mapped_column(UnicodeText)
-
-    geographic_area_id: Mapped[int] = mapped_column(ForeignKey("geographic_area.id"))
-    region: Mapped["GeographicArea"] = relationship("GeographicArea", uselist=False, active_history=True)
-
-    source_id: Mapped[int] = mapped_column(ForeignKey("source.id"), unique=True)
-    source: Mapped["Source"] = relationship("Source", back_populates="collection")
-
-    def search_view_markup_pair(self):
-        """provide the two lines describing object for SearchView row."""
-        acc = self.source.accession
-        safe = utils.xml_safe
-        return (
-            f"{safe(acc)} - <small>{safe(acc.species_str())}</small>",
-            safe(self),
-        )
-
-    def __str__(self) -> str:
-        return _("Collection at %s") % (self.locale or repr(self))
-
 
 class CollectionPresenter(editor.ChildPresenter):
     """
@@ -344,6 +117,7 @@ class CollectionPresenter(editor.ChildPresenter):
     :param view: an AccessionEditorView
     :param session: a sqlalchemy.orm.session
     """
+
     PROBLEM_BAD_LATITUDE: Any
     parent_ref: Any
     session: Any
@@ -499,7 +273,7 @@ class CollectionPresenter(editor.ChildPresenter):
         return self._dirty
 
     def refresh_view(self) -> None:
-        from bauble.plugins.garden.accession import latitude_to_dms, longitude_to_dms
+        from bauble.plugins.garden.models import latitude_to_dms, longitude_to_dms
 
         for widget, field in list(self.widget_to_field_map.items()):
             value = getattr(self.model, field)
@@ -603,7 +377,7 @@ class CollectionPresenter(editor.ChildPresenter):
         import re
         from decimal import Decimal
 
-        from bauble.plugins.garden.accession import dms_to_decimal
+        from bauble.plugins.garden.models import dms_to_decimal
 
         parts = re.split(":| ", text.strip())
         if len(parts) == 1:
@@ -643,7 +417,7 @@ class CollectionPresenter(editor.ChildPresenter):
         """
         set the latitude value from text
         """
-        from bauble.plugins.garden.accession import latitude_to_dms
+        from bauble.plugins.garden.models import latitude_to_dms
 
         text = entry.get_text()
         latitude = None
@@ -676,7 +450,7 @@ class CollectionPresenter(editor.ChildPresenter):
             self.set_model_attr("latitude", utils.utf8(latitude))
 
     def on_lon_entry_changed(self, entry, data: Optional[Any] = None) -> None:
-        from bauble.plugins.garden.accession import longitude_to_dms
+        from bauble.plugins.garden.models import longitude_to_dms
 
         text = entry.get_text()
         longitude = None
@@ -718,6 +492,7 @@ class PropagationChooserPresenter(editor.ChildPresenter):
     :param view: an AccessionEditorView
     :param session: an sqlalchemy.orm.session
     """
+
     parent_ref: Any
     session: Any
     _dirty: bool
@@ -754,8 +529,8 @@ class PropagationChooserPresenter(editor.ChildPresenter):
                     "acc_quantity_recvd_entry",
                     utils.utf8(prop.accessible_quantity),
                 )
-                from bauble.plugins.garden.accession import recvd_type_values
-                from bauble.plugins.garden.propagation import prop_type_results
+                from bauble.plugins.garden.constants import prop_type_results
+                from bauble.plugins.garden.models import recvd_type_values
 
                 acc_view.widget_set_value(
                     "acc_recvd_type_comboentry",
@@ -774,8 +549,7 @@ class PropagationChooserPresenter(editor.ChildPresenter):
 
         def get_accessible_plants():
             logger.debug("in PropagationChooserPresenter:plant_get_completions")
-            from bauble.plugins.garden.accession import Accession
-            from bauble.plugins.garden.plant import Plant
+            from bauble.plugins.garden.models import Accession, Plant
 
             stmt = (
                 select(Plant)
@@ -808,7 +582,7 @@ class PropagationChooserPresenter(editor.ChildPresenter):
             if matches[0] is False:  # code not complete, stop here
                 return
             # tree model holds plant id
-            from bauble.plugins.garden.plant import Plant
+            from bauble.plugins.garden.models import Plant
 
             plant = (
                 self.session.execute(
@@ -857,13 +631,17 @@ class PropagationChooserPresenter(editor.ChildPresenter):
         treeview.set_model(model)
         treeview.set_sensitive = True
 
-    def toggle_cell_data_func(self, column, cell, model, treeiter, data: Optional[Any] = None) -> None:
+    def toggle_cell_data_func(
+        self, column, cell, model, treeiter, data: Optional[Any] = None
+    ) -> None:
         propagation = model[treeiter][0]
         active = self.model.plant_propagation == propagation
         cell.set_active(active)
         cell.set_sensitive(True)
 
-    def summary_cell_data_func(self, column, cell, model, treeiter, data: Optional[Any] = None) -> None:
+    def summary_cell_data_func(
+        self, column, cell, model, treeiter, data: Optional[Any] = None
+    ) -> None:
         propagation = model[treeiter][0]
         cell.set_text = propagation.get_summary()
         cell.set_sensitive(True)
@@ -937,77 +715,6 @@ source_detail_context_menu: Any = [
 ]
 
 
-#
-# Contact aka Source Detail
-#
-def compute_serializable_fields(cls, session, keys):
-    result = {"contact": None}
-
-    parent_keys = {"name": keys["contact"]}
-    result["contact"] = Contact.retrieve_or_create(session, parent_keys, create=False)
-
-    return result
-
-
-class Contact(db.Base, db.Serializable, db.WithNotes):
-    description: Any
-    source_type: Any
-    __tablename__: str = "contact"
-
-    # ITF2 - E6 - Donor
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Any = Column(Unicode(75), unique=True)
-    # extra description, not included in E6
-    description = Column(UnicodeText)
-    # ITF2 - E5 - Donor Type Flag
-    source_type = Column(
-        types.Enum(
-            values=[i[0] for i in source_type_values],
-            translations=dict(source_type_values),
-            omit_aliases=False,
-        ),
-        default=None,
-    )
-    order_by: Any = [asc(name)]
-
-    sources: Mapped["Source"] = relationship(
-        "Source",
-        uselist=False,
-        back_populates="source_detail",
-        cascade="all, delete-orphan",
-        single_parent=True,
-        active_history=True,
-    )
-
-    def __str__(self) -> str:
-        return str(self.name) if self.name is not None else ""
-
-    def search_view_markup_pair(self):
-        """provide the two lines describing object for SearchView row."""
-        safe = utils.xml_safe
-        return (safe(self.name), safe(self.source_type or ""))
-
-    @classmethod
-    def retrieve(cls, session, keys):
-        try:
-            return (
-                session.execute(select(cls).where(cls.name == keys["name"]))
-                .scalars()
-                .one()
-            )
-        except:
-            return None
-
-
-ContactNote: Any = db.make_note_class("Contact", Contact, compute_serializable_fields)
-Contact.notes: Mapped["ContactNote"] = relationship(
-    "ContactNote",
-    back_populates="contact",
-    cascade="all, delete-orphan",
-    single_parent=True,
-)
-
-
 class ContactPresenter(editor.GenericEditorPresenter):
 
     widget_to_field_map: Any = {
@@ -1018,12 +725,15 @@ class ContactPresenter(editor.GenericEditorPresenter):
     view_accept_buttons: Any = ["sd_ok_button"]
 
     def __init__(self, model, view) -> None:
+        from bauble.plugins.garden.models.contact import source_type_values
         view.init_translatable_combo("source_type_combo", source_type_values)
         super().__init__(model, view, refresh_view=True, do_commit=True)
         self.create_toolbar()
         view.set_accept_buttons_sensitive(False)
 
-    def on_textbuffer_changed_description(self, widget, value: Optional[Any] = None, attr: Optional[Any] = None):
+    def on_textbuffer_changed_description(
+        self, widget, value: Optional[Any] = None, attr: Optional[Any] = None
+    ):
         return self.on_textbuffer_changed(widget, value, attr="description")
 
 
@@ -1081,6 +791,7 @@ class ContactInfoBox(view.InfoBox):
 
     widgets: Any
     general: Any
+
     def __init__(self) -> None:
         super().__init__()
         filename = os.path.join(

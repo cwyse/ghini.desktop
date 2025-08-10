@@ -26,63 +26,57 @@ from typing import Any
 import bauble
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
-import bauble.search as search
 import bauble.utils as utils
-from bauble.plugins.garden.accession import (
-    Accession,
-    AccessionEditor,
-    AccessionInfoBox,
-    AccessionNote,
-    acc_context_menu,
-)
 from bauble.plugins.garden.institution import (
     Institution,
     InstitutionCommand,
     InstitutionTool,
     start_institution_editor,
 )
-from bauble.plugins.garden.location import (
-    Location,
-    LocationEditor,
-    LocationInfoBox,
-    loc_context_menu,
-)
+from bauble.plugins.garden.location_editor import LocationEditor
 from bauble.plugins.garden.picture_importer import PictureImporterTool
 
 # Then import editors, infoboxes, context menus, tools, etc.
 # Import all ORM classes to ensure registration!
-from bauble.plugins.garden.plant import (
-    Plant,
-    PlantChange,
+from bauble.plugins.garden.plant_editor import (
     PlantEditor,
-    PlantInfoBox,
-    PlantNote,
-    PlantSearch,
     default_plant_delimiter,
-    plant_context_menu,
     plant_delimiter_key,
 )
 from bauble.plugins.garden.pocket_server import PocketServerTool
-from bauble.plugins.garden.propagation import Propagation  # if this exists
-from bauble.plugins.garden.source import (
-    Collection,
-    Contact,
-    ContactInfoBox,
-    Source,
-    collection_context_menu,
-    create_contact,
-    source_detail_context_menu,
-)
 from bauble.utils import safe_set_props, safe_set_text
-from bauble.view import SearchView
 from sqlalchemy import select
-from sqlalchemy.orm import Mapped, object_session, selectinload
+
+# Re-export ORM classes lazily so callers can do: from bauble.plugins.garden import Plant
+__all__ = [
+    "Accession",
+    "AccessionNote",
+    "Collection",
+    "Contact",
+    "Location",
+    "LocationNote",
+    "Plant",
+    "PlantNote",
+    "PlantSearch",
+    "PlantChange",
+    "Propagation",
+    "Source",
+]
+
+
+def __getattr__(name):
+    if name in __all__:
+        import importlib
+
+        mod = importlib.import_module("bauble.plugins.garden.models")
+        obj = getattr(mod, name)
+        globals()[name] = obj  # cache
+        return obj
+    raise AttributeError(name)
+
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-# from bauble.plugins.garden.propagation import *
 
 # other ideas:
 # - cultivation table
@@ -93,16 +87,6 @@ class GardenPlugin(pluginmgr.Plugin):
     depends: Any = ["PlantsPlugin"]
     tools: Any = [InstitutionTool, PictureImporterTool, PocketServerTool]
     commands: Any = [InstitutionCommand]
-    provides: Any = {
-        "Accession": Accession,
-        "AccessionNote": AccessionNote,
-        "Location": Location,
-        "Plant": Plant,
-        "PlantNote": PlantNote,
-        "Source": Source,
-        "Contact": Contact,
-        "Collection": Collection,
-    }
 
     @classmethod
     def install(cls, *args, **kwargs) -> None:
@@ -111,8 +95,38 @@ class GardenPlugin(pluginmgr.Plugin):
     @classmethod
     def init(cls) -> None:
         """Initialize the GardenPlugin."""
+
+        from bauble.plugins.garden.models import (
+            Accession,
+            AccessionNote,
+            Collection,
+            Contact,
+            Location,
+            Plant,
+            PlantChange,
+            PlantNote,
+            PlantSearch,
+            Propagation,
+            Source,
+        )
+
+        cls.provides = {
+            "Accession": Accession,
+            "AccessionNote": AccessionNote,
+            "Collection": Collection,
+            "Contact": Contact,
+            "Location": Location,
+            "Plant": Plant,
+            "PlantChange": PlantChange,
+            "PlantNote": PlantNote,
+            "PlantSearch": PlantSearch,
+            "Propagation": Propagation,
+            "Source": Source,
+        }
         pluginmgr.provided.update(cls.provides)
+
         cls._setup_search_metas()
+
         cls._setup_gui_menus()
 
         # Initialize the default plant delimiter if not already present
@@ -132,11 +146,39 @@ class GardenPlugin(pluginmgr.Plugin):
         """Configure search strategies and row metadata."""
         from functools import partial
 
+        from bauble import db, search, utils
+
+        # Models – use db re-exports for stability
+        from bauble.db import Accession, Location, Plant
+
+        # UI – new paths live in *_editor modules
+        from bauble.plugins.garden.accession_editor import (
+            AccessionInfoBox,
+            acc_context_menu,
+        )
+        from bauble.plugins.garden.location_editor import (
+            LocationInfoBox,
+            loc_context_menu,
+        )
+        from bauble.plugins.garden.models.contact import Contact
+        from bauble.plugins.garden.models.plant import PlantSearch
+
+        # These aren’t re-exported, so import directly from models
+        from bauble.plugins.garden.models.source import Collection, Source
+        from bauble.plugins.garden.plant_editor import PlantInfoBox, plant_context_menu
+        from bauble.plugins.garden.source import (
+            ContactInfoBox,
+            collection_context_menu,
+            source_detail_context_menu,
+        )
         from bauble.plugins.plants import Species
+        from bauble.view import SearchView
+        from sqlalchemy import select
+        from sqlalchemy.orm import object_session, selectinload
 
         mapper_search = search.get_strategy("MapperSearch")
 
-        # Set up Accession
+        # Accession
         mapper_search.add_meta(("accession", "acc"), Accession, ["code"])
         SearchView.row_meta[Accession].set(
             children=partial(db.natsort, "plants"),
@@ -144,7 +186,7 @@ class GardenPlugin(pluginmgr.Plugin):
             context_menu=acc_context_menu,
         )
 
-        # Set up Location
+        # Location
         mapper_search.add_meta(("location", "loc"), Location, ["name", "code"])
         SearchView.row_meta[Location].set(
             children=partial(db.natsort, "plants"),
@@ -152,32 +194,30 @@ class GardenPlugin(pluginmgr.Plugin):
             context_menu=loc_context_menu,
         )
 
-        # Set up Plant
+        # Plant
         mapper_search.add_meta(("plant", "planting"), Plant, ["code"])
         search.add_strategy(PlantSearch)
         SearchView.row_meta[Plant].set(
-            infobox=PlantInfoBox, context_menu=plant_context_menu
+            infobox=PlantInfoBox,
+            context_menu=plant_context_menu,
         )
 
-        # Set up Contact
+        # Contact → child accessions via sources
         def sd_kids(detail):
             session = object_session(detail)
             if session is None:
-                raise ValueError(
-                    "The provided detail object is not associated with a session."
-                )
-            results = (
+                raise ValueError("Contact is not bound to a Session.")
+            return (
                 session.execute(
                     select(Accession)
                     .join(Source)
                     .join(Contact)
-                    .options(selectinload(Species.species))
+                    .options(selectinload(Accession.plants))
                     .where(Contact.id == detail.id)
                 )
                 .scalars()
                 .all()
             )
-            return results
 
         mapper_search.add_meta(
             ("contact", "contacts", "person", "org", "source"), Contact, ["name"]
@@ -188,7 +228,7 @@ class GardenPlugin(pluginmgr.Plugin):
             context_menu=source_detail_context_menu,
         )
 
-        # Set up Collection
+        # Collection
         def coll_kids(coll):
             return sorted(coll.source.accession.plants, key=utils.natsort_key)
 
@@ -199,7 +239,7 @@ class GardenPlugin(pluginmgr.Plugin):
             context_menu=collection_context_menu,
         )
 
-        # Species metadata
+        # Species
         SearchView.row_meta[Species].child = "accessions"
 
     @classmethod
@@ -220,14 +260,12 @@ class GardenPlugin(pluginmgr.Plugin):
             logger.error("Insert menu not found!")
             return
 
-        import gi
-
-        gi.require_version("Gtk", "3.0")
-        from gi.repository import Gtk
+        from bauble.gtkinit import Gtk
 
         insert_menu.append(Gtk.SeparatorMenuItem())
 
         # from bauble.ui import GUI
+        from bauble.plugins.garden.accession_editor import AccessionEditor
 
         # Add items to Insert menu
         bauble.gui.add_to_insert_menu(
@@ -240,6 +278,8 @@ class GardenPlugin(pluginmgr.Plugin):
             LocationEditor, _("Location"), "insert-new.png", base
         )
         insert_menu.append(Gtk.SeparatorMenuItem())
+        from bauble.plugins.garden.source import create_contact
+
         bauble.gui.add_to_insert_menu(create_contact, _("Contact"), "user", base)
 
         # if the plant delimiter isn't in the bauble meta then add the default
@@ -272,10 +312,8 @@ def init_location_comboentry(presenter, combo, on_select, required: bool = True)
     def cell_data_func(col, cell, model, treeiter, data=None):
         safe_set_text(cell, utils.utf8(model[treeiter][0]))
 
-    import gi
-
-    gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
+    from bauble.gtkinit import Gtk
+    from bauble.pluginmgr.garden.models import Location
 
     completion = Gtk.EntryCompletion()
     cell = Gtk.CellRendererText()  # set up the completion renderer
@@ -386,10 +424,3 @@ def init_location_comboentry(presenter, combo, on_select, required: bool = True)
 
 
 plugin = GardenPlugin
-
-# make names visible to db module
-db.Accession = Accession
-db.AccessionNote = AccessionNote
-db.Plant = Plant
-db.PlantNote = PlantNote
-db.Location = Location

@@ -21,9 +21,7 @@ import logging
 from logging import LogRecord
 
 # Global configuration
-from typing import Any, Dict, List, Optional, Union
-
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -33,10 +31,8 @@ def update_gui() -> None:
     """
     Flush any GTK Events.  Used for doing GUI testing.
     """
-    import gi
 
-    gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
+    from bauble.gtkinit import Gtk
 
     while Gtk.events_pending():
         Gtk.main_iteration()
@@ -82,7 +78,14 @@ class MockLoggingHandler(logging.Handler):
         self.messages = {}
 
 
-def mockfunc(msg: Optional[str] = None, name: Optional[str] = None, caller: Optional[Any] = None, result: bool = False, *args: Any, **kwargs: Any) -> bool:
+def mockfunc(
+    msg: Optional[str] = None,
+    name: Optional[str] = None,
+    caller: Optional[Any] = None,
+    result: bool = False,
+    *args: Any,
+    **kwargs: Any,
+) -> bool:
     if caller is not None and hasattr(caller, "invoked"):
         caller.invoked.append((name, msg))
     return result

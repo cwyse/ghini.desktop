@@ -24,16 +24,12 @@ import logging
 import os
 import re
 from gettext import gettext as _
-
-import gi
+from typing import Any
 
 from bauble import paths as bpaths
 from bauble import utils as butils
+from bauble.gtkinit import Gtk
 from bauble.plugins.report import TemplateFormatterPlugin
-
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
 
 logger: Any = logging.getLogger(__name__)
 

@@ -28,24 +28,22 @@ import traceback
 from gettext import gettext as _
 from typing import Any
 
+import bauble as bauble
+import bauble.db as db
 import bauble.error as err
-import bauble.i18n
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
+import bauble.utils as utils
 
 # import debugpy
-import gi
-from gi.repository import GObject as GObject
+from bauble.gtkinit import Gio, GLib, Gtk
+from bauble.prefs import prefs, use_sentry_client_pref
+from bauble.view import DefaultCommandHandler
 
 zipfile: Any
 default_icon: Any
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-gi.require_version("GLib", "2.0")
 import warnings
 
-from gi.repository import Gdk as Gdk
-from gi.repository import Gtk
 from sqlalchemy.exc import SAWarning
 
 __all__ = ["pluginmgr"]
@@ -68,17 +66,6 @@ installation_date: Any = os.environ.get("BUILD_DATE", "1970-01-01T00:00:00Z")
 
 
 from bauble.connmgr import start_connection_manager
-from gi.repository import Gdk, Gio, GLib
-
-try:
-    from gi.repository import GObject  # Ensures compatibility
-except ImportError as e:
-    print(_("** Error: could not import Gtk and/or GObject"))
-    print(e)
-    if sys.platform == "win32":
-        print(_("Please make sure that GTK_ROOT\\bin is in your PATH."))
-    sys.exit(1)
-
 
 # debugpy.breakpoint()
 
@@ -191,7 +178,7 @@ def quit() -> None:
     """
     Stop all tasks and quit Ghini.
     """
-    # from gi.repository import Gtk
+    # from bauble.gtkinit import Gtk
 
     import bauble.utils as utils
 
@@ -222,7 +209,7 @@ def command_handler(cmd, arg) -> None:
     :type arg: list
     """
     logger.debug(f"entering ui.command_handler {cmd} {arg}")
-    # from gi.repository import Gtk
+    # from bauble.gtkinit import Gtk
 
     import bauble.pluginmgr as pluginmgr
     import bauble.utils as utils
@@ -262,20 +249,17 @@ def command_handler(cmd, arg) -> None:
 conn_default_pref: str = "conn.default"
 conn_list_pref: str = "conn.list"
 
-import bauble.db as db
-import bauble.pluginmgr as pluginmgr
-import bauble.utils as utils
-from bauble.prefs import prefs, use_sentry_client_pref
-from bauble.view import DefaultCommandHandler
 
 
 class GhiniApp:
     """Manages application logic without subclassing Gtk.Application."""
+
     gui: Any
     open_exc: Any
     conn_name: Any
     uri: Any
     gtk_app: Any
+
     def __init__(self) -> None:
         self.gui = None
         self.open_exc = None
@@ -505,5 +489,4 @@ gtk_app: Any = app.gtk_app  # Shortcut to access Gtk.Application if needed
 
 def main():
     """Entry point for the application."""
-    global app
     return app.run(sys.argv)

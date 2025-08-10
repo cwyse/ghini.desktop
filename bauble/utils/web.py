@@ -20,14 +20,10 @@
 import logging
 import re
 from gettext import gettext as _
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any, Optional, Sequence
 
 import bauble.utils.desktop as desktop
-import gi
-from typing import Any
-
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from bauble.gtkinit import Gtk
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -35,13 +31,8 @@ logger.setLevel(logging.INFO)
 
 def _open_link(data: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
     """Open a web link"""
-    logger.debug(
-        f"_open_link received data={data}, args={args}, kwargs={kwargs}"
-    )
-    desktop.open(data)    # type: ignore[attr-defined]
-
-
-
+    logger.debug(f"_open_link received data={data}, args={args}, kwargs={kwargs}")
+    desktop.open(data)  # type: ignore[attr-defined]
 
 
 class BaubleLinkButton:
@@ -49,6 +40,7 @@ class BaubleLinkButton:
     A button that acts as a link, but instead of using subclassing,
     it uses composition to wrap around a Gtk.LinkButton.
     """
+
     link_button: Gtk.LinkButton
     fields: Sequence[str]
     _base_uri: str = "%s"

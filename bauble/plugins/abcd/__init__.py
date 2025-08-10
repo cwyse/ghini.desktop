@@ -24,22 +24,15 @@
 #
 import os
 from gettext import gettext as _
-
-import gi
-from sqlalchemy import select
+from typing import Any, Optional
 
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 from bauble.error import check
-from bauble.plugins.garden.plant import Plant
-
-from typing import Union, Optional
-from bauble import pluginmgr
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from bauble.gtkinit import Gtk
+from sqlalchemy import select
 
 # NOTE: see biocase provider software for reading and writing ABCD data
 # files, already downloaded software to desktop
@@ -137,12 +130,14 @@ class ABCDAdapter:
     """
     An abstract base class for creating ABCD adapters.
     """
+
     # TODO: create a HigherTaxonRank/HigherTaxonName iteratorator for a list
     # of all the higher taxon
 
     # TODO: need to mark those fields that are required and those that
     # are optional
     _object: Any
+
     def extra_elements(self, unit) -> None:
         """
         Add extra non required elements
@@ -358,7 +353,11 @@ class ABCDExporter:
     Export Plants to an ABCD file.
     """
 
-    def start(self, filename: Optional[Any] = None, plants: Optional[Any] = None) -> None:
+    def start(
+        self, filename: Optional[Any] = None, plants: Optional[Any] = None
+    ) -> None:
+        from bauble.plugins.garden.models import Plant
+
         if filename is None:  # no filename, ask the user
             d = Gtk.FileChooserDialog(
                 _("Choose a file to export to..."),
@@ -397,6 +396,7 @@ class ABCDExporter:
         self.run(filename, plants)
 
     def run(self, filename, plants: Optional[Any] = None) -> None:
+        from bauble.plugins.garden.models import Plant
         if filename is None:
             raise ValueError("filename can not be None")
 

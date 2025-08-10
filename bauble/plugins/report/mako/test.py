@@ -20,27 +20,24 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
 import os
+from typing import Any
 
 import pytest
-from sqlalchemy import select
-
 from bauble import utils
-from bauble.plugins.garden import Accession, Location, Plant
-from bauble.plugins.plants import (
-    Family,
-    Genus,
-    GeographicArea,
-    Species,
-    SpeciesDistribution,
-    VernacularName,
-)
+from bauble.plugins.garden.models import Accession, Location, Plant
+from bauble.plugins.plants import Family as Family
+from bauble.plugins.plants import Genus as Genus
+from bauble.plugins.plants import GeographicArea as GeographicArea
+from bauble.plugins.plants import Species as Species
+from bauble.plugins.plants import SpeciesDistribution as SpeciesDistribution
+from bauble.plugins.plants import VernacularName as VernacularName
 from bauble.plugins.report import SVG, get_pertinent_objects
 from bauble.plugins.report.mako import MakoFormatterPlugin
 from bauble.plugins.report.utils import Code39
+from sqlalchemy import select
 
-from typing import Any
-from bauble.plugins.plants import Family as Family, Genus as Genus, GeographicArea as GeographicArea, Species as Species, SpeciesDistribution as SpeciesDistribution, VernacularName as VernacularName
 logger: Any = logging.getLogger(__name__)
+
 
 # TURN OFF desktop.open for this module so that the test doesn't open the report
 def desktop_open(x):
@@ -261,7 +258,9 @@ class TestSvgProduction:
             (180, -15.5, 0),
         ],
     )
-    def test_add_text_a_rotated_aligned_endpoint(self, rotate, expected_x, expected_y) -> None:
+    def test_add_text_a_rotated_aligned_endpoint(
+        self, rotate, expected_x, expected_y
+    ) -> None:
         g, x, y = SVG.add_text(0, 0, "a", 2, align=0.5, rotate=rotate)
         assert pytest.approx(x) == expected_x
         assert pytest.approx(y) == expected_y
@@ -437,7 +436,9 @@ class TestCode39:
 
 
 class TestQRCode:
-    path: str = '<path stroke="#000" class="pyqrline" d="M0 0.5h7m1 0h3m1 0h1m1 0h7m-21 1h1m5 0h1m2 0h2m3 0h1m5 0h1m-21 1h1m1 0h3m1 0h1m3 0h1m3 0h1m1 0h3m1 0h1m-21 1h1m1 0h3m1 0h1m1 0h1m2 0h2m1 0h1m1 0h3m1 0h1m-21 1h1m1 0h3m1 0h1m3 0h2m2 0h1m1 0h3m1 0h1m-21 1h1m5 0h1m2 0h1m1 0h1m2 0h1m5 0h1m-21 1h7m1 0h1m1 0h1m1 0h1m1 0h7m-12 1h1m2 0h1m-11 1h1m1 0h3m1 0h2m3 0h1m3 0h1m2 0h1m-18 1h2m2 0h2m3 0h1m1 0h2m3 0h2m-21 1h5m1 0h1m1 0h1m3 0h4m1 0h4m-21 1h4m1 0h1m2 0h2m1 0h2m2 0h2m2 0h1m-20 1h2m3 0h2m1 0h3m4 0h1m1 0h1m1 0h2m-13 1h1m1 0h3m4 0h1m2 0h1m-21 1h7m2 0h2m5 0h2m1 0h2m-21 1h1m5 0h1m1 0h3m1 0h1m1 0h1m4 0h1m-20 1h1m1 0h3m1 0h1m1 0h1m1 0h2m2 0h1m1 0h2m1 0h2m-21 1h1m1 0h3m1 0h1m2 0h1m4 0h2m3 0h1m-20 1h1m1 0h3m1 0h1m1 0h1m3 0h2m1 0h1m2 0h1m1 0h1m-21 1h1m5 0h1m2 0h3m1 0h5m1 0h1m-20 1h7m3 0h1m2 0h3m2 0h3"/>'
+    path: str = (
+        '<path stroke="#000" class="pyqrline" d="M0 0.5h7m1 0h3m1 0h1m1 0h7m-21 1h1m5 0h1m2 0h2m3 0h1m5 0h1m-21 1h1m1 0h3m1 0h1m3 0h1m3 0h1m1 0h3m1 0h1m-21 1h1m1 0h3m1 0h1m1 0h1m2 0h2m1 0h1m1 0h3m1 0h1m-21 1h1m1 0h3m1 0h1m3 0h2m2 0h1m1 0h3m1 0h1m-21 1h1m5 0h1m2 0h1m1 0h1m2 0h1m5 0h1m-21 1h7m1 0h1m1 0h1m1 0h1m1 0h7m-12 1h1m2 0h1m-11 1h1m1 0h3m1 0h2m3 0h1m3 0h1m2 0h1m-18 1h2m2 0h2m3 0h1m1 0h2m3 0h2m-21 1h5m1 0h1m1 0h1m3 0h4m1 0h4m-21 1h4m1 0h1m2 0h2m1 0h2m2 0h2m2 0h1m-20 1h2m3 0h2m1 0h3m4 0h1m1 0h1m1 0h2m-13 1h1m1 0h3m4 0h1m2 0h1m-21 1h7m2 0h2m5 0h2m1 0h2m-21 1h1m5 0h1m1 0h3m1 0h1m1 0h1m4 0h1m-20 1h1m1 0h3m1 0h1m1 0h1m1 0h2m2 0h1m1 0h2m1 0h2m-21 1h1m1 0h3m1 0h1m2 0h1m4 0h2m3 0h1m-20 1h1m1 0h3m1 0h1m1 0h1m3 0h2m1 0h1m2 0h1m1 0h1m-21 1h1m5 0h1m2 0h3m1 0h5m1 0h1m-20 1h7m3 0h1m2 0h3m2 0h3"/>'
+    )
 
     def test_can_get_qr_as_string(self) -> None:
         g = SVG.add_qr(0, 0, "test")

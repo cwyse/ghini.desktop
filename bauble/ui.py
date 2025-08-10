@@ -24,8 +24,7 @@ import logging
 import os
 import traceback
 from gettext import gettext as _
-
-import gi
+from typing import Any, Optional
 
 import bauble
 import bauble.db as db
@@ -35,14 +34,9 @@ import bauble.utils as utils
 import bauble.utils.desktop as desktop
 from bauble import querybuilder
 from bauble.editor import GenericEditorView
+from bauble.gtkinit import Gdk, GdkPixbuf, GLib, Gtk
 from bauble.prefs import prefs
 from bauble.view import SearchView
-
-from typing import Union, Optional
-from bauble import pluginmgr
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -72,6 +66,7 @@ class DefaultView(pluginmgr.View):
     not to the view.DefaultCommandHandler
 
     """
+
     hbox: Any
     infobox: Any
     infoboxclass: Any = None
@@ -124,7 +119,9 @@ class SplashCommandHandler(pluginmgr.CommandHandler):
         self.view.update()
 
 
-def create_menu_item_with_image(label, icon_name: Optional[Any] = None, base_dir: Optional[Any] = None):
+def create_menu_item_with_image(
+    label, icon_name: Optional[Any] = None, base_dir: Optional[Any] = None
+):
     """Return a MenuItem with an associated image, if provided.
 
     Args:
@@ -282,13 +279,7 @@ class GUI:
         vbox.show()
         hbox.show()
 
-        from pyparsing import (
-            StringEnd,
-            StringStart,
-            Word,
-            alphanums,
-            restOfLine,
-        )
+        from pyparsing import StringEnd, StringStart, Word, alphanums, restOfLine
 
         cmd = StringStart() + ":" + Word(alphanums + "-_").setResultsName("cmd")
         arg = restOfLine.setResultsName("arg")
@@ -704,7 +695,13 @@ class GUI:
 
     __insert_menu_cache: Any = {}
 
-    def add_to_insert_menu(self, editor, label, icon_name: Optional[Any] = None, base_dir: Optional[Any] = None) -> None:
+    def add_to_insert_menu(
+        self,
+        editor,
+        label,
+        icon_name: Optional[Any] = None,
+        base_dir: Optional[Any] = None,
+    ) -> None:
         """
         Add an editor to the insert menu.
 
@@ -733,7 +730,9 @@ class GUI:
         # Make the menu item visible
         item.show()
 
-    def add_to_tools_menu(self, menu, tool, on_activate_callback, base_dir: Optional[Any] = None) -> None:
+    def add_to_tools_menu(
+        self, menu, tool, on_activate_callback, base_dir: Optional[Any] = None
+    ) -> None:
         """
         Helper function to add a tool to a tools menu.
 

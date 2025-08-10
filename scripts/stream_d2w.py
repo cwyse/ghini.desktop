@@ -30,6 +30,7 @@
 # load('this_script.js')
 #
 import logging
+
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,7 @@ import sys
 
 import bauble.db
 import bauble.utils
-from bauble.plugins.garden import Accession, Institution, Location, Plant
+from bauble.plugins.garden.models import Accession, Institution, Location, Plant
 from bauble.plugins.plants import Genus, Species
 
 zzz = Genus(epithet="Zzz")
