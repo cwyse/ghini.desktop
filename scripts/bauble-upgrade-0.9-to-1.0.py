@@ -359,7 +359,7 @@ next_accession_note_id = -1
 
 
 def do_accession(filename):
-    from bauble.plugins.garden import Accession, AccessionNote
+    from bauble.plugins.garden.models import Accession, AccessionNote
 
     reader = UnicodeReader(open(filename))
 
@@ -497,7 +497,7 @@ def do_bauble(filename):
 
 
 def do_location(filename):
-    from bauble.plugins.garden import Location
+    from bauble.plugins.garden.models Location
 
     reader = UnicodeReader(open(filename))
 

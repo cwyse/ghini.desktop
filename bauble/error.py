@@ -19,11 +19,12 @@
 #
 # all bauble exceptions and errors
 #
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 
 class BaubleError(Exception):
     msg: str
+
     def __init__(self, msg: Optional[str] = None) -> None:
         self.msg = msg
 
@@ -39,6 +40,7 @@ class CommitException(Exception):
 
     row: Any
     exc: Exception
+
     def __init__(self, exc: Exception, row: Any) -> None:
         self.row = row  # the model we were trying to commit
         self.exc = exc  # the exception thrown while committing
@@ -75,6 +77,7 @@ class RegistryError(DatabaseError):
 class VersionError(DatabaseError):
 
     version: Any
+
     def __init__(self, version: Any) -> None:
         super().__init__()
         self.version = version

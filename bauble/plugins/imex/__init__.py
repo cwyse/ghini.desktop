@@ -22,13 +22,13 @@
 #
 # TODO: would be best to provide some intermediate format so that we could
 # transform from any format to another
+from typing import Any
+
 import bauble.pluginmgr as pluginmgr
-from bauble.plugins.imex.csv_ import (
-    CSVExportCommandHandler,
-    CSVExportTool,
-    CSVImportCommandHandler,
-    CSVImportTool,
-)
+from bauble.plugins.imex.csv_ import CSVExportCommandHandler as CSVExportCommandHandler
+from bauble.plugins.imex.csv_ import CSVExportTool as CSVExportTool
+from bauble.plugins.imex.csv_ import CSVImportCommandHandler as CSVImportCommandHandler
+from bauble.plugins.imex.csv_ import CSVImportTool as CSVImportTool
 from bauble.plugins.imex.iojson import JSONExportTool, JSONImportTool
 from bauble.plugins.imex.xml import XMLExportCommandHandler, XMLExportTool
 
@@ -44,9 +44,8 @@ from bauble.plugins.imex.xml import XMLExportCommandHandler, XMLExportTool
 # missing columns so that all columns will have some value
 
 
-from bauble import pluginmgr
-from typing import Any
-from bauble.plugins.imex.csv_ import CSVExportCommandHandler as CSVExportCommandHandler, CSVExportTool as CSVExportTool, CSVImportCommandHandler as CSVImportCommandHandler, CSVImportTool as CSVImportTool
+
+
 class ImexPlugin(pluginmgr.Plugin):
     tools: Any = [
         CSVImportTool,

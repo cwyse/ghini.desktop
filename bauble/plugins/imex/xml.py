@@ -25,19 +25,13 @@ import logging
 import os
 import traceback
 from gettext import gettext as _
-
-import gi
+from typing import Any, Optional
 
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
 import bauble.task
 import bauble.utils as utils
-
-from typing import Union, Optional
-from bauble import pluginmgr
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from bauble.gtkinit import Gtk
 from sqlalchemy import select
 
 logger: Any = logging.getLogger(__name__)
@@ -72,6 +66,7 @@ class XMLExporter:
     selected_path_label: Any
     progress_bar: Any
     selected_path: Any
+
     def __init__(self) -> None:
         pass
 

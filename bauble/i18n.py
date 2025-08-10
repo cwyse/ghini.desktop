@@ -48,10 +48,9 @@ from bauble._version import __version__
 # on an operating system. operating systems don't need it.
 
 
-
 bauble.gettext_windows.setup_env()
 
-__all__ = ['_']
+__all__ = ["_"]
 
 version_tuple = tuple(__version__.split("."))
 TEXT_DOMAIN = "ghini-{}".format(".".join(version_tuple[0:2]))
@@ -89,8 +88,6 @@ else:
     locale.bindtextdomain(TEXT_DOMAIN, paths.locale_dir())
     locale.textdomain(TEXT_DOMAIN)
 
-from typing import Callable, cast
-
 # i18n setup ...
 lang = gettext.translation(
     TEXT_DOMAIN, paths.locale_dir(), languages=langs, fallback=True
@@ -100,7 +97,6 @@ lang = gettext.translation(
 _: Callable[[str], str] = cast(Callable[[str], str], lang.gettext)
 
 # explicitly inform mypy about the new built-in attribute
-builtins.__dict__['_'] = _ 
+builtins.__dict__["_"] = _
 
-__all__ = ['_']
-
+__all__ = ["_"]

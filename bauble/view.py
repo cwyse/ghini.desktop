@@ -27,39 +27,35 @@ import sys
 import threading
 import traceback
 from gettext import gettext as _
-
-import gi
-import sqlalchemy.exc as saexc
+from typing import Any, Optional
 
 import bauble
+import sqlalchemy.exc as saexc
 
 # from bauble import prefs
-from bauble import db, editor, paths, pictures_view, pluginmgr, search, utils
+from bauble import db as db
+from bauble import editor as editor
+from bauble import gui as gui
+from bauble import paths as paths
+from bauble import pictures_view as pictures_view
+from bauble import pluginmgr as pluginmgr
+from bauble import search as search
+from bauble import utils as utils
 from bauble.error import BaubleError, check
+from bauble.gtkinit import GLib
 
-from typing import Union, Optional
-from typing import Any
-from bauble import db as db, editor as editor, gui as gui, paths as paths, pictures_view as pictures_view, pluginmgr as pluginmgr, search as search, utils as utils
 display: Any
 _substr_tmpl: str
-gi.require_version("Gtk", "3.0")
-gi.require_version("Champlain", "0.12")
-gi.require_version("GtkChamplain", "0.12")
-gi.require_version("GtkClutter", "1.0")
+ 
+ 
+ 
+ 
 
-from gi.repository import (
-    Champlain,
-    Clutter,
-    Gdk,
-    Gtk,
-    GtkClutter,
-    Pango,
-)
+from bauble.gtkinit import Champlain, Clutter, Gdk, Gtk, GtkClutter, Pango
+from bauble.shared import InfoExpander
 from pyparsing import ParseException
 from sqlalchemy import func, select
 from sqlalchemy.orm import object_session
-
-from bauble.shared import InfoExpander
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -123,7 +119,7 @@ if sys.platform == "win32":
 else:
     _substr_tmpl = "<small>%s</small>"
 
-from gi.repository import Gio
+from bauble.gtkinit import Gio
 
 
 class Action:
@@ -519,11 +515,7 @@ class LinksExpander(InfoExpander):
             self.dynamic_box.show_all()
 
 
-import logging
 
-from gi.repository import GLib
-
-from bauble import gui
 
 logger = logging.getLogger(__name__)
 
@@ -743,19 +735,6 @@ class SearchView(pluginmgr.View):
             def set(
                 self, children: Optional[Any] = None, infobox: Optional[Any] = None, context_menu: Optional[Any] = None, markup_func: Optional[Any] = None
             ) -> None:
-                self.children = children
-                self.infobox = infobox
-                self.markup_func = markup_func
-                self.context_menu = context_menu
-                self.actions = (
-                    [x for x in context_menu if isinstance(x, Action)]
-                    if context_menu
-                    else []
-                )
-
-            def set(
-                self, children=None, infobox=None, context_menu=None, markup_func=None
-            ):
                 """
                 Set metadata properties for the ViewMeta class.
 

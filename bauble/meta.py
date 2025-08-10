@@ -20,13 +20,11 @@
 # meta.py
 #
 # import bauble.utils as utils
+from typing import Any, Optional
+
+from bauble.db import Base, Session
 from sqlalchemy import Column, Integer, Unicode, UnicodeText, select
 
-import bauble.db as db
-
-from typing import Union, Optional
-from bauble import db
-from typing import Any
 DATE_FORMAT_KEY: str
 VERSION_KEY: str = "version"
 CREATED_KEY: str = "created"
@@ -60,7 +58,7 @@ def get_default(name, default: Optional[Any] = None, session: Optional[Any] = No
 
     commit = False
     if not session:
-        session = db.Session()
+        session = Session()
         commit = True
     query = session.execute(select(BaubleMeta).where(BaubleMeta.name == name)).scalars()
     meta = query.first()
@@ -86,7 +84,7 @@ def get_default(name, default: Optional[Any] = None, session: Optional[Any] = No
     return meta
 
 
-class BaubleMeta(db.Base):
+class BaubleMeta(Base):
     """
     The BaubleMeta class is used to set and retrieve meta information
     based on key/name values from the bauble meta table.

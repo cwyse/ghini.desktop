@@ -20,10 +20,9 @@ import glob
 import logging
 import os
 import re
-from typing import Generator, List, Pattern
+from typing import List, Pattern
 
 import pytest
-from typing import Any
 from babel.messages.pofile import read_po
 
 logger = logging.getLogger(__name__)
@@ -47,6 +46,7 @@ def translation_pattern() -> Pattern[str]:
     Fixture to compile the translation key pattern.
     """
     return re.compile(r"%\([a-z0-9_]*\)s")
+
 
 def test_same_keys(po_files: List[str], translation_pattern: Pattern[str]) -> None:
     """

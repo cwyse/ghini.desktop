@@ -18,26 +18,20 @@
 # Refactored for Pytest and SQLAlchemy 2.0.36 compatibility
 # Refactored for Pytest and SQLAlchemy 2.0.36 compatibility
 
-import os
-
-import gi
-import pytest
-
-from typing import Any
-from collections.abc import Generator
-prefs_lock: Any
-gi.require_version("Gtk", "3.0")
 import copy
 import logging
+import os
 import shutil
 import tempfile
 import threading
-
-from gi.repository import Gtk
+from collections.abc import Generator
+from typing import Any
 
 import bauble
+import pytest
 from bauble.connmgr import ConnMgrPresenter
 from bauble.editor import MockDialog, MockView
+from bauble.gtkinit import Gtk
 from bauble.prefs import prefs
 from bauble.test import check_dupids
 
@@ -46,7 +40,7 @@ logger._cache.clear()
 logger.setLevel(logging.INFO)
 
 # Create a global thread lock
-prefs_lock = threading.Lock()
+prefs_lock: Any = threading.Lock()
 
 
 @pytest.fixture(scope="function")
@@ -54,7 +48,7 @@ def mock_prefs() -> Generator[Any, None, None]:
     """
     Create an independent, thread-safe copy of the global `prefs` object for each test.
     """
-    global prefs
+
 
     with prefs_lock:  # Ensure exclusive access
         # Create a deep copy of the global prefs for the test
@@ -166,7 +160,9 @@ class TestConnMgrPresenter:
         assert mock_presenter.view.widget_get_visible("noconnectionlabel")
         assert not mock_presenter.view.widget_get_visible("expander")
 
-    def test_one_connection_on_remove_confirm_negative(self, mock_view, mock_prefs) -> None:
+    def test_one_connection_on_remove_confirm_negative(
+        self, mock_view, mock_prefs
+    ) -> None:
         """
         Test that the connection remains when the user confirms "No" on remove.
         """
@@ -202,7 +198,9 @@ class TestConnMgrPresenter:
             "nugkui" in mock_presenter.connections
         ), "Connection should not have been removed."
 
-    def test_one_connection_on_remove_confirm_positive(self, mock_view, mock_prefs) -> None:
+    def test_one_connection_on_remove_confirm_positive(
+        self, mock_view, mock_prefs
+    ) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -219,7 +217,9 @@ class TestConnMgrPresenter:
         assert not mock_presenter.view.widget_get_visible("expander")
         assert mock_presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_two_connection_initialize_default_first(self, mock_view, mock_prefs) -> None:
+    def test_two_connection_initialize_default_first(
+        self, mock_view, mock_prefs
+    ) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -243,7 +243,9 @@ class TestConnMgrPresenter:
         assert params["default"] is True
         assert mock_view.widget_get_value("usedefaults_chkbx")
 
-    def test_two_connection_initialize_default_second(self, mock_view, mock_prefs) -> None:
+    def test_two_connection_initialize_default_second(
+        self, mock_view, mock_prefs
+    ) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -267,7 +269,9 @@ class TestConnMgrPresenter:
         assert params["default"] is False
         assert not mock_view.widget_get_value("usedefaults_chkbx")
 
-    def test_two_connection_on_remove_confirm_positive(self, mock_view, mock_prefs) -> None:
+    def test_two_connection_on_remove_confirm_positive(
+        self, mock_view, mock_prefs
+    ) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -291,7 +295,9 @@ class TestConnMgrPresenter:
         assert not mock_presenter.view.widget_get_visible("noconnectionlabel")
         assert "combobox_set_active" in mock_view.invoked
 
-    def test_one_connection_shown_and_selected_sqlite(self, mock_view, mock_prefs) -> None:
+    def test_one_connection_shown_and_selected_sqlite(
+        self, mock_view, mock_prefs
+    ) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -308,7 +314,9 @@ class TestConnMgrPresenter:
         assert mock_presenter.view.widget_get_visible("expander")
         assert not mock_presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_one_connection_shown_and_selected_postgresql(self, mock_view, mock_prefs) -> None:
+    def test_one_connection_shown_and_selected_postgresql(
+        self, mock_view, mock_prefs
+    ) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "quisquis": {
                 "passwd": False,
@@ -329,7 +337,9 @@ class TestConnMgrPresenter:
         assert not mock_presenter.view.widget_get_visible("sqlite_parambox")
         assert not mock_presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_one_connection_shown_and_selected_oracle(self, mock_view, mock_prefs) -> None:
+    def test_one_connection_shown_and_selected_oracle(
+        self, mock_view, mock_prefs
+    ) -> None:
         # Set up the mock preferences for the test
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "quisquis": {
@@ -353,7 +363,9 @@ class TestConnMgrPresenter:
         assert not mock_presenter.view.widget_get_visible("sqlite_parambox")
         assert not mock_presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_two_connections_wrong_default_use_first_one(self, mock_view, mock_prefs) -> None:
+    def test_two_connections_wrong_default_use_first_one(
+        self, mock_view, mock_prefs
+    ) -> None:
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
                 "default": True,
@@ -625,7 +637,9 @@ class TestAddConnection:
         assert presenter.view.widget_get_sensitive("connect_button")
         assert not presenter.view.widget_get_visible("noconnectionlabel")
 
-    def test_one_connection_on_add_confirm_positive(self, mock_view, mock_prefs) -> None:
+    def test_one_connection_on_add_confirm_positive(
+        self, mock_view, mock_prefs
+    ) -> None:
         # Setup initial connection in preferences
         mock_prefs.prefs[bauble.conn_list_pref] = {
             "nugkui": {
@@ -934,7 +948,9 @@ class TestOnDialogResponse:
         assert "run_message_dialog" not in mock_view.invoked
         assert dialog.hidden
 
-    def test_on_dialog_response_cancel_params_changed(self, mock_view, mock_prefs) -> None:
+    def test_on_dialog_response_cancel_params_changed(
+        self, mock_view, mock_prefs
+    ) -> None:
         """
         Test that canceling the dialog after changes prompts a save confirmation.
         """

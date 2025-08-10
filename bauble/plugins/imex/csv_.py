@@ -27,10 +27,10 @@ import csv
 import logging
 import os
 import traceback
+from collections.abc import Generator
 from gettext import gettext as _
 from queue import Queue
-
-import gi
+from typing import Any, Optional
 
 import bauble.db as db
 import bauble.pluginmgr as pluginmgr
@@ -38,15 +38,9 @@ import bauble.task
 import bauble.utils as utils
 from bauble import pb_set_fraction
 from bauble.error import BaubleError
+from bauble.gtkinit import Gtk
 from bauble.plugins.imex.csv_processor import CSVProcessor
 from bauble.plugins.imex.unicode_utils import UnicodeWriter
-
-from typing import Union, Optional
-from bauble import pluginmgr
-from typing import Any
-from collections.abc import Generator
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
 
 # from sqlalchemy import Boolean
 from sqlalchemy import ColumnDefault, inspect
@@ -116,6 +110,7 @@ class CSVImporter(Importer):
     inserted rows.
 
     """
+
     __error: bool
     __cancel: bool
     __pause: bool
@@ -124,6 +119,7 @@ class CSVImporter(Importer):
     job_done: Any
     flush_count: int
     steps_so_far: int
+
     def __init__(self) -> None:
         super().__init__()
         self.__error = False  # flag to indicate error on import
@@ -134,7 +130,12 @@ class CSVImporter(Importer):
         self.job_done = object()  # Sentinel for completion
         self.flush_count = 0
 
-    def start(self, filenames: Optional[Any] = None, metadata: Optional[Any] = None, force: bool = False) -> None:
+    def start(
+        self,
+        filenames: Optional[Any] = None,
+        metadata: Optional[Any] = None,
+        force: bool = False,
+    ) -> None:
         """start the import process. this is a non blocking method: we queue
         the process as a bauble task. there is no callback informing whether
         it is successfully completed or not.
@@ -388,7 +389,9 @@ class CSVImporter(Importer):
                     logger.error(f"Error creating table {table.name}: {e}")
                     raise
 
-    def run(self, filenames, metadata, force: bool = False) -> Generator[None, None, None]:
+    def run(
+        self, filenames, metadata, force: bool = False
+    ) -> Generator[None, None, None]:
         """
         A generator method for importing filenames into the database.
         This method periodically yields control so that the GUI can
@@ -671,6 +674,7 @@ def open_file_safe(filename, mode: str = "w") -> Generator[Any, None, None]:
 class CSVExporter:
 
     steps_so_far: int
+
     def start(self, path: Optional[Any] = None) -> None:
         if path is None:
             d = Gtk.FileChooserDialog(

@@ -17,15 +17,10 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 #
 import logging
-
-import gi
+from typing import Any, Optional
 
 import bauble.utils as utils
-
-from typing import Union, Optional
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from bauble.gtkinit import Gtk
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -33,14 +28,14 @@ logger.setLevel(logging.INFO)
 
 class PicturesView:
     """Displays pictures corresponding to selection."""
+
     fake: Any
     widgets: Any
     pictures_box: Any
     ghini_box: Any
+
     def __init__(self, parent: Optional[Any] = None, fake: bool = False) -> None:
-        logger.debug(
-            f"entering PicturesView.__init__(parent={parent}, fake={fake})"
-        )
+        logger.debug(f"entering PicturesView.__init__(parent={parent}, fake={fake})")
         self.fake = fake
 
         if self.fake:

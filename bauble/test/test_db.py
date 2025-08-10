@@ -19,9 +19,8 @@
 # Refactored for Pytest and SQLAlchemy 2.0.36 compatibility
 
 import pytest
-
 from bauble import db
-from bauble.plugins.garden.accession import AccessionNote
+from bauble.plugins.garden.models import AccessionNote
 from bauble.plugins.plants.genus import Genus
 from bauble.prefs import prefs
 

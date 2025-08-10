@@ -26,29 +26,23 @@ import traceback
 import weakref
 import xml
 from gettext import gettext as _
-from typing import Any, ClassVar, List, Optional, Union
+from typing import Any, ClassVar, List, Optional
 
 import bauble
 import bauble.btypes as types
-import bauble.db as db
 import bauble.editor as editor
 import bauble.error as error
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
 import bauble.view as view
-import gi
-from bauble import db, editor
-from bauble.plugins.plants.family import Family, FamilySynonym
-from bauble.plugins.plants.species_model import Species
+from bauble.db import Base, Serializable, Session, WithNotes, make_note_class
+from bauble.gtkinit import Gtk
+from bauble.plugins.plants.family import Family
 from bauble.prefs import prefs
 from bauble.shared import InfoExpander
 from bauble.utils import safe_set_props, safe_set_text
 from bauble.view import Action, InfoBox, PropertiesExpander, select_in_search_results
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
 
 # from sqlalchemy import text
 from sqlalchemy import (
@@ -66,7 +60,7 @@ from sqlalchemy import (
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, synonym, validates
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.orm.session import object_session
 
@@ -99,9 +93,10 @@ def edit_callback(genera):
 
 
 def add_species_callback(genera):
-    session = db.Session()
+    session = Session()
     genus = session.merge(genera[0])
-    from bauble.plugins.plants.species import Species, SpeciesEditor
+    from bauble.plugins.plants.species import SpeciesEditor
+    from bauble.plugins.plants.species_model import Species
 
     e = SpeciesEditor(model=Species(genus=genus))
     # session creates unbound object.  editor decides what to do with it.
@@ -121,7 +116,8 @@ def remove_callback(genera):
 
     nsp = session.execute(
         select(func.count()).select_from(Species).where(genus_id=genus.id)
-    )
+    ).scalar_one()
+
     safe_str = utils.xml_safe(str(genus))
     if nsp > 0:
         msg = _("The genus <i>%(1)s</i> has %(2)s species." "\n\n") % {
@@ -166,7 +162,7 @@ def remove_callback(genera):
     try:
         # If 'Yes, remove genus and synonyms' was selected, delete the synonyms
         if response == utils.DialogResponse.YES:
-            for _unused_var in genus.synonyms:
+            for synonym in genus.synonyms:
                 synonym_obj = session.get(Genus, synonym.id)
                 session.delete(synonym_obj)
 
@@ -212,7 +208,7 @@ def get_species_editor():
     return edit_species
 
 
-class Genus(db.Base, db.Serializable, db.WithNotes):
+class Genus(Base, Serializable, WithNotes):
     """
     :Table name: genus
 
@@ -246,6 +242,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         The combination of genus, author, qualifier
         and family_id must be unique.
     """
+
     species_editor: ClassVar[Any]
     __tablename__: str = "genus"
     id: Any = Column(Integer, primary_key=True)
@@ -446,7 +443,7 @@ class Genus(db.Base, db.Serializable, db.WithNotes):
         return False
 
     def as_dict(self, recurse: bool = True):
-        result = db.Serializable.as_dict(self)
+        result = Serializable.as_dict(self)
         if "qualifier" in result:
             del result["qualifier"]
         result["object"] = "taxon"
@@ -537,7 +534,7 @@ def compute_serializable_fields(cls, session, keys):
     return result
 
 
-GenusNote: Any = db.make_note_class("Genus", Genus, compute_serializable_fields)
+GenusNote: Any = make_note_class("Genus", Genus, compute_serializable_fields)
 Genus.notes = relationship(
     "GenusNote",
     back_populates="genus",
@@ -547,10 +544,11 @@ Genus.notes = relationship(
 )
 
 
-class GenusSynonym(db.Base):
+class GenusSynonym(Base):
     """
     :Table name: genus_synonym
     """
+
     __tablename__: str = "genus_synonym"
 
     # columns
@@ -558,10 +556,14 @@ class GenusSynonym(db.Base):
     genus_id: Mapped[int] = mapped_column(ForeignKey("genus.id"), nullable=False)
 
     # a genus can only be a synonum of one other genus
-    synonym_id: Mapped[int] = mapped_column(ForeignKey("genus.id"), nullable=False, unique=True)
+    synonym_id: Mapped[int] = mapped_column(
+        ForeignKey("genus.id"), nullable=False, unique=True
+    )
 
     # Primary relationship to Genus via genus_id
-    genus: Mapped["Genus"] = relationship("Genus", back_populates="_synonyms", foreign_keys=[genus_id])
+    genus: Mapped["Genus"] = relationship(
+        "Genus", back_populates="_synonyms", foreign_keys=[genus_id]
+    )
 
     # Secondary relationship to Genus via synonym_id (if applicable)
     synonym: Mapped["Genus"] = relationship(
@@ -590,14 +592,21 @@ class GenusSynonym(db.Base):
 
 # late bindings
 
+
 # only now that we have `Species` can we define the sorted `species` in
 # the `Genus` class.
+def _species_order_by():
+    from bauble.plugins.plants.species_model import Species
+
+    return asc(Species.epithet)
+
+
 Genus.species = relationship(
     "Species",
     cascade="all, delete-orphan",
-    order_by=asc(Species.epithet),
+    order_by=_species_order_by,
     back_populates="genus",
-    uselist=True,  # one-to-many relationship
+    uselist=True,
     single_parent=True,
 )
 
@@ -642,7 +651,9 @@ class GenusEditorView(editor.GenericEditorView):
         return self.widgets.genus_dialog
 
     @staticmethod
-    def syn_cell_data_func(column, renderer, model, iter, data: Optional[Any] = None) -> None:
+    def syn_cell_data_func(
+        column, renderer, model, iter, data: Optional[Any] = None
+    ) -> None:
         """ """
         family_instance = get_family_class()
         v = model[iter][0]
@@ -718,6 +729,7 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
         #            return result
         # connect signals
         def fam_get_completions(text_val):
+            Family = get_family_class()
             clause = utils.ilike(Family.family, f"{text_val}%")
             stmt = select(Family).where(clause).order_by(Family.family)
 
@@ -732,6 +744,7 @@ class GenusEditorPresenter(editor.GenericEditorPresenter):
         #            )
 
         def on_select(value):
+            from bauble.plugins.plants.family import FamilySynonym
             for kid in self.view.widgets.message_box_parent.get_children():
                 self.view.widgets.remove_parent(kid)
             self.set_model_attr("family", value)
@@ -998,7 +1011,9 @@ class GenusEditor(editor.GenericModelViewPresenterEditor):
     RESPONSE_NEXT: int = 22
     ok_responses: Any = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model: Optional[Any] = None, parent: Optional[Any] = None) -> None:
+    def __init__(
+        self, model: Optional[Any] = None, parent: Optional[Any] = None
+    ) -> None:
         """
         :param model: Genus instance or None
         :param parent: None
@@ -1027,6 +1042,7 @@ class GenusEditor(editor.GenericModelViewPresenterEditor):
         """
         handle the response from self.presenter.start() in self.start()
         """
+        from bauble.plugins.plants.species_model import Species
         not_ok_msg = _("Are you sure you want to lose your changes?")
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
             try:
@@ -1109,7 +1125,9 @@ class GeneralGenusExpander(InfoExpander):
     """
     expander to present general information about a genus
     """
+
     current_obj: Any
+
     def __init__(self, widgets) -> None:
         """
         the constructor
@@ -1159,6 +1177,7 @@ class GeneralGenusExpander(InfoExpander):
 
         :param row: the row to get the values from
         """
+        from bauble.plugins.plants.species_model import Species
         from sqlalchemy import func
 
         session = object_session(row)
@@ -1183,8 +1202,7 @@ class GeneralGenusExpander(InfoExpander):
         if "GardenPlugin" not in pluginmgr.plugins:
             return
 
-        from bauble.plugins.garden.accession import Accession
-        from bauble.plugins.garden.plant import Plant
+        from bauble.plugins.garden.models import Accession, Plant
 
         # get number of accessions
         nacc = session.execute(
@@ -1207,9 +1225,7 @@ class GeneralGenusExpander(InfoExpander):
                 .scalars()
                 .all()
             )
-            self.widget_set_value(
-                "gen_nacc_data", f"{nacc} in {nsp_in_acc} species"
-            )
+            self.widget_set_value("gen_nacc_data", f"{nacc} in {nsp_in_acc} species")
 
         # get the number of plants in the genus
         nplants = session.execute(
@@ -1305,11 +1321,13 @@ class SynonymsExpander(InfoExpander):
 
 class GenusInfoBox(InfoBox):
     """ """
+
     widgets: Any
     general: Any
     synonyms: Any
     links: Any
     properties_expander: Any
+
     def __init__(self) -> None:
         button_defs = [
             {
@@ -1399,6 +1417,3 @@ class GenusInfoBox(InfoBox):
         self.synonyms.update(row)
         self.links.update(row)
         self.properties_expander.update(row)
-
-
-db.Genus = Genus

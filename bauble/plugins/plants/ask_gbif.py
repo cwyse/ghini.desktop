@@ -15,7 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-import json
 import logging
 import threading
 from typing import Any, Callable, Optional, Union
@@ -31,7 +30,13 @@ class AskGBIF(threading.Thread):
     _stop: bool
     binomial: Optional[str]
     threshold: float
-    callback: Callable[[Optional[dict[str, str]], Optional[Union[dict[str, str], list[dict[str, str]]]]], None]
+    callback: Callable[
+        [
+            Optional[dict[str, str]],
+            Optional[Union[dict[str, str], list[dict[str, str]]]],
+        ],
+        None,
+    ]
     timeout: int
     gui: bool
     running: Optional["AskGBIF"] = None
@@ -39,13 +44,19 @@ class AskGBIF(threading.Thread):
     def __init__(
         self,
         binomial: Optional[str],
-        callback: Callable[[Optional[dict[str, str]], Optional[Union[dict[str, str], list[dict[str, str]]]]], None],
+        callback: Callable[
+            [
+                Optional[dict[str, str]],
+                Optional[Union[dict[str, str], list[dict[str, str]]]],
+            ],
+            None,
+        ],
         threshold: float = 0.8,
         timeout: int = 4,
         gui: bool = False,
         group: Optional[Any] = None,
         verbose: Optional[bool] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         super().__init__(group=group, target=None, name=None)
         logger.debug(
@@ -90,8 +101,8 @@ class AskGBIF(threading.Thread):
             )
             logger.debug(result.text)
             from typing import cast
-            return cast(dict[str, Any], result.json())
 
+            return cast(dict[str, Any], result.json())
 
         class ShouldStopNow(Exception):
             pass
@@ -141,10 +152,7 @@ class AskGBIF(threading.Thread):
         self.__class__.running = None
         logger.debug(f"{self.name} before invoking callback")
         if self.gui:
-            import gi
-
-            gi.require_version("Gtk", "3.0")
-            from gi.repository import GLib
+            from bauble.gtkinit import GLib
 
             GLib.idle_add(self.callback, found, accepted)
         else:
@@ -155,7 +163,10 @@ def citation(d: dict[str, str]) -> str:
     return ("{scientificName} " "({family})".format(**d)).replace("   ", " ")
 
 
-def what_to_do_with_it(found: Optional[dict[str, str]], accepted: Optional[Union[dict[str, str], list[dict[str, str]]]]) -> None:
+def what_to_do_with_it(
+    found: Optional[dict[str, str]],
+    accepted: Optional[Union[dict[str, str], list[dict[str, str]]]],
+) -> None:
     if found is None and accepted is None:
         logger.info("nothing matches")
         return
@@ -166,4 +177,3 @@ def what_to_do_with_it(found: Optional[dict[str, str]], accepted: Optional[Union
         logger.info("invalid reference in gbif.")
     if isinstance(accepted, dict):
         logger.info("%s - is its accepted form", citation(accepted))
-

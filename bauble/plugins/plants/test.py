@@ -23,37 +23,37 @@
 import glob
 import logging
 import os
+from collections.abc import Generator
 from functools import partial
+from typing import Any
+from unittest.mock import patch
 
 import pytest
+from bauble import db, utils
+from bauble.editor import MockView
+from bauble.plugins.imex.csv_ import CSVImporter
+from bauble.plugins.plants.family import Family as Family
+from bauble.plugins.plants.family import FamilySynonym as FamilySynonym
+from bauble.plugins.plants.family import remove_callback as remove_callback
+from bauble.plugins.plants.genus import Genus, GenusSynonym
+from bauble.plugins.plants.geography import GeographicArea as GeographicArea
+from bauble.plugins.plants.geography import (
+    get_species_in_geographic_area as get_species_in_geographic_area,
+)
+from bauble.plugins.plants.species import DefaultVernacularName as DefaultVernacularName
+from bauble.plugins.plants.species import Species as Species
+from bauble.plugins.plants.species import SpeciesNote as SpeciesNote
+from bauble.plugins.plants.species import SpeciesSynonym as SpeciesSynonym
+from bauble.plugins.plants.species import edit_species as edit_species
+from bauble.plugins.plants.species_distribution import SpeciesDistribution
+from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
+from bauble.plugins.plants.species_model import _remove_zws as remove_zws
+from bauble.test import check_dupids, mockfunc
 from editor import GenericModelViewPresenterEditor
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
-from bauble import db, utils
-from bauble.editor import MockView
-from bauble.plugins.plants.family import (
-    Family,
-    FamilySynonym,
-    remove_callback,
-)
-from bauble.plugins.plants.genus import Genus, GenusSynonym
-from bauble.plugins.plants.species import (
-    DefaultVernacularName,
-    Species,
-    SpeciesNote,
-    SpeciesSynonym,
-)
-from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
-from bauble.plugins.plants.species_model import _remove_zws as remove_zws
-from bauble.test import check_dupids, mockfunc
 
-
-from typing import Any
-from bauble.plugins.plants.family import Family as Family, FamilySynonym as FamilySynonym, remove_callback as remove_callback
-from bauble.plugins.plants.geography import GeographicArea as GeographicArea, get_species_in_geographic_area as get_species_in_geographic_area
-from bauble.plugins.plants.species import DefaultVernacularName as DefaultVernacularName, Species as Species, SpeciesNote as SpeciesNote, SpeciesSynonym as SpeciesSynonym, edit_species as edit_species
-from collections.abc import Generator
 @pytest.fixture
 def setup_plant_data() -> Generator[None, None, None]:
     """Fixture to populate the database with test data."""
@@ -477,18 +477,15 @@ class TestGenusSynonymy:
         assert genus_alta.accepted == genus_sedum
 
 
-from unittest.mock import patch
 
-import pytest
-
-from bauble.plugins.imex.csv_ import CSVImporter
-from bauble.plugins.plants.species import edit_species
 
 
 @pytest.mark.usefixtures("setup_plant_data")
 class TestSpecies:
     """Tests for the Species functionality."""
+
     invoked: Any
+
     def test_species_editor(self, session) -> None:
         """
         Test the Species editor and its interaction with the database and garbage collection.
@@ -1011,7 +1008,7 @@ class TestSpecies:
         caricaceae = Family(epithet="Caricaceae")
         f5 = Genus(epithet="Carica", family=caricaceae)
         sp = Species(epithet="papaya", genus=f5)
-        from bauble.plugins.garden import Accession
+        from bauble.plugins.garden.models import Accession
 
         acc = Accession(code="0123456", species=sp)
         self.session.add_all([caricaceae, f5, sp, acc])
@@ -1052,21 +1049,14 @@ class TestSpecies:
 
 
 
-import pytest
-
-from bauble.plugins.plants.geography import (
-    GeographicArea,
-    get_species_in_geographic_area,
-)
-from bauble.plugins.plants.species_distribution import SpeciesDistribution
-
-
 @pytest.mark.usefixtures("setup_plant_data")
 class TestGeographicArea:
     """Tests for Geographic Area functionality."""
+
     session: Any
     family: Any
     genus: Any
+
     @pytest.fixture(autouse=True)
     def setup_class(self, session) -> None:
         """Setup for each test."""
@@ -1278,7 +1268,6 @@ class TestFromAndToDict:
 
 
 import pytest
-
 from bauble.plugins.plants.vernacular_name import VernacularName
 
 
@@ -1654,10 +1643,12 @@ import pytest
 @pytest.mark.usefixtures("setup_plant_data")
 class TestSpeciesInfraspecificProp:
     """Tests for infraspecific properties and cultivar epithet in Species."""
+
     cinnamomum: Any
     cinnamomum_camphora: Any
     gleditsia: Any
     gleditsia_triacanthos: Any
+
     def test_cultivar_epithet_1(self, session) -> None:
         obj = Species.retrieve_or_create(
             session,

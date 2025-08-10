@@ -19,16 +19,17 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
 import sys
+from collections.abc import Generator
+
+# Global configuration
+from typing import Any
 
 import pytest
-
+import sqlalchemy as sa
 from bauble import db, pluginmgr
 from bauble.error import BaubleError
 from bauble.prefs import prefs
 
-# Global configuration
-from typing import Any
-from collections.abc import Generator
 SQLITE_URI: str
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -36,7 +37,9 @@ prefs.testing = True
 
 # 🔹 Configure Test Databases (SQLite & PostgreSQL)
 SQLITE_URI = "sqlite:////tmp/sqlite_test_db"
-POSTGRESQL_URI: str = "postgresql://ghini:9yuzebes@192.168.40.32/pytest_db"  # ⚠️ Update this!
+POSTGRESQL_URI: str = (
+    "postgresql://ghini:9yuzebes@192.168.40.32/pytest_db"  # ⚠️ Update this!
+)
 URI = SQLITE_URI
 
 

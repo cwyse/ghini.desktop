@@ -16,33 +16,27 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
-import gi
-import pytest
 
-from typing import Union, Optional
-from typing import Any
-from bauble.plugins.tag import Tag as Tag, TagEditorPresenter as TagEditorPresenter, create_named_empty_tag as create_named_empty_tag, remove_callback as remove_callback, tag_objects as tag_objects, tags_menu_manager as tags_menu_manager, untag_objects as untag_objects
-from collections.abc import Generator
-gi.require_version("Gtk", "3.0")
 import glob
 import os
+from collections.abc import Generator
 from functools import partial
+from typing import Any, Optional
 
 import bauble.plugins.tag as tag_plugin
 import bauble.utils as utils
+import pytest
 from bauble.editor import GenericEditorView, MockView
+from bauble.gtkinit import Gtk
 from bauble.plugins.plants import Family
-from bauble.plugins.tag import (
-    Tag,
-    TagEditorPresenter,
-    create_named_empty_tag,
-    remove_callback,
-    tag_objects,
-    tags_menu_manager,
-    untag_objects,
-)
+from bauble.plugins.tag import Tag as Tag
+from bauble.plugins.tag import TagEditorPresenter as TagEditorPresenter
+from bauble.plugins.tag import create_named_empty_tag as create_named_empty_tag
+from bauble.plugins.tag import remove_callback as remove_callback
+from bauble.plugins.tag import tag_objects as tag_objects
+from bauble.plugins.tag import tags_menu_manager as tags_menu_manager
+from bauble.plugins.tag import untag_objects as untag_objects
 from bauble.test import check_dupids, mockfunc
-from gi.repository import Gtk
 from sqlalchemy import delete, select
 
 
@@ -205,7 +199,6 @@ class TestTag:
         assert not tag.is_tagging(family2)
         assert tag.is_tagging(setup_family_and_tags)
 
-
     def test_search_view_markup_pair(self, session, setup_family_and_tags) -> None:
         """Test the search view markup for tagged objects."""
         family2 = Family(family="family2")
@@ -247,12 +240,8 @@ class TestTag:
             session.commit()
 
         invoked = []
-        partial(
-            mockfunc, name="yes_no_dialog", caller=invoked, result=False
-        )
-        partial(
-            mockfunc, name="message_details_dialog", caller=invoked
-        )
+        partial(mockfunc, name="yes_no_dialog", caller=invoked, result=False)
+        partial(mockfunc, name="message_details_dialog", caller=invoked)
 
         result = remove_callback([tag])
         if session.in_transaction():
@@ -280,9 +269,7 @@ class TestTag:
 
         invoked = []
         save_reset = tag_plugin.tags_menu_manager.reset
-        partial(
-            mockfunc, name="yes_no_dialog", caller=invoked, result=True
-        )
+        partial(mockfunc, name="yes_no_dialog", caller=invoked, result=True)
         tag_plugin.tags_menu_manager.reset = partial(
             mockfunc, name="_reset_tags_menu", caller=invoked
         )
@@ -312,6 +299,7 @@ class TestGetTagIds:
     fam2: Any
     fam3: Any
     fam4: Any
+
     @pytest.fixture(autouse=True)
     def setup_families_and_tags(self, session) -> Generator[None, None, None]:
         """Setup fixture for families and tags."""
@@ -396,6 +384,7 @@ class MockTagView(GenericEditorView):
     dict: Any
     widgets: Any
     window: Any
+
     def __init__(self) -> None:
         self._dirty = False
         self.sensitive = False
@@ -418,7 +407,14 @@ class MockTagView(GenericEditorView):
     def mark_problem(self, widget_name) -> None:
         pass
 
-    def widget_set_value(self, widget, value, markup: bool = False, default: Optional[Any] = None, index: int = 0) -> None:
+    def widget_set_value(
+        self,
+        widget,
+        value,
+        markup: bool = False,
+        default: Optional[Any] = None,
+        index: int = 0,
+    ) -> None:
         self.dict[widget] = value
 
     def widget_get_value(self, widget, index: int = 0):
@@ -437,7 +433,9 @@ class TestTagPresenter:
 
         assert presenter.model.tag == "1234"
 
-    def test_when_user_inserts_existing_name_warning_ok_deactivated(self, session) -> None:
+    def test_when_user_inserts_existing_name_warning_ok_deactivated(
+        self, session
+    ) -> None:
         # Prepare data in the database
         obj = Tag(tag="1234")
         session.add(obj)
@@ -539,9 +537,11 @@ class TestAttachedTo:
             tag_plugin.tag_objects(t, [fam])
         assert Tag.attached_to(fam) == tags
 
+
 class FakeGui:
     invoked: Any
     window: Any
+
     def __init__(self) -> None:
         self.invoked = []
         self.window = self

@@ -24,23 +24,20 @@ import logging
 import os
 import re
 from gettext import gettext as __
-from typing import Any, Optional, Union
+from typing import Any, Iterable, Optional
 
 import bauble.btypes as types
 import bauble.error as error
 import bauble.utils as utils
-import gi
 import sqlalchemy.orm as orm
+from bauble.gtkinit import Gtk
 from bauble.utils import parse_date
-from sqlalchemy import asc
-
-gi.require_version("Gtk", "3.0")
-# from sqlalchemy.orm import Query
-from gi.repository import Gtk
-from sqlalchemy import event, insert, inspect, select
+from sqlalchemy import asc, event, insert, inspect, select, text
+from sqlalchemy.engine import Connection
 
 # from sqlalchemy import text
 from sqlalchemy.orm import DeclarativeMeta, class_mapper, declarative_base
+from sqlalchemy.sql.sqltypes import String, Text, Unicode, UnicodeText
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -185,6 +182,7 @@ class MapperBase(DeclarativeMeta):
     than to extend it to add more default columns to all the bauble
     tables.
     """
+
     id: Any
     _created: Any
     _last_updated: Any
@@ -287,14 +285,19 @@ class MapperBase(DeclarativeMeta):
             query = query.order_by(*cls.order_by)
         return query
 
-
 engine: Any = None
 """A :class:`sqlalchemy.engine.base.Engine` used as the default
 connection to the database.
 """
 
 
-Session: Any = None
+from sqlalchemy.orm import Session as SQLAlchemySession
+from sqlalchemy.orm import scoped_session
+
+Session: scoped_session[SQLAlchemySession] = scoped_session(
+    sessionmaker(autoflush=False, future=True)
+)
+
 """
 bauble.db.Session is created after the database has been opened with
 :func:`bauble.db.open()`. bauble.db.Session should be used when you need
@@ -368,6 +371,7 @@ class History(history_base):
     timestamp: Any = sa.Column(types.DateTime, nullable=False)
 
 
+
 def open(uri, verify: bool = True, show_error_dialogs: bool = False):
     """
     Open a database connection. This function sets `bauble.db.engine` to
@@ -387,10 +391,7 @@ def open(uri, verify: bool = True, show_error_dialogs: bool = False):
     logger.debug(f"db.open({uri})")
     import bauble.prefs
     from sqlalchemy.exc import SQLAlchemyError
-    from sqlalchemy.orm import scoped_session
     from sqlalchemy.pool import NullPool, SingletonThreadPool
-
-    global engine, Session
 
     # Create the SQLAlchemy engine
     try:
@@ -419,14 +420,13 @@ def open(uri, verify: bool = True, show_error_dialogs: bool = False):
         """
         Bind the engine and configure the session factory.
         """
-        global engine, Session
+        global engine
         if engine is not None:
             engine.dispose()
         engine = new_engine
         metadata.bind = engine
-        Session = scoped_session(
-            sessionmaker(bind=engine, autoflush=False, future=True)
-        )
+        Session.remove()
+        Session.configure(bind=engine, future=True)
 
     # Skip verification if not requested
     if not verify:
@@ -435,83 +435,289 @@ def open(uri, verify: bool = True, show_error_dialogs: bool = False):
 
     try:
         verify_connection(new_engine, show_error_dialogs)
-        _bind()
     except Exception as e:
+        _bind()
         logger.error(f"Database verification failed: {e}")
         raise
+    else:
+        _bind()
 
-    # Ensure mappers are configured
-    #from sqlalchemy.orm import configure_mappers
+        return engine
 
-    #configure_mappers()
+# def create_triggers(connection) -> None:
+#     """
+#     Creates triggers for all TEXT columns in SQLite to convert empty strings to NULL.
+#     Adds constraints in PostgreSQL to prevent empty strings.
+#     """
+#     inspector = inspect(connection)
 
-    return engine
+#     if connection.engine.name == "sqlite":
+#         logger.info("Creating SQLite triggers to normalize empty strings to NULL.")
+
+#         # Loop through all tables
+#         for table_name in inspector.get_table_names():
+#             # Get column details
+#             columns = inspector.get_columns(table_name)
+
+#             for column in columns:
+#                 col_name = column["name"]
+#                 col_type = column["type"].__class__.__name__.lower()
+
+#                 # Only apply triggers to TEXT columns
+#                 if "text" in col_type or "varchar" in col_type:
+#                     trigger_name = f"normalize_empty_strings_{table_name}_{col_name}"
+
+#                     connection.execute(
+#                         text(
+#                             f"""
+#                         CREATE TRIGGER IF NOT EXISTS {trigger_name}
+#                         BEFORE INSERT OR UPDATE ON {table_name}
+#                         FOR EACH ROW
+#                         WHEN NEW.{col_name} = ''
+#                         BEGIN
+#                             UPDATE {table_name} SET {col_name} = NULL WHERE rowid = NEW.rowid;
+#                         END;
+#                     """
+#                         )
+#                     )
+
+#         if connection.in_transaction():
+#             connection.commit()
+
+#     elif connection.engine.name == "postgresql":
+#         logger.info("Adding PostgreSQL column constraints to prevent empty strings.")
+
+#         for table_name in inspector.get_table_names():
+#             columns = inspector.get_columns(table_name)
+
+#             for column in columns:
+#                 col_name = column["name"]
+#                 col_type = column["type"].__class__.__name__.lower()
+
+#                 if "text" in col_type or "varchar" in col_type:
+#                     connection.execute(
+#                         text(
+#                             f"""
+#                         ALTER TABLE {table_name} ALTER COLUMN {col_name} SET DEFAULT NULL;
+#                     """
+#                         )
+#                     )
+
+#         if connection.in_transaction():
+#             connection.commit()
 
 
-from sqlalchemy import text
+def _is_textual(col_type) -> bool:
+    # inspector.get_columns() gives you SA types; handle common textual types
+    return isinstance(col_type, (String, Text, Unicode, UnicodeText))
 
 
-def create_triggers(connection) -> None:
+def _quote(preparer, name: str) -> str:
+    # SQLAlchemy’s dialect preparer does correct quoting per backend
+    return preparer.quote(name)
+
+
+def _iter_user_tables_sqlite(inspector) -> Iterable[str]:
+    # SQLite has no schemas; get all tables (skip sqlite internal tables just in case)
+    for t in inspector.get_table_names():
+        if not t.startswith("sqlite_"):
+            return [t]
+    return inspector.get_table_names()
+
+
+def _iter_schemas_and_tables_pg(inspector) -> Iterable[tuple[str, str]]:
+    # Walk non-system schemas
+    for schema in inspector.get_schema_names():
+        if schema in ("pg_catalog", "information_schema"):
+            continue
+        for t in inspector.get_table_names(schema=schema):
+            yield schema, t
+
+
+# def _col_preserves_empty(metadata, table_name: str, col_name: str) -> bool:
+#     tbl = metadata.tables.get(table_name)
+#     if not tbl:
+#         return False
+#     col = tbl.c.get(col_name)
+#     return bool(getattr(col, "info", {}).get("preserve_empty"))
+
+
+def _col_preserves_empty(metadata, table, column):
     """
-    Creates triggers for all TEXT columns in SQLite to convert empty strings to NULL.
-    Adds constraints in PostgreSQL to prevent empty strings.
+    Return True if this column should *not* be normalized '' -> NULL.
+    Keeps the original signature: (metadata, table, column).
+
+    - `table` may be a table *name* (str) or a Table object
+    - `column` may be an inspector column dict or a Column object
     """
+    # Normalize table -> SA Table
+    tbl = metadata.tables.get(table) if isinstance(table, str) else table
+    if tbl is None:
+        return False
+
+    # Normalize column -> name
+    if isinstance(column, dict):
+        col_name = column.get("name")
+    else:
+        col_name = getattr(column, "name", None)
+    if not col_name:
+        return False
+
+    # Get the mapped SA Column
+    cols = getattr(tbl, "columns", getattr(tbl, "c", None))
+    sa_col = cols.get(col_name) if hasattr(cols, "get") else None
+    if sa_col is None:
+        return False
+
+    # 1) Our custom Enum with empty_to_none=False => preserve ''
+    try:
+        from bauble.btypes import Enum as BaubleEnum
+
+        if isinstance(sa_col.type, BaubleEnum):
+            return not getattr(sa_col.type, "empty_to_none", False)
+    except Exception:
+        pass
+
+    # 2) Any CHECK constraint that explicitly allows '' => preserve ''
+    from sqlalchemy import CheckConstraint
+
+    for cons in getattr(tbl, "constraints", []):
+        if isinstance(cons, CheckConstraint):
+            sqltxt = str(cons.sqltext)
+            if col_name in sqltxt and "''" in sqltxt:
+                return True
+
+    return False
+
+
+def create_triggers(connection: Connection) -> None:
+    """
+    For SQLite: per-column AFTER triggers that normalize '' -> NULL.
+    For PostgreSQL: per-table BEFORE triggers (INSERT, UPDATE OF ...) that set NEW.col := NULL for ''.
+    """
+    dialect = connection.dialect
+    name = dialect.name
     inspector = inspect(connection)
+    preparer = dialect.identifier_preparer
 
-    if connection.engine.name == "sqlite":
-        logger.info("Creating SQLite triggers to normalize empty strings to NULL.")
+    if name == "sqlite":
+        # SQLite cannot assign to NEW.*; use AFTER triggers and a single-row UPDATE keyed by rowid.
+        for table in inspector.get_table_names():
+            cols = inspector.get_columns(table)
+            text_cols = [
+                c for c in cols if _is_textual(c["type"]) and c.get("nullable", True)
+            ]
+            if not text_cols:
+                continue
 
-        # Loop through all tables
-        for table_name in inspector.get_table_names():
-            # Get column details
-            columns = inspector.get_columns(table_name)
+            qt = _quote(preparer, table)
 
-            for column in columns:
-                col_name = column["name"]
-                col_type = column["type"].__class__.__name__.lower()
+            for c in text_cols:
+                col = c["name"]
 
-                # Only apply triggers to TEXT columns
-                if "text" in col_type or "varchar" in col_type:
-                    trigger_name = f"normalize_empty_strings_{table_name}_{col_name}"
+                if _col_preserves_empty(metadata, table, col):
+                    continue
 
-                    connection.execute(
-                        text(
-                            f"""
-                        CREATE TRIGGER IF NOT EXISTS {trigger_name}
-                        BEFORE INSERT OR UPDATE ON {table_name}
-                        FOR EACH ROW
-                        WHEN NEW.{col_name} = ''
-                        BEGIN
-                            UPDATE {table_name} SET {col_name} = NULL WHERE rowid = NEW.rowid;
-                        END;
-                    """
-                        )
-                    )
+                qc = _quote(preparer, col)
 
-        if connection.in_transaction():
-            connection.commit()
+                trig_ins = _quote(preparer, f"trg_norm_{table}_{col}_ins")
+                trig_upd = _quote(preparer, f"trg_norm_{table}_{col}_upd")
 
-    elif connection.engine.name == "postgresql":
-        logger.info("Adding PostgreSQL column constraints to prevent empty strings.")
+                # AFTER INSERT: if NEW.col == '' then rewrite to NULL using a self-UPDATE on rowid
+                sql_ins = f"""
+                    CREATE TRIGGER IF NOT EXISTS {trig_ins}
+                    AFTER INSERT ON {qt}
+                    WHEN NEW.{qc} = ''
+                    BEGIN
+                        UPDATE {qt} SET {qc} = NULL WHERE rowid = NEW.rowid;
+                    END;
+                """
 
-        for table_name in inspector.get_table_names():
-            columns = inspector.get_columns(table_name)
+                # AFTER UPDATE OF col: if NEW.col == '' then rewrite to NULL
+                sql_upd = f"""
+                    CREATE TRIGGER IF NOT EXISTS {trig_upd}
+                    AFTER UPDATE OF {qc} ON {qt}
+                    WHEN NEW.{qc} = ''
+                    BEGIN
+                        UPDATE {qt} SET {qc} = NULL WHERE rowid = NEW.rowid;
+                    END;
+                """
 
-            for column in columns:
-                col_name = column["name"]
-                col_type = column["type"].__class__.__name__.lower()
+                connection.execute(text(sql_ins))
+                connection.execute(text(sql_upd))
 
-                if "text" in col_type or "varchar" in col_type:
-                    connection.execute(
-                        text(
-                            f"""
-                        ALTER TABLE {table_name} ALTER COLUMN {col_name} SET DEFAULT NULL;
-                    """
-                        )
-                    )
+        return  # done
 
-        if connection.in_transaction():
-            connection.commit()
+    if name == "postgresql":
+        # Build one function per table that normalizes all relevant columns,
+        # then hook it up with BEFORE INSERT and BEFORE UPDATE OF <cols>.
+        for schema, table in _iter_schemas_and_tables_pg(inspector):
+            cols = inspector.get_columns(table, schema=schema)
+            text_cols = [
+                c for c in cols if _is_textual(c["type"]) and c.get("nullable", True)
+            ]
+            if not text_cols:
+                continue
+
+            # Qualified table name
+            if schema:
+                qt = f"{_quote(preparer, schema)}.{_quote(preparer, table)}"
+            else:
+                qt = _quote(preparer, table)
+
+            # Function and trigger names live in the same schema as the table.
+            fn_name = f"normalize_empty_{table}"
+            qfn = (
+                f"{_quote(preparer, schema)}.{_quote(preparer, fn_name)}"
+                if schema
+                else _quote(preparer, fn_name)
+            )
+
+            trig_ins = _quote(preparer, f"trg_norm_{table}_ins")
+            trig_upd = _quote(preparer, f"trg_norm_{table}_upd")
+
+            # Drop old triggers/functions if they exist (CREATE TRIGGER has no IF NOT EXISTS in PG).
+            connection.execute(text(f"DROP TRIGGER IF EXISTS {trig_ins} ON {qt};"))
+            connection.execute(text(f"DROP TRIGGER IF EXISTS {trig_upd} ON {qt};"))
+            connection.execute(text(f"DROP FUNCTION IF EXISTS {qfn}() CASCADE;"))
+
+            # Build function body: if NEW."col" = '' then NEW."col" := NULL;
+            checks = "\n".join(
+                f'    IF NEW.{_quote(preparer, c["name"])} = \'\' THEN NEW.{_quote(preparer, c["name"])} := NULL; END IF;'
+                for c in text_cols
+            )
+
+            fn_sql = f"""
+                CREATE FUNCTION {qfn}() RETURNS trigger AS $$
+                BEGIN
+{checks}
+                  RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """
+            connection.execute(text(fn_sql))
+
+            # BEFORE INSERT always; BEFORE UPDATE only “OF” those columns
+            col_list = ", ".join(_quote(preparer, c["name"]) for c in text_cols)
+
+            trg_sql_ins = f"""
+                CREATE TRIGGER {trig_ins}
+                BEFORE INSERT ON {qt}
+                FOR EACH ROW
+                EXECUTE FUNCTION {qfn}();
+            """
+            trg_sql_upd = f"""
+                CREATE TRIGGER {trig_upd}
+                BEFORE UPDATE OF {col_list} ON {qt}
+                FOR EACH ROW
+                EXECUTE FUNCTION {qfn}();
+            """
+            connection.execute(text(trg_sql_ins))
+            connection.execute(text(trg_sql_upd))
+
+        return
+
+    # Other backends: no-op (or you could add your own normalization here)
 
 
 def create(import_defaults: bool = True) -> None:
@@ -535,10 +741,87 @@ def create(import_defaults: bool = True) -> None:
     from bauble import pluginmgr
 
     try:
+        # 1) Load plugins so their models are imported and mapped classes exist
+        pluginmgr.load()  # <— add this call
+
+        # 1) Load plugins so their modules are discoverable
+        # pluginmgr.load()
+
+        # 2) Import every model module so all classes are defined & registered
+        import importlib
+
+        for mod in [
+            "bauble.plugins.garden.models.accession",
+            "bauble.plugins.garden.models.association_tables",
+            "bauble.plugins.garden.models.contact",
+            "bauble.plugins.garden.models.location",
+            "bauble.plugins.garden.models.plant",
+            "bauble.plugins.garden.models.plant_change",
+            "bauble.plugins.garden.models.propagation",
+            "bauble.plugins.garden.models.source",
+            "bauble.plugins.garden.models.verification",
+            "bauble.plugins.garden.models.voucher",
+        ]:
+            importlib.import_module(mod)
+
+        # 3) Wire relationships AFTER all classes exist
+        import bauble.plugins.garden.models as garden_models
+
+        garden_models.wire_relationships()
+
         with engine.begin() as connection:
             # Ensure all mappers are configured before creating tables
+            import bauble.plugins.garden.models.accession as acc
+            import bauble.plugins.garden.models.plant as pl
+            from bauble.db import MapperBase, metadata
             from sqlalchemy.orm import configure_mappers
 
+            print("accession in shared metadata? ", "accession" in metadata.tables)
+            print(
+                "Accession uses shared metadata? ",
+                acc.Accession.__table__.metadata is metadata,
+            )
+            print(
+                "Plant uses shared metadata? ", pl.Plant.__table__.metadata is metadata
+            )
+            print(
+                "Mapped class names seen so far:",
+                sorted(MapperBase._class_registry.keys()),
+            )
+
+            import inspect as pyinspect
+            import sys
+
+            import bauble.plugins.garden.models.accession as acc
+            import bauble.plugins.garden.models.plant as pl
+            from bauble.db import Base
+
+            metadata = Base.metadata
+
+            dbmod = sys.modules[__name__]  # since this code is running inside bauble.db
+            print("db module path:", pyinspect.getfile(dbmod), "id:", id(dbmod))
+            print(
+                "Garden model modules loaded:",
+                [k for k in sys.modules if "bauble.plugins.garden.models" in k],
+            )
+
+            print("db module path:", pyinspect.getfile(dbmod), "id:", id(dbmod))
+            print("Accession Base is db.Base? ", acc.Base is dbmod.Base)
+            # if plant.py still uses "from bauble.db import Base", this will exist:
+            print("Plant module has 'db' alias? ", hasattr(pl, "db"))
+            if hasattr(pl, "db"):
+                print("pl.db is dbmod? ", pl.db is dbmod)
+
+            print(
+                "Accession uses shared metadata? ",
+                acc.Accession.__table__.metadata is metadata,
+            )
+            print(
+                "Plant uses shared metadata? ", pl.Plant.__table__.metadata is metadata
+            )
+            print("Tables in shared metadata:", sorted(metadata.tables.keys()))
+            print("accession in shared metadata? ", "accession" in metadata.tables)
+            print("plant in shared metadata? ", "plant" in metadata.tables)
             configure_mappers()
 
             # Drop and recreate all tables
@@ -669,7 +952,9 @@ def verify_connection(engine, show_error_dialogs: bool = False):
 
             try:
                 major, minor, _ = map(int, version_row.value.split("."))
-                if (str(major), str(minor)) != tuple(map(str, bauble.version_tuple[:2])):
+                if (str(major), str(minor)) != tuple(
+                    map(str, bauble.version_tuple[:2])
+                ):
                     handle_error(
                         error.VersionError,
                         __(
@@ -703,7 +988,7 @@ def make_note_class(
     related_class,
     compute_serializable_fields: Optional[Any] = None,
     as_dict: Optional[Any] = None,
-    retrieve: Optional[Any] = None
+    retrieve: Optional[Any] = None,
 ):
     """
     Create a Note class with a relationship to the related_class using back_populates.
@@ -926,16 +1211,14 @@ class WithNotes:
             normalized_text = re.sub(r"(\w+)[ ]*(?=:)", r'"\g<1>"', text)
             # Try parsing the text as-is
             return json.loads(normalized_text)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
             logger.debug("JSON parsing failed: %s. Returning raw text: %s", e, text)
             return text
 
 
-class DefiningPictures:
-    """
-    A mixin to define picture handling for notes.
-    """
 
+
+class DefiningPictures:
     @property
     def pictures(self):
         """
@@ -943,21 +1226,6 @@ class DefiningPictures:
 
         :return: List of Gtk.Image objects.
         """
-        result = []
-
-        for note in self.notes:
-            if note.category == "<picture>":
-                box = Gtk.VBox()  # Contains the image or the error message
-                utils.ImageLoader(box, note.note).start()
-                result.append(box)
-
-        return result
-
-
-class DefiningPictures:
-    @property
-    def pictures(self):
-        """A list of Gtk.Image objects."""
         result = []
         for note in self.notes:
             if note.category != "<picture>":
@@ -1017,7 +1285,9 @@ class Serializable:
         return {}
 
     @classmethod
-    def retrieve_or_create(cls, session, keys, create: bool = True, update: bool = True):
+    def retrieve_or_create(
+        cls, session, keys, create: bool = True, update: bool = True
+    ):
         """
         Return a database object corresponding to keys, creating or updating as necessary.
 
@@ -1173,7 +1443,9 @@ class current_user_functor:
     This is designed to return the current user's name from the database
     or the system, with support for overriding.
     """
+
     override_value: Any
+
     def __init__(self) -> None:
         self.override_value = None
 
@@ -1217,3 +1489,34 @@ class current_user_functor:
 
 # Instantiate the current_user function
 current_user: Any = current_user_functor()
+
+
+# --- Lazy re-exports for plugin models (so users can `from bauble.db import Family`) ---
+import importlib
+
+_EXPORTS = {
+    # garden models
+    "Accession": "bauble.plugins.garden.models.accession",
+    "AccessionNote": "bauble.plugins.garden.models.accession",
+    "Plant": "bauble.plugins.garden.models.plant",
+    "PlantNote": "bauble.plugins.garden.models.plant",
+    "Location": "bauble.plugins.garden.models.location",
+    # plants models
+    "Family": "bauble.plugins.plants.family",
+    "Genus": "bauble.plugins.plants.genus",
+    "Species": "bauble.plugins.plants.species_model",
+    "SpeciesNote": "bauble.plugins.plants.species_model",
+    "VernacularName": "bauble.plugins.plants.species_model",
+    # add others you previously monkey-patched
+}
+
+
+def __getattr__(name):
+    modpath = _EXPORTS.get(name)
+    if not modpath:
+        raise AttributeError(name)
+    mod = importlib.import_module(modpath)
+    obj = getattr(mod, name)
+    # cache on bauble.db for future direct access
+    globals()[name] = obj
+    return obj

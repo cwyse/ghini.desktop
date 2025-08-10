@@ -23,16 +23,14 @@ import logging
 from datetime import datetime, timezone
 from gettext import gettext as _
 from threading import Lock
+from typing import Any, Optional
 
-import sqlalchemy.types as types
-
-import bauble.error as error
-from bauble.utils import parse_date
-
-from typing import Union, Optional
 from bauble import error
+from bauble.utils import parse_date
 from sqlalchemy import types
-from typing import Any
+
+global _prefs_lock
+
 _prefs_lock: Any = Lock()  # ✅ Add this at the module level
 
 logger: Any = logging.getLogger(__name__)
@@ -48,6 +46,7 @@ class BaseModelProtocol(Protocol):
 # TODO: store all times as UTC or support timezones
 class FreezableList(list):
     _frozen: bool
+
     def __init__(self, *args) -> None:
         super().__init__(*args)
         self._frozen = False
@@ -108,6 +107,7 @@ class EnumError(error.BaubleError):
 #        types.Enum("s. lat.", "s. str.", "", name="qualifier_enum"),
 class Enum(types.TypeDecorator):
     """A database independent Enum type. The value is stored in the database as a Unicode string."""
+
     values: Any
     strict: Any
     empty_to_none: Any
@@ -132,7 +132,12 @@ class Enum(types.TypeDecorator):
         )
 
     def __init__(
-        self, values, empty_to_none: bool = False, strict: bool = True, translations: Optional[Any] = None, **kwargs
+        self,
+        values,
+        empty_to_none: bool = False,
+        strict: bool = True,
+        translations: Optional[Any] = None,
+        **kwargs,
     ) -> None:
         """
         :param values: A list of valid values for the column.
@@ -163,8 +168,13 @@ class Enum(types.TypeDecorator):
 
         # Convert values to a **mutable list**
         # self.values = list(values)  # ✅ Now mutable
-        self.values = FreezableList(values)
-        self.values.freeze()  # prevent later changes
+        try:
+            from bauble.utils import FreezableList  # if you have it
+
+            self.values = FreezableList(values)
+            self.values.freeze()
+        except Exception:
+            self.values = tuple(values)
         self.strict = strict
         self.empty_to_none = empty_to_none
 
@@ -172,7 +182,7 @@ class Enum(types.TypeDecorator):
         self.translations = translations if isinstance(translations, dict) else {}
 
         # Determine max length for database storage
-        max_length = max(len(v) for v in values if v is not None)
+        max_length = max((len(v) for v in values if v is not None), default=1)
         self.impl = types.Unicode(max_length)
 
         # Call the parent class's constructor
@@ -187,6 +197,44 @@ class Enum(types.TypeDecorator):
         else:
             super().__setattr__(key, value)
 
+    def _normalize_in(self, value):
+        """Apply inbound translations and empty→None rule."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            # map aliases → canonical
+            val = self.translations.get(value, value)
+            if self.empty_to_none and val == "":
+                return None
+            return val
+        return value
+
+    def _validate(self, value):
+        """Validate against allowed values when strict and value is meaningful."""
+        if not self.strict:
+            return
+        if value is None:
+            return  # None is always OK (DB NULL)
+        if value == "" and self.empty_to_none:
+            return  # will be stored as NULL
+        if value not in self.values:
+            raise ValueError(
+                f"Value '{value}' is not in Enum values: {list(self.values)}"
+            )
+
+    # DB -> Python
+    def process_result_value(self, value, dialect):
+        # DB NULL stays None, never validate/raise
+        if value is None:
+            return None
+        # Apply reverse translations if you need them; usually we keep as stored
+        v = value
+        if self.empty_to_none and v == "":
+            return None
+        # Validate only if strict and not None
+        self._validate(v)
+        return v
+
     def process_bind_param(self, value, dialect):
         """
         Process the value going into the database.
@@ -194,30 +242,13 @@ class Enum(types.TypeDecorator):
         logger.debug(
             f"Enum::process_bind_param {type(self).__name__} {type(value).__name__}({value})"
         )
+        v = self._normalize_in(value)
+        self._validate(v)
+        return v  # None becomes SQL NULL automatically
 
-        # Handle empty strings as None if configured
-        if self.empty_to_none and not value:
-            value = None
-
-        # Convert None to empty string if needed
-        if value is None and None not in self.values and "" in self.values:
-            value = ""
-
-        # Validate the value
-        if value not in self.values:
-            raise EnumError(
-                _(f"{type(value).__name__}({value}) not in Enum.values: {self.values}")
-            )
-
-        return value
-
-    def process_result_value(self, value, dialect):
-        """
-        Process the value returned from the database.
-        """
-        if self.strict and value not in self.values:
-            raise ValueError(f"Value '{value}' is not in Enum values: {self.values}")
-        return value
+    # allow comparisons against strings in queries
+    def coerce_compared_value(self, op, value):
+        return self.impl.coerce_compared_value(op, value)
 
     def copy(self):
         """
@@ -309,6 +340,7 @@ class Date(types.TypeDecorator):
     """
     A Date type that allows Date strings
     """
+
     _dayfirst: Any
     _yearfirst: Any
     impl: Any = types.Date
@@ -329,7 +361,7 @@ class Date(types.TypeDecorator):
         """
         Initialize dayfirst and yearfirst preferences if not already set.
         """
-        global _prefs_lock
+        #global _prefs_lock
         with _prefs_lock:
             if self._dayfirst is None or self._yearfirst is None:
                 from bauble import prefs

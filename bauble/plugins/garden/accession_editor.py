@@ -20,38 +20,46 @@
 #
 # accessions module
 #
-import datetime
+
 import logging
 import os
 import traceback
-import typing
 import weakref
-from decimal import ROUND_DOWN, Decimal
-from functools import reduce
 from gettext import gettext as _
 from random import random
-from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
 import bauble
-import bauble.btypes as types
-import bauble.db as db
 import bauble.editor as editor
+import bauble.meta as meta
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 import bauble.view as view
-import gi
-import lxml.etree as etree
-from bauble import db, editor, meta
-from bauble.error import check
+from bauble.db import db as db
+from bauble.gtkinit import Gtk, Pango
+from bauble.plugins.garden.datums import datums
 
-if TYPE_CHECKING:
-    from bauble.plugins.garden.plant import Plant
-
+# ← pull in your ORM classes & lookup tables from models/
+# you already import several things from models; include this mapping too
+from bauble.plugins.garden.models import (
+    Accession,
+    Verification,
+    Voucher,
+    accession_type_to_plant_material,
+    get_species_instance,
+    latitude_to_dms,
+    longitude_to_dms,
+    prov_type_values,
+    recvd_type_values,
+    wild_prov_status_values,
+)
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species_model import Species, SpeciesSynonym
 from bauble.shared import InfoExpander
-from bauble.utils import handle_db_error, safe_int
+
+# NEW imports to satisfy pyflakes
+from bauble.utils import check, handle_db_error, ilike, safe_set_text
 from bauble.view import (
     Action,
     InfoBox,
@@ -59,120 +67,13 @@ from bauble.view import (
     PropertiesExpander,
     select_in_search_results,
 )
-from sqlalchemy.orm import Mapped, mapped_column
-
-wild_prov_status_values: ClassVar[list[tuple[str, str]]]
-cultivated_prov_status_values: ClassVar[list[tuple[str, str]]]
-purchase_prov_status_values: ClassVar[list[tuple[str, str]]]
-recvd_type_values: ClassVar[dict[Optional[str], str]]
-
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Pango
-
-# from sqlalchemy import text
-from sqlalchemy import (
-    Boolean,
-    Column,
-    ForeignKey,
-    Integer,
-    Unicode,
-    UnicodeText,
-    asc,
-    delete,
-    event,
-    or_,
-    select,
-)
+from lxml import etree
+from sqlalchemy import delete, or_, select
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import reconstructor, relationship, validates
-from sqlalchemy.orm.session import object_session
+from sqlalchemy.orm import object_session
 
-logger: Any = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-# TODO: underneath the species entry create a label that shows information
-# about the family of the genus of the species selected as well as more
-# info about the genus so we know exactly what plant is being selected
-# e.g. Malvaceae (sensu lato), Hibiscus (senso stricto)
-
-
-def get_species_instance(session, epithet, genus_epithet: Optional[Any] = None, create: bool = False):
-    """
-    Retrieves a Species instance based on epithet and optional genus epithet.
-    Returns a Species instance or None.
-    """
-    keys = {"epithet": epithet}
-    if genus_epithet:
-        keys["ht-epithet"] = genus_epithet  # Application-level attribute
-    return Species.retrieve_or_create(session=session, keys=keys, create=create)
-
-
-def safe_set_text(gtk_widget, text) -> None:
-    """
-    Sets the text of a Gtk widget replacing None with an empty string.
-
-    :param label: Instance of a Gtk widget
-    :param text: The text to set, which may be None
-    """
-    if text is None:
-        text = ""
-    gtk_widget.set_text(text)
-
-
-def longitude_to_dms(decimal):
-    return decimal_to_dms(Decimal(decimal), "long")
-
-
-def latitude_to_dms(decimal):
-    return decimal_to_dms(Decimal(decimal), "lat")
-
-
-def decimal_to_dms(decimal, long_or_lat):
-    """
-    :param decimal: the value to convert
-    :param long_or_lat: should be either "long" or "lat"
-
-    @returns dir, degrees, minutes seconds, seconds rounded to two
-    decimal places
-    """
-    if long_or_lat == "long":
-        check(abs(decimal) <= 180)
-    else:
-        check(abs(decimal) <= 90)
-    dir_map = {"long": ["E", "W"], "lat": ["N", "S"]}
-    direction = dir_map[long_or_lat][0]
-    if decimal < 0:
-        direction = dir_map[long_or_lat][1]
-    dec = Decimal(str(abs(decimal)))
-    d = Decimal(str(dec)).to_integral(rounding=ROUND_DOWN)
-    m = Decimal(abs((dec - d) * 60)).to_integral(rounding=ROUND_DOWN)
-    m2 = Decimal(abs((dec - d) * 60))
-    places = 2
-    q = Decimal((0, (1,), -places))
-    s = Decimal(abs((m2 - m) * 60)).quantize(q)
-    return direction, d, m, s
-
-
-def dms_to_decimal(dir, deg, min, sec, precision: int = 6):
-    """
-    convert degrees, minutes, seconds to decimal
-    return a decimal.Decimal
-    """
-    nplaces = Decimal(10) ** -precision
-    if dir in ("E", "W"):  # longitude
-        check(abs(deg) <= 180)
-    else:
-        check(abs(deg) <= 90)
-    check(abs(min) < 60)
-    check(abs(sec) < 60)
-    deg = Decimal(str(abs(deg)))
-    min = Decimal(str(min))
-    sec = Decimal(str(sec))
-    dec = abs(sec / Decimal("3600")) + abs(min / Decimal("60.0")) + deg
-    if dir in ("W", "S"):
-        dec = -dec
-    return dec.quantize(nplaces)
 
 
 def generic_taxon_add_action(
@@ -208,9 +109,9 @@ def edit_callback(accessions):
 
 
 def add_plants_callback(accessions):
-    
+
     if TYPE_CHECKING:
-        from bauble.plugins.garden.plant import Plant, PlantEditor
+        from bauble.plugins.garden.models import Plant, PlantEditor
 
     session = db.Session()
     acc = session.merge(accessions[0])
@@ -291,723 +192,7 @@ ver_level_descriptions: ClassVar[dict[str, str]] = {
     ),
 }
 
-
-class Verification(db.Base):
-    """
-    :Table name: verification
-
-    :Columns:
-      verifier: :class:`sqlalchemy.types.Unicode`
-        The name of the person that made the verification.
-      date: :class:`sqlalchemy.types.Date`
-        The date of the verification
-      reference: :class:`sqlalchemy.types.UnicodeText`
-        The reference material used to make this verification
-      level: :class:`sqlalchemy.types.Integer`
-        Determines the level or authority of the verifier. If it is
-        not known whether the name of the record has been verified by
-        an authority, then this field should be None.
-
-        Possible values:
-            - 0: The name of the record has not been checked by any authority.
-            - 1: The name of the record determined by comparison with
-              other named plants.
-            - 2: The name of the record determined by a taxonomist or by
-              other competent persons using herbarium and/or library and/or
-              documented living material.
-            - 3: The name of the plant determined by taxonomist engaged in
-              systematic revision of the group.
-            - 4: The record is part of type gathering or propagated from
-              type material by asexual methods
-
-      notes: :class:`sqlalchemy.types.UnicodeText`
-        Notes about this verification.
-      accession_id: :class:`sqlalchemy.types.Integer`
-        Foreign Key to the :class:`Accession` table.
-      species_id: :class:`sqlalchemy.types.Integer`
-        Foreign Key to the :class:`~bauble.plugins.plants.Species` table.
-      prev_species_id: :class:`~sqlalchemy.types.Integer`
-        Foreign key to the :class:`~bauble.plugins.plants.Species`
-        table. What it was verified from.
-
-    """
-    id: Any
-    level: Any
-    species_id: Any
-    prev_species_id: Any
-    species: Any
-    __tablename__: str = "verification"
-
-    # columns
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    verifier: Mapped[str] = mapped_column(Unicode(64), nullable=False)
-    date: Mapped[types.Date] = mapped_column(types.Date, nullable=False)
-    reference: Mapped[str] = mapped_column(UnicodeText)
-    accession_id: Mapped[int] = mapped_column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession: Mapped["Accession"] = relationship(
-        "Accession", back_populates="verifications", uselist=False, active_history=True
-    )
-    order_by: Any = [asc(date)]
-
-    # the level of assurance of this verification
-    level: Mapped[int] = mapped_column(Integer, nullable=False, autoincrement=False)
-
-    # what it was verified as
-    species_id: Mapped[int] = mapped_column(Integer, ForeignKey("species.id"), nullable=False)
-
-    # what it was verified from
-    prev_species_id: Mapped[int] = mapped_column(Integer, ForeignKey("species.id"), nullable=False)
-
-    # Relationships
-    species: Mapped["Species"] = relationship(
-        "Species",
-        primaryjoin="Verification.species_id == Species.id",
-        foreign_keys=[species_id],
-        uselist=False,
-        overlaps="previous_verifications",
-        active_history=True,
-    )
-    prev_species: Mapped["Species"] = relationship(
-        "Species",
-        primaryjoin="Verification.prev_species_id == Species.id",
-        foreign_keys=[prev_species_id],
-        uselist=False,
-        overlaps="verifications",
-        active_history=True,
-    )
-    notes: Mapped[str] = mapped_column(UnicodeText)
-
-
-# TODO: I have no internet, so I write this here. please remove this note
-# and add the text as new issues as soon as possible.
-#
-# First of all a ghini-1.1 issue: being 'Accession' an abstract concept, you
-# don't make a Voucher of an Accession, you make a Voucher of a Plant. As
-# with Photos, in the Accession InfoBox you want to see all Vouchers of all
-# Plantings belonging to the Accession.
-#
-# 2: imagine you go on expedition and collect vouchers as well as seeds, or
-# stekken:nl. You will have vouchers of the parent plant plant, but the
-# parent plant will not be in your collection. This justifies requiring the
-# ability to add a Voucher to a Plant and mark it as Voucher of its parent
-# plant. On the other hand though, if the parent plant *is* in your
-# collection and the link is correctly represented in a Propagation, any
-# 'parent plant voucher' will conflict with the vouchers associated to the
-# parent plant. Maybe this can be solved by disabling the whole
-# parent_voucher panel in the case of plants resulting of a garden
-# propagation.
-#
-# 3: InfoBox (Accession AND Plant) are to show parent plant information as a
-# link to the parent plant, or as the name of the parent plant voucher. At
-# the moment this is only partially the case for
-
-
 herbarium_codes: Any = {}
-
-
-class Voucher(db.Base):
-    """
-    :Table name: voucher
-
-    :Columns:
-      herbarium: :class:`sqlalchemy.types.Unicode`
-        The name of the herbarium.
-      code: :class:`sqlalchemy.types.Unicode`
-        The herbarium code for the voucher.
-      parent_material: :class:`sqlalchemy.types.Boolean`
-        Is this voucher relative to the parent material of the accession.
-      accession_id: :class:`sqlalchemy.types.Integer`
-        Foreign key to the :class:`Accession` .
-
-
-    """
-
-    __tablename__: str = "voucher"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
-    herbarium: Mapped[str] = mapped_column(Unicode(5), nullable=False)
-    code: Mapped[str] = mapped_column(Unicode(32), nullable=False)
-    parent_material: Mapped[bool] = mapped_column(Boolean, default=False)
-    accession_id: Mapped[int] = mapped_column(Integer, ForeignKey("accession.id"), nullable=False)
-    accession: Mapped["Accession"] = relationship(
-        "Accession", back_populates="vouchers", uselist=False, active_history=True
-    )
-
-
-# ITF2 - E.1; Provenance Type Flag; Transfer code: prot
-prov_type_values: Any = [
-    ("Wild", _("Accession of wild source")),  # W
-    ("Cultivated", _("Propagule(s) from a wild source plant")),  # Z
-    ("NotWild", _("Accession not of wild source")),  # G
-    ("Purchase", _("Purchase or gift")),  # COLLAPSE INTO G
-    ("InsufficientData", _("Insufficient Data")),  # U
-    ("Unknown", _("Unknown")),  # COLLAPSE INTO U
-    (None, ""),  # do not transfer this field
-]
-
-# ITF2 - E.3; Wild Provenance Status Flag; Transfer code: wpst
-#  - further specifies the W and Z prov type flag
-#
-# according to the ITF2, the keys should literally be one of: 'Wild native',
-# 'Wild non-native', 'Cultivated native', 'Cultivated non-native'.  In
-# practice the standard just requires we note whether a wild (a cultivated
-# propagule Z or the one directly collected W) plant is native or not to the
-# place where it was found. a boolean should suffice, exporting will expand
-# to and importing will collapse from the standard value. Giving all four
-# options after the user has already selected W or Z works only confusing to
-# user not familiar with ITF2 standard.
-wild_prov_status_values: ClassVar[list[tuple[str, str]]] = [
-    # Endemic found within indigenous range
-    ("WildNative", _("Wild native")),
-    # found outside indigenous range
-    ("WildNonNative", _("Wild non-native")),
-    # Endemic, cultivated, reintroduced or translocated within its
-    # indigenous range
-    ("CultivatedNative", _("Cultivated native")),
-    # MISSING cultivated, found outside its indigenous range
-    # (u'CultivatedNonNative', _("Cultivated non-native"))
-    # TO REMOVE:
-    ("Impound", _("Impound")),
-    ("Collection", _("Collection")),
-    ("Rescue", _("Rescue")),
-    ("InsufficientData", _("Insufficient Data")),
-    ("Unknown", _("Unknown")),
-    # Not transferred
-    (None, ""),
-]
-
-# not ITF2
-# - further specifies the Z prov type flag value
-cultivated_prov_status_values: ClassVar[list[tuple[str, str]]] = [
-    ("InVitro", _("In vitro")),
-    ("Division", _("Division")),
-    ("Seed", _("Seed")),
-    ("Unknown", _("Unknown")),
-    (None, ""),
-]
-
-# not ITF2
-# - further specifies the G prov type flag value
-purchase_prov_status_values: ClassVar[list[tuple[str, str]]] = [
-    ("National", _("National")),
-    ("Imported", _("Imported")),
-    ("Unknown", _("Unknown")),
-    (None, ""),
-]
-
-# not ITF2
-recvd_type_values: ClassVar[dict[Optional[str], str]] = {
-    "ALAY": _("Air layer"),
-    "BBPL": _("Balled & burlapped plant"),
-    "BRPL": _("Bare root plant"),
-    "BUDC": _("Bud cutting"),
-    "BUDD": _("Budded"),
-    "BULB": _("Bulb"),
-    "CLUM": _("Clump"),
-    "CORM": _("Corm"),
-    "DIVI": _("Division"),
-    "GRAF": _("Graft"),
-    "LAYE": _("Layer"),
-    "PLNT": _("Planting"),
-    "PSBU": _("Pseudobulb"),
-    "RCUT": _("Rooted cutting"),
-    "RHIZ": _("Rhizome"),
-    "ROOC": _("Root cutting"),
-    "ROOT": _("Root"),
-    "SCIO": _("Scion"),
-    "SEDL": _("Seedling"),
-    "SEED": _("Seed"),
-    "SPOR": _("Spore"),
-    "SPRL": _("Sporeling"),
-    "TUBE": _("Tuber"),
-    "UNKN": _("Unknown"),
-    "URCU": _("Unrooted cutting"),
-    "BBIL": _("Bulbil"),
-    "VEGS": _("Vegetative spreading"),
-    "SCKR": _("Root sucker"),
-    None: "",
-}
-
-accession_type_to_plant_material: ClassVar[dict[Optional[str], str]] = {
-    # u'Plant': _('Planting'),
-    "BBPL": "Plant",
-    "BRPL": "Plant",
-    "PLNT": "Plant",
-    "SEDL": "Plant",
-    # u'Seed': _('Seed/Spore'),
-    "SEED": "Seed",
-    "SPOR": "Seed",
-    "SPRL": "Seed",
-    # u'Vegetative': _('Vegetative Part'),
-    "BUDC": "Vegetative",
-    "BUDD": "Vegetative",
-    "BULB": "Vegetative",
-    "CLUM": "Vegetative",
-    "CORM": "Vegetative",
-    "DIVI": "Vegetative",
-    "GRAF": "Vegetative",
-    "LAYE": "Vegetative",
-    "PSBU": "Vegetative",
-    "RCUT": "Vegetative",
-    "RHIZ": "Vegetative",
-    "ROOC": "Vegetative",
-    "ROOT": "Vegetative",
-    "SCIO": "Vegetative",
-    "TUBE": "Vegetative",
-    "URCU": "Vegetative",
-    "BBIL": "Vegetative",
-    "VEGS": "Vegetative",
-    "SCKR": "Vegetative",
-    # u'Tissue': _('Tissue Culture'),
-    "ALAY": "Tissue",
-    # u'Other': _('Other'),
-    "UNKN": "Other",
-    None: None,
-}
-
-
-def compute_serializable_fields(cls, session, keys):
-    result = {"accession": None}
-
-    acc_keys = {}
-    acc_keys.update(keys)
-    acc_keys["code"] = keys["accession"]
-    accession = Accession.retrieve_or_create(
-        session, acc_keys, create=("taxon" in acc_keys and "rank" in acc_keys)
-    )
-
-    result["accession"] = accession
-
-    return result
-
-
-class Accession(db.Base, db.Serializable, db.WithNotes):
-    """
-    :Table name: accession
-
-    :Columns:
-        *code*: :class:`sqlalchemy.types.Unicode`
-            the accession code
-
-        *prov_type*: :class:`bauble.types.Enum`
-            the provenance type
-
-            Possible values:
-                * first column of prov_type_values
-
-        *wild_prov_status*:  :class:`bauble.types.Enum`
-            this column can be used to give more provenance
-            information
-
-            Possible values:
-                * union of first columns of wild_prov_status_values,
-                * purchase_prov_status_values,
-                * cultivated_prov_status_values
-
-        *date_accd*: :class:`bauble.types.Date`
-            the date this accession was accessioned
-
-        *id_qual*: :class:`bauble.types.Enum`
-            The id qualifier is used to indicate uncertainty in the
-            identification of this accession
-
-            Possible values:
-                * aff. - affinity with
-                * cf. - compare with
-                * forsan - perhaps
-                * near - close to
-                * ? - questionable
-                * incorrect
-
-        *id_qual_rank*: :class:`sqlalchemy.types.Unicode`
-            The rank of the species that the id_qual refers to.
-
-        *private*: :class:`sqlalchemy.types.Boolean`
-            Flag to indicate where this information is sensitive and
-            should be kept private
-
-        *species_id*: :class:`sqlalchemy.types.Integer()`
-            foreign key to the species table
-
-    :Properties:
-        *species*:
-            the species this accession refers to
-
-        *source*:
-            source is a relation to a Source instance
-
-        *plants*:
-            a list of plants related to this accession
-
-        *verifications*:
-            a list of verifications on the identification of this accession
-
-    :Constraints:
-
-    """
-    __tablename__: str = "accession"
-    __cached_species_str: ClassVar[dict[tuple[bool, bool], str]] = {}
-    __warned_about_id_qual: ClassVar[bool] = False
-
-
-    # columns
-    #: the accession code
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    code: Mapped[str] = mapped_column(Unicode(20), nullable=False, unique=True)
-    code_format: str = "%Y%PD####"
-    order_by: Any = [asc(code)]
-
-    @validates("code")
-    def validate_stripping(self, key: str, value: Optional[str]) -> Optional[str]:
-        return value.strip() if value else None
-
-    prov_type: Mapped[Optional[str]] = mapped_column(
-        types.Enum(
-            values=[i[0] for i in prov_type_values],
-            translations=dict(prov_type_values),
-            omit_aliases=False,
-        ),
-        default=None,
-    )
-
-    wild_prov_status: Mapped[Optional[str]] = mapped_column(
-        types.Enum(
-            values=[i[0] for i in wild_prov_status_values],
-            translations=dict(wild_prov_status_values),
-            omit_aliases=False,
-        ),
-        default=None,
-    )
-
-    date_accd: Mapped[types.Date] = mapped_column(types.Date)
-    date_recvd: Mapped[types.Date] = mapped_column(types.Date)
-    quantity_recvd: Mapped[int] = mapped_column(Integer, autoincrement=False)
-    recvd_type: Mapped[Optional[str]] = mapped_column(
-        types.Enum(
-            values=list(recvd_type_values.keys()),
-            translations=recvd_type_values,
-            omit_aliases=False,
-        ),
-        default=None,
-    )
-
-    # ITF2 - C24 - Rank Qualified Flag - Transfer code: rkql
-    # B: Below Family; F: Family; G: Genus; S: Species; I: first
-    # Infraspecific Epithet; J: second Infraspecific Epithet; C: Cultivar;
-    id_qual_rank: Mapped[str] = mapped_column(Unicode(10))
-
-    # ITF2 - C25 - Identification Qualifier - Transfer code: idql
-    id_qual: Mapped[Optional[str]] = mapped_column(
-        types.Enum(
-            values=["aff.", "cf.", "incorrect", "forsan", "near", "?", ""],
-            omit_aliases=False,
-        ),
-        nullable=False,
-        default="",
-    )
-
-    # "private" new in 0.8b2
-    private: Mapped[bool] = mapped_column(Boolean, default=False)
-    species_id: Mapped[int] = mapped_column(Integer, ForeignKey("species.id"), nullable=False)
-
-    # intended location
-    intended_location_id: Mapped[int] = mapped_column(Integer, ForeignKey("location.id"))
-    intended2_location_id: Mapped[int] = mapped_column(Integer, ForeignKey("location.id"))
-
-    # the source of the accession
-    source: Mapped[Optional["Source"]] = relationship(
-        "Source",
-        uselist=False,
-        cascade="all, delete-orphan",
-        back_populates="accession",
-        single_parent=True,
-        active_history=True,
-    )
-
-    # relations
-    species: Mapped["Species"] = relationship(
-        "Species",
-        uselist=False,
-        back_populates="accessions",
-        cascade="all, delete-orphan",
-        single_parent=True,
-        active_history=True,
-    )
-
-    verifications: Mapped[list["Verification"]] = relationship(
-        "Verification",  # order_by='date',
-        cascade="all, delete-orphan",
-        back_populates="accession",
-        single_parent=True,
-        uselist=True,  # An Accession can have multiple Vouchers
-        )
-
-    vouchers: Mapped[list["Voucher"]] = relationship(
-        "Voucher",
-        cascade="all, delete-orphan",
-        back_populates="accession",
-        uselist=True,
-        single_parent=True,
-    )
-    intended_location: Mapped[Optional["Location"]] = relationship(
-        "Location", primaryjoin="Accession.intended_location_id==Location.id"
-    )
-    intended2_location: Mapped[Optional["Location"]] = relationship(
-        "Location", primaryjoin="Accession.intended2_location_id==Location.id"
-    )
-
-    @classmethod
-    def get_next_code(cls, code_format: Optional[Any] = None):
-        """
-        Return the next available accession code.
-
-        the format is stored in the `bauble` table.
-        the format may contain a %PD, replaced by the plant delimiter.
-        date formatting is applied.
-
-        If there is an error getting the next code the None is returned.
-        """
-        from bauble.plugins.garden.plant import Plant
-
-        # auto generate/increment the accession code
-        session = db.Session()
-        if code_format is None:
-            code_format = cls.code_format
-        format = code_format.replace("%PD", Plant.get_delimiter())
-        today = datetime.date.today()
-        if format.find("%{Y-1}") >= 0:
-            format = format.replace("%{Y-1}", str(today.year - 1))
-        format = today.strftime(format)
-        start = format.rstrip("#")
-        if start == format:
-            # fixed value
-            return start
-        digits = len(format) - len(start)
-        format = start + "%%0%dd" % digits
-        q = session.execute(
-            select(Accession.code).where(Accession.code.startswith(start))
-        ).scalars()
-        next = None
-        try:
-            if q.count() > 0:
-                codes = [safe_int(code[len(start) :]) for code in q]
-                next = format % (max(codes) + 1)
-            else:
-                next = format % 1
-        except Exception as e:
-            logger.debug(e)
-        finally:
-            session.close()
-        return str(next)
-
-    def search_view_markup_pair(self):
-        """provide the two lines describing object for SearchView row."""
-        first, second = (
-            utils.xml_safe(str(self)),
-            self.species_str(markup=True, authors=True),
-        )
-        suffix = _("%(1)s plant groups in %(2)s location(s)") % {
-            "1": len(set(self.plants)),
-            "2": len({p.location for p in self.plants}),
-        }
-        suffix = (
-            '<span foreground="#555555" size="small" ' f'weight="light"> - {suffix}</span>'
-        )
-        return first + suffix, second
-
-    @property
-    def parent_plant(self):
-        try:
-            return self.source.plant_propagation.plant
-        except AttributeError:
-            return None
-
-    @property
-    def propagations(self):
-        import operator
-
-        return reduce(operator.add, [p.propagations for p in self.plants], [])
-
-    @property
-    def pictures(self):
-        import operator
-
-        return reduce(operator.add, [p.pictures for p in self.plants], [])
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.__cached_species_str = {}
-
-    @reconstructor
-    def init_on_load(self) -> None:
-        """
-        Called instead of __init__() when an Accession is loaded from
-        the database.
-        """
-        self.__cached_species_str = {}
-
-    def invalidate_str_cache(self) -> None:
-        self.__cached_species_str = {}
-
-    def __str__(self) -> str:
-        return self.code
-
-    def species_str(self, authors: bool = False, markup: bool = False):
-        """
-        Return the string of the species with the id qualifier(id_qual)
-        injected into the proper place.
-
-        If the species isn't part of a session of if the species is dirty,
-        i.e. in object_session(species).dirty, then a new string will be
-        built even if the species hasn't been changed since the last call
-        to this method.
-        """
-
-        # WARNING: don't use session.is_modified() here because it
-        # will query lots of dependencies
-        try:
-            cached = self.__cached_species_str[(markup, authors)]
-        except KeyError:
-            self.__cached_species_str[(markup, authors)] = None
-            cached = None
-        session = object_session(self.species)
-        if session:
-            # if not part of a session or if the species is dirty then
-            # build a new string
-            if cached is not None and self.species not in session.dirty:
-                return cached
-        if not self.species:
-            return None
-
-        # show a warning if the id_qual is aff. or cf. but the
-        # id_qual_rank is None, but only show it once
-        try:
-            self.__warned_about_id_qual
-        except AttributeError:
-            self.__warned_about_id_qual = False
-        if (
-            self.id_qual in ("aff.", "cf.")
-            and not self.id_qual_rank
-            and not self.__warned_about_id_qual
-        ):
-            msg = (
-                _("If the id_qual is aff. or cf. " "then id_qual_rank is required. %s ")
-                % self.code
-            )
-            logger.warning(msg)
-            self.__warned_about_id_qual = True
-
-        if self.id_qual:
-            logger.debug(f"id_qual is {self.id_qual}")
-            sp_str = self.species.str(
-                authors,
-                markup,
-                remove_zws=True,
-                qualification=(self.id_qual_rank, self.id_qual),
-            )
-        else:
-            sp_str = self.species.str(authors, markup, remove_zws=True)
-
-        self.__cached_species_str[(markup, authors)] = sp_str
-        return sp_str
-
-    def markup(self):
-        return f"{self.code} ({self.accession.species_str(markup=True, authors=True)})"
-
-    def as_dict(self):
-        result = db.Serializable.as_dict(self)
-        result["species"] = self.species.str(remove_zws=True, authors=False)
-        if self.source and self.source.source_detail:
-            result["contact"] = self.source.source_detail.name
-        return result
-
-    @classmethod
-    def correct_field_names(cls, keys) -> None:
-        for internal, exchange in [("species", "taxon")]:
-            if exchange in keys:
-                keys[internal] = keys[exchange]
-                del keys[exchange]
-
-    @classmethod
-    def compute_serializable_fields(cls, session, keys):
-        logger.debug(f"compute_serializable_fields(session, {keys})")
-        result = {"species": None}
-        keys = dict(keys)  # make copy
-        if "species" in keys:
-            keys["taxon"] = keys["species"]
-            keys["rank"] = "species"
-        if "rank" in keys and "taxon" in keys:
-            # now we must connect the accession to the species it refers to
-            if keys["rank"] == "species":
-                genus_name, epithet = keys["taxon"].split(" ", 1)
-                sp_dict = {"ht-epithet": genus_name, "epithet": epithet}
-                result["species"] = Species.retrieve_or_create(
-                    session, sp_dict, create=False
-                )
-            elif keys["rank"] == "genus":
-                result["species"] = Species.retrieve_or_create(
-                    session, {"ht-epithet": keys["taxon"], "epithet": "sp"}
-                )
-            elif keys["rank"] == "familia":
-                unknown_genus = "Zzz-" + keys["taxon"][:-1]
-                Genus.retrieve_or_create(
-                    session,
-                    {"ht-epithet": keys["taxon"], "epithet": unknown_genus},
-                )
-                result["species"] = Species.retrieve_or_create(
-                    session, {"ht-epithet": unknown_genus, "epithet": "sp"}
-                )
-        return result
-
-    @classmethod
-    def retrieve(cls, session, keys):
-        try:
-            return (
-                session.execute(select(cls).where(cls.code == keys["code"]))
-                .scalars()
-                .one()
-            )
-        except:
-            return None
-
-    def top_level_count(self):
-        sd = self.source and self.source.source_detail
-        return {
-            (1, "Accessions"): 1,
-            (2, "Species"): {self.species.id},
-            (3, "Genera"): {self.species.genus.id},
-            (4, "Families"): {self.species.genus.family.id},
-            (5, "Plantings"): len(self.plants),
-            (6, "Living plants"): sum(p.quantity for p in self.plants),
-            (7, "Locations"): {p.location.id for p in self.plants},
-            (8, "Sources"): set(sd and [sd.id] or []),
-        }
-
-#from .plant import Plant  # explicit import at runtime
-
-# use Plant.code for the order_by to avoid ambiguous column names
-Accession.plants: Mapped[list["Plant"]] = relationship(
-        "bauble.plugins.garden.plant.Plant",
-        cascade="all, delete-orphan",
-        # order_by='plant.code',
-        back_populates="accession",
-        uselist=True,
-        single_parent=True,
-    )
-# invalidate an accessions string cache after it has been updated
-# Register the after_update event
-@event.listens_for(Accession, "after_update")
-def receive_after_update(mapper, connection, target) -> None:
-    target.invalidate_str_cache()
-
-
-AccessionNote: Any = db.make_note_class("Accession", Accession, compute_serializable_fields)
-Accession.notes: Mapped["AccessionNote"] = relationship(
-    "AccessionNote",
-    back_populates="accession",
-    cascade="all, delete-orphan",
-    single_parent=True,
-    uselist=True,
-)
 
 
 class AccessionEditorView(editor.GenericEditorView):
@@ -1170,11 +355,11 @@ class AccessionEditorView(editor.GenericEditorView):
 
     @staticmethod
     # staticmethod ensures the AccessionEditorView gets garbage collected.
-    def species_cell_data_func(column, renderer, model, treeiter, data: Optional[Any] = None) -> None:
+    def species_cell_data_func(
+        column, renderer, model, treeiter, data: Optional[Any] = None
+    ) -> None:
         v = model[treeiter][0]
-        renderer.set_property(
-            "text", f"{v.str(authors=True)} ({v.genus.family})"
-        )
+        renderer.set_property("text", f"{v.str(authors=True)} ({v.genus.family})")
 
 
 class VoucherPresenter(editor.GenericEditorPresenter):
@@ -1182,6 +367,7 @@ class VoucherPresenter(editor.GenericEditorPresenter):
     parent_ref: Any
     session: Any
     _dirty: bool
+
     def __init__(self, parent, model, view, session) -> None:
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
@@ -1306,6 +492,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
     :param view:
     :param session:
     """
+
     parent_ref: Any
     session: Any
     _dirty: bool
@@ -1354,22 +541,20 @@ class VerificationPresenter(editor.GenericEditorPresenter):
         box.show_all()
         return box
 
-
-from utils import ilike
-
-
 class VerificationBox:
     """
     A widget that manages the verification details for a species,
     allowing the user to input verification data such as date, verifier,
     species, and reference.
     """
+
     box: Any
     presenter: Any
     model: Any
     widgets: Any
     date_entry: Any
     _sid: Any
+
     def __init__(self, parent, model) -> None:
         check(not model or isinstance(model, Verification))
 
@@ -1637,6 +822,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
     :param view:
     :param session:
     """
+
     parent_ref: Any
     session: Any
     _dirty: bool
@@ -1649,10 +835,8 @@ class SourcePresenter(editor.GenericEditorPresenter):
     garden_prop_str: Any = _("Garden Propagation")
 
     def __init__(self, parent, model, view, session) -> None:
-        from bauble.plugins.garden.propagation import (
-            Propagation,
-            SourcePropagationPresenter,
-        )
+        from bauble.plugins.garden.models.propagation import Propagation
+        from bauble.plugins.garden.propagation_editor import SourcePropagationPresenter
         from bauble.plugins.garden.source import (
             Collection,
             CollectionPresenter,
@@ -1660,7 +844,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
             PropagationChooserPresenter,
             Source,
         )
-        
+
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
         self.session = session
@@ -1864,6 +1048,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         source combo if a new Contact is created.
         """
         from bauble.plugins.garden.source import create_contact
+
         committed = create_contact(parent=self.view.get_window())
         new_detail = None
         if committed:
@@ -1877,6 +1062,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         repopulating the combo.
         """
         from bauble.plugins.garden.source import Contact
+
         combo = self.view.widgets.acc_source_comboentry
         if not active:
             treeiter = combo.get_active_iter()
@@ -1913,6 +1099,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         :param on_select: called when an item is selected
         """
         from bauble.plugins.garden.source import Contact
+
         PROBLEM = "unknown_source"
 
         def cell_data_func(col, cell, model, treeiter, data=None):
@@ -2348,7 +1535,9 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             self.view.widgets.acc_ok_and_add_button.set_sensitive(True)
         self.initializing = False
 
-    def populate_code_formats(self, entry_one: Optional[Any] = None, values: Optional[Any] = None) -> None:
+    def populate_code_formats(
+        self, entry_one: Optional[Any] = None, values: Optional[Any] = None
+    ) -> None:
         logger.debug(f"populate_code_formats {entry_one} {values}")
         ls = self.view.widgets.acc_code_format_liststore
         if entry_one is None:
@@ -2735,7 +1924,9 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
     RESPONSE_NEXT: int = 22
     ok_responses: Any = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
-    def __init__(self, model: Optional[Any] = None, parent: Optional[Any] = None) -> None:
+    def __init__(
+        self, model: Optional[Any] = None, parent: Optional[Any] = None
+    ) -> None:
         """
         :param model: Accession instance or None
         :param parent: the parent widget
@@ -2761,7 +1952,8 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         handle the response from self.presenter.start() in self.start()
         """
         if TYPE_CHECKING:
-            from bauble.plugins.garden.plant import Plant, PlantEditor
+            from bauble.plugins.garden import PlantEditor
+            from bauble.plugins.garden.models import Plant
 
         not_ok_msg = _("Are you sure you want to lose your changes?")
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
@@ -2870,7 +2062,7 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         """
         Commit changes specific to accession and handle dependencies.
         """
-        from bauble.plugins.garden.plant import Plant
+        from bauble.plugins.garden.models import Plant
 
         if self.model.source:
             if not self.model.source.collection:
@@ -2925,8 +2117,10 @@ class GeneralAccessionExpander(InfoExpander):
     generic information about an accession like
     number of clones, provenance type, wild provenance type, speciess
     """
+
     current_obj: Any
     private_image: Any
+
     def __init__(self, widgets) -> None:
         """ """
         super().__init__(_("General"), widgets)
@@ -2956,7 +2150,7 @@ class GeneralAccessionExpander(InfoExpander):
 
     def update(self, row) -> None:
         """ """
-        from bauble.plugins.garden.plant import Plant
+        from bauble.plugins.garden.models import Plant
 
         self.current_obj = row
         self.widget_set_value(
@@ -3019,7 +2213,9 @@ class GeneralAccessionExpander(InfoExpander):
 
         prov_str = dict(prov_type_values)[row.prov_type]
         if row.prov_type == "Wild" and row.wild_prov_status:
-            prov_str = f"{prov_str} ({dict(wild_prov_status_values)[row.wild_prov_status]})"
+            prov_str = (
+                f"{prov_str} ({dict(wild_prov_status_values)[row.wild_prov_status]})"
+            )
         self.set_labeled_value("prov", prov_str)
 
         image_size = Gtk.IconSize.SMALL_TOOLBAR
@@ -3052,6 +2248,7 @@ class GeneralAccessionExpander(InfoExpander):
 class SourceExpander(InfoExpander):
     set_expanded: bool
     set_sensitive: bool
+
     def __init__(self, widgets) -> None:
         super().__init__(_("Source"), widgets)
         source_box = self.widgets.source_box
@@ -3071,13 +2268,17 @@ class SourceExpander(InfoExpander):
         lat_str = ""
         if collection.latitude is not None:
             dir, deg, min, sec = latitude_to_dms(collection.latitude)
-            lat_str = f"{collection.latitude} ({dir} {deg}°{min}'{sec:.2f}\") {geo_accy}"
+            lat_str = (
+                f"{collection.latitude} ({dir} {deg}°{min}'{sec:.2f}\") {geo_accy}"
+            )
         self.widget_set_value("lat_data", lat_str)
 
         long_str = ""
         if collection.longitude is not None:
             dir, deg, min, sec = longitude_to_dms(collection.longitude)
-            long_str = f"{collection.longitude} ({dir} {deg}°{min}'{sec:.2f}\") {geo_accy}"
+            long_str = (
+                f"{collection.longitude} ({dir} {deg}°{min}'{sec:.2f}\") {geo_accy}"
+            )
         self.widget_set_value("lon_data", long_str)
 
         elevation = ""
@@ -3209,12 +2410,14 @@ class AccessionInfoBox(InfoBox):
     - general info
     - source
     """
+
     widgets: Any
     general: Any
     source: Any
     links: Any
     mapinfo: Any
     properties_expander: Any
+
     def __init__(self) -> None:
         super().__init__()
         filename = os.path.join(
@@ -3251,6 +2454,7 @@ class AccessionInfoBox(InfoBox):
 
     def update(self, row) -> None:
         from bauble.plugins.garden.source import Collection
+
         if isinstance(row, Collection):
             row = row.source.accession
 
@@ -3276,138 +2480,3 @@ class AccessionInfoBox(InfoBox):
 
         self.source.set_sensitive = True
         self.source.update(row)
-
-
-#
-# Map Datum List - this list should be available as a list of completions for
-# the datum text entry....the best way is that is to show the abbreviation
-# with the long string in parenthesis or with different markup but selecting
-# the completion will enter the abbreviation....though the entry should be
-# free text....this list complements of:
-# http://www8.garmin.com/support/faqs/MapDatumList.pdf
-#
-# Abbreviation: Name
-datums: Any = {
-    "Adindan": "Adindan- Ethiopia, Mali, Senegal, Sudan",
-    "Afgooye": "Afgooye- Somalia",
-    "AIN EL ABD": "'70 AIN EL ANBD 1970- Bahrain Island, Saudi Arabia",
-    "Anna 1 Ast '65": "Anna 1 Astro '65- Cocos I.",
-    "ARC 1950": "ARC 1950- Botswana, Lesotho, Malawi, Swaziland, Zaire, Zambia",
-    "ARC 1960": "Kenya, Tanzania",
-    "Ascnsn Isld '58": "Ascension Island '58- Ascension Island",
-    "Astro Dos 71/4": "Astro Dos 71/4- St. Helena",
-    "Astro B4 Sorol": "Sorol Atoll- Tern Island",
-    'Astro Bcn "E"': 'Astro Beacon "E"- Iwo Jima',
-    "Astr Stn '52": "Astronomic Stn '52- Marcus Island",
-    "Aus Geod '66": "Australian Geod '66- Australia, Tasmania Island",
-    "Aus Geod '84": "Australian Geod '84- Australia, Tasmania Island",
-    "Austria": "Austria",
-    "Bellevue (IGN)": "Efate and Erromango Islands",
-    "Bermuda 1957": "Bermuda 1957- Bermuda Islands",
-    "Bogota Observ": "Bogata Obsrvatry- Colombia",
-    "Campo Inchspe": "Campo Inchauspe- Argentina",
-    "Canton Ast '66": "Canton Astro 1966- Phoenix Islands",
-    "Cape": "Cape- South Africa",
-    "Cape Canavrl": "Cape Canaveral- Florida, Bahama Islands",
-    "Carthage": "Carthage- Tunisia",
-    "CH-1903": "CH 1903- Switzerland",
-    "Chatham 1971": "Chatham 1971- Chatham Island (New Zealand)",
-    "Chua Astro": "Chua Astro- Paraguay",
-    "Corrego Alegr": "Corrego Alegre- Brazil",
-    "Croatia": "Croatia",
-    "Djakarta": "Djakarta (Batavia)- Sumatra Island (Indonesia)",
-    "Dos 1968": "Dos 1968- Gizo Island (New Georgia Islands)",
-    "Dutch": "Dutch",
-    "Easter Isld 67": "Easter Island 1967",
-    "European 1950": "European 1950- Austria, Belgium, Denmark, Finland, France, Germany, Gibraltar, Greece, Italy, Luxembourg, Netherlands, Norway, Portugal, Spain, Sweden, Switzerland",
-    "European 1979": "European 1979- Austria, Finland, Netherlands, Norway, Spain, Sweden, Switzerland",
-    "Finland Hayfrd": "Finland Hayford- Finland",
-    "Gandajika Base": "Gandajika Base- Republic of Maldives",
-    "GDA": "Geocentric Datum of Australia",
-    "Geod Datm '49": "Geodetic Datum '49- New Zealand",
-    "Guam 1963": "Guam 1963- Guam Island",
-    "Gux 1 Astro": "Guadalcanal Island",
-    "Hjorsey 1955": "Hjorsey 1955- Iceland",
-    "Hong Kong '63": "Hong Kong",
-    "Hu-Tzu-Shan": "Taiwan",
-    "Indian Bngldsh": "Indian- Bangladesh, India, Nepal",
-    "Indian Thailand": "Indian- Thailand, Vietnam",
-    "Indonesia 74": "Indonesia 1974- Indonesia",
-    "Ireland 1965": "Ireland 1965- Ireland",
-    "ISTS 073 Astro": "ISTS 073 ASTRO '69- Diego Garcia",
-    "Johnston Island": "Johnston Island NAD27 Central",
-    "Kandawala": "Kandawala- Sri Lanka",
-    "Kergueln Islnd": "Kerguelen Island",
-    "Kertau 1948": "West Malaysia, Singapore",
-    "L.C. 5 Astro": "Cayman Brac Island",
-    "Liberia 1964": "Liberia 1964- Liberia",
-    "Luzon Mindanao": "Luzon- Mindanao Island",
-    "Luzon Philippine": "Luzon- Philippines (excluding Mindanao Isl.)",
-    "Mahe 1971": "Mahe 1971- Mahe Island",
-    "Marco Astro": "Marco Astro- Salvage Isl.",
-    "Massawa": "Massawa- Eritrea (Ethiopia)",
-    "Merchich": "Merchich- Morocco",
-    "Midway Ast '61": "Midway Astro '61- Midway",
-    "Minna": "Minna- Nigeria",
-    "NAD27 Alaska": "North American 1927- Alaska",
-    "NAD27 Bahamas": "North American 1927- Bahamas",
-    "NAD27 Canada": "North American 1927- Canada and Newfoundland",
-    "NAD27 Canal Zn": "North American 1927- Canal Zone",
-    "NAD27 Caribbn": "North American 1927- Caribbean (Barbados, Caicos Islands, Cuba, Dominican Repuplic, Grand Cayman, Jamaica, Leeward and Turks Islands)",
-    "NAD27 Central": "North American 1927- Central America (Belize, Costa Rica, El Salvador, Guatemala, Honduras, Nicaragua)",
-    "NAD27 CONUS": "North American 1927- Mean Value (CONUS)",
-    "NAD27 Cuba": "North American 1927- Cuba",
-    "NAD27 Grnland": "North American 1927- Greenland (Hayes Peninsula)",
-    "NAD27 Mexico": "North American 1927- Mexico",
-    "NAD27 San Sal": "North American 1927- San Salvador Island",
-    "NAD83": "North American 1983- Alaska, Canada, Central America, CONUS, Mexico",
-    "Naparima BWI": "Naparima BWI- Trinidad and Tobago",
-    "Nhrwn Masirah": "Nahrwn- Masirah Island (Oman)",
-    "Nhrwn Saudi A": "Nahrwn- Saudi Arabia",
-    "Nhrwn United A": "Nahrwn- United Arab Emirates",
-    "Obsrvtorio '66": "Observatorio 1966- Corvo and Flores Islands (Azores)",
-    "Old Egyptian": "Old Egyptian- Egypt",
-    "Old Hawaiian": "Old Hawaiian- Mean Value",
-    "Oman": "Oman- Oman",
-    "Old Srvy GB": "Old Survey Great Britain- England, Isle of Man, Scotland, Shetland Isl., Wales",
-    "Pico De Las Nv": "Canary Islands",
-    "Potsdam": "Potsdam-Germany",
-    "Prov S Am '56": "Prov  Amricn '56- Bolivia, Chile,Colombia, Ecuador, Guyana, Peru, Venezuela",
-    "Prov S Chln '63": "So. Chilean '63- S. Chile",
-    "Ptcairn Ast '67": "Pitcairn Astro '67- Pitcairn",
-    "Puerto Rico": "Puerto Rico & Virgin Isl.",
-    "Qatar National": "Qatar National- Qatar South Greenland",
-    "Qornoq": "Qornoq- South Greenland",
-    "Reunion": "Reunion- Mascarene Island",
-    "Rome 1940": "Rome 1940- Sardinia Isl.",
-    "RT 90": "Sweden",
-    "Santo (Dos)": "Santo (Dos)- Espirito Santo",
-    "Sao Braz": "Sao Braz- Sao Miguel, Santa Maria Islands",
-    "Sapper Hill '43": "Sapper Hill 1943- East Falkland Island",
-    "Schwarzeck": "Schwarzeck- Namibia",
-    "SE Base": "Southeast Base- Porto Santo and Madiera Islands",
-    "South Asia": "South Asia- Singapore",
-    "Sth Amrcn '69": "S. American '69- Argentina, Bolivia, Brazil, Chile, Colombia, Ecuador, Guyana, Paraguay, Peru, Venezuela, Trin/Tobago",
-    "SW Base": "Southwest Base- Faial, Graciosa, Pico, Sao Jorge and Terceira",
-    "Taiwan": "Taiwan",
-    "Timbalai 1948": "Timbalai 1948- Brunei and E. Malaysia (Sarawak and Sabah)",
-    "Tokyo": "Tokyo- Japan, Korea, Okinawa",
-    "Tristan Ast '68": "Tristan Astro 1968- Tristan da Cunha",
-    "Viti Levu 1916": "Viti Levu 1916- Viti Levu/Fiji Islands",
-    "Wake-Eniwetok": "Wake-Eniwetok- Marshall",
-    "WGS 72": "World Geodetic System 72",
-    "WGS 84": "World Geodetic System 84",
-    "Zanderij": "Zanderij- Surinam (excluding San Salvador Island)",
-    "User": "User-defined custom datum",
-}
-
-
-if typing.TYPE_CHECKING:
-    from bauble.plugins.garden.source import Location, Plant, Source    
-else:
-    __import__('bauble.plugins.garden.source')
-    __import__('bauble.plugins.garden.plant.Plant')
-    __import__('bauble.plugins.garden.location.Location')    
-#from sqlalchemy.orm import configure_mappers
-
-#configure_mappers()

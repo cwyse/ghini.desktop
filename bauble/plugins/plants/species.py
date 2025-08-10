@@ -22,50 +22,36 @@ import logging
 import os
 import traceback
 from gettext import gettext as _
+from typing import Any
 
 import bauble
-import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.search as search
 import bauble.utils as utils
 import bauble.view as view
-import gi
-from typing import Any
-from bauble import search
+from bauble.db import Session
+from bauble.gtkinit import Gtk
 from bauble.plugins.plants.genus import Genus, GenusSynonym
-from bauble.plugins.plants.species_editor import SpeciesDistribution
 from bauble.plugins.plants.species_editor import (
     SpeciesDistribution as SpeciesDistribution,
 )
-from bauble.plugins.plants.species_editor import SpeciesEditor
 from bauble.plugins.plants.species_editor import SpeciesEditor as SpeciesEditor
-from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
 from bauble.plugins.plants.species_editor import (
     SpeciesEditorPresenter as SpeciesEditorPresenter,
 )
-from bauble.plugins.plants.species_editor import SpeciesEditorView
 from bauble.plugins.plants.species_editor import SpeciesEditorView as SpeciesEditorView
-from bauble.plugins.plants.species_editor import edit_species
 from bauble.plugins.plants.species_editor import edit_species as edit_species
-from bauble.plugins.plants.species_model import DefaultVernacularName
 from bauble.plugins.plants.species_model import (
     DefaultVernacularName as DefaultVernacularName,
 )
-from bauble.plugins.plants.species_model import Species
 from bauble.plugins.plants.species_model import Species as Species
-from bauble.plugins.plants.species_model import SpeciesNote
 from bauble.plugins.plants.species_model import SpeciesNote as SpeciesNote
-from bauble.plugins.plants.species_model import SpeciesSynonym
 from bauble.plugins.plants.species_model import SpeciesSynonym as SpeciesSynonym
-from bauble.plugins.plants.species_model import VernacularName
 from bauble.plugins.plants.species_model import VernacularName as VernacularName
 from bauble.prefs import prefs
 from bauble.shared import InfoExpander
 from bauble.view import Action, InfoBox, PropertiesExpander, select_in_search_results
-
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
 from sqlalchemy import distinct, select
 from sqlalchemy.orm.session import object_session
 
@@ -93,7 +79,7 @@ def remove_callback(values):
     """
     The callback function to remove a species from the species context menu.
     """
-    from bauble.plugins.garden.accession import Accession
+    from bauble.plugins.garden.models import Accession
 
     species = values[0]
     session = object_session(species)
@@ -130,9 +116,10 @@ def remove_callback(values):
 
 
 def add_accession_callback(values):
-    from bauble.plugins.garden.accession import Accession, AccessionEditor
+    from bauble.plugins.garden.accession import AccessionEditor
+    from bauble.plugins.garden.models import Accession
 
-    session = db.Session()
+    session = Session()
     species = session.merge(values[0])
     if isinstance(species, VernacularName):
         species = species.species
@@ -343,7 +330,9 @@ class GeneralSpeciesExpander(InfoExpander):
     """
     expander to present general information about a species
     """
+
     current_obj: Any
+
     def __init__(self, widgets) -> None:
         """
         the constructor
@@ -446,8 +435,7 @@ class GeneralSpeciesExpander(InfoExpander):
         if "GardenPlugin" not in pluginmgr.plugins:
             return
 
-        from bauble.plugins.garden.accession import Accession
-        from bauble.plugins.garden.plant import Plant
+        from bauble.plugins.garden.models import Accession, Plant
 
         nacc = (
             session.execute(
@@ -507,6 +495,7 @@ class SpeciesInfoBox(InfoBox):
     general info, fullname, common name, num of accessions and clones,
     distribution
     """
+
     # others to consider: reference, images, redlist status
 
     widgets: Any
@@ -516,6 +505,7 @@ class SpeciesInfoBox(InfoBox):
     links: Any
     properties_expander: Any
     label: Any
+
     def __init__(self) -> None:
         """
         the constructor
@@ -635,8 +625,6 @@ class SpeciesInfoBox(InfoBox):
 class VernacularNameInfoBox(SpeciesInfoBox):
 
     def update(self, row) -> None:
-        logger.info(
-            f"VernacularNameInfoBox.update {row.__class__.__name__}({row})"
-        )
+        logger.info(f"VernacularNameInfoBox.update {row.__class__.__name__}({row})")
         if isinstance(row, VernacularName):
             super().update(row.species)

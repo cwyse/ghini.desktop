@@ -25,11 +25,11 @@ import logging
 import os
 import traceback
 from collections.abc import Generator
+from contextlib import contextmanager
 from gettext import gettext as _
-from typing import Any, ClassVar, Optional, Union
+from typing import Any, ClassVar, Optional
 
 import bauble
-import gi
 import sqlalchemy.orm
 import sqlalchemy.orm.exc as orm_exc
 
@@ -37,18 +37,10 @@ import sqlalchemy.orm.exc as orm_exc
 from bauble import db, editor, paths, pluginmgr, search, utils
 from bauble.btypes import BaseModelProtocol as BaseModelProtocol
 from bauble.editor import GenericEditorPresenter, GenericEditorView
-from bauble.plugins.garden.plant import Plant
+from bauble.gtkinit import Gdk, Gtk
 from bauble.shared import InfoExpander
 from bauble.utils import safe_set_text
 from bauble.view import Action, InfoBox, SearchView
-from sqlalchemy.orm import Mapped
-
-gi.require_version("Gtk", "3.0")
-from contextlib import contextmanager
-from typing import TYPE_CHECKING, Optional
-
-from bauble.plugins.garden.propagation import Propagation
-from gi.repository import Gdk, Gtk
 
 # from sqlalchemy import text
 from sqlalchemy import (
@@ -64,15 +56,12 @@ from sqlalchemy import (
 from sqlalchemy.exc import DBAPIError
 
 # from sqlalchemy.exc import InvalidRequestError
-#from sqlalchemy.orm import Session as SASession
-from sqlalchemy.orm import relationship
+# from sqlalchemy.orm import Session as SASession
+from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 # from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import object_session
-
-if TYPE_CHECKING:
-    from bauble.types import BaseModelProtocol
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -94,6 +83,7 @@ class TagsMenuManager:
     item_list: Any
     apply_active_tag_menu_item: Any
     remove_active_tag_menu_item: Any
+
     def __init__(self) -> None:
         self.menu_item: Gtk.MenuItem | None = None
         self.active_tag_name: str | None = None
@@ -250,7 +240,9 @@ class TagsMenuManager:
         tags_menu.show_all()
         return tags_menu
 
-    def register_accelerators(self, menu_item, accel_group, accel_key, modifiers) -> None:
+    def register_accelerators(
+        self, menu_item, accel_group, accel_key, modifiers
+    ) -> None:
         """Add an accelerator key to a menu item."""
         try:
             menu_item.add_accelerator(
@@ -443,9 +435,11 @@ class TagItemGUI(editor.GenericEditorView):
     """
     Interface for tagging individual items in the results of the SearchView
     """
+
     item_data_label: Any
     values: Any
     tag_tree: Any
+
     def __init__(self, values) -> None:
         filename = os.path.join(paths.lib_dir(), "plugins", "tag", "tag.glade")
         super().__init__(filename)
@@ -581,6 +575,7 @@ class Tag(db.Base, db.WithNotes):
       description: :class:`sqlalchemy.types.Unicode`
         A description of this tag.
     """
+
     id: Any
     __tablename__: str = "tag"
 
@@ -665,11 +660,13 @@ class Tag(db.Base, db.WithNotes):
         # Return the cached objects
         return self.__last_objects
 
-    def is_tagging(self, obj: 'BaseModelProtocol') -> bool:
+    def is_tagging(self, obj: "BaseModelProtocol") -> bool:
         """tell whether self tags obj"""
         return obj in self.objects
 
-    def get_tagged_objects(self, session: Optional[sqlalchemy.orm.Session] = None) -> list:
+    def get_tagged_objects(
+        self, session: Optional[sqlalchemy.orm.Session] = None
+    ) -> list:
         """
         Return all objects tagged with this tag.
 
@@ -700,7 +697,7 @@ class Tag(db.Base, db.WithNotes):
         return [obj for obj in results if obj is not None]
 
     @classmethod
-    def attached_to(cls, obj: 'BaseModelProtocol') -> list:
+    def attached_to(cls, obj: "BaseModelProtocol") -> list:
         """Return the list of tags attached to the given object."""
         with db.Session() as session:
             qto = session.execute(
@@ -763,6 +760,7 @@ class TaggedObj(db.Base):
         A ForeignKey to :class:`Tag`.
 
     """
+
     id: Any
     __tablename__: str = "tagged_obj"
 
@@ -804,9 +802,7 @@ def _get_tagged_object_pairs(tag):
             logger.warning(f"DBAPIError -- tag.get_tagged_objects({tag}): {e}")
             continue
         except AttributeError as e:
-            logger.warning(
-                f"AttributeError -- tag.get_tagged_objects({tag}): {e}"
-            )
+            logger.warning(f"AttributeError -- tag.get_tagged_objects({tag}): {e}")
             logger.warning(
                 f"Could not get the object for {module_name}.{cls_name}({obj.obj_id})"
             )
@@ -1001,8 +997,10 @@ class GeneralTagExpander(InfoExpander):
     generic information about an accession like
     number of clones, provenance type, wild provenance type, speciess
     """
+
     table_cells: Any
     current_obj: Any
+
     def __init__(self, widgets) -> None:
         """ """
         super().__init__(_("General"), widgets)
@@ -1058,8 +1056,10 @@ class TagInfoBox(InfoBox):
     - general info
     - source
     """
+
     widgets: Any
     general: Any
+
     def __init__(self) -> None:
         super().__init__()
         filename = os.path.join(paths.lib_dir(), "plugins", "tag", "tag.glade")

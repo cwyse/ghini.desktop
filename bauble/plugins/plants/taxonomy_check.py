@@ -19,17 +19,12 @@ import logging
 import os
 from functools import reduce
 from gettext import gettext as _
-
-import gi
+from typing import Any, Optional
 
 from bauble import paths, pluginmgr, utils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
+from bauble.gtkinit import Pango
 from bauble.plugins.plants import Species
-
-from typing import Union, Optional
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Pango
 
 logger: Any = logging.getLogger(__name__)
 
@@ -151,6 +146,7 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
     the Model of the BTC is a list of tuples.
 
     """
+
     tick_off_list: Any
     binomials: Any
     widget_to_field_map: Any = {"file_path_entry": "file_path"}
@@ -289,7 +285,7 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
 
     def on_copy_to_clipboard_button_clicked(self, *args) -> None:
         text = "\n".join(self.binomials)
-        from gi.repository import Gtk
+        from bauble.gtkinit import Gtk
 
         clipboard = Gtk.Clipboard()
         safe_set_text(clipboard, text)
@@ -299,7 +295,9 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
 
         desktop.open("http://tnrs.iplantcollaborative.org/TNRSapp.html")
 
-    def on_tick_off_view_row_activated(self, view, path, column, data: Optional[Any] = None) -> None:
+    def on_tick_off_view_row_activated(
+        self, view, path, column, data: Optional[Any] = None
+    ) -> None:
         """toggle the selected row
 
         if selected row goes YES and is a synonym, also next row goes YES.
@@ -330,7 +328,7 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
             row[STOCK_ID] = stock_id
 
     def on_filebtnbrowse_clicked(self, *args) -> None:
-        from gi.repository import Gtk
+        from bauble.gtkinit import Gtk
 
         previously = self.view.widget_get_value("file_path_entry")
         last_folder, bn = os.path.split(previously)

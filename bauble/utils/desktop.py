@@ -72,8 +72,6 @@ __version__: str = "0.2.4"
 import os
 import subprocess
 import sys
-from subprocess import Popen
-from types import TracebackType
 from typing import Optional, Union
 
 # Provide suitable process creation functions.
@@ -84,6 +82,7 @@ def _run(cmd: Union[str, list[str]], shell: bool, wait: bool) -> int:
     if wait:
         opener.wait()
     return opener.pid
+
 
 def _readfrom(cmd: Union[str, list[str]], shell: bool) -> bytes:
     opener = subprocess.Popen(
@@ -100,6 +99,7 @@ def _status(cmd: Union[str, list[str]], shell: bool) -> bool:
     opener = subprocess.Popen(cmd, shell=shell)
     opener.wait()
     return opener.returncode == 0
+
 
 # import subprocess
 
@@ -142,8 +142,7 @@ def get_desktop() -> Optional[str]:
     if "KDE_FULL_SESSION" in os.environ or "KDE_MULTIHEAD" in os.environ:
         return "KDE"
     elif (
-        "GNOME_DESKTOP_SESSION_ID" in os.environ or "GNOME_KEYRING_SOCKET" 
-        in os.environ
+        "GNOME_DESKTOP_SESSION_ID" in os.environ or "GNOME_KEYRING_SOCKET" in os.environ
     ):
         return "GNOME"
     elif sys.platform == "darwin":
@@ -210,12 +209,15 @@ def is_standard() -> bool:
 
 # pylint: disable=import-outside-toplevel, redefined-builtin
 
-def open_url(url: str, _desktop: Optional[str] = None, _wait: int = 0,
-             _dialog_on_error: bool = False) -> None:
+
+def open_url(
+    url: str,
+    _desktop: Optional[str] = None,
+    _wait: int = 0,
+    _dialog_on_error: bool = False,
+) -> None:
     """Open the 'url' in the current desktop's preferred client."""
 
-    import gi  
-    gi.require_version("Gtk", "3.0")
-    from gi.repository import Gdk, Gtk
+    from bauble.gtkinit import Gdk, Gtk
 
     Gtk.show_uri_on_window(None, url, Gdk.CURRENT_TIME)

@@ -27,23 +27,17 @@ import os
 import weakref
 from gettext import gettext as _
 from random import random
-
-import gi
-import lxml.etree as etree
-from gi.repository import Gdk, Gio, Gtk
+from typing import Any, Optional
 
 import bauble
-import bauble.db as db
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
+import lxml.etree as etree
+from bauble.db import Base, Session
 from bauble.error import CheckConditionError, check
+from bauble.gtkinit import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango
 from bauble.utils import handle_db_error, parse_date, safe_set_props
-
-from typing import Union, Optional
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import GdkPixbuf, GLib, Pango
 from sqlalchemy import select
 from sqlalchemy.orm import object_mapper, object_session
 
@@ -68,6 +62,7 @@ def safe_set_text(gtk_widget, text) -> None:
 class ValidatorError(Exception):
 
     msg: Any
+
     def __init__(self, msg) -> None:
         self.msg = msg
 
@@ -129,7 +124,9 @@ class UnicodeOrNoneValidator(Validator):
     return the unicode() of the value. The default encoding is
     'utf-8'.
     """
+
     encoding: Any
+
     def __init__(self, encoding: str = "utf-8") -> None:
         self.encoding = encoding
 
@@ -145,7 +142,9 @@ class UnicodeOrEmptyValidator(Validator):
     return the unicode() of the value. The default encoding is
     'utf-8'.
     """
+
     encoding: Any
+
     def __init__(self, encoding: str = "utf-8") -> None:
         self.encoding = encoding
 
@@ -193,7 +192,9 @@ class FloatOrNoneStringValidator(Validator):
             )
 
 
-def default_completion_cell_data_func(column, renderer, model, treeiter, data: Optional[Any] = None) -> None:
+def default_completion_cell_data_func(
+    column, renderer, model, treeiter, data: Optional[Any] = None
+) -> None:
     """
     the default completion cell data function for
     GenericEditorView.attach_completions
@@ -228,6 +229,7 @@ class GenericEditorView:
     :param parent: a Gtk.Window or subclass to use as the parent
      window, if parent=None then bauble.gui.window is used
     """
+
     root_widget_name: Any
     filename: Any
     widgets: Any
@@ -238,7 +240,13 @@ class GenericEditorView:
     signals: Any
     _tooltips: Any = {}
 
-    def __init__(self, filename, parent: Optional[Any] = None, root_widget_name: Optional[Any] = None, prefs: Optional[Any] = None) -> None:
+    def __init__(
+        self,
+        filename,
+        parent: Optional[Any] = None,
+        root_widget_name: Optional[Any] = None,
+        prefs: Optional[Any] = None,
+    ) -> None:
         self.root_widget_name = root_widget_name
         builder = self.builder = Gtk.Builder()
         builder.add_from_file(filename)
@@ -341,7 +349,7 @@ class GenericEditorView:
         msg,
         type=Gtk.MessageType.INFO,
         buttons=Gtk.ButtonsType.OK,
-        parent: Optional[Any] = None
+        parent: Optional[Any] = None,
     ) -> None:
         utils.message_dialog(msg, type, buttons, parent)
 
@@ -574,7 +582,9 @@ class GenericEditorView:
         widget = self.__get_widget(widget)
         widget.set_inconsistent(value)
 
-    def combobox_init(self, widget, values: Optional[Any] = None, cell_data_func: Optional[Any] = None) -> None:
+    def combobox_init(
+        self, widget, values: Optional[Any] = None, cell_data_func: Optional[Any] = None
+    ) -> None:
         combo = self.__get_widget(widget)
         model = Gtk.ListStore(str)
         combo.clear()
@@ -603,9 +613,7 @@ class GenericEditorView:
             # remove at position
             widget.remove(item)
         else:
-            logger.warning(
-                f"invoked combobox_remove with item=({type(item)}){item}"
-            )
+            logger.warning(f"invoked combobox_remove with item=({type(item)}){item}")
 
     def combobox_append_text(self, widget, value) -> None:
         widget = self.__get_widget(widget)
@@ -664,7 +672,14 @@ class GenericEditorView:
         widget = self.__get_widget(widget)
         return utils.get_widget_value(widget, index)
 
-    def widget_set_value(self, widget, value, markup: bool = False, default: Optional[Any] = None, index: int = 0) -> None:
+    def widget_set_value(
+        self,
+        widget,
+        value,
+        markup: bool = False,
+        default: Optional[Any] = None,
+        index: int = 0,
+    ) -> None:
         """
         :param widget: a widget or name of a widget in self.widgets
         :param value: the value to put in the widgets
@@ -713,7 +728,7 @@ class GenericEditorView:
         cell_data_func=default_completion_cell_data_func,
         match_func=default_completion_match_func,
         minimum_key_length: int = 2,
-        text_column: int = -1
+        text_column: int = -1,
     ):
         """
         Attach an entry completion to a Gtk.Entry.  The defaults
@@ -765,7 +780,13 @@ class GenericEditorView:
         return completion
 
     # TODO: add a default value to set in the combo
-    def init_translatable_combo(self, combo, translations, default: Optional[Any] = None, cmp: Optional[Any] = None):
+    def init_translatable_combo(
+        self,
+        combo,
+        translations,
+        default: Optional[Any] = None,
+        cmp: Optional[Any] = None,
+    ):
         """
         Initialize a Gtk.ComboBox with translations values where
         model[row][0] is the value that will be stored in the database
@@ -830,6 +851,7 @@ class GenericEditorView:
 class MockDialog:
     hidden: bool
     content_area: Any
+
     def __init__(self) -> None:
         self.hidden = False
         self.content_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -852,6 +874,7 @@ class MockDialog:
 
 class MockView:
     """mocking the view, but so generic that we share it among clients"""
+
     widgets: Any
     models: Any
     invoked: Any
@@ -867,6 +890,7 @@ class MockView:
     reply_file_chooser_dialog: Any
     __window: Any
     boxes: Any
+
     def __init__(self, **kwargs) -> None:
         self.widgets = type("MockWidgets", (object,), {})()
         self.models = {}  # dictionary of list of tuples
@@ -923,7 +947,7 @@ class MockView:
         msg,
         type=Gtk.MessageType.INFO,
         buttons=Gtk.ButtonsType.OK,
-        parent: Optional[Any] = None
+        parent: Optional[Any] = None,
     ) -> None:
         self.invoked.append("run_message_dialog")
         args = [msg, type, buttons, parent]
@@ -1177,6 +1201,7 @@ class GenericEditorPresenter:
     2. refresh the view, put values from the model into the widgets
     3. connect the signal handlers
     """
+
     model: Any
     view: Any
     problems: Any
@@ -1207,7 +1232,7 @@ class GenericEditorPresenter:
         session: Optional[Any] = None,
         do_commit: bool = False,
         committing_results: Optional[Any] = None,
-        prefs: Optional[Any] = None
+        prefs: Optional[Any] = None,
     ) -> None:
         if committing_results is None:
             committing_results = [Gtk.ResponseType.OK]
@@ -1235,18 +1260,16 @@ class GenericEditorPresenter:
             try:
                 self.session = object_session(model)
             except Exception as e:
-                logger.debug(
-                    f"GenericEditorPresenter::__init__ - {type(e)}, {e}"
-                )
+                logger.debug(f"GenericEditorPresenter::__init__ - {type(e)}, {e}")
 
             if self.session is None:  # object_session gave None without error
-                if db.Session is not None:
-                    self.session = db.Session()
+                if Session is not None:
+                    self.session = Session()
                     self.owns_session = True
-                    if isinstance(model, db.Base):
+                    if isinstance(model, Base):
                         self.model = model = self.session.merge(model)
                 else:
-                    logger.debug("db.Session was None, I cannot get a session.")
+                    logger.debug("Session was None, I cannot get a session.")
                     self.session = None
 
         if view:
@@ -1430,7 +1453,9 @@ class GenericEditorPresenter:
     def __get_widget_attr(self, widget):
         return self.widget_to_field_map.get(self.__get_widget_name(widget))
 
-    def on_textbuffer_changed(self, widget, value: Optional[Any] = None, attr: Optional[Any] = None) -> None:
+    def on_textbuffer_changed(
+        self, widget, value: Optional[Any] = None, attr: Optional[Any] = None
+    ) -> None:
         """handle 'changed' signal on textbuffer widgets.
 
         this will not work directly. check the unanswered question
@@ -1722,9 +1747,7 @@ class GenericEditorPresenter:
         mapper = object_mapper(self.model)
         values = mapper.c[field].type.values
         if None in values:
-            logger.debug(
-                f"None value found in column {field}, that is not in the Enum"
-            )
+            logger.debug(f"None value found in column {field}, that is not in the Enum")
             values.remove(None)
             values.insert(0, "")
         values = sorted(values)
@@ -1760,14 +1783,14 @@ class GenericEditorPresenter:
                 logger.debug(f"GenericEditorPresenter.set_model_attr {e}")
                 self.add_problem(f"BAD_VALUE_{attr}")
             else:
-                logger.debug(
-                    f"validated {type(value).__name__}({value}) for {attr}"
-                )
+                logger.debug(f"validated {type(value).__name__}({value}) for {attr}")
                 setattr(self.model, attr, value)
         else:
             setattr(self.model, attr, value)
 
-    def assign_simple_handler(self, widget_name, model_attr, validator: Optional[Any] = None):
+    def assign_simple_handler(
+        self, widget_name, model_attr, validator: Optional[Any] = None
+    ):
         """
         Assign handlers to widgets to change fields in the model.
 
@@ -2049,7 +2072,9 @@ class ChildPresenter(GenericEditorPresenter):
     provides a pass through to the parent presenter for calling
     methods that reference the view.
     """
+
     _view_ref: Any
+
     def __init__(self, model, view, prefs: Optional[Any] = None) -> None:
         super().__init__(model, view, prefs=prefs)
         # self._view_ref = weakref.ref(view)
@@ -2084,12 +2109,15 @@ class GenericModelViewPresenterEditor:
 
     :param parent: the parent windows for the view or None
     """
+
     session: Any
     model: Any
     ok_responses: Any = ()
 
-    def __init__(self, model, parent: Optional[Any] = None, prefs: Optional[Any] = None) -> None:
-        self.session = db.Session()
+    def __init__(
+        self, model, parent: Optional[Any] = None, prefs: Optional[Any] = None
+    ) -> None:
+        self.session = Session()
         self.model = self.session.merge(model)
 
     def commit_changes(self):
@@ -2127,6 +2155,7 @@ class NoteBox:
     """
     Manages a note editor UI with structured input fields.
     """
+
     box: Any
     presenter: Any
     prefs: Any
@@ -2135,7 +2164,9 @@ class NoteBox:
     session: Any
     glade_ui: str = "notes.glade"
 
-    def __init__(self, presenter, model: Optional[Any] = None, prefs: Optional[Any] = None) -> None:
+    def __init__(
+        self, presenter, model: Optional[Any] = None, prefs: Optional[Any] = None
+    ) -> None:
         """
         Initializes the NoteBox.
 
@@ -2341,7 +2372,9 @@ class PictureBox(NoteBox):
     glade_ui: str = "pictures.glade"
     last_folder: str = "."
 
-    def __init__(self, presenter, model: Optional[Any] = None, prefs: Optional[Any] = None) -> None:
+    def __init__(
+        self, presenter, model: Optional[Any] = None, prefs: Optional[Any] = None
+    ) -> None:
         super().__init__(presenter, model, prefs=prefs)
         utils.set_widget_value(self.widgets.category_comboentry, "<picture>")
         self.presenter._dirty = False
@@ -2448,6 +2481,7 @@ class NotesPresenter(GenericEditorPresenter):
       the presenter.model
     :param parent_container: the Gtk.Container to add the notes editor box to
     """
+
     prefs: Any
     widgets: Any
     parent_ref: Any
@@ -2457,7 +2491,9 @@ class NotesPresenter(GenericEditorPresenter):
     box: Any
     ContentBox = NoteBox
 
-    def __init__(self, presenter, notes_property, parent_container, prefs: Optional[Any] = None) -> None:
+    def __init__(
+        self, presenter, notes_property, parent_container, prefs: Optional[Any] = None
+    ) -> None:
         super().__init__(model=presenter.model, view=None, prefs=prefs)
         self.prefs = prefs
 
@@ -2524,7 +2560,9 @@ class PicturesPresenter(NotesPresenter):
 
     ContentBox = PictureBox
 
-    def __init__(self, presenter, notes_property, parent_container, prefs: Optional[Any] = None) -> None:
+    def __init__(
+        self, presenter, notes_property, parent_container, prefs: Optional[Any] = None
+    ) -> None:
         super().__init__(presenter, notes_property, parent_container, prefs=prefs)
 
         notes = self.box.get_children()

@@ -27,7 +27,8 @@ import os
 import re
 from gettext import gettext as _
 
-import gi
+# mapping stuff
+from typing import Any, Optional
 
 import bauble.db as db
 import bauble.editor as editor
@@ -35,24 +36,13 @@ import bauble.meta as meta
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.utils as utils
-
-# mapping stuff
-from typing import Union, Optional
-from bauble import editor
-from bauble import pluginmgr
-from typing import Any
-display: Any
-gi.require_version("Gtk", "3.0")
-gi.require_version("GtkClutter", "1.0")
-gi.require_version("GtkChamplain", "0.12")
-gi.require_version("Champlain", "0.12")
-from gi.repository import Champlain, Clutter, Gdk, Gtk, GtkChamplain, GtkClutter
+from bauble.gtkinit import Champlain, Clutter, Gdk, Gtk, GtkChamplain, GtkClutter
 from sqlalchemy import insert, select, update
 
 # from sqlalchemy.orm import Session
 
 # Ensure GTK is initialized and get the display
-display = Gdk.Display.get_default()
+display: Any = Gdk.Display.get_default()
 if not display:
     raise RuntimeError("GDK Display could not be initialized.")
 
@@ -95,7 +85,10 @@ class MapViewer:
     marker_circle: Any
     marker_through: Any
     marker_centre: Any
-    def __init__(self, title: str = "", parent: Optional[Any] = None, *args, **kwargs) -> None:
+
+    def __init__(
+        self, title: str = "", parent: Optional[Any] = None, *args, **kwargs
+    ) -> None:
         self.dialog = Gtk.Dialog(
             title, parent, *args, **kwargs
         )  # Use composition instead of subclassing
@@ -288,7 +281,9 @@ class MapViewer:
         ), self.clutter_view.x_to_longitude(x + dx)
         self.marker_through.set_location(lat, lon)
 
-    def on_marker_button_release(self, marker_circle, dx, dy, event, *args, **kwargs) -> None:
+    def on_marker_button_release(
+        self, marker_circle, dx, dy, event, *args, **kwargs
+    ) -> None:
         for marker in [self.marker_through, self.marker_centre]:
             lat, lon = marker.get_latitude(), marker.get_longitude()
             y, x = self.clutter_view.latitude_to_y(
@@ -515,7 +510,9 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
             self.view.remove_box(self.message_box)
             self.message_box = None
 
-    def on_non_empty_text_entry_changed(self, widget, value: Optional[Any] = None) -> None:
+    def on_non_empty_text_entry_changed(
+        self, widget, value: Optional[Any] = None
+    ) -> None:
         value = super().on_non_empty_text_entry_changed(widget, value)
         box = self.message_box
         if value:
@@ -597,7 +594,9 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
         # disable button, so user will not send registration twice
         self.view.widget_set_sensitive("inst_register", False)
 
-    def on_inst_addr_tb_changed(self, widget, value: Optional[Any] = None, attr: Optional[Any] = None):
+    def on_inst_addr_tb_changed(
+        self, widget, value: Optional[Any] = None, attr: Optional[Any] = None
+    ):
         return self.on_textbuffer_changed(widget, value, attr="address")
 
 

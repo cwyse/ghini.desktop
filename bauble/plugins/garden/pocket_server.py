@@ -24,18 +24,13 @@ import logging
 import os.path
 from gettext import gettext as _
 from threading import Thread
+from typing import Any, Optional
 from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
-
-import gi
 
 from bauble import db, meta, paths, pluginmgr
 from bauble.editor import GenericEditorPresenter, GenericEditorView
+from bauble.gtkinit import GLib
 from bauble.utils import safe_set_text
-
-from typing import Union, Optional
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import GLib
 from sqlalchemy import select
 
 logger: Any = logging.getLogger(__name__)
@@ -80,6 +75,7 @@ class PocketServer(Thread):
     port: Any
     api: Any
     server: Any
+
     def __init__(self, presenter) -> None:
         super().__init__()
 
@@ -112,9 +108,7 @@ class PocketServer(Thread):
 
             def register(self, client_id, user_name, security_code):
                 self.presenter._dirty = True
-                self.log.append(
-                    (f"register ›{client_id}‹ ›{security_code}‹",)
-                )
+                self.log.append((f"register ›{client_id}‹ ›{security_code}‹",))
                 if not isinstance(client_id, str) or not isinstance(user_name, str):
                     return self.WRONG_TYPE_IN_PARAMETERS
                 elif security_code != self.presenter.model.code:
@@ -134,9 +128,7 @@ class PocketServer(Thread):
 
             def get_snapshot(self, client_id):
                 self.log.append(
-                    (
-                        f"get_snapshot ›{client_id}‹ ›{self.presenter.pocket_fn}‹",
-                    )
+                    (f"get_snapshot ›{client_id}‹ ›{self.presenter.pocket_fn}‹",)
                 )
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
@@ -157,9 +149,7 @@ class PocketServer(Thread):
                 user_name = self.imei_to_user_name.get(client_id, None)
                 from .import_pocket_log import process_line
 
-                self.log.append(
-                    (f"put_change ›{client_id}‹ ›{len(log_lines)}‹",)
-                )
+                self.log.append((f"put_change ›{client_id}‹ ›{len(log_lines)}‹",))
                 if self.presenter.is_exporting:
                     return self.PLEASE_TRY_LATER
                 elif client_id not in {i[1] for i in self.clients}:
@@ -264,6 +254,7 @@ class PocketServer(Thread):
 
 class PocketServerPresenter(GenericEditorPresenter):
     """manage the xmlrpc server for pocket communication"""
+
     clients_ls: Any
     is_exporting: bool
     opacity: float

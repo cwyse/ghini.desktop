@@ -19,14 +19,15 @@
 #
 import re
 import xml.etree.ElementTree as ET
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import requests
-from typing import Any
 from requests.auth import HTTPDigestAuth
 
 
-def get_submissions(user: str, pw: str, host: str, form_id: str, to_skip: Optional[List[str]] = None) -> Optional[List[Dict[str, Any]]]:
+def get_submissions(
+    user: str, pw: str, host: str, form_id: str, to_skip: Optional[List[str]] = None
+) -> Optional[List[Dict[str, Any]]]:
     if to_skip is None:
         to_skip = []
     base_format = "https://%(host)s/view/%(api)s?formId=%(form_id)s"

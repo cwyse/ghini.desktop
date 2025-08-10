@@ -20,15 +20,10 @@
 # geography.py
 #
 from operator import itemgetter
-
-import gi
-
-import bauble.db as db
-
-from bauble import db
 from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+
+from bauble.db import Base, Session
+from bauble.gtkinit import Gtk
 from sqlalchemy import Column, ForeignKey, Integer, String, Unicode, select
 from sqlalchemy.orm import object_session, relationship
 
@@ -44,10 +39,7 @@ def get_species_in_geographic_area(geo):
         )
 
     # get all the geographic_area children under geo
-    from bauble.plugins.plants.species_model import (
-        Species,
-        SpeciesDistribution,
-    )
+    from bauble.plugins.plants.species_model import Species, SpeciesDistribution
 
     # get the children of geo
     geo_table = geo.__table__
@@ -68,7 +60,7 @@ def get_species_in_geographic_area(geo):
         stmt = select(geo_table.c.id).where(geo_table.c.parent_id == parent_id)
 
         # Use the session for query execution
-        result = db.Session().execute(stmt)
+        result = Session().execute(stmt)
         kids = [row.id for row in result.scalars()]
 
         for kid in kids:
@@ -99,15 +91,15 @@ def get_species_in_geographic_area(geo):
 
 class GeographicAreaMenu:
     menu: Any
+
     def __init__(self, callback) -> None:
         # Create an instance of Gtk.Menu instead of subclassing it
         self.menu = Gtk.Menu()
         geographic_area_table = GeographicArea.__table__
-        import bauble.db as db
 
         # Query the database for the geographic area information
         geos = (
-            db.Session.execute(
+            Session.execute(
                 select(
                     geographic_area_table.c.id,
                     geographic_area_table.c.name,
@@ -183,7 +175,7 @@ class GeographicAreaMenu:
 
             self.menu.show_all()
 
-        from gi.repository import GLib
+        from bauble.gtkinit import GLib
 
         GLib.idle_add(populate)
 
@@ -191,7 +183,7 @@ class GeographicAreaMenu:
         return self.menu
 
 
-class GeographicArea(db.Base):
+class GeographicArea(Base):
     """
     Represents a geographic_area unit.
 
@@ -211,6 +203,7 @@ class GeographicArea(db.Base):
 
     :Constraints:
     """
+
     id: Any
     __tablename__: str = "geographic_area"
 

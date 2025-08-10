@@ -21,18 +21,15 @@
 # test.py
 #
 # Description: test for bauble.utils
-import gi
-import pytest
-from sqlalchemy import Column, ForeignKey, Integer, Sequence, Table
+from collections.abc import Generator
+from typing import Any
 
 import bauble.utils as utils
+import pytest
 from bauble.error import CheckConditionError
+from bauble.gtkinit import Gtk
 from bauble.utils import topological_sort
-
-from typing import Any
-from collections.abc import Generator
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from sqlalchemy import Column, ForeignKey, Integer, Sequence, Table
 
 
 def test_create_message_details_dialog() -> None:
@@ -60,10 +57,8 @@ def test_create_message_dialog() -> None:
 
 
 def test_search_tree_model() -> None:
-    import gi
 
-    gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
+    from bauble.gtkinit import Gtk
 
     model = Gtk.TreeStore(str)
 

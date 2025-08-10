@@ -20,21 +20,17 @@ import logging
 import os
 from configparser import RawConfigParser
 from gettext import gettext as _
-from typing import Optional, Union
+from typing import Any, Optional
 
 import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
-import gi
-from typing import Any
-from bauble import pluginmgr
 
 default_filename: str
-gi.require_version("Gtk", "3.0")
 import copy
 
-from gi.repository import Gtk
+from bauble.gtkinit import Gtk
 from sqlalchemy import select
 
 logger: Any = logging.getLogger(__name__)
@@ -140,6 +136,7 @@ class _prefs(dict):
 
     _filename: Any
     config: Any
+
     def __init__(self, filename=default_prefs_file) -> None:
         self._filename = filename
         self.config = None
@@ -223,7 +220,9 @@ class _prefs(dict):
         version = self[config_version_pref]
         if version is None:
             logger.warning(f"{self._filename} has no config version pref")
-            logger.warning("setting the config version to {}.{}".format(*config_version))
+            logger.warning(
+                "setting the config version to {}.{}".format(*config_version)
+            )
             self[config_version_pref] = config_version
 
         # set some defaults if they don't exist
@@ -337,6 +336,7 @@ class PrefsView(pluginmgr.View):
     """
     The PrefsView displays the values of in the preferences and the registry.
     """
+
     prefs_ls: Any
     plugins_ls: Any
     pane_size_pref: str = "bauble.prefs.pane_position"
@@ -353,7 +353,6 @@ class PrefsView(pluginmgr.View):
         self.update()
 
     def on_prefs_prefs_tv_row_activated(self, tv, path, column) -> None:
-        global prefs
         key, repr_str, type_str = self.prefs_ls[path]
         if type_str == "bool":
             prefs[key] = not prefs[key]
@@ -362,7 +361,6 @@ class PrefsView(pluginmgr.View):
 
     def update(self) -> None:
         self.prefs_ls.clear()
-        global prefs
         for key, value in sorted(prefs.items()):
             self.prefs_ls.append((key, value, prefs[key].__class__.__name__))
 

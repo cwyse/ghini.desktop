@@ -46,7 +46,7 @@ _ = translation.gettext
 import locale
 import os
 import sys
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import Any, Optional, cast
 
 OS_WINDOWS: Any = sys.platform == "win32"
 
@@ -68,6 +68,7 @@ def get_language_windows(system_lang: bool = True) -> Optional[list[str]]:
     """
     try:
         import ctypes
+
         windll = cast(Any, ctypes).windll  # silence mypy on non-Windows
     except (ImportError, AttributeError):
         default_locale = locale.getdefaultlocale()[0]
@@ -75,7 +76,11 @@ def get_language_windows(system_lang: bool = True) -> Optional[list[str]]:
     # get all locales using windows API
     lcid_user = windll.kernel32.GetUserDefaultLCID()
     lcid_system = windll.kernel32.GetSystemDefaultLCID()
-    lcids = [lcid_user, lcid_system] if system_lang and lcid_user != lcid_system else [lcid_user]
+    lcids = (
+        [lcid_user, lcid_system]
+        if system_lang and lcid_user != lcid_system
+        else [lcid_user]
+    )
 
     langs = [locale.windows_locale[i] for i in lcids if i in locale.windows_locale]
     return langs or None

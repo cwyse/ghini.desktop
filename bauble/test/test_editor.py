@@ -23,11 +23,10 @@
 import datetime
 import os
 
-import pytest
-
 import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
+import pytest
 from bauble.editor import GenericEditorView
 from bauble.utils import parse_date
 
@@ -95,10 +94,8 @@ def test_add_widget(setup_generic_view) -> None:
     """
     Test adding a widget to the view.
     """
-    import gi
 
-    gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
+    from bauble.gtkinit import Gtk
 
     filename = os.path.join(paths.lib_dir(), "bauble.glade")
     view = setup_generic_view(filename)

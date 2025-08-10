@@ -22,19 +22,18 @@
 # Refactored for Pytest and SQLAlchemy 2.0.36 compatibility
 
 import logging
-from collections.abc import Generator
-from typing import Any, Generator, Iterator, Optional, cast
+from typing import Any, Iterator, Optional
 from unittest.mock import patch
 
 import pytest
-from typing import Any
 from bauble.plugins.plants.ask_tpl import AskTPL, what_to_do_with_it
 
 
 class MockResponse:
     def __init__(self, text: str) -> None:
         self.text = text
-        
+
+
 @pytest.fixture  # type: ignore[misc]
 def mock_requests() -> Iterator[None]:
     """

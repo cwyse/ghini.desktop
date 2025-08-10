@@ -38,19 +38,15 @@ import re
 import sys
 import traceback
 from gettext import gettext as _
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import bauble
-import bauble.db as db
 import bauble.paths as paths
 import bauble.utils as utils
-import gi
 import sqlalchemy.orm.exc as orm_exc
-from bauble import db
+from bauble.db import Base, Session
 from bauble.error import BaubleError
-
-gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk
+from bauble.gtkinit import GLib, Gtk
 from sqlalchemy import Column, Integer, Unicode, select
 
 logger: Any = logging.getLogger(__name__)
@@ -69,7 +65,6 @@ def register_command(handler) -> None:
 
     :param handler:  A class which extends pluginmgr.CommandHandler
     """
-    global commands
     logger.debug(f"registering command handler {str(handler.command)}")
     if isinstance(handler.command, str):
         if handler.command in commands:
@@ -154,9 +149,7 @@ def load(path: Optional[Any] = None) -> None:
             logger.debug(f"registering plugin {plugin.__name__}: {plugin}")
         else:
             plugins[plugin.__class__.__name__] = plugin
-            logger.debug(
-                f"registering plugin {plugin.__class__.__name__}: {plugin}"
-            )
+            logger.debug(f"registering plugin {plugin.__class__.__name__}: {plugin}")
 
 
 def init(force: bool = False) -> None:
@@ -201,6 +194,70 @@ def init(force: bool = False) -> None:
                 "<i>Would you like to install them now?</i>"
             ) % ", ".join([p.__class__.__name__ for p in not_installed])
             if force or utils.yes_no_dialog(msg):
+                # Ensure mappers are configured
+                from bauble.db import MapperBase
+                from sqlalchemy.orm import configure_mappers
+
+                print(
+                    "Mapped class names seen so far:",
+                    sorted(MapperBase._class_registry.keys()),
+                )
+                # Ensure all mappers are configured before creating tables
+                import bauble.plugins.garden.models.accession as acc
+                import bauble.plugins.garden.models.plant as pl
+                from bauble.db import MapperBase, metadata
+
+                print("accession in shared metadata? ", "accession" in metadata.tables)
+                print(
+                    "Accession uses shared metadata? ",
+                    acc.Accession.__table__.metadata is metadata,
+                )
+                print(
+                    "Plant uses shared metadata? ",
+                    pl.Plant.__table__.metadata is metadata,
+                )
+                print(
+                    "Mapped class names seen so far:",
+                    sorted(MapperBase._class_registry.keys()),
+                )
+
+                import inspect as pyinspect
+                import sys
+
+                import bauble.plugins.garden.models.accession as acc
+                import bauble.plugins.garden.models.plant as pl
+                from bauble.db import Base
+
+                metadata = Base.metadata
+
+                dbmod = sys.modules[
+                    __name__
+                ]  # since this code is running inside bauble.db
+                print("db module path:", pyinspect.getfile(dbmod), "id:", id(dbmod))
+                print(
+                    "Garden model modules loaded:",
+                    [k for k in sys.modules if "bauble.plugins.garden.models" in k],
+                )
+
+                print("db module path:", pyinspect.getfile(dbmod), "id:", id(dbmod))
+                print("Accession Base is db.Base? ", acc.Base is dbmod.Base)
+                # if plant.py still uses "from bauble.db import Base", this will exist:
+                print("Plant module has 'db' alias? ", hasattr(pl, "db"))
+                if hasattr(pl, "db"):
+                    print("pl.db is dbmod? ", pl.db is dbmod)
+
+                print(
+                    "Accession uses shared metadata? ",
+                    acc.Accession.__table__.metadata is metadata,
+                )
+                print(
+                    "Plant uses shared metadata? ",
+                    pl.Plant.__table__.metadata is metadata,
+                )
+                print("Tables in shared metadata:", sorted(metadata.tables.keys()))
+                print("accession in shared metadata? ", "accession" in metadata.tables)
+                print("plant in shared metadata? ", "plant" in metadata.tables)
+                configure_mappers()
                 install([p for p in not_installed], import_defaults=force)
 
         # sort plugins in the registry by their dependencies
@@ -209,9 +266,7 @@ def init(force: bool = False) -> None:
             try:
                 registered.append(plugins[name])
             except KeyError as e:
-                logger.debug(
-                    f"could not find '{e}' plugin. " "removing from database"
-                )
+                logger.debug(f"could not find '{e}' plugin. " "removing from database")
                 not_registered.append(utils.utf8(name))
                 PluginRegistry.remove(name=name)
 
@@ -242,10 +297,12 @@ def init(force: bool = False) -> None:
         )
 
     # Ensure mappers are configured
+    from bauble.db import MapperBase
     from sqlalchemy.orm import configure_mappers
 
+    print("Mapped class names seen so far:", sorted(MapperBase._class_registry.keys()))
     configure_mappers()
-    
+
     # call init() for each ofthe plugins
     for plugin in ordered:
         logger.debug(f"about to invoke init on: {plugin}")
@@ -284,9 +341,7 @@ def init(force: bool = False) -> None:
                 register_command(cmd)
             except Exception as e:
                 logger.debug(f"exception {e} while registering command {cmd}")
-                msg = (
-                    f"Error: Could not register command handler.\n\n{utils.xml_safe(str(e))}"
-                )
+                msg = f"Error: Could not register command handler.\n\n{utils.xml_safe(str(e))}"
                 utils.message_dialog(msg, Gtk.MessageType.ERROR)
 
     # don't build the tools menu if we're running from the tests and
@@ -294,7 +349,10 @@ def init(force: bool = False) -> None:
     if type(bauble.gui).__name__ == "GUI":
         bauble.gui.build_tools_menu()
 
-def install(plugins_to_install, import_defaults: bool = True, force: bool = False) -> None:
+
+def install(
+    plugins_to_install, import_defaults: bool = True, force: bool = False
+) -> None:
     """
     :param plugins_to_install: A list of plugins to install. If the
         string "all" is passed then install all plugins listed in the
@@ -309,10 +367,10 @@ def install(plugins_to_install, import_defaults: bool = True, force: bool = Fals
     :type force: book
     """
     # pluginmgr.py - top of `install()` or right before the install loop
-    import bauble.plugins.garden.accession
-    import bauble.plugins.garden.location
-    import bauble.plugins.garden.plant
+    from bauble.db import MapperBase
     from sqlalchemy.orm import configure_mappers
+
+    print("Mapped class names seen so far:", sorted(MapperBase._class_registry.keys()))
     configure_mappers()
 
     logger.debug(f"pluginmgr.install({str(plugins_to_install)})")
@@ -358,7 +416,7 @@ def install(plugins_to_install, import_defaults: bool = True, force: bool = Fals
         raise
 
 
-class PluginRegistry(db.Base):
+class PluginRegistry(Base):
     """
     The PluginRegistry contains a list of plugins that have been installed
     in a particular instance of a Ghini database.  At the moment it only
@@ -384,7 +442,7 @@ class PluginRegistry(db.Base):
             name=plugin.__class__.__name__,
             version=plugin.version,
         )
-        with db.Session() as session:
+        with Session() as session:
             session.add(p)
             if session.in_transaction():
                 session.commit()
@@ -403,7 +461,7 @@ class PluginRegistry(db.Base):
         # Decode name if it's in bytes
         decoded_name = name.decode() if isinstance(name, bytes) else name
 
-        with db.Session() as session:
+        with Session() as session:
             p = session.execute(
                 select(PluginRegistry).where(PluginRegistry.name == decoded_name)
             ).scalar_one_or_none()
@@ -414,7 +472,7 @@ class PluginRegistry(db.Base):
 
     @staticmethod
     def all(session):
-        with db.Session() as local_session:
+        with Session() as local_session:
             session = session or local_session
             q = session.execute(select(PluginRegistry)).scalars()
             return list(q)
@@ -423,7 +481,7 @@ class PluginRegistry(db.Base):
     def names():
         t = PluginRegistry.__table__
         stmt = select(t.c.name)
-        with db.Session() as session:
+        with Session() as session:
             results = session.execute(stmt).scalars().all()
             names = list(results)
         return names
@@ -444,7 +502,7 @@ class PluginRegistry(db.Base):
         # Decode name if it's in bytes
         name.decode() if isinstance(name, bytes) else name
 
-        with db.Session() as session:
+        with Session() as session:
             try:
                 logger.debug(f"not using value of version ({version}).")
                 # Apply the where clause to the select object
@@ -525,9 +583,11 @@ class View(Gtk.Box):
 
     If a class extends this View and provides its own __init__ it *must* call its parent (this) __init__.
     """
+
     widgets: Any
     view: Any
     running_threads: Any
+
     def __init__(self, *args, **kwargs) -> None:
         """
         Initializes the view, optionally loading a UI from a .glade file.
@@ -668,7 +728,7 @@ def _find_plugins(path):
             try:
                 print("DEBUG: bauble =", bauble)
                 print("DEBUG: type(bauble) =", type(bauble))
-                mod = importlib.import_module(name, package='bauble.plugins')
+                mod = importlib.import_module(name, package="bauble.plugins")
             except Exception as e:
                 msg = _("Could not import the %(module)s module.\n\n" "%(error)s") % {
                     "module": name,
@@ -686,9 +746,7 @@ def _find_plugins(path):
             logger.debug(f"module {mod} contains callable plugin: {mod_plugin}")
         except:
             mod_plugin = mod.plugin
-            logger.debug(
-                f"module {mod} contains non callable plugin: {mod_plugin}"
-            )
+            logger.debug(f"module {mod} contains non callable plugin: {mod_plugin}")
 
         def is_plugin_class(p):
             return isinstance(p, type) and issubclass(p, Plugin)

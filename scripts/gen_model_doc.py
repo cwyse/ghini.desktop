@@ -18,7 +18,6 @@ from sqlalchemy.orm.mapper import _mapper_registry
 from sqlalchemy.orm.properties import *
 
 import bauble
-import bauble.db as db
 import bauble.pluginmgr as pluginmgr
 import bauble.view as view
 from bauble.prefs import prefs

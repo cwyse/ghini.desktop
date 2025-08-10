@@ -29,17 +29,12 @@ import copy
 import logging
 import os
 from gettext import gettext as _
-
-import gi
+from typing import Any, Optional
 
 import bauble
 from bauble import paths, prefs
 from bauble.editor import GenericEditorPresenter, GenericEditorView
-
-from typing import Union, Optional
-from typing import Any
-gi.require_version("Gtk", "3.0")
-from gi.repository import GdkPixbuf, Gtk
+from bauble.gtkinit import GdkPixbuf, Gtk
 
 logger: Any = logging.getLogger(__name__)
 logger._cache.clear()
@@ -85,7 +80,9 @@ populate_dbtypes(
 )
 
 
-def type_combo_cell_data_func(combo, renderer, model, iter, data: Optional[Any] = None) -> None:
+def type_combo_cell_data_func(
+    combo, renderer, model, iter, data: Optional[Any] = None
+) -> None:
     """passed to the gtk method set_cell_data_func
 
     item is sensitive iff in working_dbtypes
@@ -149,7 +146,9 @@ def retrieve_latest_release_date() -> None:
 
         # from github retrieve the date of the latest release
         stream = urllib.request.urlopen(
-            "https://api.github.com/repos/Ghini/ghini.desktop/branches/ghini-{}.{}".format(*bauble.version_tuple[:2]),
+            "https://api.github.com/repos/Ghini/ghini.desktop/branches/ghini-{}.{}".format(
+                *bauble.version_tuple[:2]
+            ),
             timeout=5,
         )
         text = stream.read().decode()
@@ -180,9 +179,7 @@ def retrieve_latest_release_date() -> None:
     except urllib.error.HTTPError:
         logger.info("HTTPError while checking for newer version")
     except Exception as e:
-        logger.warning(
-            f"unhandled {type(e)}({e}) while checking for newer version"
-        )
+        logger.warning(f"unhandled {type(e)}({e}) while checking for newer version")
 
 
 def check_and_notify_new_version(view) -> None:
@@ -218,7 +215,7 @@ def check_and_notify_new_version(view) -> None:
             # Any code that modifies the UI that is called from outside the
             # main thread must be pushed into the main thread and called
             # asynchronously in the main loop, with GObject.idle_add.
-            from gi.repository import GLib
+            from bauble.gtkinit import GLib
 
             GLib.idle_add(show_message_box)
     except urllib.error.URLError:
@@ -233,10 +230,21 @@ def check_and_notify_new_version(view) -> None:
         )
 
 
+from pathlib import Path
+
+
 def make_absolute(path):
-    if path.startswith("./") or path.startswith(".\\"):
-        path = os.path.join(paths.appdata_dir(), path[2:])
-    return path
+    path = Path(path)
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    return str(path.resolve())
+
+
+# def make_absolute(path):
+#    if path.startswith("./") or path.startswith(".\\"):
+#        path = os.path.join(paths.appdata_dir(), path[2:])
+#    return path
+# from pathlib import PosixPath
 
 
 class ConnMgrPresenter(GenericEditorPresenter):
@@ -246,6 +254,7 @@ class ConnMgrPresenter(GenericEditorPresenter):
     :param default: the name of the connection to select from the list
       of connection names
     """
+
     filename: Any
     use_defaults: bool
     passwd: bool
@@ -294,8 +303,16 @@ class ConnMgrPresenter(GenericEditorPresenter):
         view.combobox_init("type_combo", dbtypes, type_combo_cell_data_func)
         self.connection_names = []
         # Use the provided prefs or fall back to the global prefs
-        if prefs:
-            self.connections = prefs.prefs[bauble.conn_list_pref]
+        # if prefs:
+        #     self.connections = prefs.prefs[bauble.conn_list_pref]
+        # else:
+        #     self.connections = {}
+        if prefs and hasattr(prefs, "prefs") and bauble.conn_list_pref in prefs.prefs:
+            try:
+                self.connections = prefs.prefs[bauble.conn_list_pref]
+            except Exception as e:
+                logger.warning("Failed to load connection list: %s", e)
+                self.connections = {}
         else:
             self.connections = {}
 
@@ -436,7 +453,13 @@ class ConnMgrPresenter(GenericEditorPresenter):
         self.view.widget_set_sensitive("file_btnbrowse", x)
         self.view.widget_set_sensitive("pictureroot_btnbrowse", x)
 
-    def on_dialog_response(self, dialog, response, data: Optional[Any] = None, mock_prefs: Optional[Any] = None):
+    def on_dialog_response(
+        self,
+        dialog,
+        response,
+        data: Optional[Any] = None,
+        mock_prefs: Optional[Any] = None,
+    ):
         """
         The dialog's response signal handler.
         """
@@ -753,10 +776,8 @@ class ConnMgrPresenter(GenericEditorPresenter):
         if self.dbtype == "SQLite":
             if self.use_defaults is True:
                 name = new or self.connection_name
-                from pathlib import Path
-
-                self.filename = Path(".") / f"{name}.db"
-                self.pictureroot = Path(".") / name
+                self.filename = str((Path(".") / f"{name}.db").resolve())
+                self.pictureroot = str((Path(".") / f"{name}").resolve())
             result = {
                 "file": self.filename,
                 "default": self.use_defaults,
@@ -779,15 +800,15 @@ class ConnMgrPresenter(GenericEditorPresenter):
             params = self.connections[self.connection_name]
             self.dbtype = params["type"]
         if self.dbtype == "SQLite":
-            self.filename = params["file"]
+            self.filename = str(Path(params["file"]).resolve())
             self.use_defaults = params["default"]
-            self.pictureroot = params.get("pictures", "")
+            self.pictureroot = str(Path(params.get("pictures", "")).resolve())
         else:
             self.database = params["db"]
             self.host = params["host"]
             self.port = params.get("port")
             self.user = params["user"]
-            self.pictureroot = params.get("pictures", "")
+            self.pictureroot = str(Path(params.get("pictures", "")).resolve())
             self.passwd = params["passwd"]
         self.refresh_view()
 

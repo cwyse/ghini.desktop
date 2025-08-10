@@ -20,15 +20,14 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
 import os
+from typing import Any
 
 import pytest
-from sqlalchemy import select
-
 from bauble.plugins.report import get_pertinent_objects
 from bauble.plugins.report.jinja2 import Jinja2FormatterPlugin
 from bauble.utils import natsort_key
+from sqlalchemy import select
 
-from typing import Any
 logger: Any = logging.getLogger(__name__)
 
 
@@ -49,9 +48,9 @@ def populate_test_data(session) -> None:
     GeographicArea = dynamic_import("bauble.plugins.plants", "GeographicArea")
     SpeciesDistribution = dynamic_import("bauble.plugins.plants", "SpeciesDistribution")
     VernacularName = dynamic_import("bauble.plugins.plants", "VernacularName")
-    Accession = dynamic_import("bauble.plugins.garden", "Accession")
-    Location = dynamic_import("bauble.plugins.garden", "Location")
-    Plant = dynamic_import("bauble.plugins.garden.plant", "Plant")
+    Accession = dynamic_import("bauble.plugins.garden.models", "Accession")
+    Location = dynamic_import("bauble.plugins.garden.models", "Location")
+    Plant = dynamic_import("bauble.plugins.garden.models", "Plant")
 
     fctr = gctr = sctr = actr = pctr = 0
     for _f in range(2):
@@ -94,7 +93,7 @@ def test_format_all_templates(session):
     """
     Tests the formatting of all Jinja2 templates.
     """
-    Plant = dynamic_import("bauble.plugins.garden.plant", "Plant")
+    Plant = dynamic_import("bauble.plugins.garden.models", "Plant")
     selection = session.execute(select(Plant)).scalars().all()
 
     templates_dir = os.path.join(

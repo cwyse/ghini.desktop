@@ -19,15 +19,11 @@
 import logging
 import os.path
 from gettext import gettext as _
-from typing import Any, ClassVar, List, Optional, Union
+from typing import Any, Optional
 
 import bauble
-import gi
 from bauble import db, editor, meta, paths, pluginmgr
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-gi.require_version("Gtk", "3.0")
-from gi.repository import Pango
+from bauble.gtkinit import Pango
 from sqlalchemy import select
 
 logger: Any = logging.getLogger(__name__)
@@ -40,6 +36,7 @@ class StoredQueriesModel:
     _query: Any
     page: int
     __index: int
+
     def __init__(self) -> None:
         self._label = [""] * 11
         self._tooltip = [""] * 11
@@ -200,7 +197,9 @@ class StoredQueriesPresenter(editor.GenericEditorPresenter):
         value = self.view.widget_get_text(widget)
         self.view.widget_set_text(page_label_name, value or _("<empty>"))
 
-    def on_stqr_query_textbuffer_changed(self, widget, value: Optional[Any] = None, attr: Optional[Any] = None):
+    def on_stqr_query_textbuffer_changed(
+        self, widget, value: Optional[Any] = None, attr: Optional[Any] = None
+    ):
         return self.on_textbuffer_changed(widget, value, attr="query")
 
 
