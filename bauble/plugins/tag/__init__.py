@@ -85,11 +85,11 @@ class TagsMenuManager:
     remove_active_tag_menu_item: Any
 
     def __init__(self) -> None:
-        self.menu_item: Gtk.MenuItem | None = None
-        self.active_tag_name: str | None = None
+        self.menu_item: Optional[Gtk.MenuItem] = None
+        self.active_tag_name: Optional[str] = None
         self.item_list: dict[str, Gtk.MenuItem] = {}
-        self.apply_active_tag_menu_item: Gtk.MenuItem | None = None
-        self.remove_active_tag_menu_item: Gtk.MenuItem | None = None
+        self.apply_active_tag_menu_item: Optional[Gtk.MenuItem] = None
+        self.remove_active_tag_menu_item: Optional[Gtk.MenuItem] = None
 
     def reset(self, make_active_tag: Optional[Any] = None) -> None:
         """Initialize or replace Tags menu in the main menu."""

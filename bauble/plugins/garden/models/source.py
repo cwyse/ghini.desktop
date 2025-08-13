@@ -20,7 +20,8 @@
 #
 # bauble/plugins/garden/models/source.py
 
-from gettext import _ as _
+
+from gettext import gettext as _
 from typing import TYPE_CHECKING
 
 import bauble.btypes as types

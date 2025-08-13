@@ -168,13 +168,8 @@ class Enum(types.TypeDecorator):
 
         # Convert values to a **mutable list**
         # self.values = list(values)  # ✅ Now mutable
-        try:
-            from bauble.utils import FreezableList  # if you have it
-
-            self.values = FreezableList(values)
-            self.values.freeze()
-        except Exception:
-            self.values = tuple(values)
+        self.values = FreezableList(values)
+        self.values.freeze()
         self.strict = strict
         self.empty_to_none = empty_to_none
 

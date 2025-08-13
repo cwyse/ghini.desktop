@@ -29,7 +29,6 @@ import traceback
 from gettext import gettext as _
 from typing import Any, Optional
 
-import bauble
 import sqlalchemy.exc as saexc
 
 # from bauble import prefs
