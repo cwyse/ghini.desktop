@@ -32,7 +32,7 @@ import queue  # For producer-consumer handling
 # from gettext import gettext as _
 import threading
 from collections.abc import Generator
-from typing import Any
+from typing import Any, Optional
 
 # import bauble.pluginmgr as pluginmgr
 # import bauble.task
@@ -92,6 +92,9 @@ class CSVProcessor:
     steps_so_far: Any
     batch_queue: Any
     worker_thread: Any
+    use_thread: bool
+    worker_error: Optional[Exception]
+
 
     def __init__(
         self,
@@ -101,6 +104,7 @@ class CSVProcessor:
         update_every,
         flush_count: int = 0,
         steps_so_far: int = 0,
+        use_thread: bool = False,   # 🔴 default to synchronous for now
     ) -> None:
         """
         Initialize the CSV processor.
@@ -110,6 +114,7 @@ class CSVProcessor:
         :param session: SQLAlchemy session object.
         :param defaults: Precomputed default values for the table.
         :param update_every: Number of rows to process before yielding and committing.
+        :param use_thread: If True, insert on a background thread.
         """
         self.table = table
         self.filename = filename
@@ -121,13 +126,23 @@ class CSVProcessor:
         self.flush_count = flush_count
         self.steps_so_far = steps_so_far
 
-        # 🆕 **Thread-safe Queue for batch inserts**
-        self.batch_queue = queue.Queue()
+        self.use_thread = use_thread
+        self.worker_error = None
 
-        # 🆕 **Start a worker thread to process inserts in order**
-        self.worker_thread = threading.Thread(target=self._batch_worker, daemon=True)
-        self.worker_thread.start()
+        if self.use_thread:
+            import queue
+            import threading
 
+            # 🆕 **Thread-safe Queue for batch inserts**
+            self.batch_queue = queue.Queue()
+
+            # 🆕 **Start a worker thread to process inserts in order**
+            self.worker_thread = threading.Thread(target=self._batch_worker, daemon=True)
+            self.worker_thread.start()
+        else:
+            self.batch_queue = None
+            self.worker_thread = None
+            
     # @staticmethod
     # def _toposort_file(filename, key_pairs):
     #     """
@@ -297,7 +312,13 @@ class CSVProcessor:
         if self._has_self_referencing_keys():
             self.filename = self._sort_by_foreign_keys()
 
-        self.column_keys = list(csv_columns.union(self.defaults.keys()))
+        # Keep only columns that actually exist on the table; append defaults that are real cols.
+        table_cols = set(self.table.c.keys())
+        ordered = [c for c in csv_columns if c in table_cols]
+        default_only = [c for c in self.defaults.keys() if c in table_cols and c not in ordered]
+        self.column_keys = ordered + default_only
+
+        # Core insert for the table
         self.insert_stmt = self.table.insert()
 
     def process_rows(self) -> Generator[Any, None, None]:
@@ -332,11 +353,24 @@ class CSVProcessor:
         yield steps_so_far
 
     def _extract_csv_columns(self):
+        """
+        Return the set of CSV column names without consuming any data row.
+        (We only need DictReader.fieldnames; don't advance the iterator.)
+        """
         with open(self.filename) as f:
             reader = UnicodeReader(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
-            next(reader)  # Skip the header
-            return set(reader.reader.fieldnames)
-
+            #next(reader)  # Skip the header
+            #return set(reader.reader.fieldnames)
+            dict_reader = getattr(reader, "reader", reader)
+            fieldnames = getattr(dict_reader, "fieldnames", None)
+            if not fieldnames:
+                raise ValueError(
+                    "CSV reader does not expose 'fieldnames'; expected a DictReader-like object."
+                )
+            # keep behavior compatible with existing code that expects a set,
+            # but do not mutate/advance the reader.
+            return [fn.strip() if isinstance(fn, str) else fn for fn in fieldnames]
+        
     def _has_self_referencing_keys(self):
         return any(fk.column.table == self.table for fk in self.table.foreign_keys)
 
@@ -355,10 +389,37 @@ class CSVProcessor:
         return sorted_filename
 
     def cleanup(self) -> None:
-        """Ensure all batches are processed before exiting."""
-        self.batch_queue.join()  # Wait for all batches to be inserted
-        self.batch_queue.put(None)  # Signal the worker to stop
-        self.worker_thread.join()  # Ensure worker thread exits cleanly
+        """
+        Ensure all batches are processed before exiting.
+
+        In synchronous mode (use_thread=False) there's nothing to do.
+        In threaded mode, wait for the queue to drain, stop the worker,
+        and surface any worker error.
+        """
+        if not self.use_thread:
+            return
+
+        # Wait for all queued batches to be processed
+        if self.batch_queue is not None:
+            try:
+                self.batch_queue.join()
+                # Tell the worker to exit and wait for it
+                self.batch_queue.put(None)
+            except Exception:
+                logger.exception("Failed while draining batch queue in cleanup()")
+
+        if self.worker_thread is not None:
+            try:
+                self.worker_thread.join()
+            except Exception:
+                logger.exception("Failed to join worker thread in cleanup()")
+
+        # # If the worker failed, raise so the caller can show the error
+        # if self.worker_error is not None:
+        #     raise RuntimeError(
+        #         f"Background insert failed for table {self.table.name}"
+        #     ) from self.worker_error
+        #return
 
     def _process_row(self, row):
         """
@@ -415,6 +476,47 @@ class CSVProcessor:
             raise InvalidDataError(f"Invalid value for column '{column}': {value}")
 
         return value  # Return as-is for any other data types
+    def _execute_batch_now(self, values: list[dict]) -> None:
+        """Synchronous insert path (same thread).  Minimal hardening + proper executemany."""
+        if not values:
+            return
+
+        # ---- minimal preflight: ensure list[dict]-like ----
+        if isinstance(values, tuple):
+            values = list(values)
+
+        fixed = []
+        for i, row in enumerate(values):
+            if isinstance(row, dict):
+                fixed.append(row)
+                continue
+            # allow (key, value) iterable; otherwise fail with a clear message
+            try:
+                as_dict = dict(row)
+            except Exception as exc:
+                raise TypeError(
+                    f"_execute_batch_now expected dicts; row {i} is {type(row).__name__} "
+                    f"and cannot be coerced to dict."
+                ) from exc
+            fixed.append(as_dict)
+
+        # ---- executemany: statement + list-of-dicts (no .values(...)) ----
+        from sqlalchemy.exc import SQLAlchemyError
+        with Session() as s:
+            try:
+                s.execute(self.insert_stmt, fixed)
+                if s.in_transaction():
+                    s.commit()
+                self.flush_count += 1
+                logger.debug("Flushed batch #%s for %s (sync)", self.flush_count, self.table.name)
+            except SQLAlchemyError as e:
+                logger.exception("Batch insert failed for %s", self.table.name)
+                if s.in_transaction():
+                    s.rollback()
+                if self.worker_error is None:
+                    self.worker_error = e
+                raise
+
 
     def _batch_worker(self) -> None:
         while True:
@@ -422,23 +524,17 @@ class CSVProcessor:
             if batch is None:
                 self.batch_queue.task_done()
                 break  # Exit signal received
+            try:
+                self._execute_batch_now(batch)
+            except Exception as e:
+                # remember the first error and keep draining so .join() returns
+                if self.worker_error is None:
+                    self.worker_error = e
+                logger.exception("Error inserting batch in %s", self.table.name)
+            finally:
+                self.batch_queue.task_done()
 
-            # Create a new session within the thread
-            with Session() as thread_session:
-                try:
-                    # Execute insert with new session
-                    thread_session.execute(self.insert_stmt.values(batch))
-                    if thread_session.in_transaction():
-                        thread_session.commit()  # Commit after insertion
-                    self.flush_count += 1
-                    print(f"✅ Flushed batch #{self.flush_count} for {self.table.name}")
 
-                except Exception as e:
-                    print(f"❌ Error inserting batch in {self.table.name}: {e}")
-                    if thread_session.in_transaction():
-                        thread_session.rollback()
-
-            self.batch_queue.task_done()
 
     from typing import Any, Iterable, Mapping, Optional
 
@@ -446,30 +542,43 @@ class CSVProcessor:
         self, batch_values: Optional[Iterable[Mapping[str, Any]]] = None
     ) -> None:
         """
-        Queue a batch of rows for insertion, converting Enum values to their stored form.
-
-        Accepts rows either as plain dicts or SQLAlchemy Row objects (with ._mapping).
-        If `batch_values` is None, uses `self.values` and clears it after queuing.
+        Queue (or execute) a batch of rows. Accepts dicts or Row objects.
+        Ensures we pass list[dict] with only valid table columns to SQLAlchemy.
         """
-        # Use the correct Enum import for this codebase
-        from bauble.btypes import Enum
+        table_cols = set(self.table.c.keys())
 
         def convert_enum(value: Any) -> Any:
-            return value.value if isinstance(value, Enum) else value
+            # Use the Enum from this codebase (not sqlalchemy.Enum)
+            from bauble.btypes import Enum as BaubleEnum
+            return value.value if isinstance(value, BaubleEnum) else value
 
         values_to_insert = batch_values if batch_values is not None else self.values
         if not values_to_insert:
             return
 
-        fixed_values = []
+        fixed_values: list[dict] = []
         for row in values_to_insert:
-            # Support both dicts and SQLAlchemy Row objects
-            mapping = row._mapping if hasattr(row, "_mapping") else row
-            fixed_values.append({k: convert_enum(v) for k, v in mapping.items()})
+            # Support Row/RowMapping, dict, or any mapping-like
+            mapping = getattr(row, "_mapping", row)
+            if not isinstance(mapping, Mapping):
+                # Last resort: try to coerce (list of pairs, etc.)
+                try:
+                    mapping = dict(mapping)
+                except Exception as exc:
+                    raise TypeError(
+                        f"Insert row for {self.table.name} is not a mapping and cannot be coerced: {type(row)!r}"
+                    ) from exc
 
-        # Put the processed batch on the queue for the consumer to insert
-        self.batch_queue.put(fixed_values)
+            # Keep only valid table columns; convert enums
+            coerced = {k: convert_enum(v) for k, v in mapping.items() if k in table_cols}
+            fixed_values.append(coerced)
 
-        # Only clear the producer's buffer when we consumed self.values
+        # Execute now or hand to the worker
+        if self.use_thread:
+            self.batch_queue.put(fixed_values)
+        else:
+            self._execute_batch_now(fixed_values)
+
         if batch_values is None:
             self.values.clear()
+

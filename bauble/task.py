@@ -23,7 +23,7 @@ The bauble.task module allows you to queue up long running tasks. The
 running tasks still block but allows the GUI to update.
 """
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import bauble
 import fibra
@@ -49,7 +49,7 @@ __running: bool = False
 __kill: bool = False
 
 # Define once at module level
-_context_id: int | None = None
+_context_id: Optional[int] = None
 __message_ids: list[int] = []
 
 

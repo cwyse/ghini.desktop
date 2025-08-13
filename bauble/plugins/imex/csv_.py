@@ -38,7 +38,7 @@ import bauble.task
 import bauble.utils as utils
 from bauble import pb_set_fraction
 from bauble.error import BaubleError
-from bauble.gtkinit import Gtk
+from bauble.gtkinit import GLib, Gtk
 from bauble.plugins.imex.csv_processor import CSVProcessor
 from bauble.plugins.imex.unicode_utils import UnicodeWriter
 
@@ -462,6 +462,11 @@ class CSVImporter(Importer):
                     except ValueError as e:
                         utils.message_dialog(str(e), Gtk.MessageType.ERROR)
                         return
+            # Phase 2: import each file/table
+            # NOTE: progress bar math is done here, mimicking the old 'do_insert()' path.
+            processed = 0  # lines processed across all files (for progress numerator)
+            # Old flow counted headers in total_lines; keep that for identical behavior.
+            effective_total = max(total_lines, 1)
 
             # import the tables one at a time, breaking every so often
             # so the GUI can update
@@ -508,12 +513,24 @@ class CSVImporter(Importer):
                             update_every=127,
                             flush_count=self.flush_count,
                             steps_so_far=self.steps_so_far,
+                            use_thread=False
                         )
                         # Prepare the file for import and get column keys
                         processor.prepare_file()
 
+                        processed_in_file = 0
+                        last_steps = 0
                         for steps in processor.process_rows():
-                            self.steps_so_far += steps
+                            # CSVProcessor yields a cumulative "steps so far" for THIS FILE.
+                            delta = max(steps - last_steps, 0)
+                            last_steps = steps
+
+                            processed += delta
+
+                            # Keep progress strictly < 1.0 until the very end (old behavior).
+                            frac = processed / effective_total
+                            GLib.idle_add(pb_set_fraction, min(frac, 0.999))
+
                             yield
 
                         # Count rows in the table
@@ -526,11 +543,24 @@ class CSVImporter(Importer):
                         # The commit/rollback is handled automatically when we leave the
                         # 'with' block.
 
-                        logger.info(f"Successfully imported table: {table.name}")
 
                         # Important: Cleanup after processing each table
                         processor.cleanup()
+                        # Surface any insert error captured in the processor (covers sync mode too)
+                        if getattr(processor, "worker_error", None) is not None:
+                            raise RuntimeError(
+                                f"Insert failed for table {table.name}"
+                            ) from processor.worker_error
+
+                        try:
+                            import sqlalchemy as sa
+                            rc = session.execute(sa.select(sa.func.count()).select_from(table)).scalar_one()
+                            logger.info("Imported %s rows into %s", rc, table.name)
+                        except Exception:
+                            logger.debug("Could not count rows for %s", table.name)
+                                                    
                         session.commit()
+                        logger.info(f"Successfully imported table: {table.name}")
 
                     except IntegrityError as e:
                         logger.error(f"Constraint violation in table {table.name}: {e}")
@@ -566,6 +596,8 @@ class CSVImporter(Importer):
                 # Update the GUI
                 self._update_gui()
 
+            # Finally set the bar to 100%.
+            GLib.idle_add(pb_set_fraction, 1.0)
         except Exception as e:
             msg = _("Error during import process.\n\n%s") % utils.xml_safe(e)
             utils.message_dialog(msg, Gtk.MessageType.ERROR)

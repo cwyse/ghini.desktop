@@ -36,7 +36,7 @@ import bauble.paths as paths
 import bauble.prefs as prefs
 import bauble.utils as utils
 import bauble.view as view
-from bauble.db import db as db
+from bauble.db import Session
 from bauble.gtkinit import Gtk, Pango
 from bauble.plugins.garden.datums import datums
 

@@ -28,17 +28,16 @@ import traceback
 from gettext import gettext as _
 from typing import Any
 
-import bauble as bauble
-import bauble.db as db
-import bauble.error as err
-import bauble.paths as paths
-import bauble.pluginmgr as pluginmgr
-import bauble.utils as utils
+# import bauble.db as db
+# import bauble.error as err
+# import bauble.paths as paths
+# import bauble.pluginmgr as pluginmgr
+# import bauble.utils as utils
 
 # import debugpy
-from bauble.gtkinit import Gio, GLib, Gtk
-from bauble.prefs import prefs, use_sentry_client_pref
-from bauble.view import DefaultCommandHandler
+# from bauble.gtkinit import Gio, GLib, Gtk
+# from bauble.prefs import use_sentry_client_pref
+# from bauble.view import DefaultCommandHandler
 
 zipfile: Any
 default_icon: Any
@@ -46,7 +45,7 @@ import warnings
 
 from sqlalchemy.exc import SAWarning
 
-__all__ = ["pluginmgr"]
+__all__ = ["version", "version_tuple", "app", "gtk_app"]
 
 warnings.simplefilter("always", SAWarning)
 
@@ -61,11 +60,12 @@ version_tuple: Any = tuple(
 import re
 
 match: Any = re.search(r"\+g[0-9a-f]+\.d(\d{8})", version)
+release_version: Any = None
 release_date: Any = match.group(1) if match else None
 installation_date: Any = os.environ.get("BUILD_DATE", "1970-01-01T00:00:00Z")
 
 
-from bauble.connmgr import start_connection_manager
+#from bauble.connmgr import start_connection_manager
 
 # debugpy.breakpoint()
 
@@ -105,30 +105,13 @@ def pb_release() -> None:
         gui.set_busy(False)
 
 
-if paths.main_is_frozen():  # main is frozen
-    # put library.zip first in the path when using py2exe so libxml2
-    # gets imported correctly,
-    zipfile = sys.path[-1]
-    sys.path.insert(0, zipfile)
-    # put the bundled gtk at the beginning of the path to make it the
-    # preferred version
-    os.environ["PATH"] = "{}{}{}{}{}{}".format(
-        os.pathsep,
-        os.path.join(paths.main_dir(), "gtk", "bin"),
-        os.pathsep,
-        os.path.join(paths.main_dir(), "gtk", "lib"),
-        os.pathsep,
-        os.environ["PATH"],
-    )
-
 
 # if not hasattr(Gtk.Widget, 'set_tooltip_markup'):
 #     msg = _('Ghini requires GTK+ version 2.12 or greater')
 #     utils.message_dialog(msg, Gtk.MessageType.ERROR)
 #     sys.exit(1)
 
-# make sure we look in the lib path for modules
-sys.path.append(paths.lib_dir())
+
 
 # if False:
 #    sys.stderr.write('sys.path: %s\n' % sys.path)
@@ -143,19 +126,7 @@ gui: Any = None
 """bauble.gui is the instance :class:`bauble.ui.GUI`
 """
 
-# Ensure the default icon path exists
-default_icon = os.path.join(paths.lib_dir(), "images", "icon.png")
 
-if not os.path.exists(default_icon):
-    logger.warning("Default icon not found at %s", default_icon)
-    default_icon = "/usr/share/icons/default-icon.png"  # Fallback to a system icon
-
-if not os.path.exists(default_icon):  # If fallback is also missing
-    logger.error("No valid default icon found! UI may not display correctly.")
-    default_icon = None  # Allow UI to handle missing icons gracefully
-
-"""The default icon.
-"""
 
 conn_name: Any = None
 """The name of the current connection.
@@ -261,6 +232,9 @@ class GhiniApp:
     gtk_app: Any
 
     def __init__(self) -> None:
+        from bauble.gtkinit import Gio, Gtk
+        self.Gio = Gio
+        self.Gtk = Gtk
         self.gui = None
         self.open_exc = None
         self.conn_name = None
@@ -272,6 +246,41 @@ class GhiniApp:
         # Connect signals for lifecycle events
         self.gtk_app.connect("startup", self.on_startup)
         self.gtk_app.connect("activate", self.on_activate)
+
+        import bauble.paths as paths
+        self.paths = paths
+
+        if self.paths.main_is_frozen():  # main is frozen
+            # put library.zip first in the path when using py2exe so libxml2
+            # gets imported correctly,
+            zipfile = sys.path[-1]
+            sys.path.insert(0, zipfile)
+            # put the bundled gtk at the beginning of the path to make it the
+            # preferred version
+            os.environ["PATH"] = "{}{}{}{}{}{}".format(
+                os.pathsep,
+                os.path.join(paths.main_dir(), "gtk", "bin"),
+                os.pathsep,
+                os.path.join(paths.main_dir(), "gtk", "lib"),
+                os.pathsep,
+                os.environ["PATH"],
+            )
+        # make sure we look in the lib path for modules
+        sys.path.append(self.paths.lib_dir())
+
+        global default_icon
+        # Ensure the default icon path exists
+        default_icon = os.path.join(paths.lib_dir(), "images", "icon.png")
+
+
+        if not os.path.exists(default_icon):
+            logger.warning("Default icon not found at %s", default_icon)
+            default_icon = "/usr/share/icons/default-icon.png"  # Fallback to a system icon
+
+        if not os.path.exists(default_icon):  # If fallback is also missing
+            logger.error("No valid default icon found! UI may not display correctly.")
+            default_icon = None  # Allow UI to handle missing icons gracefully
+
 
         # Ensure user directory exists
         self.create_user_directory()
@@ -285,6 +294,8 @@ class GhiniApp:
 
     def on_startup(self, app) -> None:
         """Runs initialization tasks before the UI is shown."""
+        import bauble.pluginmgr as pluginmgr
+        from bauble.prefs import prefs
         self.setup_logging()
         prefs.init()
 
@@ -294,17 +305,19 @@ class GhiniApp:
         self.uri, self.open_exc = self.setup_database()
         pluginmgr.load()
         prefs.save()
+        from bauble.view import DefaultCommandHandler
         pluginmgr.register_command(DefaultCommandHandler)
 
     def on_activate(self, app) -> None:
         """Runs when the application is launched (or brought to foreground)."""
+        import bauble.ui as ui
         self.gui = self.create_gui()
         self.gui.show()
         self.handle_open_errors()
 
     def setup_logging(self) -> None:
         """Configures application logging."""
-        filename = os.path.join(paths.appdata_dir(), "bauble.log")
+        filename = os.path.join(self.paths.appdata_dir(), "bauble.log")
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(thread)d - %(message)s"
         )
@@ -324,10 +337,11 @@ class GhiniApp:
     def setup_sentry(self) -> None:
         """Configures Sentry for error tracking if enabled in preferences."""
         try:
+            from bauble.prefs import prefs, use_sentry_client_pref
             from raven import Client
             from raven.handlers.logging import SentryHandler
-
             if prefs[use_sentry_client_pref]:
+                import logging
                 logger.debug("Registering Sentry client")
                 sentry_client = Client(
                     "https://59105d22a4ad49158796088c26bf8e4c:"
@@ -340,10 +354,18 @@ class GhiniApp:
             else:
                 logger.debug("Sentry client not registered")
         except Exception as e:
+            import logging
             logger.warning("Failed to configure Sentry client: %s", e)
 
     def setup_database(self):
         """Handles database connection and returns URI and any errors."""
+        import bauble.db as db
+        import bauble.error as err
+        import bauble.utils as utils
+        from bauble.connmgr import start_connection_manager
+        from bauble.gtkinit import Gtk
+        from bauble.prefs import prefs
+
         open_exc = None
 
         while True:
@@ -413,6 +435,12 @@ class GhiniApp:
 
     def handle_open_errors(self):
         """Handles any errors encountered when opening the database."""
+        import bauble
+        import bauble.db as db
+        import bauble.pluginmgr as pluginmgr
+        import bauble.utils as utils
+        from bauble.gtkinit import GLib, Gtk
+        from bauble.prefs import prefs
         if self.open_exc:
             msg = _(
                 "Would you like to create a new Ghini database at "
@@ -459,24 +487,24 @@ class GhiniApp:
             "This version installed at: %s; "
             "Latest published version: %s; "
             "Publication date: %s",
-            bauble.installation_date,
+            installation_date,
             __file__,
-            bauble.release_version,
-            bauble.release_date,
+            release_version,
+            release_date,
         )
 
     def create_user_directory(self) -> None:
         """Ensures user directory exists for configuration and logging."""
-        user_dir = paths.appdata_dir()
+        user_dir = self.paths.appdata_dir()
         if not os.path.exists(user_dir):
             os.makedirs(user_dir)
             logger.info("Created user directory: %s", user_dir)
 
     def setup_py2exe_logging(self) -> None:
         """Redirects stdout and stderr to files when running in py2exe mode."""
-        if paths.main_is_frozen():
-            _stdout = os.path.join(paths.user_dir(), "stdout.log")
-            _stderr = os.path.join(paths.user_dir(), "stderr.log")
+        if self.paths.main_is_frozen():
+            _stdout = os.path.join(self.paths.user_dir(), "stdout.log")
+            _stderr = os.path.join(self.paths.user_dir(), "stderr.log")
             sys.stdout = open(_stdout, "w")
             sys.stderr = open(_stderr, "w")
             logger.info("Redirecting stdout and stderr to logs in frozen environment")

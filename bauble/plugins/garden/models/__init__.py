@@ -20,6 +20,13 @@ from .contact import Contact, ContactNote
 from .location import Location, LocationNote
 from .plant import Plant, PlantNote, PlantSearch
 from .plant_change import PlantChange
+from .propagation import (
+    Propagation,
+    PropagationNote,
+    PropCutting,
+    PropCuttingRooted,
+    PropSeed,
+)
 from .source import Collection, Source
 from .verification import Verification
 from .voucher import Voucher

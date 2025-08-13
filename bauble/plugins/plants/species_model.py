@@ -20,15 +20,19 @@
 import logging
 from gettext import gettext as _
 from itertools import chain
+from typing import TYPE_CHECKING  # add this near the other imports
 from typing import Any, ClassVar, List, Optional
 
 import bauble.btypes as types
 import bauble.error as error
 import bauble.utils as utils
 from bauble.db import Base, DefiningPictures, Serializable, WithNotes, make_note_class
-from bauble.plugins.plants.accession import Accession
+
+if TYPE_CHECKING:
+    from bauble.plugins.garden.models import Verification
+
+#from bauble.plugins.plants.accession import Accession
 from bauble.plugins.plants.genus import Genus
-from bauble.plugins.plants.verification import Verification
 from sqlalchemy import (
     Boolean,
     Column,
@@ -49,6 +53,10 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.session import object_session
+
+if TYPE_CHECKING:
+    # only for typing; won’t run at import time
+    from bauble.plugins.garden.models.accession import Accession
 
 __all__ = ["Species"]
 logger: Any = logging.getLogger(__name__)
@@ -1069,7 +1077,7 @@ class DefaultVernacularName(Base):
 
     # relations
     vernacular_name: Mapped["VernacularName"] = relationship(
-        VernacularName, uselist=False
+        "VernacularName", uselist=False
     )
     species: Mapped["Species"] = relationship(
         "Species",

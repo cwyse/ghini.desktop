@@ -22,10 +22,11 @@ from configparser import RawConfigParser
 from gettext import gettext as _
 from typing import Any, Optional
 
-import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
+from bauble._version import version as _bauble_version
+from bauble._version import version_tuple as _bauble_version_tuple
 
 default_filename: str
 import copy
@@ -68,8 +69,7 @@ config_version_pref: str = "bauble.config.version"
 """
 The preferences key for the bauble version of the preferences file.
 """
-
-config_version: Any = bauble.version_tuple[0], bauble.version_tuple[1]
+config_version: Any = (_bauble_version_tuple[0], _bauble_version_tuple[1])
 
 date_format_pref: str = "bauble.default_date_format"
 """
