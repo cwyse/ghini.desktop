@@ -1589,6 +1589,13 @@ class ValueListAction:
 
             # Execute the query for the current class
             query = select(cls).where(or_(*filters))
+
+            # Print the compiled SQL query for debugging
+            compiled_sql = query.compile(
+                dialect=session.bind.dialect, compile_kwargs={"literal_binds": True}
+            )
+            print(f"DEBUG: Generated SQL Query: {compiled_sql}")
+
             query_result = search_strategy._session.scalars(query).all()
             result.update(query_result)
 

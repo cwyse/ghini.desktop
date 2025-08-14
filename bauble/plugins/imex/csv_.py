@@ -76,6 +76,146 @@ QUOTE_CHAR: str = '"'
 
 # TODO: what happens when you export from one database type and try
 # and import into a different database, e.g. postgres->sqlite
+# bauble/plugins/imex/csv_.py
+
+from typing import Any, Dict, List
+
+import sqlalchemy as sa
+
+# bauble/plugins/imex/csv_.py
+
+def write_import_schema_markdown(metadata, out_path: str = "IMPORT_SCHEMA.md") -> str:
+    """
+    Emit a Markdown file that documents expected CSV columns/types/NULL rules.
+    Safe for enum values that include None and other non-str entries.
+    """
+    schema = describe_metadata(metadata)
+
+    def _s(v):
+        # stringify for markdown; handle None and callables nicely
+        if v is None:
+            return "None"
+        try:
+            return str(v)
+        except Exception:
+            return repr(v)
+
+    def _pipe_escape(v: str) -> str:
+        # very light escaping so '|' in values doesn't break the table
+        return v.replace("|", r"\|")
+
+    lines: list[str] = []
+    lines.append("# Ghini CSV Import Schema")
+    lines.append("")
+    lines.append("> Generated from SQLAlchemy metadata; reflects the source of truth.")
+    lines.append("")
+
+    for table, cols in schema.items():
+        lines.append(f"## Table `{table}`")
+        lines.append("")
+        lines.append("| Column | Type | Nullable | Default | PK | Unique | FK | Enum Values | empty_to_none | strict |")
+        lines.append("|---|---|:---:|---|:--:|:--:|---|---|:--:|:--:|")
+
+        for c in cols:
+            enum_vals = ""
+            if c.get("enum_values"):
+                # stringify each entry, including None
+                enum_vals = ", ".join(_s(x) for x in c["enum_values"])
+
+            row = [
+                f"`{c['name']}`",
+                _pipe_escape(_s(c['type'])),
+                "Yes" if c.get("nullable") else "No",
+                _pipe_escape(_s(c.get("default"))),
+                "✓" if c.get("primary_key") else "",
+                "✓" if c.get("unique") else "",
+                _pipe_escape(_s(c.get("foreign_key") or "")),
+                _pipe_escape(enum_vals),
+                _s(c.get("enum_empty_to_none")) if c.get("enum_empty_to_none") is not None else "",
+                _s(c.get("enum_strict")) if c.get("enum_strict") is not None else "",
+            ]
+            lines.append("| " + " | ".join(row) + " |")
+
+        lines.append("")
+        lines.append("> **CSV expectations**")
+        lines.append("> - Header row should include the column names you plan to supply.")
+        lines.append("> - Missing headers fall back to Python-side defaults if defined; otherwise the column will be NULL (if allowed) or cause an error.")
+        lines.append("> - Empty fields: see `Nullable` and Enum `empty_to_none` above.")
+        lines.append("")
+
+        # quick hint for likely problem columns
+        nonnullable_text = [
+            c["name"] for c in cols
+            if not c.get("nullable")
+            and c.get("type") in ("Unicode", "String", "Text")
+        ]
+        if nonnullable_text:
+            lines.append("> **Non-nullable text columns** that must be provided (or coerced to ''):")
+            lines.append("> " + ", ".join(f"`{n}`" for n in nonnullable_text))
+            lines.append("")
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    logger.info("Wrote import schema doc to %s", out_path)
+    return out_path
+
+
+def describe_metadata(metadata) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Build a structured description of the DB schema from SQLAlchemy MetaData.
+    Returns:
+      {table_name: [
+         {name, type, nullable, default, primary_key, unique, foreign_key, enum_values, enum_empty_to_none, enum_strict}
+      ]}
+    """
+    schema: Dict[str, List[Dict[str, Any]]] = {}
+    for table in metadata.sorted_tables:
+        cols = []
+        for col in table.c:
+            info: Dict[str, Any] = {
+                "name": col.name,
+                "type": type(col.type).__name__,
+                "nullable": col.nullable,
+                "primary_key": col.primary_key,
+                "unique": bool(col.unique),
+                "default": None,
+                "foreign_key": None,
+                "enum_values": None,
+                "enum_empty_to_none": None,
+                "enum_strict": None,
+            }
+            # default (Python-side)
+            if col.default is not None:
+                try:
+                    from sqlalchemy import ColumnDefault
+                    if isinstance(col.default, ColumnDefault):
+                        info["default"] = getattr(col.default.arg, "__name__", col.default.arg)
+                    else:
+                        info["default"] = col.default
+                except Exception:
+                    info["default"] = str(col.default)
+
+            # foreign key (first one, if any)
+            if col.foreign_keys:
+                fk = next(iter(col.foreign_keys))
+                info["foreign_key"] = f"{fk.column.table.name}.{fk.column.name}"
+
+            # Enums (SQLAlchemy or Bauble)
+            try:
+                from bauble.btypes import Enum as BaubleEnum
+            except Exception:
+                BaubleEnum = None  # type: ignore
+
+            if isinstance(col.type, sa.Enum):
+                info["enum_values"] = list(getattr(col.type, "enums", []) or [])
+            elif BaubleEnum and isinstance(col.type, BaubleEnum):
+                info["enum_values"] = list(getattr(col.type, "values", []) or [])
+                info["enum_empty_to_none"] = getattr(col.type, "empty_to_none", None)
+                info["enum_strict"] = getattr(col.type, "strict", None)
+
+            cols.append(info)
+        schema[table.name] = cols
+    return schema
 
 
 class Importer:
@@ -434,6 +574,14 @@ class CSVImporter(Importer):
                             # table.name not in list of filenames
                             pass
 
+                    # bauble/plugins/imex/csv_.py — inside CSVImporter.run(), after sorted_tables is built
+                    # developer toggle: write a Markdown schema doc (comment out in production)
+                    try:
+                        # from the same module if you placed the helper here
+                        write_import_schema_markdown(metadata, out_path="IMPORT_SCHEMA.md")
+                    except Exception as _e:
+                        logger.debug("Could not write IMPORT_SCHEMA.md: %s", _e)
+
                     if len(filename_dict) > 0:
                         msg = (
                             _("Could not match all filenames to table names.\n\n%s")
@@ -515,6 +663,16 @@ class CSVImporter(Importer):
                             steps_so_far=self.steps_so_far,
                             use_thread=False
                         )
+
+                        from bauble.plugins.imex.csv_processor import (
+                            preflight_csv as preflight_csv,
+                        )
+                        issues = preflight_csv(filename, table)
+                        if issues["missing_headers"] or issues["empty_required_cells"] or issues["enum_violations"]:
+                            # Log or show a dialog with a concise summary
+                            logger.warning("Preflight for %s: %r", table.name, issues)
+                            # Optionally abort early to let the user decide how to handle '' vs NULL
+
                         # Prepare the file for import and get column keys
                         processor.prepare_file()
 
@@ -869,4 +1027,9 @@ class CSVExportTool(pluginmgr.Tool):
         c.start()
 
 
+# TODO: add support to import from the command line
+
+# TODO: add support to import from the command line
+# TODO: add support to import from the command line
+# TODO: add support to import from the command line
 # TODO: add support to import from the command line
