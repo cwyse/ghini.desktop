@@ -55,9 +55,65 @@ from sqlalchemy.sql.elements import ClauseElement
 logger: Any = logging.getLogger(__name__)
 QUOTE_STYLE: Any = csv.QUOTE_MINIMAL
 QUOTE_CHAR: str = '"'
+import csv as _csv
+
 # TOP OF FILE (add)
 from collections.abc import Mapping
 
+from bauble.plugins.imex.unicode_utils import UnicodeReader
+
+# bauble/plugins/imex/csv_processor.py
+
+
+def preflight_csv(filename, table, max_report=50):
+    """
+    Scan the CSV once and report:
+      - missing required (NOT NULL) columns,
+      - rows where NOT NULL text columns are empty/blank,
+      - enum violations (if strict),
+    Returns a dict with basic stats and violation lists.
+    """
+    required = {c.name for c in table.c if not c.nullable}
+    enums = {}
+    import sqlalchemy as sa
+    try:
+        from bauble.btypes import Enum as BaubleEnum
+    except Exception:
+        BaubleEnum = None  # type: ignore
+
+    for c in table.c:
+        if isinstance(c.type, sa.Enum):
+            enums[c.name] = set(getattr(c.type, "enums", []) or [])
+        elif BaubleEnum and isinstance(c.type, BaubleEnum) and getattr(c.type, "strict", True):
+            enums[c.name] = set(getattr(c.type, "values", []) or [])
+
+    results = {
+        "missing_headers": [],
+        "empty_required_cells": [],
+        "enum_violations": [],
+        "row_count": 0,
+    }
+
+    with open(filename) as f:
+        reader = UnicodeReader(f, quotechar=QUOTE_CHAR, quoting=QUOTE_STYLE)
+        headers = set(reader.reader.fieldnames or [])
+        missing = [col for col in required if col not in headers]
+        results["missing_headers"] = missing
+
+        for i, row in enumerate(reader, start=1):
+            results["row_count"] = i
+            # required blanks
+            for col in required:
+                if col in row and (row[col] is None or str(row[col]).strip() == ""):
+                    if len(results["empty_required_cells"]) < max_report:
+                        results["empty_required_cells"].append((i, col))
+            # enum checks
+            for col, allowed in enums.items():
+                if col in row and row[col] not in allowed and str(row[col]).strip() != "":
+                    if len(results["enum_violations"]) < max_report:
+                        results["enum_violations"].append((i, col, row[col], sorted(allowed)))
+
+    return results
 
 def _as_mapping(row) -> Mapping:
     """
@@ -580,5 +636,7 @@ class CSVProcessor:
             self._execute_batch_now(fixed_values)
 
         if batch_values is None:
+            self.values.clear()
+
             self.values.clear()
 

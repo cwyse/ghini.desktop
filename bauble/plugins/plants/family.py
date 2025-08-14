@@ -286,12 +286,12 @@ class Family(Base, Serializable, WithNotes):
         return cls.epithet
 
     # use '' instead of None so that the constraints will work propertly
-    author: Mapped[str] = mapped_column(Unicode(255), default="")
+    author: Mapped[str] = mapped_column(Unicode(255), default="", nullable=True)
 
     # we use the blank string here instead of None so that the
     # contraints will work properly,
     qualifier: Mapped[str] = mapped_column(
-        types.Enum(values=["s. lat.", "s. str.", ""], omit_aliases=False), default=""
+        types.Enum(values=["s. lat.", "s. str.", ""], omit_aliases=False), default="", nullable=True
     )
     order_by: Any = [asc(epithet), asc(qualifier)]
 
