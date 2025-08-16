@@ -1724,6 +1724,16 @@ class GenericMessageBox:  # identify_subclassing_issues (Consider using composit
         self.box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.event_box.add(self.box)
 
+    def get_parent(self):
+        return self.event_box.get_parent()
+
+
+    def hide(self):
+        self.event_box.hide()
+
+    def destroy(self):
+        self.event_box.destroy()
+
     # def set_color(self, attr, state, color) -> None:
     #     """Sets background or foreground color dynamically using CSS."""
     #     context = self.event_box.get_style_context()
@@ -1805,10 +1815,25 @@ class GenericMessageBox:  # identify_subclassing_issues (Consider using composit
     def show(self) -> None:
         self.show_all()
 
+    def add(self, child):
+        # present in Gtk.Container on GTK3; we forward if needed
+        if hasattr(self.event_box, "add"):
+            self.event_box.add(child)
+
+    def remove(self, child):
+        if hasattr(self.event_box, "remove"):
+            self.event_box.remove(child)
+
+    def get_style_context(self):
+        return self.event_box.get_style_context()
+
     def get_widget(self):
         """Returns the event box widget."""
         return self.event_box
 
+    # As a last resort, forward unknown attributes to the underlying widget.
+    def __getattr__(self, name):
+        return getattr(self.event_box, name)
 
 class MessageBox(GenericMessageBox):
     """
