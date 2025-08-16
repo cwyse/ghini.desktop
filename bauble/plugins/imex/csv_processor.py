@@ -105,8 +105,10 @@ def preflight_csv(filename, table, max_report=50):
             # required blanks
             for col in required:
                 if col in row and (row[col] is None or str(row[col]).strip() == ""):
-                    if len(results["empty_required_cells"]) < max_report:
-                        results["empty_required_cells"].append((i, col))
+                    col_obj = table.c[col]
+                    if not getattr(col_obj, "autoincrement", False):
+                        if len(results["empty_required_cells"]) < max_report:
+                            results["empty_required_cells"].append((i, col))
             # enum checks
             for col, allowed in enums.items():
                 if col in row and row[col] not in allowed and str(row[col]).strip() != "":
