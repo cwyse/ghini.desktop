@@ -474,8 +474,8 @@ class PlantEditorPresenter(GenericEditorPresenter):
             box = self.view.add_message_box(utils.MESSAGE_BOX_YESNO)
             box.message = msg
             box.on_response = on_response
-            box.show()
             self.view.add_box(box)
+            box.show()
 
     def is_dirty(self):
         return (

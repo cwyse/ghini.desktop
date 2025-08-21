@@ -522,9 +522,9 @@ class InstitutionPresenter(editor.GenericEditorPresenter):
         elif not box:
             box = self.view.add_message_box(utils.MESSAGE_BOX_INFO)
             box.message = _("Please specify an institution name for this " "database.")
-            box.show()
             self.view.add_box(box)
             self.message_box = box
+            box.show()
 
     def on_email_text_entry_changed(self, widget, value: Optional[Any] = None) -> None:
         value = super().on_text_entry_changed(widget, value)

@@ -16,12 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import difflib
+import inspect
 import logging
+import os
 import threading
+import time
+from gettext import gettext as _
 from typing import Any, Callable, Optional, Union
 
+import bauble
 import requests
+from requests.adapters import HTTPAdapter
 
+try:
+    # urllib3>=1.26
+    from urllib3.util.retry import Retry
+except Exception:
+    Retry = None  # fallback handled below
+    
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -101,9 +113,54 @@ class AskTPL(threading.Thread):
             if len(parts) > 3:
                 return parts[-1]  # Third-to-last element
             return None
+        
+        _WFO_URL = os.environ.get(
+            "WFO_GRAPHQL_URL",
+            "https://list.worldfloraonline.org/gql.php",
+        )
+        
+        def _accepted_id_from(node: dict) -> Optional[str]:
+            cpu = node.get("currentPreferredUsage") if isinstance(node, dict) else None
+            has_name = cpu.get("hasName") if isinstance(cpu, dict) else None
+            return has_name.get("id") if isinstance(has_name, dict) else None
+
+        # Build a shared session once (module scope) so we reuse DNS and TCP,
+        # but with sane retry policy.
+        def _build_session():
+            s = requests.Session()
+            # Compatible Retry config across urllib3 versions
+            if Retry:
+                retry_kwargs = dict(
+                    total=3,
+                    connect=3,
+                    read=3,
+                    backoff_factor=0.6,
+                    status_forcelist=(429, 502, 503, 504),
+                    raise_on_status=False,
+                )
+                if "allowed_methods" in inspect.signature(Retry.__init__).parameters:
+                    retry_kwargs["allowed_methods"] = frozenset({"POST", "GET"})  # method_whitelist on older urllib3
+                else:
+                    retry_kwargs["method_whitelist"] = frozenset({"POST", "GET"})  # method_whitelist on older urllib3
+                adapter = HTTPAdapter(
+                    max_retries=Retry(**retry_kwargs),
+                    pool_maxsize=4,
+                    pool_connections=4,
+                )
+            else:
+                adapter = HTTPAdapter(pool_maxsize=4, pool_connections=4)
+            s.mount("https://", adapter)
+            s.headers.update({
+                "User-Agent": "ghini.desktop/ask_tpl (+https://github.com/ghini/ghini.desktop)",
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            })
+            return s
+
+        _SESSION = _build_session()
 
         def query_wfo_api(input_string: str) -> Any:
-            url = "https://list.worldfloraonline.org/gql.php"
+            #url = "https://list.worldfloraonline.org/gql.php"
             query = """
             query ($inputString: String!) {
                 taxonNameMatch(inputString: $inputString) {
@@ -145,116 +202,163 @@ class AskTPL(threading.Thread):
             }
             """
             variables = {"inputString": input_string}
-            response = requests.post(url, json={"query": query, "variables": variables})
-            return response.json()
+            #response = requests.post(url, json={"query": query, "variables": variables})
+            #return response.json()
+            # Primary attempt
+            try:
+                resp = _SESSION.post(
+                    _WFO_URL,
+                    json={"query": query, "variables": variables},
+                    timeout=(3.05, 10),  # (connect, read)
+                )
+                resp.raise_for_status()
+                return resp.json()
+            except requests.exceptions.SSLError as ssl_error:
+                # Likely the EOF-in-protocol issue; fall back to a one-off connection.
+                logger.warning("WFO SSLError on first attempt (%s). Retrying with Connection: close…", ssl_error)
+                try:
+                    # Close session’s pool to avoid reusing a bad socket
+                    _SESSION.close()
+                except Exception:
+                    pass
+
+                # Fresh one-shot session with 'Connection: close'
+                with requests.Session() as s:
+                    s.headers.update(_SESSION.headers)
+                    s.headers["Connection"] = "close"
+                    try:
+                        resp = s.post(
+                            _WFO_URL,
+                            json={"query": query, "variables": variables},
+                            timeout=(3.05, 10),
+                        )
+                        resp.raise_for_status()
+                        return resp.json()
+                    except requests.exceptions.SSLError as ssl_error2:
+                        # Give one tiny backoff and try once more
+                        logger.warning("WFO SSLError on second attempt (%s). Backing off and trying once more…", ssl_error2)
+                        time.sleep(0.8)
+                        resp = s.post(
+                            _WFO_URL,
+                            json={"query": query, "variables": variables},
+                            timeout=(3.05, 10),
+                        )
+                        resp.raise_for_status()
+                        return resp.json()
+            except requests.exceptions.RequestException as request_exception:
+                # Surface non-SSL request failures (timeouts, 5xx after retries, etc.)
+                logger.warning("WFO query failed: %s", request_exception)
+                raise         
 
         def ask_wfo(name: str) -> Optional[list[dict[str, Any]]]:
-            result = query_wfo_api(name)
+            try:
+                result = query_wfo_api(name)
+            except requests.exceptions.SSLError:
+                # transient TLS trouble — tell the user and continue without blocking the UI
+                bauble.gui.show_error_box(
+                    _("World Flora Online is temporarily unavailable over HTTPS."),
+                    _("The connection was closed during TLS handshake. Please try again later."),
+                )
+                return None
+            except requests.exceptions.Timeout:
+                bauble.gui.show_error_box(_("WFO request timed out."), _("Try again."))
+                return None
+            except Exception as unknown_exception:
+                # Other network errors: log and surface a concise message
+                logger.warning("ask_wfo: %s", unknown_exception, exc_info=True)
+                bauble.gui.show_error_box(_("Could not contact WFO."), str(unknown_exception))
+                return None
+            
             data = result.get("data", {}).get("taxonNameMatch", {})
 
-            if "match" in data and data["match"]:
+            #if "match" in data and data["match"]:
+            if data.get("match"):
                 match = data["match"]
-                family = extract_family(match["wfoPath"])
-                species = extract_species(match["wfoPath"])
+                family = extract_family(match["wfoPath"] or "")
+                species_seg = extract_species(match["wfoPath"] or "")
+                acc_id = _accepted_id_from(match)
+                is_accepted = (acc_id == match.get("id"))
                 return [
                     {
-                        "ID": match["id"],
-                        "FullName": match["fullNameStringPlain"],
-                        "Genus": match["genusString"],
+                        "ID": match.get("id"),
+                        "FullName": match.get("fullNameStringPlain"),
+                        "Genus": match.get("genusString"),
                         "Species": (
-                            species
-                            if match["speciesString"] is None
-                            else match["speciesString"]
+                            species_seg
+                            if match.get("speciesString") is None
+                            else match.get("speciesString")
                         ),
-                        "role": match[
-                            "role"
-                        ],  # accepted, synonym, unplaced, deprecated
-                        "Accepted ID": (
-                            match["id"]
-                            if match.get("currentPreferredUsage")
-                            and match["currentPreferredUsage"]["hasName"]["id"]
-                            == match["id"]
-                            else None
-                        ),
+                        "role": match.get("role"),  # accepted, synonym, unplaced, deprecated
+                        "Accepted ID": acc_id,
                         "Taxonomic status": (
                             "Accepted"
-                            if match.get("currentPreferredUsage")
-                            and match["currentPreferredUsage"]["hasName"]["id"]
-                            == match["id"]
+                            if is_accepted
                             else (
                                 "Synonym"
-                                if match.get("currentPreferredUsage")
+                                if acc_id
                                 else "Unplaced"
                             )
                         ),
                         "Genus hybrid marker": (
                             "×"
-                            if match["fullNameStringPlain"].startswith("×")
-                            and match["genusString"] == "null"
+                            if str(match.get("fullNameStringPlain") or "").startswith("×")
+                            and match.get("genusString") is None
                             else ""
                         ),
                         "Species hybrid marker": (
                             "× "
-                            if " × " in match["fullNameStringPlain"]
-                            and match["speciesString"] == "null"
+                            if " × " in str(match.get("fullNameStringPlain") or "")
+                            and match.get("speciesString") is None
                             else ""
                         ),
-                        "Authorship": match["authorsString"],
+                        "Authorship": match.get("authorsString"),
                         "Family": family,
-                        "Title": match["title"],
+                        "Title": match.get("title"),
                     }
                 ]
-            elif "candidates" in data and data["candidates"]:
+            elif data.get("candidates"):
                 candidates = []
                 for candidate in data["candidates"]:
-                    family = extract_family(candidate["wfoPath"])
-                    species = extract_species(candidate["wfoPath"])
+                    family = extract_family(candidate.get("wfoPath") or "")
+                    species = extract_species(candidate.get("wfoPath") or "")
+                    acc_id = _accepted_id_from(candidate)
+                    is_accepted = acc_id == candidate.get("id")
                     candidates.append(
                         {
-                            "ID": candidate["id"],
-                            "FullName": candidate["fullNameStringPlain"],
-                            "Genus": candidate["genusString"],
+                            "ID": candidate.get("id"),
+                            "FullName": candidate.get("fullNameStringPlain"),
+                            "Genus": candidate.get("genusString"),
                             "Species": (
                                 species
-                                if candidate["speciesString"] is None
-                                else candidate["speciesString"]
+                                if candidate.get("speciesString") is None
+                                else candidate.get("speciesString")
                             ),
-                            "role": candidate[
-                                "role"
-                            ],  # accepted, synonym, unplaced, deprecated
-                            "Accepted ID": (
-                                candidate["id"]
-                                if candidate.get("currentPreferredUsage")
-                                and candidate["currentPreferredUsage"]["hasName"]["id"]
-                                == candidate["id"]
-                                else None
-                            ),
+                            "role": candidate.get("role"),  # accepted, synonym, unplaced, deprecated
+                            "Accepted ID": acc_id,
                             "Taxonomic status": (
                                 "Accepted"
-                                if candidate.get("currentPreferredUsage")
-                                and candidate["currentPreferredUsage"]["hasName"]["id"]
-                                == candidate["id"]
+                                if is_accepted 
                                 else (
                                     "Synonym"
-                                    if candidate.get("currentPreferredUsage")
+                                    if acc_id
                                     else "Unplaced"
                                 )
                             ),
                             "Genus hybrid marker": (
                                 "×"
-                                if candidate["fullNameStringPlain"].startswith("×")
-                                and candidate["genusString"] == "null"
+                                if str(candidate.get("fullNameStringPlain") or "").startswith("×")
+                                and candidate.get("genusString")  is None
                                 else ""
                             ),
                             "Species hybrid marker": (
                                 "×"
-                                if " × " in candidate["fullNameStringPlain"]
-                                and candidate["speciesString"] == "null"
+                                if " × " in str(candidate.get("fullNameStringPlain") or "")
+                                and candidate.get("speciesString")  is None
                                 else ""
                             ),
-                            "Authorship": candidate["authorsString"],
+                            "Authorship": candidate.get("authorsString"),
                             "Family": family,
-                            "Title": candidate["title"],
+                            "Title": candidate.get("title"),
                         }
                     )
                 return candidates
@@ -269,8 +373,10 @@ class AskTPL(threading.Thread):
 
         if self.binomial is None:
             return
+        
         found: Optional[dict[str, Any]] = None
         accepted: Optional[Union[dict[str, Any], list[dict[str, Any]]]] = None
+
         try:
             accepted = None
             logger.debug("%s before first query", self.name)
@@ -294,14 +400,17 @@ class AskTPL(threading.Thread):
                 logger.debug("best match has score %s", found["_score_"])
                 if found["_score_"] < self.threshold:
                     found["_score_"] = 0
-            elif candidates:
-                found = candidates.pop()
             else:
-                raise NoResult
+                found = candidates.pop()
+
             logger.debug("found this: %s", str(found))
-            if found["Accepted ID"]:
+
+            # If it's a synonym, resolve its accepted concept via Accepted ID
+            acc_id = found.get("Accepted ID")
+            is_accepted = bool(acc_id and acc_id == found.get("ID"))
+            if not is_accepted and acc_id:
                 # accepted = found
-                accepted_list = ask_wfo(found["FullName"])
+                accepted_list = ask_wfo(acc_id)
                 accepted = accepted_list[0] if accepted_list else None
 
                 logger.debug("ask_tpl on the Accepted ID returns %s", accepted)
@@ -309,10 +418,10 @@ class AskTPL(threading.Thread):
                     logger.debug(
                         "taxon %s %s (%s) is marked as synonym. "
                         "accepted form (%s) is at infraspecific rank.",
-                        found["Genus"],
-                        found["Species"],
-                        found["ID"],
-                        found["Accepted ID"],
+                        found.get("Genus"),
+                        found.get("Species"),
+                        found.get("ID"),
+                        acc_id,
                     )
                 logger.debug("%s after second query", self.name)
             if self.stopped():
@@ -320,22 +429,24 @@ class AskTPL(threading.Thread):
         except ShouldStopNow:
             logger.debug("%s interrupted : do not invoke callback", self.name)
             return
-        except Exception as e:
+        except Exception as err:
             import traceback
 
             logger.warning(traceback.format_exc())
             logger.debug(
                 "%s (%s)%s : completed with trouble",
                 self.name,
-                type(e).__name__,
-                e,
+                type(err).__name__,
+                err,
             )
             self.__class__.running = None
             found = None
             accepted = None
 
         self.__class__.running = None
-        logger.debug(f"{self.name} before invoking callback")
+
+        logger.debug("%s before invoking callback", self.name)
+
         if self.gui:
             from bauble.gtkinit import GLib
 
@@ -352,9 +463,6 @@ def citation(d: dict[str, Any]) -> str:
     #     "%(Authorship)s (%(Family)s)" % d
     # ).replace("   ", " ")
     return ("{Title} ({Family})".format(**d)).replace("   ", " ")
-
-
-from typing import Any
 
 
 def what_to_do_with_it(

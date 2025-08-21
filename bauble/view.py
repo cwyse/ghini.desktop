@@ -29,6 +29,7 @@ import traceback
 from gettext import gettext as _
 from typing import Any, Optional
 
+import bauble
 import sqlalchemy.exc as saexc
 
 # from bauble import prefs
@@ -41,16 +42,7 @@ from bauble import pluginmgr as pluginmgr
 from bauble import search as search
 from bauble import utils as utils
 from bauble.error import BaubleError, check
-from bauble.gtkinit import GLib
-
-display: Any
-_substr_tmpl: str
- 
- 
- 
- 
-
-from bauble.gtkinit import Champlain, Clutter, Gdk, Gtk, GtkClutter, Pango
+from bauble.gtkinit import Champlain, Clutter, Gdk, Gio, GLib, Gtk, GtkClutter, Pango
 from bauble.shared import InfoExpander
 from pyparsing import ParseException
 from sqlalchemy import func, select
@@ -59,7 +51,9 @@ from sqlalchemy.orm import object_session
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
+display: Any
+_substr_tmpl: str
+ 
 # Ensure GTK is initialized and get the display
 display = Gdk.Display.get_default()
 if not display:
@@ -117,9 +111,6 @@ if sys.platform == "win32":
     _substr_tmpl = "%s"
 else:
     _substr_tmpl = "<small>%s</small>"
-
-from bauble.gtkinit import Gio
-
 
 class Action:
     """
@@ -531,7 +522,7 @@ class AddOneDot(threading.Thread):
         super().__init__()
         self.__stopped = threading.Event()
         self.dotno = 0
-        self.statusbar = gui.widgets.statusbar
+        self.statusbar = bauble.gui.widgets.statusbar
         self.sbcontext_id = self.statusbar.get_context_id("searchview.nresults")
 
     def cancel(self) -> None:
@@ -564,7 +555,7 @@ class CountResultsTask(threading.Thread):
         self.ids = ids
         self.dots_thread = dots_thread
         self.__cancel = threading.Event()
-        self.statusbar = gui.widgets.statusbar
+        self.statusbar = bauble.gui.widgets.statusbar
         self.sbcontext_id = self.statusbar.get_context_id("searchview.nresults")
 
     def cancel(self) -> None:
@@ -621,7 +612,7 @@ class PopulateResults(threading.Thread):
         self.view = view
         self.results = [(type(i).__name__, str(i), i) for i in results]
         self.__stopped = threading.Event()
-        self.statusbar = gui.widgets.statusbar
+        self.statusbar = bauble.gui.widgets.statusbar
         self.sbcontext_id = self.statusbar.get_context_id("searchview.nresults")
 
     def cancel(self) -> None:
@@ -647,10 +638,10 @@ class PopulateResults(threading.Thread):
         model = self.view.results_view.get_model()
 
         def append_expandable_row(model, content):
-            """Appends a row to the tree model in the main UI thread."""
             parent = model.append(None, [content])
             content_type = type(content)
-            if self.view.row_meta.get(content_type, {}).get("children") is not None:
+            meta = self.view.row_meta[content_type]  # returns a ViewMeta.Meta
+            if meta.children is not None:
                 model.append(parent, ["-"])
 
         for _kname, _klass, obj in itertools.chain(*groups):
@@ -668,7 +659,7 @@ class PopulateResults(threading.Thread):
             steps_so_far += 1
             percent = steps_so_far / nresults
             if 0 < percent < 1.0:
-                GLib.idle_add(gui.progressbar.set_fraction, percent)
+                GLib.idle_add(bauble.gui.progressbar.set_fraction, percent)
 
             added.add(obj)
 

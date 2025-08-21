@@ -209,8 +209,8 @@ def check_and_notify_new_version(view) -> None:
                 )
                 box = view.add_message_box()
                 box.message = msg
-                box.show()
                 view.add_box(box)
+                box.show()
 
             # Any code that modifies the UI that is called from outside the
             # main thread must be pushed into the main thread and called
