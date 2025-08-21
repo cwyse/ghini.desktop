@@ -247,9 +247,9 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
                             self.refresh_fullname_label()
 
                     box.on_response = on_response_found
-                    box.show()
                     self.view.add_box(box)
                     self.species_check_messages.append(box)
+                    box.show()                    
                     msg_box_msg = None
 
                 if self.model.accepted is None and accepted is not None:
@@ -304,18 +304,18 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
                                 self.refresh_fullname_label()
 
                     box.on_response = on_response_accepted
-                    box.show()
                     self.view.add_box(box)
                     self.species_check_messages.append(box)
+                    box.show()
                     msg_box_msg = None
 
             if msg_box_msg is not None:
                 b0 = self.view.add_message_box(utils.MESSAGE_BOX_INFO)
                 b0.message = msg_box_msg
                 b0.on_response = lambda b, r: self.view.remove_box(b0)
-                b0.show()
                 self.view.add_box(b0)
                 self.species_check_messages.append(b0)
+                b0.show()
 
         def on_sp_species_button_clicked(widget, event=None):
             # the real activity runs in a separate thread.
@@ -331,8 +331,8 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             b0 = self.view.add_message_box(utils.MESSAGE_BOX_INFO)
             b0.message = _("querying the plant list")
             b0.on_response = lambda b, r: self.view.remove_box(b0)
-            b0.show()
             self.view.add_box(b0)
+            b0.show()
             if event is not None:
                 return False
 
@@ -379,9 +379,9 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             box = self.view.add_message_box(utils.MESSAGE_BOX_YESNO)
             box.message = msg
             box.on_response = on_response
-            box.show()
             self.view.add_box(box)
             self.genus_check_messages.append(box)
+            box.show()
 
         on_select(self.model.genus)
 
@@ -605,8 +605,8 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
                 )
                 box.message = msg
                 box.on_response = on_response
-                box.show()
                 self.view.add_box(box)
+                box.show()
 
     def cleanup(self) -> None:
         super().cleanup()

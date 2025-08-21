@@ -196,13 +196,13 @@ class MapperBase(DeclarativeMeta):
             self._created = sa.Column(
                 "_created",
                 types.DateTime(),
-                default=datetime.datetime.utcnow(),
+                default=datetime.datetime.utcnow,
             )
             self._last_updated = sa.Column(
                 "_last_updated",
                 types.DateTime(),
-                default=datetime.datetime.utcnow(),
-                onupdate=datetime.datetime.utcnow(),
+                default=datetime.datetime.utcnow,
+                onupdate=datetime.datetime.utcnow,
             )
         if "top_level_count" not in dict_:
             self.top_level_count = lambda x: {classname: 1}
@@ -1100,7 +1100,7 @@ def make_note_class(
     fields = {
         "__tablename__": table_name,
         "id": sa.Column(Integer, primary_key=True, autoincrement=True),
-        "date": sa.Column(types.Date, default=datetime.datetime.utcnow()),
+        "date": sa.Column(types.Date, default=datetime.datetime.utcnow),
         "user": sa.Column(sa.Unicode(64), default=""),
         "category": sa.Column(sa.Unicode(32), default=""),
         "type": sa.Column(sa.Unicode(32), default=""),

@@ -487,13 +487,23 @@ class BuilderWidgets:
         return w
 
     def remove_parent(self, w) -> None:
-        """Remove widgets from its parent."""
+        """Remove widget (or wrapper) from its parent."""
         if isinstance(w, str):
             w = self.builder.get_object(w)
+
+        # If it's a wrapper (e.g., MessageBox/GenericMessageBox), unwrap to the Gtk.Widget
+        if hasattr(w, "get_widget"):
+            try:
+                inner = w.get_widget()
+                # Only replace if it's actually a Gtk.Widget
+                if isinstance(inner, Gtk.Widget):
+                    w = inner
+            except Exception:
+                pass
+
         parent = w.get_parent()
         if parent is not None:
             parent.remove(w)
-
 
 def tree_model_has(tree, value):
     """
@@ -1754,63 +1764,130 @@ class GenericMessageBox:  # identify_subclassing_issues (Consider using composit
 
     #     # Apply the CSS provider to the widget's style context
     #     context.add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-    def set_color(self, *color) -> None:
-        """
-        Accepts (r,g,b) or (r,g,b,a) with 0..255 for rgb and 0..1 for a.
-        Writes a safe CSS rule with no pseudo-classes.
-        """
+    def _ensure_widget_css_class(self):
+        # one unique class per instance so rules don't leak
+        if not hasattr(self, "_css_class"):
+            self._css_class = f"msgbox-{id(self)}"
+            self.event_box.get_style_context().add_class(self._css_class)
+        return self._css_class
 
-        # tolerate leading property label
-        if color and isinstance(color[0], str):
-            color = color[1:]
-
-        # normalize inputs
-        if len(color) == 1 and isinstance(color[0], (tuple, list)):
-            color = tuple(color[0])
-        if len(color) not in (3, 4):
-            # fall back to a neutral color instead of raising
-            color = (240, 240, 240, 1.0)
-
-        r, g, b = color[0], color[1], color[2]
-        a = color[3] if len(color) == 4 else 1.0
-
-        # clamp values
-        r = max(0, min(255, int(float(r))))
-        g = max(0, min(255, int(float(g))))
-        b = max(0, min(255, int(float(b))))
+    def _color_to_css(self, value):
+        # accepts Gdk.RGBA, Gdk.Color, '#rrggbb[aa]' or (r,g,b[,a])
         try:
-            a = float(a)
+            from bauble.gtkinit import Gdk
         except Exception:
-            a = 1.0
-        a = max(0.0, min(1.0, a))
+            pass
 
-        # apply the class to a real Gtk.Widget we own
-        target = getattr(self, "event_box", None) or getattr(self, "box", None)
-        if target is None or not hasattr(target, "get_style_context"):
-            return  # nothing to style
+        # Gdk.RGBA
+        if hasattr(value, "red") and hasattr(value, "alpha"):
+            r = int(round(value.red   * 255))
+            g = int(round(value.green * 255))
+            b = int(round(value.blue  * 255))
+            a = float(value.alpha)
+            return f"rgba({r},{g},{b},{a:.3f})"
 
-        # ensure our widget has the class we target
-        ctx = target.get_style_context()
-        ctx.add_class("message-box")
+        # Gdk.Color (GTK3 legacy)
+        if hasattr(value, "red") and not hasattr(value, "alpha"):
+            r = int(round(value.red   / 257))   # 0..65535 → 0..255
+            g = int(round(value.green / 257))
+            b = int(round(value.blue  / 257))
+            return f"rgba({r},{g},{b},1.0)"
 
-        css = f"""
-        .message-box {{
-            background-color: rgba({r}, {g}, {b}, {a});
-            border-radius: 4px;
-            padding: 6px;
-        }}
+        # hex string
+        if isinstance(value, str) and value.startswith("#"):
+            hexv = value.lstrip("#")
+            if len(hexv) == 6:
+                r, g, b = int(hexv[0:2],16), int(hexv[2:4],16), int(hexv[4:6],16)
+                return f"rgba({r},{g},{b},1.0)"
+            if len(hexv) == 8:
+                r, g, b = int(hexv[0:2],16), int(hexv[2:4],16), int(hexv[4:6],16)
+                a = int(hexv[6:8],16) / 255.0
+                return f"rgba({r},{g},{b},{a:.3f})"
+
+        # tuple/list
+        if isinstance(value, (tuple, list)):
+            r, g, b = int(value[0]), int(value[1]), int(value[2])
+            a = float(value[3]) if len(value) > 3 else 1.0
+            return f"rgba({r},{g},{b},{a:.3f})"
+
+        # fallback
+        return "rgba(240,240,240,1.0)"
+
+    def _state_to_pseudo(self, state):
+        # Accept Gtk.StateType or strings ('normal', 'prelight', etc.)
+        try:
+            # Enum path (GTK 3)
+            if state == Gtk.StateType.PRELIGHT:
+                return ":hover"
+            if state == Gtk.StateType.ACTIVE:
+                return ":active"
+            if state == Gtk.StateType.INSENSITIVE:
+                return ":disabled"
+            if state == Gtk.StateType.SELECTED:
+                return ":selected"
+            return ""  # NORMAL or anything else
+        except Exception:
+            pass
+
+        # String path
+        s = (str(state) if state is not None else "").lower()
+        return {
+            "normal": "",
+            "prelight": ":hover",
+            "hover": ":hover",
+            "active": ":active",
+            "insensitive": ":disabled",
+            "disabled": ":disabled",
+            "selected": ":selected",
+        }.get(s, "")
+    
+    def set_color(self, attr, state, color):
         """
+        Backwards-compatible: attr in {'bg','background','fg','foreground'}
+        state: Gtk.StateType (NORMAL, PRELIGHT, ACTIVE, INSENSITIVE, SELECTED)
+        color: Gdk.RGBA / Gdk.Color / '#rrggbb[aa]' / (r,g,b[,a])
+        """
+        css_prop = {
+            "bg": "background-color",
+            "background": "background-color",
+            "fg": "color",
+            "foreground": "color",
+            "background-color": "background-color",
+            "color": "color",
+        }.get(str(attr).lower())
+
+        if not css_prop:
+            return  # ignore unknown attrs to stay forgiving
+
+        pseudo = self._state_to_pseudo(state)
+
+        klass = self._ensure_widget_css_class()
+        color_css = self._color_to_css(color)
+        css = f".{klass}{pseudo} {{ {css_prop}: {color_css}; }}\n"
+
         _install_css(css)
+
 
     def show_all(self) -> None:
         """
         Displays the widget and adjusts size dynamically.
         """
-        self.event_box.get_parent().show_all()
-        requisition = self.event_box.get_preferred_size()[1]
-        height = requisition.height
-        width = requisition.width
-        self.event_box.set_size_request(width, height + 10)
+        # Always show our subtree
+        self.event_box.show_all()
+    
+        parent = self.event_box.get_parent()
+        if parent is not None:
+            try:
+                parent.show_all()
+            except Exception:
+                pass
+
+        # Instead of forcing a fixed size, add margins for spacing
+        self.event_box.set_margin_top(5)
+        self.event_box.set_margin_bottom(5)
+        # optional, for symmetry / RTL friendliness:
+        self.event_box.set_margin_start(8)
+        self.event_box.set_margin_end(8)
 
     def show(self) -> None:
         self.show_all()
@@ -1851,9 +1928,10 @@ class MessageBox(GenericMessageBox):
         self, msg: Optional[Any] = None, details: Optional[Any] = None
     ) -> None:
         super().__init__()
-        self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.box.pack_start(content, True, True, 0)
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.box.pack_start(self.vbox, True, True, 0)
+        content.pack_start(self.vbox, True, True, 0)
 
         self.label = Gtk.TextView()
         self.label.set_can_focus(False)
@@ -1861,11 +1939,11 @@ class MessageBox(GenericMessageBox):
         self.label.set_buffer(self.buffer)
         if msg:
             self.buffer.set_text(msg)
-        self.vbox.pack_start(self.label, True, True, 0)
+        content.pack_start(self.label, True, True, 0)
 
         # Button Box
         button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.box.pack_start(button_box, False, False, 0)
+        content.pack_start(button_box, False, False, 0)
         button = Gtk.Button()
         image = Gtk.Image.new_from_icon_name(
             "window-close", Gtk.IconSize.BUTTON
@@ -1876,7 +1954,7 @@ class MessageBox(GenericMessageBox):
 
         # Details Expander
         self.details_expander = Gtk.Expander()
-        self.vbox.pack_start(self.details_expander, True, True, 0)
+        content.pack_start(self.details_expander, True, True, 0)
 
         # Scrolled Window with Viewport
         sw = Gtk.ScrolledWindow()
@@ -1953,7 +2031,7 @@ class MessageBox(GenericMessageBox):
 
     def get_widget(self):
         # Return the box containing all the widgets
-        return self.box
+        return self.event_box
 
 
 class YesNoMessageBox(GenericMessageBox):
@@ -2018,7 +2096,7 @@ class YesNoMessageBox(GenericMessageBox):
 
     def get_widget(self):
         # Return the box containing all the widgets
-        return self.box
+        return self.event_box
 
 
 MESSAGE_BOX_INFO: int = 1

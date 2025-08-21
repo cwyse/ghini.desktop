@@ -47,3 +47,18 @@ except ImportError as e:
     if sys.platform == "win32":
         print(_("Please make sure that GTK_ROOT\\bin is in your PATH."))
     sys.exit(1)
+
+def _gtk_warning_filter(domain, level, message, user_data=None):
+    # Drop only the noisy GtkEditable/int marshalling warning
+    if ("g_value_get_int" in message and "G_VALUE_HOLDS_INT" in message):
+        return
+    # Otherwise, forward to the default handler
+    GLib.log_default_handler(domain, level, message, user_data)
+
+for domain in ("Gtk", "GObject", "GLib-GObject"):
+    GLib.log_set_handler(
+        domain,
+        GLib.LogLevelFlags.LEVEL_WARNING | GLib.LogLevelFlags.LEVEL_CRITICAL,
+        _gtk_warning_filter,
+        None,
+    )

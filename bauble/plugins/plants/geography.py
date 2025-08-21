@@ -59,10 +59,7 @@ def get_species_in_geographic_area(geo):
         """
         stmt = select(geo_table.c.id).where(geo_table.c.parent_id == parent_id)
 
-        # Use the session for query execution
-        result = Session().execute(stmt)
-        kids = [row.id for row in result.scalars()]
-
+        kids = [row[0] for row in session.execute(stmt).all()]
         for kid in kids:
             # Recursively fetch the children of the current child
             grand_kids = get_geographic_area_children(kid)
@@ -110,10 +107,11 @@ class GeographicAreaMenu:
             .all()
         )
         geos_hash = {}
-        for geo_id, name, parent_id in geos:
-            if parent_id not in geos_hash:
-                geos_hash[parent_id] = []
-            geos_hash[parent_id].append((geo_id, name))
+        for row in geos:
+            geo_id = row["id"]
+            name = row["name"]
+            parent_id = row["parent_id"]  # None for roots
+            geos_hash.setdefault(parent_id, []).append((geo_id, name))
 
         # Sort each list of children by name
         for kids in geos_hash.values():
@@ -121,13 +119,13 @@ class GeographicAreaMenu:
 
         def get_kids(pid):
             try:
-                return geos_hash[pid]
+                return geos_hash.get(pid, [])
             except KeyError:
                 return []
 
         def has_kids(pid):
             try:
-                return len(geos_hash[pid]) > 0
+                return len(geos_hash.get(pid, [])) > 0
             except KeyError:
                 return False
 
@@ -137,22 +135,18 @@ class GeographicAreaMenu:
                 item.connect("activate", callback, geo_id)
                 return item
 
-            kids_added = False
             submenu = Gtk.Menu()
             kids = get_kids(geo_id)
-            if len(kids) > 0:
-                kids_added = True
+
             for kid_id, kid_name in kids:
                 submenu.append(build_menu(kid_id, kid_name))
 
-            if kids_added:
-                sel_item = Gtk.MenuItem(name)
-                submenu.insert(sel_item, 0)
-                submenu.insert(Gtk.SeparatorMenuItem(), 1)
-                item.set_submenu(submenu)
-                sel_item.connect("activate", callback, geo_id)
-            else:
-                item.connect("activate", callback, geo_id)
+            sel_item = Gtk.MenuItem(name)
+            submenu.insert(sel_item, 0)
+            submenu.insert(Gtk.SeparatorMenuItem(), 1)
+            sel_item.connect("activate", callback, geo_id)
+            item.set_submenu(submenu)
+
             return item
 
         def populate():
@@ -164,13 +158,14 @@ class GeographicAreaMenu:
                 return
 
             no_kids = []
-            for geo_id, geo_name in geos_hash[None]:
-                if geo_id not in list(geos_hash.keys()):
+            # ✅ Guard against missing None key
+            for geo_id, geo_name in geos_hash.get(None, []):
+                if not has_kids(geo_id):
                     no_kids.append((geo_id, geo_name))
                 else:
                     self.menu.append(build_menu(geo_id, geo_name))
 
-            for geo_id, geo_name in sorted(no_kids):
+            for geo_id, geo_name in sorted(no_kids, key=itemgetter(1)):
                 self.menu.append(build_menu(geo_id, geo_name))
 
             self.menu.show_all()

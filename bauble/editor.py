@@ -1737,21 +1737,34 @@ class GenericEditorPresenter:
     def init_enum_combo(self, widget_name, field) -> None:
         """
         Initialize a Gtk.ComboBox widget with name widget_name from
-        enum values in self.model.field
-
-        :param widget_name:
-
-        :param field:
+        enum values in self.model.<field> without mutating the Enum.
         """
         combo = self.view.widgets[widget_name]
         mapper = object_mapper(self.model)
-        values = mapper.c[field].type.values
-        if None in values:
-            logger.debug(f"None value found in column {field}, that is not in the Enum")
-            values.remove(None)
-            values.insert(0, "")
-        values = sorted(values)
-        utils.setup_text_combobox(combo, values)
+
+        # Get the enum values safely (SQLAlchemy may expose `values` or `enums`)
+        raw = getattr(mapper.c[field].type, "values", None)
+        if raw is None:
+            raw = getattr(mapper.c[field].type, "enums", None)
+
+        # Work on a copy; do not mutate the source
+        vals = list(raw or [])
+
+        # Preserve old behavior: replace None with an empty choice at the front
+        if any(v is None for v in vals):
+            logger.debug(
+                f"None value found in column {field}, that is not in the Enum"
+            )
+            vals = [v for v in vals if v is not None]
+            vals.insert(0, "")
+
+        # Sort without assuming comparable types
+        try:
+            vals = sorted(vals)
+        except Exception:
+            vals = sorted(vals, key=lambda x: "" if x is None else str(x))
+
+        utils.setup_text_combobox(combo, vals)
 
     def set_model_attr(self, attr, value, validator: Optional[Any] = None) -> None:
         """
@@ -1951,7 +1964,7 @@ class GenericEditorPresenter:
             if len(text) > key_length:
                 logger.debug(f"recomputing completions matching {text}")
                 add_completions(text)
-
+          
             def idle_callback(text):
                 logger.debug("on_changed - part two")
                 comp = entry.get_completion()
@@ -1992,7 +2005,11 @@ class GenericEditorPresenter:
                             f"multiple matches, we cannot select any - {str(found)}"
                         )
 
-                if text != "" and not found and PROBLEM not in self.problems:
+                # inside idle_callback, replace the condition with:
+                if text != "" and not found and not any(
+                    pid == PROBLEM and w is widget
+                    for (pid, w) in self.problems
+                ):
                     self.add_problem(PROBLEM, widget)
                     on_select(None)
 
@@ -2007,7 +2024,8 @@ class GenericEditorPresenter:
                     # text into a properly typed value.
                     self.remove_problem(PROBLEM, widget)
                 else:
-                    print("Why are we here?")
+                    # We have a model and either multiple matches or an exact match already handled.
+                    self.remove_problem(PROBLEM, widget)
                 logger.debug("on_changed - part two - returning")
 
             GLib.idle_add(idle_callback, text)
