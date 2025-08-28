@@ -267,29 +267,29 @@ class LocationEditorPresenter(GenericEditorPresenter):
         # references to self.merger_candidate into references to self.model.
         from bauble.plugins.garden.models import Plant, PlantChange
 
-        for p in (
-            self.session.execute(
-                select(Plant).where(Plant.location == self.merger_candidate)
-            )
-            .scalars()
-            .all()
-        ):
+        stmt = Plant.query_with_default_order().where(Plant.location == self.merger_candidate)
+        for p in (self.session.execute(stmt).scalars().all()):
             p.location = self.model
-        for p in (
-            self.session.execute(
-                select(PlantChange).where(
+        
+        stmt = PlantChange.query_with_default_order().where(
                     PlantChange.from_location == self.merger_candidate
                 )
+        for p in (
+
+            self.session.execute(
+                stmt
             )
             .scalars()
             .all()
         ):
             p.from_location = self.model
+        stmt = PlantChange.query_with_default_order().where(
+                PlantChange.to_location == self.merger_candidate
+            )
         for p in (
+
             self.session.execute(
-                select(PlantChange).where(
-                    PlantChange.to_location == self.merger_candidate
-                )
+                stmt
             )
             .scalars()
             .all()

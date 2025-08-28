@@ -92,7 +92,7 @@ class PlantSearch(SearchStrategy):
         try:
 
             query = session.execute(
-                select(Plant)
+                Plant.query_with_default_order()
                 .join(Accession, Plant.accession_id == Accession.id)
                 .where(
                     Plant.code == str(plant_code),
@@ -116,23 +116,23 @@ def as_dict(self):
 def retrieve(cls, session, keys):
 
     from bauble.plugins.garden import Accession
-    stmt = select(cls)
+    stmt = cls.query_with_default_order()
     if "plant" in keys:
         acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
         stmt = (
             stmt.join(Plant)
-            .where(Plant.code == str(plant_code))
-            .join(Accession)
-            .where(Accession.code == str(acc_code))
+            .join(Accession, Plant.accession_id == Accession.id)
+            .where(
+                Plant.code == str(plant_code),
+                Accession.code == str(acc_code),
+            )
         )
     if "date" in keys:
         stmt = stmt.where(cls.date == keys["date"])
     if "category" in keys:
         stmt = stmt.where(cls.category == keys["category"])
-    try:
-        return session.execute(stmt).scalars().one()
-    except:
-        return None
+
+    return session.execute(stmt).scalars().one_or_none()
 
 
 def compute_serializable_fields(cls, session, keys):
@@ -142,16 +142,16 @@ def compute_serializable_fields(cls, session, keys):
 
     acc_code, plant_code = keys["plant"].rsplit(Plant.get_delimiter(), 1)
     logger.debug(f"acc-plant: {acc_code}-{plant_code}")
-    q = session.execute(
-        select(Plant)
-        .where(Plant.code == str(plant_code))
-        .join(Accession)
-        .where(Accession.code == str(acc_code))
+    plant_stmt = (
+        Plant.query_with_default_order()
+        .join(Accession, Plant.accession_id == Accession.id)
+        .where(
+            Plant.code == str(plant_code),
+            Accession.code == str(acc_code),
+        )
     )
-    plant = q.scalars().one()
 
-    result["plant"] = plant
-
+    result["plant"] = session.execute(plant_stmt).scalars().one()
     return result
 
 
@@ -210,7 +210,7 @@ class Plant(Base, Serializable, DefiningPictures, WithNotes):
             return None
         return value.strip()
 
-    acc_type: Any = Column(
+    acc_type: Mapped[str] = mapped_column(
         types.Enum(
             values=list(acc_type_values.keys()),
             translations=acc_type_values,
@@ -345,22 +345,16 @@ class Plant(Base, Serializable, DefiningPictures, WithNotes):
     @classmethod
     def retrieve(cls, session, keys):
         from bauble.plugins.garden import Accession
-        try:
-            return (
-                session.execute(
-                    select(cls)
-                    .join(Accession, cls.accession_id == Accession.id)
-                    .where(
-                        cls.code == keys["code"],
-                        Accession.code == keys["accession"],
-                    )
-                )
-                .scalars()
-                .one()
-            )
-        except:
-            return None
 
+        stmt = (
+            cls.query_with_default_order()
+            .join(Accession, cls.accession_id == Accession.id)
+            .where(
+                cls.code == keys["code"],
+                Accession.code == keys["accession"],
+            )
+        )
+        return session.execute(stmt).scalars().one_or_none()
     def top_level_count(self):
         sd = self.accession.source and self.accession.source.source_detail
         return {

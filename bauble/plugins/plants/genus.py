@@ -245,8 +245,8 @@ class Genus(Base, Serializable, WithNotes):
 
     species_editor: ClassVar[Any]
     __tablename__: str = "genus"
-    id: Any = Column(Integer, primary_key=True)
-    epithet: Any = Column(String(64), nullable=False, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    epithet: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     __table_args__: Any = (
         UniqueConstraint("epithet", "author", "qualifier", "family_id"),
         {},
@@ -322,8 +322,8 @@ class Genus(Base, Serializable, WithNotes):
         return cls.epithet
 
     # use '' instead of None so that the constraints will work propertly
-    author: Any = Column(Unicode(255), default="")
-    order_by: Any = [asc(epithet), asc(author)]
+    author: Mapped[str] = mapped_column(Unicode(255), default="")
+    order_by: ClassVar[list[Any]] = [asc(epithet), asc(author)]
 
     @validates("epithet", "author")
     def validate_stripping(self, key, value):
@@ -331,11 +331,11 @@ class Genus(Base, Serializable, WithNotes):
             return None
         return value.strip()
 
-    qualifier: Any = Column(
+    qualifier: Mapped[str] = mapped_column(
         types.Enum(values=["s. lat.", "s. str", ""], omit_aliases=False), default=""
     )
 
-    family_id: Any = Column(Integer, ForeignKey("family.id"), nullable=False)
+    family_id: Mapped[int] = mapped_column(Integer, ForeignKey("family.id"), nullable=False)
 
     # relations
     # `species` relation is defined outside of `Genus` class definition
@@ -465,10 +465,13 @@ class Genus(Base, Serializable, WithNotes):
         :return: The retrieved instance or None if no matching instance is found.
         """
         try:
-            stmt = select(cls).where(cls.epithet == keys["epithet"])
+            stmt = (
+                cls.query_with_default_order()
+                .where(cls.epithet == keys["epithet"])
+            )
             if "author" in keys:
                 stmt = stmt.where(cls.author == keys["author"])
-            return session.execute(stmt).scalars().one()
+            return session.execute(stmt).scalar_one_or_none()
         except NoResultFound:
             logger.warning(f"No result found for keys: {keys}")
             return None
@@ -870,14 +873,13 @@ class SynonymsPresenter(editor.GenericEditorPresenter):
 
         def gen_get_completions(text_val):
             stmt = (
-                select(Genus)
+                Genus.query_with_default_order()
                 .where(
                     and_(
                         Genus.epithet.like(f"{text_val}%"),
                         Genus.id != self.model.id,
                     )
                 )
-                .order_by(Genus.epithet)
             )
             query = self.session.execute(stmt).scalars()
             return query

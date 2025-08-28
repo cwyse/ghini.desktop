@@ -36,7 +36,13 @@ from sqlalchemy import asc, event, insert, inspect, select, text
 from sqlalchemy.engine import Connection
 
 # from sqlalchemy import text
-from sqlalchemy.orm import DeclarativeMeta, class_mapper, declarative_base
+from sqlalchemy.orm import (
+    DeclarativeMeta,
+    Mapped,
+    class_mapper,
+    declarative_base,
+    mapped_column,
+)
 from sqlalchemy.sql.sqltypes import String, Text, Unicode, UnicodeText
 
 logger: Any = logging.getLogger(__name__)
@@ -191,19 +197,6 @@ class MapperBase(DeclarativeMeta):
     _class_registry: Any = {}
 
     def __init__(self, classname, bases, dict_) -> None:
-        if "__tablename__" in dict_:
-            self.id = sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)
-            self._created = sa.Column(
-                "_created",
-                types.DateTime(),
-                default=datetime.datetime.utcnow,
-            )
-            self._last_updated = sa.Column(
-                "_last_updated",
-                types.DateTime(),
-                default=datetime.datetime.utcnow,
-                onupdate=datetime.datetime.utcnow,
-            )
         if "top_level_count" not in dict_:
             self.top_level_count = lambda x: {classname: 1}
         if "search_view_markup_pair" not in dict_:
@@ -221,7 +214,7 @@ class MapperBase(DeclarativeMeta):
         MapperBase._register_event_listeners(self)
 
     @staticmethod
-    def add_history_entry(operation, instance) -> None:
+    def add_history_entry(operation, instance, connection) -> None:
         """
         Helper function to add a history entry.
 
@@ -233,23 +226,47 @@ class MapperBase(DeclarativeMeta):
             logger.warning("No session found for instance: %s", instance)
             return
 
-        user = current_user() or "unknown"
-        row = {
-            c.name: utils.utf8(getattr(instance, c.name))
-            for c in instance.__table__.columns
-        }
+        try:
+            insp = inspect(instance)
 
-        table = History.__table__
-        stmt = table.insert().values(
-            table_name=instance.__tablename__,
-            table_id=getattr(instance, "id", None),
-            values=str(row),
-            operation=operation,
-            user=user,
-            timestamp=datetime.datetime.now(),
-        )
-        session.execute(stmt)
-        logger.debug("History entry added: %s", stmt)
+            # PK after INSERT should be in identity; for DELETE it may be None
+            pk = None
+            if insp.identity is not None and len(insp.identity) > 0:
+                pk = insp.identity[0]
+            else:
+                # fallback: direct attribute (may be None for DELETE or server-side PKs)
+                pk = getattr(instance, "id", None)
+
+            if pk is None:
+                # For deletes or odd cases, either skip or relax the NOT NULL constraint.
+                # We’ll skip to honor NOT NULL on history.table_id
+                logger.warning(
+                    "History: skipping %s for %s (no primary key available)",
+                    operation, instance.__tablename__
+                )
+                return
+            user = current_user() or "unknown"
+            row = {
+                c.name: utils.utf8(getattr(instance, c.name))
+                for c in instance.__table__.columns
+            }
+
+            table = History.__table__
+            stmt = table.insert().values(
+                table_name=instance.__tablename__,
+                #table_id=getattr(instance, "id", None),
+                table_id=pk,
+                values=str(row),
+                operation=operation,
+                user=user,
+                timestamp=datetime.datetime.now(),
+            )
+            connection.execute(stmt)
+            logger.debug("History entry added: %s", stmt)
+        except Exception as e:
+            logger.exception("History logging failed for %s on %s: %s",
+                            operation, instance.__tablename__, e)
+
 
     @staticmethod
     def _register_event_listeners(cls) -> None:
@@ -260,30 +277,18 @@ class MapperBase(DeclarativeMeta):
         @event.listens_for(cls, "after_insert")
         def after_insert(mapper, connection, target):
             logger.debug(f"Insert event for {target.__tablename__}")
-            MapperBase.add_history_entry("insert", target)
+            MapperBase.add_history_entry("insert", target, connection)
 
         @event.listens_for(cls, "after_update")
         def after_update(mapper, connection, target):
             logger.debug(f"Update event for {target.__tablename__}")
-            MapperBase.add_history_entry("update", target)
+            MapperBase.add_history_entry("update", target, connection)
 
         @event.listens_for(cls, "after_delete")
         def after_delete(mapper, connection, target):
             logger.debug(f"Delete event for {target.__tablename__}")
-            MapperBase.add_history_entry("delete", target)
+            MapperBase.add_history_entry("delete", target, connection)
 
-    @classmethod
-    def query_with_default_order(cls, session):
-        """
-        Return a query object for the class, applying the default order if specified.
-        """
-        from sqlalchemy import select
-
-        stmt = select(cls)
-        query = session.execute(stmt).scalars()
-        if hasattr(cls, "order_by") and cls.order_by:
-            query = query.order_by(*cls.order_by)
-        return query
 
 engine: Any = None
 """A :class:`sqlalchemy.engine.base.Engine` used as the default
@@ -314,11 +319,22 @@ databases.
 
 
 class TypedBaseMixin:
-    id: int
-    _created: datetime.datetime
-    _last_updated: datetime.datetime
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    _created: Mapped[datetime.datetime] = mapped_column(types.DateTime(), default=datetime.datetime.utcnow)
+    _last_updated: Mapped[datetime.datetime] = mapped_column(types.DateTime(), default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
 
+    @classmethod
+    def query_with_default_order(cls):
+        """
+        Return a query for the class with default ordering applied if defined.
+        Works with SQLAlchemy 2.0.
+        """
+        stmt = select(cls)
+        if hasattr(cls, "order_by") and cls.order_by:
+            stmt = stmt.order_by(*cls.order_by)
+        return stmt
+    
 Base: Any = declarative_base(cls=TypedBaseMixin, metaclass=MapperBase)
 """
 All tables/mappers in Ghini which use the SQLAlchemy declarative
@@ -362,13 +378,13 @@ class History(history_base):
     """
 
     __tablename__: str = "history"
-    id: Any = sa.Column(sa.Integer, primary_key=True)
-    table_name: Any = sa.Column(sa.Text, nullable=False)
-    table_id: Any = sa.Column(sa.Integer, nullable=False, autoincrement=False)
-    values: Any = sa.Column(sa.Text, nullable=False)
-    operation: Any = sa.Column(sa.Text, nullable=False)
-    user: Any = sa.Column(sa.Text)
-    timestamp: Any = sa.Column(types.DateTime, nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    table_name: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    table_id: Mapped[int] = mapped_column(sa.Integer, nullable=False, autoincrement=False)
+    values: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    operation: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    user: Mapped[Optional[str]] = mapped_column(sa.Text)
+    timestamp: Mapped[datetime.datetime] = mapped_column(types.DateTime, nullable=False)
 
 
 
@@ -1050,24 +1066,24 @@ def make_note_class(
         :param keys: A dictionary of filtering criteria.
         :return: The instance if found, otherwise None.
         """
-        from sqlalchemy import select
 
         try:
             # Start with a base query
-            stmt = select(cls)
+            stmt = cls.query_with_default_order()
 
-            # Join and filter based on `name`
-            if "name" in keys:
-                related_name = keys["name"].lower()
-                related_class = globals().get(keys["name"].lower())
-                if related_class:
-                    fk_attr = getattr(cls, f"{related_name}_id", None)
-                    assert (
-                        fk_attr is not None
-                    ), f"Expected attribute '{related_name}_id' not found on {cls.__name__}"
-                    stmt = stmt.join(related_class, related_class.id == fk_attr).where(
-                        related_class.code == keys[keys["name"].lower()]
+            # Filter by related object if given
+            # Accept either the related object's code (common in your codebase)
+            # or its id directly.
+            if name.lower() in keys or "code" in keys or f"{name.lower()}_id" in keys:
+                # Join to related_class if we need to filter by its code
+                if "code" in keys or name.lower() in keys:
+                    stmt = (
+                        stmt.join(related_class, related_class.id == getattr(cls, f"{name.lower()}_id"))
+                        .where(related_class.code == keys.get("code") or keys.get(name.lower()))
                     )
+                elif f"{name.lower()}_id" in keys:
+                    stmt = stmt.where(getattr(cls, f"{name.lower()}_id") == keys[f"{name.lower()}_id"])
+
 
             # Add filters for `date`
             if "date" in keys:
@@ -1099,14 +1115,13 @@ def make_note_class(
     bases = (Base,)
     fields = {
         "__tablename__": table_name,
-        "id": sa.Column(Integer, primary_key=True, autoincrement=True),
-        "date": sa.Column(types.Date, default=datetime.datetime.utcnow),
-        "user": sa.Column(sa.Unicode(64), default=""),
-        "category": sa.Column(sa.Unicode(32), default=""),
-        "type": sa.Column(sa.Unicode(32), default=""),
-        "note": sa.Column(sa.UnicodeText, nullable=False),
-        name.lower()
-        + "_id": sa.Column(
+        "id": mapped_column(Integer, primary_key=True, autoincrement=True),
+        "date": mapped_column(types.DateTime, default=datetime.datetime.utcnow),
+        "user": mapped_column(sa.Unicode(64), default=""),
+        "category": mapped_column(sa.Unicode(32), default=""),
+        "type": mapped_column(sa.Unicode(32), default=""),
+        "note": mapped_column(sa.UnicodeText, nullable=False),
+        name.lower() + "_id": mapped_column(
             sa.Integer, sa.ForeignKey(name.lower() + ".id"), nullable=False
         ),
         name.lower(): sa.orm.relationship(
@@ -1121,14 +1136,13 @@ def make_note_class(
         "retrieve_or_create": classmethod(retrieve_or_create),
         "is_defined": is_defined,
         "as_dict": as_dict,
-        # Define the order_by attribute for this class
-        "order_by": [asc(f"{table_name}.date")],
     }
     if compute_serializable_fields is not None:
         bases = (Base, Serializable)
         fields["compute_serializable_fields"] = classmethod(compute_serializable_fields)
 
     result = type(class_name, bases, fields)
+    result.order_by = [result.__table__.c.date.asc()]
 
     return result
 
@@ -1515,6 +1529,11 @@ def __getattr__(name):
     modpath = _EXPORTS.get(name)
     if not modpath:
         raise AttributeError(name)
+    mod = importlib.import_module(modpath)
+    obj = getattr(mod, name)
+    # cache on bauble.db for future direct access
+    globals()[name] = obj
+    return obj
     mod = importlib.import_module(modpath)
     obj = getattr(mod, name)
     # cache on bauble.db for future direct access

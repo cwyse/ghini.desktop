@@ -324,7 +324,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
         # make sure selected location exists
         if self.model.location is None:
             self.model.location = "imported"
-        location_stmt = select(Location).where(Location.code == self.model.location)
+        location_stmt = Location.query_with_default_order().where(Location.code == self.model.location)
         location = get_first_or_none(session, location_stmt)
         if location:
             logger.log(11, f"location {location} already in database")
@@ -348,12 +348,12 @@ class PictureImporterPresenter(GenericEditorPresenter):
             )
 
             # create or retrieve genus and species
-            genus_stmt = select(Genus).where(Genus.epithet == epgn)
+            genus_stmt = Genus.query_with_default_order().where(Genus.epithet == epgn)
             genus = get_first_or_none(session, genus_stmt)
             if not genus:
                 raise ValueError(f"Genus {epgn} not found in database")
 
-            species_stmt = select(Species).where(
+            species_stmt = Species.query_with_default_order().where(
                 Species.genus == genus, Species.epithet == epsp
             )
             species = get_first_or_none(session, species_stmt)
@@ -369,7 +369,7 @@ class PictureImporterPresenter(GenericEditorPresenter):
                     logger.log(12, f"reusing new species {epgn} {epsp}")
 
             # create or retrieve accession (needs species)
-            accession_stmt = select(Accession).where(Accession.code == accession_code)
+            accession_stmt = Accession.query_with_default_order().where(Accession.code == accession_code)
             accession = get_first_or_none(session, accession_stmt)
             if accession:
                 logger.log(11, f"accession {accession_code} already in database")

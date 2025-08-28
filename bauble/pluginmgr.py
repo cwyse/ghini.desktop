@@ -47,7 +47,8 @@ import sqlalchemy.orm.exc as orm_exc
 from bauble.db import Base, Session
 from bauble.error import BaubleError
 from bauble.gtkinit import GLib, Gtk
-from sqlalchemy import Column, Integer, Unicode, select
+from sqlalchemy import Integer, Unicode, select
+from sqlalchemy.orm import Mapped, mapped_column
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -425,9 +426,9 @@ class PluginRegistry(Base):
     """
 
     __tablename__: str = "plugin"
-    id: Any = Column(Integer, primary_key=True, autoincrement=False)
-    name: Any = Column(Unicode(64), unique=True)
-    version: Any = Column(Unicode(12))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(Unicode(64), unique=True)
+    version: Mapped[str] = mapped_column(Unicode(12))
 
     @staticmethod
     def add(plugin) -> None:
@@ -462,29 +463,26 @@ class PluginRegistry(Base):
         decoded_name = name.decode() if isinstance(name, bytes) else name
 
         with Session() as session:
-            p = session.execute(
-                select(PluginRegistry).where(PluginRegistry.name == decoded_name)
-            ).scalar_one_or_none()
+            stmt = PluginRegistry.query_with_default_order().where(PluginRegistry.name == decoded_name)
+            p = session.execute(stmt).scalar_one_or_none()
             if p:
                 session.delete(p)
                 if session.in_transaction():
                     session.commit()
 
     @staticmethod
-    def all(session):
+    def all(session=None) -> list[str]:
         with Session() as local_session:
             session = session or local_session
-            q = session.execute(select(PluginRegistry)).scalars()
-            return list(q)
+            stmt = PluginRegistry.query_with_default_order()
+            return session.scalars(stmt).all()
 
     @staticmethod
-    def names():
+    def names() -> list[str]:
         t = PluginRegistry.__table__
         stmt = select(t.c.name)
         with Session() as session:
-            results = session.execute(stmt).scalars().all()
-            names = list(results)
-        return names
+            return session.execute(stmt).all()
 
     @staticmethod
     def exists(plugin):
@@ -506,8 +504,8 @@ class PluginRegistry(Base):
             try:
                 logger.debug(f"not using value of version ({version}).")
                 # Apply the where clause to the select object
-                query = select(PluginRegistry).where(PluginRegistry.name == name)
-                session.execute(query).scalar_one()
+                stmt = PluginRegistry.query_with_default_order().where(PluginRegistry.name == name)
+                session.execute(stmt).scalar_one()
                 return True
             except orm_exc.NoResultFound as e:
                 logger.debug(e)

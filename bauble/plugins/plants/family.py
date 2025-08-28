@@ -26,7 +26,7 @@ import os
 import traceback
 import weakref
 from gettext import gettext as _
-from typing import Any, List, Optional
+from typing import Any, ClassVar, List, Optional
 
 import bauble
 import bauble.btypes as types
@@ -104,7 +104,7 @@ def remove_callback(families):
 
         ngen = session.execute(
             select(func.count()).select_from(Genus).filter_by(family_id=family.id)
-        )
+        ).scalar_one()
 
         safe_str = utils.xml_safe(str(family))
         if ngen > 0:
@@ -247,11 +247,11 @@ class Family(Base, Serializable, WithNotes):
     __tablename__: str = "family"
     __table_args__: Any = (UniqueConstraint("epithet"),)
 
-    id: Any = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False, autoincrement=True)
     rank: str = "familia"
     link_keys: Any = ["accepted"]
 
-    @validates("genus")
+    @validates("epithet", "author")
     def validate_stripping(self, key, value):
         if value is None:
             return None
@@ -286,14 +286,14 @@ class Family(Base, Serializable, WithNotes):
         return cls.epithet
 
     # use '' instead of None so that the constraints will work propertly
-    author: Mapped[str] = mapped_column(Unicode(255), default="", nullable=True)
+    author: Mapped[Optional[str]] = mapped_column(Unicode(255), default="", nullable=True)
 
     # we use the blank string here instead of None so that the
     # contraints will work properly,
-    qualifier: Mapped[str] = mapped_column(
+    qualifier: Mapped[Optional[str]] = mapped_column(
         types.Enum(values=["s. lat.", "s. str.", ""], omit_aliases=False), default="", nullable=True
     )
-    order_by: Any = [asc(epithet), asc(qualifier)]
+    order_by: ClassVar[list[Any]] = [asc(epithet), asc(qualifier)]
 
     # relations
     # `genera` relation is defined outside of `Family` class definition

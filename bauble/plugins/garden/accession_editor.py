@@ -1073,7 +1073,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         none_iter = model.append([""])
         model.append([self.garden_prop_str])
         list(
-            [model.append([x]) for x in self.session.execute(select(Contact)).scalars()]
+            [model.append([x]) for x in self.session.execute(Contact.query_with_default_order()).scalars()]
         )
         combo.set_model(model)
         combo.get_child().get_completion().set_model(model)
@@ -1396,7 +1396,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             if not value:
                 return
 
-            stmt = select(SpeciesSynonym).where(SpeciesSynonym.synonym_id == value.id)
+            stmt = SpeciesSynonym.query_with_default_order().where(SpeciesSynonym.synonym_id == value.id)
             syn = self.session.execute(stmt).scalars().first()
             if not syn:
                 set_model(value)

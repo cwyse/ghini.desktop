@@ -441,34 +441,38 @@ class Accession(Base, Serializable, WithNotes):
 
         # auto generate/increment the accession code
         session = Session()
-        if code_format is None:
-            code_format = cls.code_format
-        format = code_format.replace("%PD", Plant.get_delimiter())
-        today = datetime.date.today()
-        if format.find("%{Y-1}") >= 0:
-            format = format.replace("%{Y-1}", str(today.year - 1))
-        format = today.strftime(format)
-        start = format.rstrip("#")
-        if start == format:
-            # fixed value
-            return start
-        digits = len(format) - len(start)
-        format = start + "%%0%dd" % digits
-        q = session.execute(
-            select(Accession.code).where(Accession.code.startswith(start))
-        ).scalars()
-        next = None
         try:
-            if q.count() > 0:
-                codes = [safe_int(code[len(start) :]) for code in q]
-                next = format % (max(codes) + 1)
+            if code_format is None:
+                code_format = cls.code_format
+            format = code_format.replace("%PD", Plant.get_delimiter())
+            today = datetime.date.today()
+            if format.find("%{Y-1}") >= 0:
+                format = format.replace("%{Y-1}", str(today.year - 1))
+            format = today.strftime(format)
+            start = format.rstrip("#")
+            if start == format:
+                # fixed value
+                return start
+            digits = len(format) - len(start)
+            num_fmt = start + "%%0%dd" % digits
+
+            codes = session.execute(
+                select(Accession.code).where(Accession.code.like(f"{start}%"))
+            ).scalars().all()
+
+            if codes:
+                suffixes = [safe_int(code[len(start) :]) for c in codes]
+                next_number = (max(suffixes) or 0) + 1
             else:
-                next = format % 1
+                next_number = 1
+
+            return num_fmt % next_number
+        
         except Exception as e:
             logger.debug(e)
+            return None
         finally:
             session.close()
-        return str(next)
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
@@ -632,14 +636,12 @@ class Accession(Base, Serializable, WithNotes):
 
     @classmethod
     def retrieve(cls, session, keys):
-        try:
-            return (
-                session.execute(select(cls).where(cls.code == keys["code"]))
-                .scalars()
-                .one()
+        stmt = (
+            cls.query_with_default_order()
+            .where(cls.code == keys["code"])
             )
-        except:
-            return None
+
+        return session.execute(stmt).scalars.one_or_none()
 
     def top_level_count(self):
         sd = self.source and self.source.source_detail
