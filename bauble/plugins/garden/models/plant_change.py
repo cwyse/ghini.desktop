@@ -25,14 +25,14 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 
 import bauble.btypes as types
 from bauble.db import Base
 from bauble.plugins.garden.constants import change_reasons
 
 # from sqlalchemy import text
-from sqlalchemy import Column, ForeignKey, Integer, Unicode, asc
+from sqlalchemy import ForeignKey, Integer, Unicode, asc
 from sqlalchemy.orm import Mapped, mapped_column
 
 logger: Any = logging.getLogger(__name__)
@@ -45,10 +45,6 @@ logger.setLevel(logging.INFO)
 
 plant_delimiter_key: str = "plant_delimiter"
 default_plant_delimiter: str = "."
-
-
-
-
 
 class PlantChange(Base):
     """ """
@@ -73,7 +69,7 @@ class PlantChange(Base):
     quantity: Mapped[int] = mapped_column(Integer, autoincrement=False, nullable=False)
     note_id: Mapped[int] = mapped_column(Integer, ForeignKey("plant_note.id"))
 
-    reason: Any = Column(
+    reason: Mapped[str] = mapped_column(
         types.Enum(
             values=list(change_reasons.keys()),
             translations=change_reasons,
@@ -85,6 +81,6 @@ class PlantChange(Base):
     date: Mapped[types.DateTime] = mapped_column(
         types.DateTime, default=datetime.utcnow
     )
-    order_by: Any = [asc(date)]
+    order_by: ClassVar[list[Any]] = [asc(date)]
 
     # Relationships

@@ -47,7 +47,7 @@ if TYPE_CHECKING:
 from bauble.utils import sorted_relationship
 
 # from sqlalchemy import text
-from sqlalchemy import Column, ForeignKey, Integer, UnicodeText, asc
+from sqlalchemy import ForeignKey, Integer, UnicodeText, asc
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.orm.session import object_session
 
@@ -71,6 +71,7 @@ class Propagation(Base, WithNotes):
         nullable=False,
     )
     date: Mapped[Optional[datetime.date]] = mapped_column(types.Date)
+    order_by: ClassVar[list[Any]] = [asc(date)]
 
     _cutting: Mapped[Optional["PropCutting"]] = relationship(
         "PropCutting",
@@ -292,13 +293,13 @@ class PropCuttingRooted(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     date: Mapped[types.Date] = mapped_column(types.Date)
-    quantit: Mapped[int] = mapped_column(
+    quantity: Mapped[int] = mapped_column(
         Integer, autoincrement=False, default=0, nullable=False
     )
     cutting_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("prop_cutting.id"), nullable=False
     )
-    order_by: ClassVar = [asc(date)]
+    order_by: ClassVar[list[Any]] = [asc(date)]
 
     # Add the missing relationship
     cutting: Mapped["PropCutting"] = relationship(
@@ -317,7 +318,7 @@ class PropCutting(Base):
     bottom_heat_unit: Any
     __tablename__: str = "prop_cutting"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    cutting_type: Any = Column(
+    cutting_type: Mapped[str] = mapped_column(
         types.Enum(
             values=list(cutting_type_values.keys()),
             translations=cutting_type_values,
@@ -325,12 +326,12 @@ class PropCutting(Base):
         ),
         default="Other",
     )
-    tip: Any = Column(
+    tip: Mapped[str] = mapped_column(
         types.Enum(
             values=list(tip_values.keys()), translations=tip_values, omit_aliases=False
         )
     )
-    leaves: Any = Column(
+    leaves: Mapped[str] = mapped_column(
         types.Enum(
             values=list(leaves_values.keys()),
             translations=leaves_values,
@@ -339,7 +340,7 @@ class PropCutting(Base):
     )
     leaves_reduced_pct: Mapped[int] = mapped_column(Integer, autoincrement=False)
     length: Mapped[int] = mapped_column(Integer, autoincrement=False)
-    length_unit: Any = Column(
+    length_unit: Mapped[str] = mapped_column(
         types.Enum(
             values=list(length_unit_values.keys()),
             translations=length_unit_values,
@@ -348,7 +349,7 @@ class PropCutting(Base):
     )
 
     # single/double/slice
-    wound = Column(
+    wound: Mapped[str] = mapped_column(
         types.Enum(
             values=list(wound_values.keys()),
             translations=wound_values,
@@ -357,7 +358,7 @@ class PropCutting(Base):
     )
 
     # removed/None
-    flower_buds = Column(
+    flower_buds: Mapped[str] = mapped_column(
         types.Enum(
             values=list(flower_buds_values.keys()),
             translations=flower_buds_values,
@@ -382,7 +383,7 @@ class PropCutting(Base):
     # not null
 
     # F/C
-    bottom_heat_unit = Column(
+    bottom_heat_unit: Mapped[Optional[str]] = mapped_column(
         types.Enum(
             values=list(bottom_heat_unit_values.keys()),
             translations=bottom_heat_unit_values,

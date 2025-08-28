@@ -23,7 +23,8 @@
 from typing import Any, Optional
 
 from bauble.db import Base, Session
-from sqlalchemy import Column, Integer, Unicode, UnicodeText, select
+from sqlalchemy import Integer, Unicode, UnicodeText
+from sqlalchemy.orm import Mapped, mapped_column
 
 DATE_FORMAT_KEY: str
 VERSION_KEY: str = "version"
@@ -60,7 +61,8 @@ def get_default(name, default: Optional[Any] = None, session: Optional[Any] = No
     if not session:
         session = Session()
         commit = True
-    query = session.execute(select(BaubleMeta).where(BaubleMeta.name == name)).scalars()
+    stmt = BaubleMeta.query_with_default_order()
+    query = session.execute(stmt).where(BaubleMeta.name == name).scalars()
     meta = query.first()
 
     # If no result and default is provided, create a new entry
@@ -101,6 +103,6 @@ class BaubleMeta(Base):
     """
 
     __tablename__: str = "bauble"
-    id: Any = Column(Integer, primary_key=True)
-    name: Any = Column(Unicode(64), unique=True)
-    value: Any = Column(UnicodeText)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(Unicode(64), unique=True)
+    value: Mapped[str] = mapped_column(UnicodeText)

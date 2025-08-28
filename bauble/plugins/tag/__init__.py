@@ -57,7 +57,7 @@ from sqlalchemy.exc import DBAPIError
 
 # from sqlalchemy.exc import InvalidRequestError
 # from sqlalchemy.orm import Session as SASession
-from sqlalchemy.orm import Mapped, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 # from sqlalchemy.orm.exc import NoResultFound
@@ -580,9 +580,9 @@ class Tag(db.Base, db.WithNotes):
     __tablename__: str = "tag"
 
     # columns
-    id = Column(Integer, primary_key=True)
-    tag: Any = Column(Unicode(64), unique=True, nullable=False)
-    description: Any = Column(UnicodeText)
+    id : Mapped[int]= mapped_column(Integer, primary_key=True)
+    tag: Mapped[str] = mapped_column(Unicode(64), unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(UnicodeText)
 
     # relations
     _objects: Mapped[list["TaggedObj"]] = relationship(
@@ -765,10 +765,10 @@ class TaggedObj(db.Base):
     __tablename__: str = "tagged_obj"
 
     # columns
-    id = Column(Integer, primary_key=True)
-    obj_id: Any = Column(Integer, autoincrement=False)
-    obj_class: Any = Column(String(128))
-    tag_id: Any = Column(Integer, ForeignKey("tag.id"))
+    id : Mapped[int] = mapped_column(Integer, primary_key=True)
+    obj_id: Mapped[int] = mapped_column(Integer, autoincrement=False)
+    obj_class: Mapped[str] = mapped_column(String(128))
+    tag_id: Mapped[int] = mapped_column(Integer, ForeignKey("tag.id"))
     tag: Mapped["Tag"] = relationship(
         "Tag",
         cascade="all, delete-orphan",

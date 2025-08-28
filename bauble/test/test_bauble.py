@@ -26,18 +26,17 @@ import logging
 import os
 import tempfile
 import time
+from collections.abc import Generator
 from io import BytesIO
-
-import pytest
-from sqlalchemy import Column, Integer, select, text
+from typing import Any
 
 import bauble.btypes as types
+import pytest
 from bauble import db, meta, prefs
 from bauble.plugins.plants import Family
 from bauble.test import check_dupids
-
-from typing import Any
-from collections.abc import Generator
+from sqlalchemy import Integer, select, text
+from sqlalchemy.orm import Mapped, mapped_column
 
 logger: Any = logging.getLogger(__name__)
 logger._cache.clear()
@@ -72,8 +71,8 @@ prefs.testing = True
 #     _TestEnum.__table__.drop(bind=db_session.bind, checkfirst=True)
 class _TestEnum(db.Base):
     __tablename__: str = "test_enum_type"
-    id: Any = Column(Integer, primary_key=True)
-    value: Any = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    value: Mapped[str] = mapped_column(
         types.Enum(values=["1", "2", ""], omit_aliases=False), default=""
     )
 
@@ -193,8 +192,8 @@ class TestEnumModel:
             (db.Base,),
             {
                 "__tablename__": f"test_enum_type_{name}",
-                "id": Column(Integer, primary_key=True),
-                "value": Column(
+                "id": mapped_column(Integer, primary_key=True),
+                "value": mapped_column(
                     types.Enum(values=values, omit_aliases=False, **kwargs), default=""
                 ),
             },

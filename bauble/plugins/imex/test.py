@@ -49,7 +49,8 @@ from bauble.plugins.imex.iojson import JSONExporter, JSONImporter
 from bauble.plugins.plants import SpeciesNote as SpeciesNote
 from bauble.plugins.plants import VernacularName as VernacularName
 from bauble.plugins.plants.geography import GeographicArea
-from sqlalchemy import Boolean, Column, Integer, select
+from sqlalchemy import Boolean, Integer, select
+from sqlalchemy.orm import mapped_column
 
 family_data: Any
 logger: Any = logging.getLogger(__name__)
@@ -171,8 +172,8 @@ class TestCSV:
 
         class BoolTest(Base):
             __tablename__ = "bool_test"
-            id = Column(Integer, primary_key=True)
-            col1 = Column(Boolean, default=False)
+            id: Mapped[int] = mapped_column(Integer, primary_key=True)
+            col1 : Mapped[bool]= mapped_column(Boolean, default=False)
 
         BoolTest.__table__.create(bind=engine)
 

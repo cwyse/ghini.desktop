@@ -22,7 +22,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, List
+from typing import Any, ClassVar, List
 
 import bauble.utils as utils
 from bauble.db import Base, Serializable, WithNotes, make_note_class
@@ -69,7 +69,7 @@ class Location(Base, Serializable, WithNotes):
     code: Mapped[str] = mapped_column(Unicode(12), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(Unicode(80))
     description: Mapped[str] = mapped_column(UnicodeText)
-    order_by: Any = [asc(name)]
+    order_by: ClassVar[list[Any]] = [asc(name)]
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
@@ -100,14 +100,8 @@ class Location(Base, Serializable, WithNotes):
 
     @classmethod
     def retrieve(cls, session, keys):
-        try:
-            return (
-                session.execute(select(cls).where(cls.code == keys["code"]))
-                .scalars()
-                .one()
-            )
-        except:
-            return None
+        stmt = cls.query_with_default_order().where(cls.code == keys["code"])
+        return session.execute(stmt).scalar_one_or_none()
 
     def top_level_count(self):
         accessions = {p.accession for p in self.plants}

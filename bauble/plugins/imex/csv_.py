@@ -220,12 +220,14 @@ def describe_metadata(metadata) -> Dict[str, List[Dict[str, Any]]]:
 
 class Importer:
 
-    def start(self, **kwargs):
+    def start(self, *args, **kwargs):
         """
         start the import process, this is a non blocking method, queue the
         process as a bauble task
         """
-        return bauble.task.queue(self.run, **kwargs)
+        gen = self.run(*args, **kwargs)
+
+        return bauble.task.queue(gen)
 
     def run(self, **kwargs) -> None:
         """
@@ -290,7 +292,7 @@ class CSVImporter(Importer):
         if filenames is None:
             return
 
-        bauble.task.queue(self.run(filenames, metadata, force))
+        super().start(filenames, metadata, force)
 
     def _map_filenames_to_tables(self, filenames):
         """
@@ -530,7 +532,7 @@ class CSVImporter(Importer):
                     raise
 
     def run(
-        self, filenames, metadata, force: bool = False
+        self, filenames, metadata, force: bool = False, _ctx=None
     ) -> Generator[None, None, None]:
         """
         A generator method for importing filenames into the database.

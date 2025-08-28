@@ -24,8 +24,8 @@ from typing import Any
 
 from bauble.db import Base, Session
 from bauble.gtkinit import Gtk
-from sqlalchemy import Column, ForeignKey, Integer, String, Unicode, select
-from sqlalchemy.orm import object_session, relationship
+from sqlalchemy import ForeignKey, Integer, String, Unicode, select
+from sqlalchemy.orm import Mapped, mapped_column, object_session, relationship
 
 
 def get_species_in_geographic_area(geo):
@@ -203,11 +203,11 @@ class GeographicArea(Base):
     __tablename__: str = "geographic_area"
 
     # columns
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name: Any = Column(Unicode(255), nullable=False)
-    tdwg_code: Any = Column(String(6))
-    iso_code: Any = Column(String(7))
-    parent_id: Any = Column(Integer, ForeignKey("geographic_area.id"))
+    id : Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(Unicode(255), nullable=False)
+    tdwg_code: Mapped[str] = mapped_column(String(6))
+    iso_code: Mapped[str] = mapped_column(String(7))
+    parent_id: Mapped[int] = mapped_column(Integer, ForeignKey("geographic_area.id"))
 
     def __str__(self) -> str:
         return self.name

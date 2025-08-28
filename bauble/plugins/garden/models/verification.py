@@ -2,7 +2,7 @@
 
 import logging
 from gettext import gettext as _
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from bauble.btypes import Date as DbDate
 from bauble.db import Base
@@ -74,7 +74,7 @@ class Verification(Base):
         Integer, ForeignKey("accession.id"), nullable=False
     )
 
-    order_by: ClassVar = [asc(date)]
+    order_by: ClassVar[list[Any]] = [asc(date)]
 
     # the level of assurance of this verification
     level: Mapped[int] = mapped_column(Integer, nullable=False, autoincrement=False)

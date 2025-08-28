@@ -1548,8 +1548,8 @@ class GenericEditorPresenter:
         # check uniqueness
         klass = self.model.__class__
         k_attr = getattr(klass, attr)
-        q = self.session.execute(select(klass).where(k_attr == value))
-        omonym = q.scalars().first()
+        stmt = select(klass).where(k_attr == value)
+        omonym = self.session.scalar(stmt)
         if omonym is not None and omonym is not self.model:
             self.add_problem(self.PROBLEM_DUPLICATE, widget)
         else:
