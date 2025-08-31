@@ -482,7 +482,7 @@ class PluginRegistry(Base):
         t = PluginRegistry.__table__
         stmt = select(t.c.name)
         with Session() as session:
-            return session.execute(stmt).all()
+            return session.execute(stmt).scalars().all()
 
     @staticmethod
     def exists(plugin):

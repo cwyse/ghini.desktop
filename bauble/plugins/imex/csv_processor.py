@@ -63,7 +63,11 @@ from collections.abc import Mapping
 from bauble.plugins.imex.unicode_utils import UnicodeReader
 
 # bauble/plugins/imex/csv_processor.py
-
+_OMIT = object()
+_TEXT_TYPES = (sa.String, sa.Text, sa.Unicode, sa.CHAR, sa.VARCHAR)
+_NUMERIC_TYPES = (sa.Integer, sa.BigInteger, sa.SmallInteger, sa.Numeric, sa.Float)
+_TEMPORAL_TYPES = (sa.Date, sa.DateTime, sa.Time)
+_BINARY_TYPES = (sa.LargeBinary, )
 
 def preflight_csv(filename, table, max_report=50):
     """
@@ -486,7 +490,11 @@ class CSVProcessor:
         cleaned_row = {}
         for column in self.column_keys:
             value = row.get(column, self.defaults.get(column))
-            cleaned_row[column] = self._normalize_value(value, column)
+            norm = self._normalize_value(value, column)
+            if norm is _OMIT:
+                # don't include this column at all (let SA/server defaults handle it)
+                continue
+            cleaned_row[column] = norm
         return cleaned_row
 
     def _normalize_value(self, value, column):
@@ -497,16 +505,42 @@ class CSVProcessor:
         if isinstance(value, ClauseElement):
             return value  # Return as-is for SQL expressions like `now()`
 
-        if value in (None, "", "None"):  # Treat these as None
+        col = self.table.c[column]
+        column_type = col.type
+        is_empty = (value is None) or (isinstance(value, str) and value.strip() in ("", "None"))
+
+        if is_empty:
+            if hasattr(self, "Defaults")and column in self.defaults:
+                return self.defaults[column]
+            autoinc = getattr(col, "autoincrement", None)
+            if col.primary_key or autoinc not in (False, None) or isinstance(column_type, _NUMERIC_TYPES + _TEMPORAL_TYPES + (Boolean,) + _BINARY_TYPES):
+                return _OMIT
+ 
+            if isinstance(column_type, Enum) and getattr(column_type, "empty_to_none", False):
+                return None
+            
+            if not col.nullable:
+                if isinstance(column_type, _TEXT_TYPES):
+                    return ""
+                raise InvalidDataError(f"Column '{column}' is NOT NULL but CSV provides empty/blank.")
             return None
 
+
+
+#            if (not col.nullable) and isinstance(column_type, _TEXT_TYPES):
+#                return ""
+#            return _OMIT
+
         try:
-            column_type = self.table.c[column].type
 
             if isinstance(column_type, Boolean):
-                return (
-                    value.lower() == "true" if isinstance(value, str) else bool(value)
-                )
+                if isinstance(value, str):
+                    v = value.lower()
+                    if v in ("true", "t", "1", "yes", "y"):
+                        return True
+                    if v in ("false", "f", "0", "no", "n"):
+                        return False
+                return bool(value)                    
 
             elif isinstance(column_type, sa.Integer):
                 return int(value)
@@ -515,18 +549,21 @@ class CSVProcessor:
                 return float(value)
 
             elif isinstance(column_type, sa.Enum):  # SQLAlchemy Enum
-                if value not in column_type.enums:
+                allowed = list(getattr(column_type, "enums", []) or [])
+                if value not in allowed:
                     raise InvalidDataError(
                         f"Invalid value for column '{column}': {value}. "
-                        f"Allowed values are: {column_type.enums}"
+                        f"Allowed values are: {allowed}"
                     )
                 return value  # Keep as string for DB insertion
 
             elif isinstance(column_type, Enum):  # Custom Enum
-                if value not in column_type.values:
+                allowed = list(getattr(column_type, "values", []) or [])
+                strict = getattr(column_type, "strict", True)
+                if strict and value not in allowed:
                     raise InvalidDataError(
                         f"Invalid value for column '{column}': {value}. "
-                        f"Expected one of: {column_type.values}"
+                        f"Expected one of: {allowed}"
                     )
                 return value
 
@@ -534,6 +571,7 @@ class CSVProcessor:
             raise InvalidDataError(f"Invalid value for column '{column}': {value}")
 
         return value  # Return as-is for any other data types
+    
     def _execute_batch_now(self, values: list[dict]) -> None:
         """Synchronous insert path (same thread).  Minimal hardening + proper executemany."""
         if not values:
@@ -558,6 +596,13 @@ class CSVProcessor:
                 ) from exc
             fixed.append(as_dict)
 
+        # ★ Ensure every row has the same set of keys (pad missing with None)
+        table_cols = set(self.table.c.keys())
+        all_keys = set().union(*(r.keys() for r in fixed)) & table_cols
+        for r in fixed:
+            for k in all_keys:
+                r.setdefault(k, None)
+                
         # ---- executemany: statement + list-of-dicts (no .values(...)) ----
         from sqlalchemy.exc import SQLAlchemyError
         with Session() as s:
@@ -628,7 +673,13 @@ class CSVProcessor:
                     ) from exc
 
             # Keep only valid table columns; convert enums
-            coerced = {k: convert_enum(v) for k, v in mapping.items() if k in table_cols}
+            coerced = {}
+            for k, v in mapping.items():
+                if k not in table_cols:
+                    continue
+                if v is _OMIT:
+                    continue
+                coerced[k] = convert_enum(v)
             fixed_values.append(coerced)
 
         # Execute now or hand to the worker

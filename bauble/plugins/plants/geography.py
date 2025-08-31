@@ -20,7 +20,7 @@
 # geography.py
 #
 from operator import itemgetter
-from typing import Any
+from typing import Any, Optional
 
 from bauble.db import Base, Session
 from bauble.gtkinit import Gtk
@@ -206,9 +206,12 @@ class GeographicArea(Base):
     id : Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(Unicode(255), nullable=False)
     tdwg_code: Mapped[str] = mapped_column(String(6))
-    iso_code: Mapped[str] = mapped_column(String(7))
-    parent_id: Mapped[int] = mapped_column(Integer, ForeignKey("geographic_area.id"))
-
+    iso_code: Mapped[Optional[str]] = mapped_column(String(7), nullable=True)
+    parent_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("geographic_area.id"),
+        nullable=True,          # ← allow NULL for roots
+    )
     def __str__(self) -> str:
         return self.name
 

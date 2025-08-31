@@ -61,8 +61,8 @@ def get_default(name, default: Optional[Any] = None, session: Optional[Any] = No
     if not session:
         session = Session()
         commit = True
-    stmt = BaubleMeta.query_with_default_order()
-    query = session.execute(stmt).where(BaubleMeta.name == name).scalars()
+    stmt = BaubleMeta.query_with_default_order().where(BaubleMeta.name == name)
+    query = session.execute(stmt).scalars()
     meta = query.first()
 
     # If no result and default is provided, create a new entry
@@ -105,4 +105,4 @@ class BaubleMeta(Base):
     __tablename__: str = "bauble"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(Unicode(64), unique=True)
-    value: Mapped[str] = mapped_column(UnicodeText)
+    value: Mapped[Optional[str]] = mapped_column(UnicodeText, nullable=True)
