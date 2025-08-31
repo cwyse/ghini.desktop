@@ -29,6 +29,7 @@ import os
 import traceback
 from collections.abc import Generator
 from gettext import gettext as _
+from inspect import signature
 from queue import Queue
 from typing import Any, Optional
 
@@ -414,21 +415,35 @@ class CSVImporter(Importer):
     @staticmethod
     def _precompute_defaults(table):
         """
-        Precompute the defaults for a given table's columns.
-
-        :param table: SQLAlchemy Table object.
-        :return: Dictionary mapping column names to their default values.
+        Precompute only constants or zero-arg callables.
+        Context-dependent defaults are left for SQLAlchemy to handle
+        (by omitting the column in the row dict).
         """
         defaults = {}
         for column in table.c:
-            if column.default is not None:
-                if isinstance(column.default, ColumnDefault):
-                    # Handle Python-side callable defaults
-                    if callable(column.default.arg):
-                        defaults[column.name] = column.default.arg()
-                    else:
-                        # Handle constant Python-side defaults
-                        defaults[column.name] = column.default.arg
+            coldef = column.default
+            if not coldef or not isinstance(coldef, ColumnDefault):
+                continue
+
+            arg = coldef.arg
+
+            # Literal constant default
+            if not callable(arg):
+                defaults[column.name] = arg
+                continue
+
+            # Callable default: only keep it if it’s invocable with zero args.
+            # Some builtins (like datetime.utcnow) have no inspectable signature,
+            # so just try calling with no args and detect TypeError.
+            try:
+                defaults[column.name] = arg()
+            except TypeError:
+                # requires ctx or args → skip; let SA apply it at INSERT time
+                continue
+            except Exception:
+                # anything else weird → skip to be safe
+                continue
+
         return defaults
 
     def _prepare_table(
