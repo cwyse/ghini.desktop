@@ -535,7 +535,7 @@ class VerificationPresenter(editor.GenericEditorPresenter):
         """
         :param model:
         """
-        box = VerificationPresenter.VerificationBox(self, model)
+        box = VerificationBox(self, model)
         self.view.widgets.verifications_parent_box.pack_start(box, False, False, 0)
         self.view.widgets.verifications_parent_box.reorder_child(box, 0)
         box.show_all()
@@ -576,7 +576,7 @@ class VerificationBox:
         builder = Gtk.Builder()
 
         s = f"<interface>{etree.tostring(el, encoding='utf-8').decode()}</interface>"
-        builder.add_from_string(s.encode())  # Ensure string is properly encoded
+        builder.add_from_string(s)  # Ensure string is properly encoded
 
         # Create the widgets
         self.widgets = utils.BuilderWidgets(builder)

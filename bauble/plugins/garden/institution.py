@@ -451,6 +451,15 @@ class Institution:
                 value = getattr(self, prop)
                 db_prop = db_prop_prefix + prop
 
+                # Skip creating a row if the value is None; keeps meta table cleaner
+                if value is None:
+                    # If a row exists and you want to clear it, keep the update branch;
+                    # otherwise continue to leave existing value unchanged.
+                    stmt = select(self.table.c.name).where(self.table.c.name == db_prop)
+                    exists = session.execute(stmt).scalar_one_or_none()
+                    if not exists:
+                        continue
+                    
                 # Check if the property already exists in the database
                 stmt = select(self.table).where(self.table.c.name == db_prop)
                 row = session.execute(stmt).scalar_one_or_none()
