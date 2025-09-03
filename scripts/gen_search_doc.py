@@ -16,17 +16,19 @@ import sys
 if "PYTHONPATH" in os.environ:
     sys.path.insert(0, os.environ["PYTHONPATH"])
 
-import sqlalchemy as sa
-
 import bauble
 import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
+import sqlalchemy as sa
 from bauble.prefs import prefs
 
 uri = "sqlite:///:memory:"
 bauble.open_database(uri, verify=False)
 prefs.init()
 pluginmgr.load()
+from bauble.db import ensure_relationships_wired
+
+ensure_relationships_wired()
 bauble.create_database(False)
 pluginmgr.init()
 session = bauble.Session()

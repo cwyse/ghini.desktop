@@ -60,6 +60,9 @@ def init_bauble() -> None:
         raise BaubleError("Database engine is not initialized.")
 
     pluginmgr.load()
+    from bauble.db import ensure_relationships_wired
+    ensure_relationships_wired()
+
     db.metadata.create_all(bind=db.engine)  # Ensure all tables exist
     pluginmgr.init(force=True)
 

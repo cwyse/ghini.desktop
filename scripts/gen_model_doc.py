@@ -12,21 +12,23 @@ import sys
 import xml.sax.saxutils as saxutils
 
 sys.path.append(".")
-import sqlalchemy as sa
-from sqlalchemy.orm import *
-from sqlalchemy.orm.mapper import _mapper_registry
-from sqlalchemy.orm.properties import *
-
 import bauble
 import bauble.pluginmgr as pluginmgr
 import bauble.view as view
+import sqlalchemy as sa
 from bauble.prefs import prefs
 from sqlalchemy import ColumnProperty, class_mapper
+from sqlalchemy.orm import *
+from sqlalchemy.orm.mapper import _mapper_registry
+from sqlalchemy.orm.properties import *
 
 uri = "sqlite:///:memory:"
 db.open(uri, verify=False)
 prefs.init()
 pluginmgr.load()
+from bauble.db import ensure_relationships_wired
+
+ensure_relationships_wired()
 db.create(False)
 pluginmgr.init(True)
 
