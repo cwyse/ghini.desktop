@@ -60,7 +60,7 @@ def add_plants_callback(locations):
     session = db.Session()
     loc = session.merge(locations[0])
     from bauble.plugins.garden.models import Plant
-    from bauble.plugins.garden.plant import PlantEditor
+    from bauble.plugins.garden.plant_editor import PlantEditor
 
     e = PlantEditor(model=Plant(location=loc))
     # session creates unbound object.  editor decides what to do with it.
@@ -371,7 +371,7 @@ class LocationEditor(GenericModelViewPresenterEditor):
         :param model: Location instance or None
         :param parent: the parent widget or None
         """
-        from bauble.plugins.garden import Location
+        from bauble.plugins.garden.models import Location
 
         # view and presenter are created in self.start()
         self.view = None
@@ -433,7 +433,7 @@ class LocationEditor(GenericModelViewPresenterEditor):
             more_committed = e.start()
         elif response == self.RESPONSE_OK_AND_ADD:
             from bauble.plugins.garden.models import Plant
-            from bauble.plugins.garden.plant import PlantEditor
+            from bauble.plugins.garden.plant_editor import PlantEditor
 
             e = PlantEditor(Plant(location=self.model), self.parent)
             more_committed = e.start()

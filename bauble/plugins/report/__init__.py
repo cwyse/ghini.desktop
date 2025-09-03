@@ -39,8 +39,7 @@ from bauble.prefs import prefs
 from sqlalchemy import select, union
 
 from .flat_export import FlatFileExportTool as FlatFileExportTool
-from .utils import PS
-from .utils import SVG
+from .utils import PS, SVG
 
 logger: Any
 config_list_pref: str

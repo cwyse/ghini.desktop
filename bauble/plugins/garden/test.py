@@ -46,7 +46,7 @@ from bauble.plugins.garden.models import (
     Source,
 )
 from bauble.plugins.garden.models import Voucher as Voucher
-from bauble.plugins.garden.plant import branch_callback, is_code_unique
+from bauble.plugins.garden.plant_editor import branch_callback, is_code_unique
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
 from bauble.plugins.plants.species_model import Species
@@ -560,7 +560,7 @@ def test_voucher_management2(db_session, setup_accession2):
 
 def test_location_editor_interactions(db_session, setup_location) -> None:
     """Test interactions with the location editor."""
-    from bauble.plugins.garden.location import LocationEditor
+    from bauble.plugins.garden.location_editor import LocationEditor
 
     location = setup_location
     editor = LocationEditor(model=location)
@@ -786,7 +786,7 @@ def test_decimal_to_dms(conversion_test_data) -> None:
 
 def test_parse_lat_lon(parse_lat_lon_data) -> None:
     """Test parsing latitude and longitude."""
-    from bauble.plugins.garden.collection import CollectionPresenter
+    from bauble.plugins.garden.source import CollectionPresenter
 
     parse = CollectionPresenter._parse_lat_lon
     for input_data, expected in parse_lat_lon_data:

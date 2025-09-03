@@ -47,22 +47,6 @@ from bauble.plugins.garden.pocket_server import PocketServerTool
 from bauble.utils import safe_set_props, safe_set_text
 from sqlalchemy import select
 
-# Re-export ORM classes lazily so callers can do: from bauble.plugins.garden import Plant
-__all__ = [
-    "Accession",
-    "AccessionNote",
-    "Collection",
-    "Contact",
-    "Location",
-    "LocationNote",
-    "Plant",
-    "PlantNote",
-    "PlantSearch",
-    "PlantChange",
-    "Propagation",
-    "Source",
-]
-
 
 def __getattr__(name):
     if name in __all__:
@@ -313,13 +297,13 @@ def init_location_comboentry(presenter, combo, on_select, required: bool = True)
         safe_set_text(cell, utils.utf8(model[treeiter][0]))
 
     from bauble.gtkinit import Gtk
-    from bauble.pluginmgr.garden.models import Location
+    from bauble.plugins.garden.models import Location
 
     completion = Gtk.EntryCompletion()
     cell = Gtk.CellRendererText()  # set up the completion renderer
     completion.pack_start(cell, True)
     completion.set_cell_data_func(cell, cell_data_func)
-    completion.set_popup_set_width(False)
+    completion.set_property("popup-set-width", False)
 
     entry = combo.get_child()
     entry.set_completion(completion)

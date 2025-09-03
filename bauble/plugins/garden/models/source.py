@@ -32,7 +32,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     # these are only for type‐hints; the real classes live in their modules
-    from bauble.plugins.garden import GeographicArea
+    from bauble.plugins.plants.geography import GeographicArea
 
     from .contact import Contact
     from .propagation import Propagation

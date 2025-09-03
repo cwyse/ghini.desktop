@@ -1492,7 +1492,7 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
             e = SpeciesEditor(Species(genus=self.model.genus), self.parent)
             more_committed = e.start()
         elif response == self.RESPONSE_OK_AND_ADD:
-            from bauble.plugins.garden import AccessionEditor
+            from bauble.plugins.garden.accession_editor import AccessionEditor
             from bauble.plugins.garden.models import Accession
 
             e = AccessionEditor(Accession(species=self.model), parent=self.parent)

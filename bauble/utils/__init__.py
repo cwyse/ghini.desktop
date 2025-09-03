@@ -1965,7 +1965,7 @@ class MessageBox(GenericMessageBox):
         self.details_label = Gtk.Label()
         self.details_label.set_line_wrap(True)
         self.details_label.set_xalign(0)  # Align text to the left
-        self.details_label.set_ellipsize(Pango.EllipsizeMode.END)
+        self.details_label.set_property("ellipsize", Pango.EllipsizeMode.END)
         viewport.add(self.details_label)
 
         self.details = (details or "")[:4096]

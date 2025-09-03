@@ -33,9 +33,6 @@ import bauble.plugins.plants.test as plants_test
 import pytest
 from bauble.db import Base, engine
 from bauble.editor import MockView
-from bauble.plugins.garden import Family as Family
-from bauble.plugins.garden import Genus as Genus
-from bauble.plugins.garden import Species as Species
 from bauble.plugins.garden.models import Accession as Accession
 from bauble.plugins.garden.models import Contact as Contact
 from bauble.plugins.garden.models import Location as Location
@@ -46,6 +43,9 @@ from bauble.plugins.imex.csv_ import QUOTE_STYLE as QUOTE_STYLE
 from bauble.plugins.imex.csv_ import CSVExporter as CSVExporter
 from bauble.plugins.imex.csv_ import CSVImporter as CSVImporter
 from bauble.plugins.imex.iojson import JSONExporter, JSONImporter
+from bauble.plugins.plants import Family as Family
+from bauble.plugins.plants import Genus as Genus
+from bauble.plugins.plants import Species as Species
 from bauble.plugins.plants import SpeciesNote as SpeciesNote
 from bauble.plugins.plants import VernacularName as VernacularName
 from bauble.plugins.plants.geography import GeographicArea
