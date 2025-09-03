@@ -634,7 +634,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
         msg_box_parent = self.view.widgets.message_box_parent
         list(map(msg_box_parent.remove, msg_box_parent.get_children()))
         # the entry is made not editable for branch mode
-        self.view.widgets.plant_acc_entry.set_editable(True)
+        self.view.widgets.plant_acc_entry.set_property("editable", True)
         self.view.get_window().set_title(_("Plant Editor"))
 
     def start(self):
@@ -858,10 +858,12 @@ class PlantEditor(GenericModelViewPresenterEditor):
     def start(self):
         from bauble.plugins.garden import LocationEditor as LocationEditor
         from bauble.plugins.garden.models import Accession as Accession
+        from bauble.plugins.garden.models import Location as Location
         sub_editor = None
         from sqlalchemy import func
 
-        if self.session.execute(select(func.count())).select_from(Accession) == 0:
+        count = self.session.scalar(select(func.count()).select_from(Accession))
+        if count == 0:
             msg = (
                 "You must first add or import at least one Accession into "
                 "the database before you can add plants.\n\nWould you like "
@@ -870,7 +872,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
             if utils.yes_no_dialog(msg):
                 # cleanup in case we start a new PlantEditor
                 self.presenter.cleanup()
-                from bauble.plugins.garden.accession import AccessionEditor
+                from bauble.plugins.garden.accession_editor import AccessionEditor
 
                 sub_editor = AccessionEditor()
                 self._commited = sub_editor.start()
@@ -907,7 +909,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
             box.show_all()
 
             # don't allow editing the accession code in a branched plant
-            self.presenter.view.widgets.plant_acc_entry.set_editable(False)
+            self.presenter.view.widgets.plant_acc_entry.set_property("editable", False)
 
         if not sub_editor:
             while True:
@@ -1160,7 +1162,7 @@ class PropagationExpander(InfoExpander):
             # Summary Label
             label = Gtk.Label()
             safe_set_text(label, prop.get_summary(partial=2))
-            label.set_wrap(True)  # Enable text wrapping
+            label.set_line_wrap(True)  # Enable text wrapping
             label.set_xalign(0.0)  # Align left
             label.connect("size-allocate", label_size_allocate)
             v2.pack_start(label, False, False, 0)

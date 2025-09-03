@@ -61,58 +61,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class PropagationTabPresenter(editor.GenericEditorPresenter):
-    """PropagationTabPresenter
-
-    :param parent: an instance of PlantEditorPresenter
-    :param model: an instance of class Plant
-    :param view: an instance of PlantEditorView
-    :param session:
-    """
-
-    parent_ref: Any
-    session: Any
-    _dirty: bool
-
-    def __init__(self, parent, model, view, session) -> None:
-        super().__init__(model, view)
-        self.parent_ref = weakref.ref(parent)
-        self.session = session
-        self.view.connect("prop_add_button", "clicked", self.on_add_button_clicked)
-        tab_box = self.view.widgets.prop_tab_box
-        for kid in tab_box:
-            if isinstance(kid, Gtk.Box):
-                tab_box.remove(kid)  # remove old prop boxes
-        for prop in self.model.propagations:
-            box = self.create_propagation_box(prop)
-            tab_box.pack_start(box, False, True, 0)
-        self._dirty = False
-
-    def is_dirty(self):
-        return self._dirty
-
-    def add_propagation(self) -> None:
-        """
-        Open the PropagationEditor and append the resulting
-        propagation to self.model.propagations
-        """
-        from bauble.plugins.garden.models import Propagation as Propagation
-        propagation = Propagation()
-        propagation.prop_type = "Seed"  # a reasonable default
-        add_to_relationship(self.model.propagations, propagation)
-        editor = PropagationEditor(propagation, parent=self.view.get_window())
-        # open propagation editor with start(commit=False) so that the
-        # propagation editor doesn't commit its changes since we'll be
-        # doing our own commit later
-        committed = editor.start(commit=False)
-        if committed:
-            box = self.create_propagation_box(committed)
-            self.view.widgets.prop_tab_box.pack_start(box, False, True, 0)
-            self._dirty = True
-        else:
-            propagation.plant = None
-
-
 class PropagationHandler:
     _dirty: bool
 
@@ -137,11 +85,11 @@ class PropagationHandler:
 
         hbox.pack_start(expander, True, True, 0)
 
-        from bauble.plugins.garden.plant import label_size_allocate
+        from bauble.plugins.garden.plant_editor import label_size_allocate
 
         # Label inside Expander
         label = Gtk.Label(label=propagation.get_summary())
-        label.set_wrap(True)
+        label.set_line_wrap(True)
         label.set_xalign(0)  # Replaces set_alignment(0, 0)
         label.set_margin_start(5)  # Instead of set_padding
         label.set_margin_end(5)
@@ -235,6 +183,59 @@ class PropagationHandler:
         self.parent_ref().refresh_sensitivity()
 
 
+class PropagationTabPresenter(PropagationHandler, editor.GenericEditorPresenter):
+    """PropagationTabPresenter
+
+    :param parent: an instance of PlantEditorPresenter
+    :param model: an instance of class Plant
+    :param view: an instance of PlantEditorView
+    :param session:
+    """
+
+    parent_ref: Any
+    session: Any
+    _dirty: bool
+
+    def __init__(self, parent, model, view, session) -> None:
+        super().__init__(model, view)
+        self.parent_ref = weakref.ref(parent)
+        self.session = session
+        self.view.connect("prop_add_button", "clicked", self.on_add_button_clicked)
+        tab_box = self.view.widgets.prop_tab_box
+        for kid in list(tab_box.get_children()):
+            if isinstance(kid, Gtk.Box):
+                tab_box.remove(kid)  # remove old prop boxes
+        for prop in self.model.propagations:
+            box = self.create_propagation_box(prop)
+            tab_box.pack_start(box, False, True, 0)
+        self._dirty = False
+
+    def is_dirty(self):
+        return self._dirty
+
+    def add_propagation(self) -> None:
+        """
+        Open the PropagationEditor and append the resulting
+        propagation to self.model.propagations
+        """
+        from bauble.plugins.garden.models import Propagation as Propagation
+        propagation = Propagation()
+        propagation.prop_type = "Seed"  # a reasonable default
+        add_to_relationship(self.model.propagations, propagation)
+        editor = PropagationEditor(propagation, parent=self.view.get_window())
+        # open propagation editor with start(commit=False) so that the
+        # propagation editor doesn't commit its changes since we'll be
+        # doing our own commit later
+        committed = editor.start(commit=False)
+        if committed:
+            box = self.create_propagation_box(committed)
+            self.view.widgets.prop_tab_box.pack_start(box, False, True, 0)
+            self._dirty = True
+        else:
+            propagation.plant = None
+
+
+
 class PropagationEditorView(editor.GenericEditorView):
     """ """
 
@@ -288,7 +289,7 @@ class CuttingPresenter(editor.GenericEditorPresenter):
         :param model: an instance of class Propagation
         :param view: an instance of PropagationEditorView
         """
-        from bauble.plugins.garden import PropCutting
+        from bauble.plugins.garden.models import PropCutting
         super().__init__(model, view)
         self.parent_ref = weakref.ref(parent)
         self.session = session
@@ -387,7 +388,7 @@ class CuttingPresenter(editor.GenericEditorPresenter):
             (sfw.rooted_date_cell, sfw.rooted_date_column, "date"),
             (sfw.rooted_quantity_cell, sfw.rooted_quantity_column, "quantity"),
         ]:
-            cell.set_editable(True)
+            cell.set_property("editable", True)
             self.view.connect(cell, "edited", partial(on_rooted_cell_edited, attr_name))
             column.set_cell_data_func(cell, partial(rooted_cell_data_func, attr_name))
 
@@ -514,7 +515,7 @@ class SeedPresenter(editor.GenericEditorPresenter):
         :param model: an instance of class Propagation
         :param view: an instance of PropagationEditorView
         """
-        from bauble.plugins.garden import PropSeed
+        from bauble.plugins.garden.models import PropSeed
         super().__init__(model, view)
         self._dirty = False
         self.parent_ref = weakref.ref(parent)

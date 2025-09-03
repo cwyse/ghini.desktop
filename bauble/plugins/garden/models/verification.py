@@ -10,11 +10,11 @@ from sqlalchemy import ForeignKey, Integer, Unicode, UnicodeText, asc
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from bauble.plugins.garden import Species
+    from bauble.plugins.plants.species_model import Species
     
 logger = logging.getLogger(__name__)
 
-ver_level_descriptions: ClassVar[dict[int, str]] = {
+ver_level_descriptions: dict[int, str] = {
     0: _("Not checked by any authority"),
     1: _("Determined by comparison with other named plants"),
     2: _("Determined by a taxonomist"),

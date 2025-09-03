@@ -116,7 +116,7 @@ def remove_callback(values):
 
 
 def add_accession_callback(values):
-    from bauble.plugins.garden.accession import AccessionEditor
+    from bauble.plugins.garden.accession_editor import AccessionEditor
     from bauble.plugins.garden.models import Accession
 
     session = Session()
@@ -341,7 +341,7 @@ class GeneralSpeciesExpander(InfoExpander):
         general_box = self.widgets.sp_general_box
         self.widgets.remove_parent(general_box)
         self.vbox.pack_start(general_box, True, True, 0)
-        self.widgets.sp_epithet_data.set_line_wrap(True)
+        self.widgets.sp_epithet_data.set_property("wrap", True)
 
         # make the check buttons read only
         def on_enter(button, *args):

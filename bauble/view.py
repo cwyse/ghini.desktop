@@ -217,7 +217,7 @@ class PropertiesExpander(InfoExpander):
         # Helper to create labels with alignment and markup
         def create_label(text, use_markup=False, align=(1, 0.5)):
             label = Gtk.Label(label=text)
-            label.set_use_markup(use_markup)
+            label.set_property("use_markup", use_markup)
             label.set_xalign(align[0])
             label.set_yalign(align[1])
             return label
@@ -489,7 +489,7 @@ class LinksExpander(InfoExpander):
                 for label, url in utils.get_urls(note.note):
                     label_text = label or url
                     label = Gtk.Label(label=label_text)
-                    label.set_ellipsize(Pango.EllipsizeMode.END)
+                    label.set_property("ellipsize", Pango.EllipsizeMode.END)
 
                     button = Gtk.LinkButton(uri=url)
 
@@ -887,10 +887,10 @@ class SearchView(pluginmgr.View):
             model = bottom_info["tree"].get_model()
             model.clear()
             if len(objs) == 0:
-                label.set_use_markup(False)
+                label.set_property("use_markup", False)
                 label.set_label(bottom_info["name"])
             else:
-                label.set_use_markup(True)
+                label.set_property("use_markup", True)
                 label.set_label("<b>{}</b>".format(bottom_info["name"]))
                 for obj in objs:
                     model.append(
@@ -1109,7 +1109,8 @@ class SearchView(pluginmgr.View):
         # Initialize a tree model for results
         model = Gtk.TreeStore(object)
         model.set_default_sort_func(lambda *args: -1)
-        model.set_sort_column_id(-1, Gtk.SortType.ASCENDING)
+        model.set_sort_func(Gtk.TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID,
+                         Gtk.SortType.ASCENDING)
 
         # Clear the model and update the results view
         utils.clear_model(self.results_view)

@@ -767,7 +767,7 @@ class GenericEditorView:
         completion.set_match_func(match_func)
         completion.set_property("text-column", text_column)
         completion.set_minimum_key_length(minimum_key_length)
-        completion.set_popup_completion(True)
+        completion.set_property("popup_completion", True)
         completion.set_property("popup-set-width", False)
         if isinstance(entry, str):
             self.widgets[entry].set_completion(completion)
