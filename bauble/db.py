@@ -735,6 +735,48 @@ def create_triggers(connection: Connection) -> None:
 
     # Other backends: no-op (or you could add your own normalization here)
 
+# --- Relationship wiring (idempotent) ---
+_REL_WIRED = False
+
+def ensure_relationships_wired() -> None:
+    """
+    Import all garden model modules, wire relationships, and finalize mappers.
+    Safe to call multiple times.
+    """
+    global _REL_WIRED
+    if _REL_WIRED:
+        return
+
+    import importlib
+    import logging
+
+    from sqlalchemy.orm import configure_mappers
+
+    # Ensure all model classes are imported before wiring
+    for mod in [
+        "bauble.plugins.garden.models.accession",
+        "bauble.plugins.garden.models.association_tables",
+        "bauble.plugins.garden.models.contact",
+        "bauble.plugins.garden.models.location",
+        "bauble.plugins.garden.models.plant",
+        "bauble.plugins.garden.models.plant_change",
+        "bauble.plugins.garden.models.propagation",
+        "bauble.plugins.garden.models.source",
+        "bauble.plugins.garden.models.verification",
+        "bauble.plugins.garden.models.voucher",
+    ]:
+        try:
+            importlib.import_module(mod)
+        except Exception as e:
+            logger.debug("Skipping import %s: %s", mod, e)
+
+    # Wire relationships once all classes exist
+    import bauble.plugins.garden.models as garden_models
+    garden_models.wire_relationships()
+
+    # Finalize ORM mappings
+    configure_mappers()
+    _REL_WIRED = True
 
 def create(import_defaults: bool = True) -> None:
     """
@@ -760,30 +802,8 @@ def create(import_defaults: bool = True) -> None:
         # 1) Load plugins so their models are imported and mapped classes exist
         pluginmgr.load()  # <— add this call
 
-        # 1) Load plugins so their modules are discoverable
-        # pluginmgr.load()
-
-        # 2) Import every model module so all classes are defined & registered
-        import importlib
-
-        for mod in [
-            "bauble.plugins.garden.models.accession",
-            "bauble.plugins.garden.models.association_tables",
-            "bauble.plugins.garden.models.contact",
-            "bauble.plugins.garden.models.location",
-            "bauble.plugins.garden.models.plant",
-            "bauble.plugins.garden.models.plant_change",
-            "bauble.plugins.garden.models.propagation",
-            "bauble.plugins.garden.models.source",
-            "bauble.plugins.garden.models.verification",
-            "bauble.plugins.garden.models.voucher",
-        ]:
-            importlib.import_module(mod)
-
-        # 3) Wire relationships AFTER all classes exist
-        import bauble.plugins.garden.models as garden_models
-
-        garden_models.wire_relationships()
+        from bauble.db import ensure_relationships_wired
+        ensure_relationships_wired()
 
         with engine.begin() as connection:
             # Ensure all mappers are configured before creating tables

@@ -304,6 +304,8 @@ class GhiniApp:
 
         self.uri, self.open_exc = self.setup_database()
         pluginmgr.load()
+        from bauble.db import ensure_relationships_wired
+        ensure_relationships_wired()
         prefs.save()
         from bauble.view import DefaultCommandHandler
         pluginmgr.register_command(DefaultCommandHandler)
