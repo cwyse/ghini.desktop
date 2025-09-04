@@ -272,6 +272,7 @@ class AccessionEditorView(editor.GenericEditorView):
             "acc_species_entry",
             cell_data_func=self.species_cell_data_func,
             match_func=self.species_match_func,
+            minimum_key_length=3,
         )
         self.set_accept_buttons_sensitive(False)
         self.restore_state()
@@ -344,14 +345,18 @@ class AccessionEditorView(editor.GenericEditorView):
     @staticmethod
     # staticmethod ensures the AccessionEditorView gets garbage collected.
     def species_match_func(completion, key, treeiter, data: Optional[Any] = None):
-        species = completion.get_model()[treeiter][0]
-        epg, eps = (species.str(remove_zws=True).lower() + " ").split(" ")[:2]
-        key_epg, key_eps = (key.replace("\u200b", "").lower() + " ").split(" ")[:2]
-        if not epg:
-            epg = str(species.genus.epithet).lower()
-        if epg.startswith(key_epg) and eps.startswith(key_eps):
-            return True
-        return False
+        try:
+            species = completion.get_model()[treeiter][0]
+            epg, eps = (species.str(remove_zws=True).lower() + " ").split(" ")[:2]
+            key_epg, key_eps = (key.replace("\u200b", "").lower() + " ").split(" ")[:2]
+            if not epg:
+                epg = str(species.genus.epithet).lower()
+            if epg.startswith(key_epg) and eps.startswith(key_eps):
+                return True
+            return False
+        except (PendingRollbackError, IntegrityError):
+            self.session.rollback()
+            return False
 
     @staticmethod
     # staticmethod ensures the AccessionEditorView gets garbage collected.
@@ -646,18 +651,24 @@ class VerificationBox:
         """Set up the species-related entries with auto-completion."""
 
         def sp_get_completions(text):
-            query = (
+            result = (
                 self.presenter()
                 .session.execute(
                     select(Species)
                     .join(Genus, Species.genus_id == Genus.id)
                     .where(ilike(Genus.genus, f"{text}%"))
-                    .where(Species.id != (self.model.species.id if self.model.species else -1))
-                    .order_by(Species.sp)
+                    .where(
+                        Species.id != (
+                            self.model.species.id if self.model.species else -1
+                        )
+                    )
+                    .order_by(Genus.genus, Species.sp)
+                    .limit(100)
                 )
                 .scalars()
+                .all()            # ← concrete list (not ScalarResult)
             )
-            return query
+            return result
 
         def sp_cell_data_func(col, cell, model, treeiter, data=None):
             v = model[treeiter][0]
@@ -1368,83 +1379,89 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
 
         # connect signals
         def sp_get_completions(text):
-            genus_name = text.split(" ")[0] if " " in text else text
-            query = self.session.execute(
-                select(Species)
-                .join(Genus, Species.genus_id == Genus.id)
-                .where(
-                    or_(
-                        ilike(Genus.genus, f"{text}%"),
-                        ilike(Genus.genus, f"{genus_name}%"),
+            try:
+                # use the first token as genus while typing
+                genus_name = text.split(" ", 1)[0].strip()
+                result = (
+                    self.session.execute(
+                        select(Species)
+                        .join(Genus, Species.genus_id == Genus.id)
+                        .where(ilike(Genus.genus, f"{genus_name}%"))
+                        .order_by(Genus.genus, Species.sp)
+                        .limit(100)
                     )
+                    .scalars()
+                    .all()            # ← return a concrete list
                 )
-                .order_by(Species.sp)
-            ).scalars()
-            return query
-
+                return result
+            except (PendingRollbackError, IntegrityError):
+                self.session.rollback()
+                return []
+            
         def on_select(value):
             logger.debug("on select: %s", value)
-            if isinstance(value, str):
-                try:
-                    genus_name, epithet = value.split(" ", 1)
-                except ValueError:
-                    logger.error(
-                        f"Invalid taxon format: '{value}'. Expected 'Genus epithet'."
-                    )
-                    utils.message_dialog(
-                        _(
-                            "Invalid species format. Please enter in 'Genus epithet' format."
-                        )
-                    )
-                    self.set_model_attr("species", None)
+
+            def set_model(v):
+                self.set_model_attr("species", v)
+                self.refresh_id_qual_rank_combo()
+
+            # 0) Empty/cleared while typing — just clear the model, no dialog
+            if value in (None, ""):
+                set_model(None)
+                return
+
+            # 1) If we already got a Species instance, use it
+            if isinstance(value, Species):
+                chosen = value
+
+            # 2) If it's text, only act when it looks complete: "Genus epithet"
+            elif isinstance(value, str):
+                text = value.strip().replace("\u200b", "")
+                # ignore genus-only / partial tokens while typing
+                if " " not in text:
+                    set_model(None)
                     return
+                genus_name, epithet = (text.split(" ", 1)[0], text.split(" ", 1)[1].strip())
+                if not genus_name or not epithet:
+                    set_model(None)
+                    return
+
+                # try to resolve to a Species, silently ignore if not found
                 species_instance = get_species_instance(
                     session=self.session,
                     genus_epithet=genus_name,
                     epithet=epithet,
                     create=False,
                 )
-                if species_instance:
-                    value = species_instance
-                else:
-                    logger.error(
-                        f"Species '{value}' not found in the database with criteria {{'epithet': '{epithet}', 'ht-epithet': '{genus_name}'}}."
-                    )
-                    utils.message_dialog(
-                        _("Selected species not found. Please select a valid species.")
-                    )
-                    self.set_model_attr("species", None)
+                if not species_instance:
+                    set_model(None)
                     return
-            elif not isinstance(value, Species):
-                logger.error(f"Unexpected type for species: {type(value).__name__}")
-                utils.message_dialog(
-                    _("Invalid species selection. Please select a valid species.")
-                )
-                self.set_model_attr("species", None)
+                chosen = species_instance
+
+            # 3) Any other type — ignore
+            else:
+                set_model(None)
                 return
 
-            def set_model(v):
-                self.set_model_attr("species", v)
-                self.refresh_id_qual_rank_combo()
-
-            # Remove any existing message boxes
+            # Clear any previous inline message box
             for kid in self.view.widgets.message_box_parent.get_children():
                 self.view.widgets.remove_parent(kid)
 
-            set_model(value)
-            if not value:
-                return
-
-            stmt = SpeciesSynonym.query_with_default_order().where(SpeciesSynonym.synonym_id == value.id)
+            # 4) Set resolved species, then (optionally) offer synonym swap inline
+            set_model(chosen)
+            stmt = SpeciesSynonym.query_with_default_order().where(
+                SpeciesSynonym.synonym_id == chosen.id
+            )
             syn = self.session.execute(stmt).scalars().first()
             if not syn:
-                set_model(value)
                 return
+
             msg = _(
                 "The species <b>%(synonym)s</b> is a synonym of "
                 "<b>%(species)s</b>.\n\nWould you like to choose "
                 "<b>%(species)s</b> instead?"
             ) % {"synonym": syn.synonym, "species": syn.species}
+
             box = self.view.add_message_box(utils.MESSAGE_BOX_YESNO)
             box.message = msg
 
@@ -1457,18 +1474,46 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                     model = Gtk.ListStore(object)
                     model.append([syn.species])
                     completion.set_model(model)
-                    safe_set_text(
-                        self.view.widgets.acc_species_entry,
-                        utils.utf8(syn.species),
-                    )
+                    safe_set_text(self.view.widgets.acc_species_entry, utils.utf8(syn.species))
                     set_model(syn.species)
 
             box.on_response = on_response
             box.show()
 
+        
+        # Ensure the Entry has a completion and that it has a model
+        species_entry = self.view.widgets.acc_species_entry
+        comp = species_entry.get_completion()
+        if comp is None:
+            comp = Gtk.EntryCompletion()
+            species_entry.set_completion(comp)
+        if comp.get_model() is None:
+            comp.set_model(Gtk.ListStore(object))
+        # helpful UX flags (don’t fight your view’s match_func)
+        try:
+            comp.set_popup_completion(True)
+            comp.set_inline_selection(True)
+        except Exception:
+            pass
+
         self.assign_completions_handler(
-            "acc_species_entry", sp_get_completions, on_select=on_select
+            species_entry, sp_get_completions, on_select=on_select
         )
+
+        # Try to resolve the typed text once the entry loses focus (no popups while typing)
+        def _resolve_on_blur(entry, *args):
+            txt = entry.get_text().strip()
+            # only try if it looks like "Genus epithet"; otherwise leave it alone
+            if " " not in txt:
+                self.set_model_attr("species", None)
+                return False
+            on_select(txt)   # on_select already handles strings / Species objects
+            return False
+
+        # either style works with your helper; pick one:
+        self.view.connect("acc_species_entry", "focus-out-event", _resolve_on_blur)
+
+
         self.assign_simple_handler("acc_prov_combo", "prov_type")
         self.assign_simple_handler("acc_wild_prov_combo", "wild_prov_status")
 
