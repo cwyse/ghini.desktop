@@ -191,11 +191,20 @@ def get_species_instance(
     Retrieves a Species instance based on epithet and optional genus epithet.
     Returns a Species instance or None.
     """
-    keys = {"epithet": epithet}
-    if genus_epithet:
-        keys["ht-epithet"] = genus_epithet  # Application-level attribute
-    return Species.retrieve_or_create(session=session, keys=keys, create=create)
+    # Strip zero-width spaces and whitespace
+    ep = (epithet or "").replace("\u200b", "").strip()
+    ge = (genus_epithet or "").replace("\u200b", "").strip() or None
 
+    keys = {"epithet": ep}
+    if ge:
+        keys["ht-epithet"] = ge
+
+    # SAFE lookup: no flush
+    sp = Species.retrieve(session, keys)
+    if sp is not None or not create:
+        return sp
+    
+    return Species.retrieve_or_create(session=session, keys=keys, create=create)
 
 def longitude_to_dms(decimal):
     return decimal_to_dms(Decimal(decimal), "long")
@@ -461,7 +470,7 @@ class Accession(Base, Serializable, WithNotes):
             ).scalars().all()
 
             if codes:
-                suffixes = [safe_int(code[len(start) :]) for c in codes]
+                suffixes = [safe_int(c[len(start) :]) for c in codes]
                 next_number = (max(suffixes) or 0) + 1
             else:
                 next_number = 1

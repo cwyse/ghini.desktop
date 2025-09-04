@@ -23,6 +23,7 @@ from typing import Any
 prop_type_values: Any = {
     "Seed": _("Seed"),
     "UnrootedCutting": _("Unrooted cutting"),
+    "Unknown": _("Unknown"),  
 }
 
 prop_type_results: Any = {

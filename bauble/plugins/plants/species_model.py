@@ -35,6 +35,7 @@ from sqlalchemy import (
     UnicodeText,
     UniqueConstraint,
     asc,
+    func,
     select,
     text,
 )
@@ -241,18 +242,23 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         from .genus import Genus
 
         try:
-            # Build the base query
-            stmt = select(cls)
+            # Start from Species explicitly, then join Genus explicitly
+            stmt = (
+                select(cls)
+                .select_from(cls)
+                .join(Genus, cls.genus_id == Genus.id)
+            )
 
-            # Add conditions for `epithet`
-            if "epithet" in keys:
-                stmt = stmt.where(cls.epithet == keys["epithet"])
+            # Normalize inputs (strip zero-width spaces, casefold for case-insensitive compare)
+            ep = keys.get("epithet")
+            ht = keys.get("ht-epithet")
 
-            # Add conditions for `ht-epithet` (genus epithet)
-            if "ht-epithet" in keys:
-                stmt = stmt.join(cls.genus).where(Genus.epithet == keys["ht-epithet"])
+            if ep:
+                stmt = stmt.where(func.lower(cls.epithet) == func.lower(func.trim(ep)))
+            if ht:
+                stmt = stmt.where(func.lower(Genus.epithet) == func.lower(func.trim(ht)))
 
-            # Execute the query and fetch one result
+            # One row or None
             result = session.execute(stmt).scalars().one_or_none()
 
             if result:
@@ -695,7 +701,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                     logger.info(f"cannot find specified rank {e}")
 
         parts = chain(binomial, infrasp_parts, tail)
-        s = utils.utf8(" ".join(i for i in parts if i))
+        s = " ".join(i for i in parts if i)
         if self.hybrid:
             s = s.replace(f"{self.hybrid_char} ", self.hybrid_char)
         return s
