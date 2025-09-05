@@ -165,23 +165,30 @@ class SynonymSearch(search.SearchStrategy):
             prefs[self.return_synonyms_pref] = True
             prefs.save()
 
-    def search(self, text, session):
+    def search(text: str, session: Optional[Session] = None) -> List[Any]:
         # from .genus import Genus, GenusSynonym
 
         super().search(text, session)
-        if not prefs[self.return_synonyms_pref]:
-            return []
+        if not session or not prefs[self.return_synonyms_pref]:
+            return set()
         mapper_search = search.get_strategy("MapperSearch")
-        r1 = mapper_search.search(text, session)
-        if not r1:
-            return []
-        results = []
-        for result in r1:
+        # Seed with base results from MapperSearch (your original intent)
+        base = set(mapper_search.search(text, session))
+        if not base:
+            return set()
+        from sqlalchemy import select
+        from bauble.plugins.plants.genus import Genus
+        from bauble.plugins.plants.species import Species, VernacularName
+        # adapt to your actual synonym model locations:
+        from bauble.plugins.plants.species_model import SpeciesSynonym, GenusSynonym
+
+        out = set(base)
+        for result in base:
             # iterate through the results and for all objects considered
             # synonym of something else, include that something else. that
             # is, the accepted name.
             if isinstance(result, Species):
-                q = (
+                syns = (
                     session.execute(
                         select(SpeciesSynonym).where(
                             SpeciesSynonym.synonym_id == result.id
@@ -190,18 +197,18 @@ class SynonymSearch(search.SearchStrategy):
                     .scalars()
                     .all()
                 )
-                results.extend([syn.species for syn in q])
+                out.update(syn.species for syn in syns if syn.species is not None)
             elif isinstance(result, Genus):
-                q = (
+                syns = (
                     session.execute(
                         select(GenusSynonym).where(GenusSynonym.synonym_id == result.id)
                     )
                     .scalars()
                     .all()
                 )
-                results.extend([syn.genus for syn in q])
-            elif isinstance(results, VernacularName):
-                q = (
+                out.update(syn.genus for syn in syns if syn.genus is not None)
+            elif isinstance(result, VernacularName):
+                syns = (
                     session.execute(
                         select(SpeciesSynonym).where(
                             SpeciesSynonym.synonym_id == result.species.id
@@ -210,8 +217,8 @@ class SynonymSearch(search.SearchStrategy):
                     .scalars()
                     .all()
                 )
-                results.extend([syn.species for syn in q])
-        return results
+                out.update(syn.species for syn in syns if syn.species is not None))
+        return out
 
 
 #

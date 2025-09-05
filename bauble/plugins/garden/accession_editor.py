@@ -59,7 +59,7 @@ from bauble.plugins.plants.species_model import Species, SpeciesSynonym
 from bauble.shared import InfoExpander
 
 # NEW imports to satisfy pyflakes
-from bauble.utils import check, handle_db_error, ilike, safe_set_text
+from bauble.utils import check, ilike, safe_set_text
 from bauble.view import (
     Action,
     InfoBox,
@@ -1286,7 +1286,6 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         "intended2_loc_comboentry": "intended2_location",
         "acc_prov_combo": "prov_type",
         "acc_wild_prov_combo": "wild_prov_status",
-        "acc_species_entry": "species",
         "acc_private_check": "private",
         "intended_loc_create_plant_checkbutton": "create_plant",
     }
@@ -1893,7 +1892,12 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         """
         # TODO: if add_problems=True then we should add problems to
         # all the required widgets that don't have values
-
+        # Require a real Species instance, not just truthy text
+        if not self.model.code or not isinstance(self.model.species, Species):
+            return False
+        
+        if not self.model.code or not isinstance(self.model.species, Species):
+            return False
         if not self.model.code or not self.model.species:
             return False
 
@@ -2155,7 +2159,71 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         """
         Commit changes specific to accession and handle dependencies.
         """
-        from bauble.plugins.garden.models import Plant
+        from bauble.plugins.garden.models import Plant  # ← keep this import
+        from bauble.plugins.garden.models import Accession
+        from bauble.plugins.plants.species_model import Species
+        from sqlalchemy import inspect as sa_inspect
+
+        # Ensure the Accession instance is attached to this session
+        st = sa_inspect(self.model)
+        if st.transient or st.pending:
+            # brand new object, just add it to this session
+            self.session.add(self.model)
+        elif st.detached:
+            # came from a different session, merge it (default load=True)
+            self.model = self.session.merge(self.model)
+
+        # --- NEW: make sure model.species is a real Species bound to this session ---
+        sp = self.model.species
+
+        # If a plain string slipped in (e.g., from the entry auto-binding), try to resolve it
+        if isinstance(sp, str):
+            txt = sp.strip().replace("\u200b", "")
+            sp = None
+            if " " in txt:
+                gen, epithet = txt.split(" ", 1)
+                # get_species_instance is already imported at top of the file
+                sp = get_species_instance(
+                    session=self.session,
+                    genus_epithet=gen,
+                    epithet=epithet.strip(),
+                    create=False,
+                )
+
+        # Hard stop if we still don’t have a proper Species row
+        if not isinstance(sp, Species):
+            # optional: user-friendly message; remove if you prefer only the generic dialog upstream
+            utils.message_dialog(
+                _("You must select a valid species from the list."),
+                type=Gtk.MessageType.WARNING,
+            )
+            # Raise to abort the commit (handle_response catches Exception and won’t append)
+            raise ValueError("Invalid or missing species; refusing to commit accession.")
+
+        # Make sure the Species is attached to this session as well
+        sp_state = sa_inspect(sp)
+        if sp_state.detached:
+            sp = self.session.merge(sp)
+        elif sp_state.transient:
+            # shouldn’t happen for a taxon picked from DB, but handle gracefully
+            self.session.add(sp)
+
+        # Set both the relationship and (if exposed) the FK column
+        self.model.species = sp
+        if hasattr(self.model, "species_id"):
+            self.model.species_id = sp.id
+        # keep only this accession; expunge any other transient/new ones
+        for obj in list(self.session.new):
+            if isinstance(obj, Accession) and obj is not self.model:
+                self.session.expunge(obj)
+
+        # also a sanity guard: species_id must be set
+        if not getattr(self.model, "species_id", None) and getattr(self.model, "species", None):
+            self.model.species_id = self.model.species.id
+
+        if not getattr(self.model, "species_id", None):
+            raise ValueError("species_id not set just before commit")
+
 
         if self.model.source:
             if not self.model.source.collection:
@@ -2187,14 +2255,18 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
             )
             self.session.add(plant)
 
-        # Use the base commit logic for common functionality
-        if not handle_db_error(
-            super().commit_changes, self.session, context="committing accession changes"
-        ):
+        try:
+            logger.warning(
+                "About to commit accession code=%s species=%r species_id=%s bound=%s",
+                self.model.code,
+                self.model.species,
+                getattr(self.model, "species_id", None),
+                object_session(self.model.species) is self.session,
+            )
+            super().commit_changes()
+        except Exception:
             return False
-
         return True
-
 
 # import at the bottom to avoid circular dependencies
 
