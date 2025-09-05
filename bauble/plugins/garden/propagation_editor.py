@@ -882,7 +882,11 @@ class PropagationEditor(editor.GenericModelViewPresenterEditor):
 
             if response in (Gtk.ResponseType.OK, *self.ok_responses):
                 if self.presenter.is_dirty() and commit:
-                    if not handle_db_error(self.commit_changes, self.session):
+                    try:
+                        self.commit_changes()
+                    except Exception:
+                        if self.session.in_transaction():
+                            self.session.rollback()
                         return False
                 self._return = self.model
             elif (

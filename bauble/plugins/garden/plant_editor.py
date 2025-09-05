@@ -45,7 +45,7 @@ from bauble.error import CheckConditionError
 from bauble.gtkinit import Gtk
 from bauble.plugins.garden.constants import acc_type_values, change_reasons
 from bauble.shared import InfoExpander
-from bauble.utils import handle_db_error, safe_set_text
+from bauble.utils import safe_set_text
 from bauble.view import (
     Action,
     InfoBox,
@@ -821,13 +821,12 @@ class PlantEditor(GenericModelViewPresenterEditor):
         not_ok_msg = _("Are you sure you want to lose your changes?")
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
             if self.presenter.dirty():
-                if not handle_db_error(
-                    lambda: self.commit_changes(),
-                    self.session,
-                    context="committing plant changes",
-                ):
+                try:
+                    self.commit_changes()
+                except Exception:
+                    if self.session.in_transaction():
+                        self.session.rollback()
                     return False
-            self._committed.append(self.model)
 
         # Handle rollback or losing change
         elif (

@@ -1420,7 +1420,10 @@ class GenericEditorPresenter:
         """
         Commit the changes to self.session()
         """
-        objs = list(self.session)
+        from sqlalchemy import inspect as sa_inspect
+
+        # snapshot ONLY persistent objects (already saved in DB)
+        objs = [o for o in list(self.session) if sa_inspect(o).persistent]
         try:
             if self.session.in_transaction():
                 self.session.commit()
@@ -1431,7 +1434,9 @@ class GenericEditorPresenter:
         except Exception:
             if self.session.in_transaction():
                 self.session.rollback()
-            self.session.add_all(objs)
+            # Re-attach only the persistent ones
+            for o in objs:
+                self.session.add(o)
             raise
         finally:
             if self.owns_session:
@@ -2142,7 +2147,10 @@ class GenericModelViewPresenterEditor:
         """
         Commit the changes to self.session()
         """
-        objs = list(self.session)
+        from sqlalchemy import inspect as sa_inspect
+
+        # snapshot ONLY persistent objects (already saved in DB)
+        objs = [o for o in list(self.session) if sa_inspect(o).persistent]
         try:
             if self.session.in_transaction():
                 self.session.commit()
@@ -2154,7 +2162,9 @@ class GenericModelViewPresenterEditor:
             logger.warning(f"can't commit changes: ({type(e)}) {e}")
             if self.session.in_transaction():
                 self.session.rollback()
-            self.session.add_all(objs)
+            # Re-attach only the persistent ones
+            for o in objs:
+                self.session.add(o)
             handle_db_error(
                 e, context="committing changes"
             )  # Centralized error handling
@@ -2585,4 +2595,5 @@ class PicturesPresenter(NotesPresenter):
 
         notes = self.box.get_children()
         if notes:
+            notes[0].set_expanded(False)  # expand none
             notes[0].set_expanded(False)  # expand none

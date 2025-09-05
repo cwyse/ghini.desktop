@@ -1560,14 +1560,12 @@ class ValueListAction:
         # in other use upper()
         def ilike_filter(cls: DeclarativeMeta, column: str, value: str) -> Any:
             """Portable case-insensitive filtering."""
-            # Ensure the value is a string if the column is Unicode.
-            mapped = inspect(cls)
-            col_obj = mapped.c[column]
-            if hasattr(col_obj.type, "python_type") and issubclass(
-                col_obj.type.python_type, str
-            ):
-                value = str(value)
-            return func.lower(getattr(cls, column)).like(f"%{value.lower()}%")
+            # Use ORM attribute so synonyms/hybrids (e.g., 'epithet') work.
+            attr = getattr(cls, column, None)
+            if attr is None:
+                return None  # skip unknown property instead of crashing
+            # Portable case-insensitive match:
+            return utils.ilike(attr, f"%{str(value)}%")
 
         # ✅ Ensure a valid SQLAlchemy session
         session = search_strategy._session
@@ -1583,9 +1581,13 @@ class ValueListAction:
             ]
 
             # Build a filter condition for each column-value pair
-            filters = [
-                ilike_filter(cls, column, value) for column, value in column_value_pairs
-            ]
+            filters = []
+            for column, value in column_value_pairs:
+                pred = ilike_filter(cls, column, value)
+                if pred is not None:
+                    filters.append(pred)
+            if not filters:
+                continue
 
             # Execute the query for the current class
             query = select(cls).where(or_(*filters))
@@ -1597,6 +1599,14 @@ class ValueListAction:
             print(f"DEBUG: Generated SQL Query: {compiled_sql}")
 
             query_result = search_strategy._session.scalars(query).all()
+            print(f"→ {cls.__name__}: {len(query_result)} hits")
+            if query_result:
+                # show a peek of identity keys
+                try:
+                    from sqlalchemy import inspect as _insp
+                    print("   ids:", [getattr(o, _insp(o).mapper.primary_key[0].key) for o in query_result[:5]])
+                except Exception:
+                    pass
             result.update(query_result)
 
         # Post-process the results
@@ -1604,7 +1614,7 @@ class ValueListAction:
             try:
                 replacement = item.replacement()
                 logger.debug("Replacing %s with %s in result set", item, replacement)
-                return replacement
+                return replacement or item
             except Exception as e:
                 logger.debug("No replacement for %s due to: %s", item, e)
                 return item
