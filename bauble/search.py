@@ -155,16 +155,37 @@ def resolve_relationships(
 
 
 
-
+def _accepts_seed(strategy):
+    try:
+        sig = inspect.signature(strategy.search)
+        return 'seed' in sig.parameters
+    except Exception:
+        return False
 
 def search(text: str, session: Optional[Session] = None) -> List[Any]:
-
     results: Set[Any] = set()
-    for strategy in list(_search_strategies.values()):
-        logger.debug(
-            f"applying search strategy {type(strategy).__name__} from module {type(strategy).__module__}"
-        )
-        results.update(strategy.search(text, session))
+
+    # Run MapperSearch first to get the base results exactly once
+    mapper = _search_strategies.get("MapperSearch")
+    base: Set[Any] = set()
+    if mapper is not None:
+        base = set(mapper.search(text, session))
+        results.update(base)
+
+    # Other strategies can use the base as a seed (no re-running MapperSearch)
+    for name, strategy in _search_strategies.items():
+        if name == "MapperSearch":
+            continue
+        try:
+            if _accepts_seed(strategy):
+                out = strategy.search(text, session, seed=base)
+            else:
+                out = strategy.search(text, session)
+            if out:
+                results.update(out)       
+        except Exception:
+            logger.exception("Search strategy %s failed", strategy.__class__.__name__)
+
     return list(results)
 
 
@@ -1819,7 +1840,7 @@ class SearchStrategy:
     Interface for adding search strategies to a view.
     """
 
-    def search(self, text: str, session: Optional[Session] = None) -> Set[Any]:
+    def search(self, text: str, session: Optional[Session] = None, **kwargs,) -> Set[Any]:
         """
         :param text: the search string
         :param session: the session to use for the search
@@ -1903,7 +1924,7 @@ class MapperSearch(SearchStrategy):
             d.setdefault(domain, item[0])
         return d
 
-    def search(self, text: str, session: Optional[Session] = None) -> Set[Any]:
+    def search(self, text: str, session: Optional[Session] = None, **kwargs) -> Set[Any]:
         """
         Perform a text-based search on the database using the MapperSearch strategy.
 

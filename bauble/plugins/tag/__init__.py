@@ -839,7 +839,7 @@ def untag_objects(name: str, objs: list) -> None:
     :param name: The name of the tag to remove.
     :param objs: The list of objects to untag.
     """
-    name = utils.utf8(name)
+    name = utils.to_unicode(name)
 
     if not objs:
         create_named_empty_tag(name)
@@ -896,7 +896,7 @@ def tag_objects(name: str, objects: list) -> None:
         create_named_empty_tag(name)
         return
 
-    name = utils.utf8(name)
+    name = utils.to_unicode(name)
     session = object_session(objects[0])
     try:
         tag = session.execute(select(Tag).where(tag=name)).scalars().one()

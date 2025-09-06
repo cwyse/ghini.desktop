@@ -268,14 +268,14 @@ def init(force: bool = False) -> None:
                 registered.append(plugins[name])
             except KeyError as e:
                 logger.debug(f"could not find '{e}' plugin. " "removing from database")
-                not_registered.append(utils.utf8(name))
+                not_registered.append(utils.to_unicode(name))
                 PluginRegistry.remove(name=name)
 
         if not_registered:
             msg = _(
                 "The following plugins are in the registry but "
                 "could not be loaded:\n\n%(plugins)s"
-            ) % {"plugins": utils.utf8(", ".join(sorted(not_registered)))}
+            ) % {"plugins": utils.to_unicode(", ".join(sorted(not_registered)))}
             utils.message_dialog(utils.xml_safe(msg), type=Gtk.MessageType.WARNING)
 
     except Exception as e:
@@ -412,7 +412,7 @@ def install(
                 logger.debug(f"{p} - adding to registry")
                 PluginRegistry.add(p)
     except Exception as e:
-        logger.warning(f"bauble.pluginmgr.install(): {utils.utf8(e)}")
+        logger.warning(f"bauble.pluginmgr.install(): {utils.to_unicode(e)}")
         logger.debug(traceback.print_exc())
         raise
 

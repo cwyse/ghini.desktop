@@ -109,7 +109,7 @@ logger = logging.getLogger(__name__)
 #     try:
 #         conn.execute('set role %s' % name)
 #     except Exception, e:
-#         warning(utils.utf8(e))
+#         warning(utils.to_unicode(e))
 #         trans.rollback()
 #         conn.close()
 #         return None
@@ -157,7 +157,7 @@ def _create_role(
                 stmt += f" PASSWORD '{password}'"
             conn.execute(stmt)
     except Exception as e:
-        logger.error("users._create_role(): %s %s", type(e), utils.utf8(e))
+        logger.error("users._create_role(): %s %s", type(e), utils.to_unicode(e))
         raise
 
 
@@ -185,7 +185,7 @@ def create_user(
                 )
             )
     except Exception as e:
-        logger.error("users.create_user(): %s %s", type(e), utils.utf8(e))
+        logger.error("users.create_user(): %s %s", type(e), utils.to_unicode(e))
         raise
 
 
@@ -207,7 +207,7 @@ def add_member(name, groups: Optional[Any] = None) -> None:
             for group in groups:
                 conn.execute(text(f'grant "{group}" to {name}'))
     except Exception as e:
-        logger.error("users.add_member(): %s %s", type(e), utils.utf8(e))
+        logger.error("users.add_member(): %s %s", type(e), utils.to_unicode(e))
 
 
 def remove_member(name, groups: Optional[Any] = None) -> None:
@@ -221,7 +221,7 @@ def remove_member(name, groups: Optional[Any] = None) -> None:
             for group in groups:
                 conn.execute(text(f"revoke {group} from {name}"))
     except Exception as e:
-        logger.error("users.remove_member(): %s %s", type(e), utils.utf8(e))
+        logger.error("users.remove_member(): %s %s", type(e), utils.to_unicode(e))
 
 
 from sqlalchemy import text
@@ -264,7 +264,7 @@ def drop(role, revoke: bool = False) -> None:
 
             conn.execute(text(f"drop role {role};"))
     except Exception as e:
-        logger.error("users.drop(): %s %s", type(e), utils.utf8(e))
+        logger.error("users.drop(): %s %s", type(e), utils.to_unicode(e))
         raise
 
 
@@ -454,7 +454,7 @@ def set_privilege(role, privilege) -> None:
                             conn.execute(stmt)
 
     except Exception as e:
-        logger.error("users.set_privilege(): %s %s", type(e), utils.utf8(e))
+        logger.error("users.set_privilege(): %s %s", type(e), utils.to_unicode(e))
         raise
 
 
@@ -473,7 +473,7 @@ def set_password(password, user: Optional[Any] = None) -> None:
             stmt = f"alter role {user} with encrypted password '{password}'"
             conn.execute(stmt)
     except Exception as e:
-        logger.error("users.set_password(): %s %s", type(e), utils.utf8(e))
+        logger.error("users.set_password(): %s %s", type(e), utils.to_unicode(e))
 
 
 class UsersEditor(editor.GenericEditorView):
@@ -486,7 +486,7 @@ class UsersEditor(editor.GenericEditorView):
 
         if db.engine.name not in ("postgres", "postgresql"):
             msg = _("The Users editor is only valid on a PostgreSQL database")
-            utils.message_dialog(utils.utf8(msg))
+            utils.message_dialog(utils.to_unicode(msg))
             return
 
         # TODO: should allow anyone to view the priveleges but only
@@ -494,7 +494,7 @@ class UsersEditor(editor.GenericEditorView):
         logger.debug(f"current user is {current_user()}")
         if not has_privileges(current_user(), "admin"):
             msg = _("You do not have privileges to change other " "user privileges")
-            utils.message_dialog(utils.utf8(msg))
+            utils.message_dialog(utils.to_unicode(msg))
             return
         # setup the users tree
         tree = self.widgets.users_tree
@@ -526,7 +526,7 @@ class UsersEditor(editor.GenericEditorView):
                     set_privilege(role, priv)
                 except Exception as e:
                     utils.message_dialog(
-                        utils.utf8(e),
+                        utils.to_unicode(e),
                         Gtk.MessageType.ERROR,
                         parent=self.get_window(),
                     )
@@ -580,7 +580,7 @@ class UsersEditor(editor.GenericEditorView):
             drop(user, revoke=True)
         except Exception as e:
             utils.message_dialog(
-                utils.utf8(e), Gtk.MessageType.ERROR, parent=self.get_window()
+                utils.to_unicode(e), Gtk.MessageType.ERROR, parent=self.get_window()
             )
         else:
             active = self.widgets.filter_check.get_active()
@@ -647,7 +647,7 @@ class UsersEditor(editor.GenericEditorView):
                         set_password(pwd1, user)
                     except Exception as e:
                         utils.message_dialog(
-                            utils.utf8(e),
+                            utils.to_unicode(e),
                             Gtk.MessageType.ERROR,
                             parent=self.get_window(),
                         )
@@ -717,7 +717,7 @@ class UsersEditor(editor.GenericEditorView):
             set_privilege(user, "read")
         except Exception as e:
             utils.message_dialog(
-                utils.utf8(e), Gtk.MessageType.ERROR, parent=self.get_window()
+                utils.to_unicode(e), Gtk.MessageType.ERROR, parent=self.get_window()
             )
             model.remove(model.get_iter(path))
         else:

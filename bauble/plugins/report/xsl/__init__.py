@@ -188,7 +188,7 @@ class SpeciesABCDAdapter(ABCDAdapter):
                     note=butils.xml_safe(note.note),
                 )
             )
-        return butils.utf8(notes)
+        return butils.to_unicode(notes)
 
     def extra_elements(self, unit) -> None:
         # distribution isn't in the ABCD namespace so it should create an

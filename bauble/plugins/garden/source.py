@@ -447,7 +447,7 @@ class CollectionPresenter(editor.ChildPresenter):
         if text is None or text.strip() == "":
             self.set_model_attr("latitude", None)
         else:
-            self.set_model_attr("latitude", utils.utf8(latitude))
+            self.set_model_attr("latitude", utils.to_unicode(latitude))
 
     def on_lon_entry_changed(self, entry, data: Optional[Any] = None) -> None:
         from bauble.plugins.garden.models import longitude_to_dms
@@ -476,11 +476,11 @@ class CollectionPresenter(editor.ChildPresenter):
             self.remove_problem(self.PROBLEM_BAD_LONGITUDE, self.view.widgets.lon_entry)
 
         safe_set_text(self.view.widgets.lon_dms_label, dms_string)
-        # self.set_model_attr('longitude', utils.utf8(longitude))
+        # self.set_model_attr('longitude', utils.to_unicode(longitude))
         if text is None or text.strip() == "":
             self.set_model_attr("longitude", None)
         else:
-            self.set_model_attr("longitude", utils.utf8(longitude))
+            self.set_model_attr("longitude", utils.to_unicode(longitude))
 
 
 class PropagationChooserPresenter(editor.ChildPresenter):
@@ -523,11 +523,11 @@ class PropagationChooserPresenter(editor.ChildPresenter):
                 acc_view = self.parent_ref().view
                 acc_view.widget_set_value(
                     "acc_species_entry",
-                    utils.utf8(prop.plant.accession.species),
+                    utils.to_unicode(prop.plant.accession.species),
                 )
                 acc_view.widget_set_value(
                     "acc_quantity_recvd_entry",
-                    utils.utf8(prop.accessible_quantity),
+                    utils.to_unicode(prop.accessible_quantity),
                 )
                 from bauble.plugins.garden.constants import prop_type_results
                 from bauble.plugins.garden.models import recvd_type_values

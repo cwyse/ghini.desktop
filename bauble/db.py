@@ -247,7 +247,7 @@ class MapperBase(DeclarativeMeta):
                 return
             user = current_user() or "unknown"
             row = {
-                c.name: utils.utf8(getattr(instance, c.name))
+                c.name: utils.to_unicode(getattr(instance, c.name))
                 for c in instance.__table__.columns
             }
 

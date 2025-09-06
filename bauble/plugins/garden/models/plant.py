@@ -74,7 +74,7 @@ class PlantSearch(SearchStrategy):
 
         special search strategy, can't be obtained in MapperSearch
         """
-        from bauble.plugins.garden import Accession
+        from bauble.plugins.garden.models import Accession
         super().search(text, session)
 
         if text[0] == text[-1] and text[0] in ['"', "'"]:

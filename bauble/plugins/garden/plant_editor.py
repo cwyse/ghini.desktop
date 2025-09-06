@@ -189,7 +189,7 @@ def get_next_code(acc):
         except Exception as e:
             logger.debug(e)
             return None
-    return utils.utf8(next)
+    return utils.to_unicode(next)
 
 
 
@@ -207,9 +207,9 @@ def is_code_unique(plant, code):
     # if the range builder only creates one number then we assume the
     # code is not a range and so we test against the string version of
     # code
-    codes = list(map(utils.utf8, utils.range_builder(code)))  # test if a range
+    codes = list(map(utils.to_unicode, utils.range_builder(code)))  # test if a range
     if len(codes) == 1:
-        codes = [utils.utf8(code)]
+        codes = [utils.to_unicode(code)]
 
     # reference accesssion.id instead of accession_id since
     # setting the accession on the model doesn't set the
@@ -513,11 +513,11 @@ class PlantEditorPresenter(GenericEditorPresenter):
         """
         Validates the accession number and the plant code from the editors.
         """
-        text = utils.utf8(entry.get_text())
+        text = utils.to_unicode(entry.get_text())
         if text == "":
             self.set_model_attr("code", None)
         else:
-            self.set_model_attr("code", utils.utf8(text))
+            self.set_model_attr("code", utils.to_unicode(text))
 
         if not self.model.accession:
             self.remove_problem(self.PROBLEM_DUPLICATE_PLANT_CODE, entry)
@@ -797,7 +797,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
             for prop in mapper.iterate_properties:
                 if prop.key not in ignore:
                     setattr(new_plant, prop.key, getattr(self.model, prop.key))
-            new_plant.code = utils.utf8(code)
+            new_plant.code = utils.to_unicode(code)
             new_plant.id = None
             new_plant._created = None
             new_plant._last_updated = None
@@ -890,7 +890,7 @@ class PlantEditor(GenericModelViewPresenterEditor):
         if self.branched_plant:
             # set title if in branch mode
             current_title = self.presenter.view.get_window().get_title()
-            new_title = current_title + utils.utf8(" - {}".format(_("Split Mode")))
+            new_title = current_title + utils.to_unicode(" - {}".format(_("Split Mode")))
             self.presenter.view.get_window().set_title(new_title)
             message_box_parent = self.presenter.view.widgets.message_box_parent
             list(

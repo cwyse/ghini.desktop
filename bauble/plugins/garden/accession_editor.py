@@ -456,7 +456,7 @@ class VoucherPresenter(editor.GenericEditorPresenter):
         voucher = treemodel[path][0]
         if getattr(voucher, prop) == new_text:
             return  # didn't change
-        setattr(voucher, prop, utils.utf8(new_text))
+        setattr(voucher, prop, utils.to_unicode(new_text))
         self._dirty = True
         self.parent_ref().refresh_sensitivity()
 
@@ -693,7 +693,7 @@ class VerificationBox:
 
         self.presenter().view.attach_completion(ver_new_taxon_entry, sp_cell_data_func)
         if self.model.species:
-            ver_new_taxon_entry.set_text(utils.utf8(self.model.species))
+            ver_new_taxon_entry.set_text(utils.to_unicode(self.model.species))
         self.presenter().assign_completions_handler(
             ver_new_taxon_entry, sp_get_completions, on_sp_select
         )
@@ -748,7 +748,7 @@ class VerificationBox:
         if not text:
             self.set_model_attr(attr, None)
         else:
-            self.set_model_attr(attr, utils.utf8(text))
+            self.set_model_attr(attr, utils.to_unicode(text))
 
     def on_level_combo_changed(self, combo, *args) -> None:
         """Update the level attribute when the combo box is changed."""
@@ -789,7 +789,7 @@ class VerificationBox:
         if parent_presenter and parent_presenter.parent_ref():
             # same target widget as in the old code
             parent_presenter.parent_ref().view.widgets.acc_species_entry.set_text(
-                utils.utf8(self.model.species)
+                utils.to_unicode(self.model.species)
             )
             parent_presenter._dirty = True
             parent_presenter.parent_ref().refresh_sensitivity()
@@ -990,7 +990,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         def on_changed(entry, *args):
             text = entry.get_text()
             if text.strip():
-                self.source.sources_code = utils.utf8(text)
+                self.source.sources_code = utils.to_unicode(text)
             else:
                 self.source.sources_code = None
             self._dirty = True
@@ -1155,7 +1155,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         PROBLEM = "unknown_source"
 
         def cell_data_func(col, cell, model, treeiter, data=None):
-            cell.set_property("text", utils.utf8(model[treeiter][0]))
+            cell.set_property("text", utils.to_unicode(model[treeiter][0]))
 
         combo = self.view.widgets.acc_source_comboentry
         combo.clear()
@@ -1172,7 +1172,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
             model = completion.get_model()
             value = model[treeiter][0]
             # allows completions of source details by their ID
-            if utils.utf8(value).lower().startswith(key.lower()) or (
+            if utils.to_unicode(value).lower().startswith(key.lower()) or (
                 isinstance(value, Contact) and str(value.id).startswith(key)
             ):
                 return True
@@ -1209,7 +1209,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
                 combo.get_child().set_text("")
                 on_select(None)
             else:
-                combo.get_child().set_text(utils.utf8(value))
+                combo.get_child().set_text(utils.to_unicode(value))
                 on_select(value)
 
             # don't set the model as dirty if this is called during
@@ -1222,13 +1222,13 @@ class SourcePresenter(editor.GenericEditorPresenter):
         self.view.connect(completion, "match-selected", on_match_select)
 
         def on_entry_changed(entry, data=None):
-            text = utils.utf8(entry.get_text())
+            text = utils.to_unicode(entry.get_text())
             # see if the text matches a completion string
             comp = entry.get_completion()
 
             def _cmp(row, data):
                 val = row[0]
-                if utils.utf8(val) == data or (
+                if utils.to_unicode(val) == data or (
                     isinstance(val, Contact) and str(val.id) == str(data)
                 ):
                     return True
@@ -1256,7 +1256,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
                 if not detail:
                     combo.get_child().set_text("")
                 else:
-                    combo.get_child().set_text(utils.utf8(detail))
+                    combo.get_child().set_text(utils.to_unicode(detail))
             update_visible()
             return True
 
@@ -1342,7 +1342,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                 self.model.id_qual_rank = None
                 return
             text, col = combo.get_model()[it]
-            self.set_model_attr("id_qual_rank", utils.utf8(col))
+            self.set_model_attr("id_qual_rank", utils.to_unicode(col))
 
         self.view.connect("acc_id_qual_rank_combo", "changed", on_changed)
 
@@ -1473,7 +1473,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
                     model = Gtk.ListStore(object)
                     model.append([syn.species])
                     completion.set_model(model)
-                    safe_set_text(self.view.widgets.acc_species_entry, utils.utf8(syn.species))
+                    safe_set_text(self.view.widgets.acc_species_entry, utils.to_unicode(syn.species))
                     set_model(syn.species)
 
             box.on_response = on_response
@@ -1827,7 +1827,7 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         if text == "":
             self.set_model_attr("code", None)
         else:
-            self.set_model_attr("code", utils.utf8(text))
+            self.set_model_attr("code", utils.to_unicode(text))
 
     def on_date_entry_changed(self, entry, prop) -> None:
         """handle changed signal.
@@ -2470,7 +2470,7 @@ class SourceExpander(InfoExpander):
             self.widgets.source_name_label.set_visible(True)
             self.widgets.source_name_data.set_visible(True)
             self.widget_set_value(
-                "source_name_data", utils.utf8(row.source.source_detail)
+                "source_name_data", utils.to_unicode(row.source.source_detail)
             )
 
             def on_source_clicked(w, e, x):
@@ -2488,7 +2488,7 @@ class SourceExpander(InfoExpander):
         sources_code = ""
         if row.source.sources_code:
             sources_code = row.source.sources_code
-        self.widget_set_value("sources_code_data", utils.utf8(sources_code))
+        self.widget_set_value("sources_code_data", utils.to_unicode(sources_code))
 
         if row.source.plant_propagation:
             self.widgets.parent_plant_label.set_visible(True)
