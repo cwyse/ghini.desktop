@@ -1038,7 +1038,7 @@ class ReportTool(pluginmgr.Tool):
         except Exception as e:
             logger.debug(traceback.format_exc())
             butils.message_details_dialog(
-                _("Formatting Error\n\n" "%s(%s)") % (type(e).__name__, butils.utf8(e)),
+                _("Formatting Error\n\n" "%s(%s)") % (type(e).__name__, butils.to_unicode(e)),
                 traceback.format_exc(),
                 Gtk.MessageType.ERROR,
             )

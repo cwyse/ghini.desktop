@@ -156,7 +156,7 @@ def quit() -> None:
     try:
         import bauble.task as task
     except Exception as e:
-        logger.error(f"bauble.quit(): {utils.utf8(e)}")
+        logger.error(f"bauble.quit(): {utils.to_unicode(e)}")
     else:
         task.kill()
     try:

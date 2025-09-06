@@ -374,9 +374,9 @@ class CuttingPresenter(editor.GenericEditorPresenter):
             v = rooted_liststore[treeiter][0]
             new_value = None
             if attr_name == "quantity":
-                new_value = int(utils.utf8(new_text))
+                new_value = int(utils.to_unicode(new_text))
             elif attr_name == "date":
-                new_value = parse_date(utils.utf8(new_text))
+                new_value = parse_date(utils.to_unicode(new_text))
             if getattr(v, attr_name) == new_value:
                 return  # didn't change
             setattr(v, attr_name, new_value)

@@ -1060,75 +1060,68 @@ def message_details_dialog(
     return r
 
 
-def setup_text_combobox(
-    combo, values: Optional[Any] = None, cell_data_func: Optional[Any] = None
-):
-    """
-    Configure a Gtk.ComboBox as a text combobox
-
-    NOTE: If you pass a cell_data_func that is a method of an object that
-    holds a reference to combo then the object will not be properly
-    garbage collected.  To avoid this problem either don't pass a
-    method of object or make the method static
-
-    :param combo: Gtk.ComboBox
-    :param values: list vales or Gtk.ListStore
-    :param cell_date_func:
-    """
+def setup_text_combobox(combo, values=None, cell_data_func=None, *, use_markup=False, min_chars=3):
     combo.clear()
+
+    # model: one string column
     if isinstance(values, Gtk.ListStore):
         model = values
     else:
-        if values is None:
-            values = []
         model = Gtk.ListStore(str)
-        list([model.append([v]) for v in values])
-
-    combo.clear()
+        seen = set()
+        for v in (values or []):
+            s = to_unicode(v)  # ensure str
+            if s in seen:
+                continue
+            seen.add(s)
+            model.append([s])
     combo.set_model(model)
-    renderer = Gtk.CellRendererText()
-    combo.pack_start(renderer, True)
-    combo.add_attribute(renderer, "text", 0)
 
-    if cell_data_func:
-        combo.set_cell_data_func(renderer, cell_data_func)
+    # dropdown renderer
+    col_cell = Gtk.CellRendererText()
+    combo.pack_start(col_cell, True)
 
-    if not isinstance(combo, Gtk.ComboBox):
+    def _default_cdf(_col, cell, mdl, itr, _data=None):
+        txt = mdl[itr][0]
+        prop = "markup" if use_markup else "text"
+        safe_set_props(cell, prop, txt)
+
+    combo.set_cell_data_func(col_cell, cell_data_func or _default_cdf)
+
+    # attach completion to entry
+    entry = combo.get_child() if hasattr(combo, "get_child") else None
+    if not isinstance(entry, Gtk.Entry):
         return
-
-    # enables things like scrolling through values with keyboard and
-    # other goodies
-    # combo.set_text_column = 0
-
-    # if combo is a Gtk.ComboBoxEntry then setup completions
-    def compl_cell_data_func(col, cell, model, treeiter, data=None):
-        safe_set_text(cell, str(model[treeiter][0]))
 
     completion = Gtk.EntryCompletion()
     completion.set_model(model)
-    cell = Gtk.CellRendererText()  # set up the completion renderer
-    completion.pack_start(cell, True)
-    completion.set_cell_data_func(cell, compl_cell_data_func)
-    completion.set_property("text-column", 0)
-    # combo.get_child().set_completion(completion)
 
-    def match_func(completion, key, treeiter, data=None):
-        model = completion.get_model()
-        value = model[treeiter][0]
-        return str(value).lower().startswith(key.lower())
+    # custom popup renderer (no set_text_column here)
+    cc = Gtk.CellRendererText()
+    completion.pack_start(cc, True)
+    completion.set_cell_data_func(cc, cell_data_func or _default_cdf)
 
+    # UX knobs
+    completion.set_inline_completion(True)
+    completion.set_inline_selection(True)
+    completion.set_popup_completion(True)
+    completion.set_popup_single_match(False)
+    completion.set_minimum_key_length(min_chars)
+
+    # case-insensitive prefix, unicode-safe
+    def match_func(_compl, key, itr, _data=None):
+        return (model[itr][0] or "").casefold().startswith((key or "").casefold())
     completion.set_match_func(match_func)
 
-    def on_match_select(completion, model, treeiter):
-        value = model[treeiter][0]
-        if value:
-            set_combo_from_value(combo, value)
-            safe_set_text(combo.get_child(), str(value))
-        else:
-            safe_set_props(combo.get_child(), "text", "")
-
-    # TODO: we should be able to disconnect this signal handler
+    def on_match_select(_compl, mdl, itr):
+        value = mdl[itr][0]
+        set_combo_from_value(combo, value)
+        entry.set_text(value)
+        entry.set_position(-1)
+        return True
     completion.connect("match-selected", on_match_select)
+
+    entry.set_completion(completion)
 
 
 def prettify_format(format):
@@ -1253,19 +1246,15 @@ def to_unicode(obj, encoding: str = "utf-8"):
         return type(obj).__name__
 
 
-def utf8(obj):
+def to_bytes(obj, encoding: str = "utf-8"):
     """
-    Convert an object to a UTF-8 encoded bytes object.
-
-    :param obj: The object to convert.
-    :return: A UTF-8 encoded bytes object.
+    Only use where an API/file write truly requires bytes.
     """
-    try:
-        # Ensure the input is a Unicode string, then encode it to bytes
-        return to_unicode(obj).encode("utf-8", errors="replace")
-    except Exception as e:
-        logger.error(f"Failed to encode object to UTF-8: {obj} ({e})")
-        raise
+    if obj is None:
+        return b""
+    if isinstance(obj, (bytes, bytearray)):
+        return bytes(obj)
+    return to_unicode(obj).encode(encoding, errors="replace")
 
 
 def xml_safe(obj):

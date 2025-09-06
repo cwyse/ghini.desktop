@@ -1060,6 +1060,13 @@ class SearchView(pluginmgr.View):
         try:
             # Perform the search query
             results = search.search(text, self.session)
+            from collections import Counter
+            print("🔎 UI received", len(results), "results")
+            print("🔎 by class:", Counter(type(r).__name__ for r in results))
+            if results:
+                first = next(iter(results))
+                print("🔎 sample:", type(first), getattr(first, "id", None), getattr(first, "epithet", None))
+                
         except ParseException as err:
             error_msg = _("Error in search string at column %s") % err.column
         except (BaubleError, AttributeError, Exception, SyntaxError) as e:
@@ -1108,8 +1115,15 @@ class SearchView(pluginmgr.View):
 
         # Initialize a tree model for results
         model = Gtk.TreeStore(object)
-        model.set_default_sort_func(lambda *args: -1)
-        model.set_sort_func(Gtk.TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID,
+        def cmp(model, it1, it2, _data):
+            a = model.get_value(it1, 0)
+            b = model.get_value(it2, 0)
+            a = str(a) if not isinstance(a, str) else a
+            b = str(b) if not isinstance(b, str) else b
+            return (a > b) - (a < b)
+
+        model.set_default_sort_func(cmp)
+        model.set_sort_column_id(Gtk.TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID,
                          Gtk.SortType.ASCENDING)
 
         # Clear the model and update the results view
@@ -1139,20 +1153,25 @@ class SearchView(pluginmgr.View):
         """
         model = view.get_model()
         row = model.get_value(treeiter, 0)
-        view.collapse_row(path)
+
+        # Make sure row is attached to this view's session before touching relationships
+        if object_session(row) is None:
+            row = self.session.merge(row, load=False)
+            model.set_value(treeiter, 0, row)
+
         self.remove_children(model, treeiter)
         try:
             kids = self.row_meta[type(row)].get_children(row)
             if len(kids) == 0:
                 return True
         except saexc.InvalidRequestError as e:
-            logger.debug(utils.utf8(e))
+            logger.debug(utils.to_unicode(e))
             model = self.results_view.get_model()
             for found in utils.search_tree_model(model, row):
                 model.remove(found)
             return True
         except Exception as e:
-            logger.debug(utils.utf8(e))
+            logger.debug(utils.to_unicode(e))
             logger.debug(traceback.format_exc())
             return True
         else:
@@ -1211,7 +1230,7 @@ class SearchView(pluginmgr.View):
                     substr = f"({type(value).__name__})"
                 cell.set_property(
                     "markup",
-                    f"{_mainstr_tmpl % utils.utf8(main)}\n{_substr_tmpl % utils.utf8(substr)}",
+                    f"{_mainstr_tmpl % utils.to_unicode(main)}\n{_substr_tmpl % utils.to_unicode(substr)}",
                 )
 
             except (saexc.InvalidRequestError, TypeError) as e:

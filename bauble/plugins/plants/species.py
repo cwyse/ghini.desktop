@@ -22,7 +22,7 @@ import logging
 import os
 import traceback
 from gettext import gettext as _
-from typing import Any
+from typing import Any, Optional, Set
 
 import bauble
 import bauble.paths as paths
@@ -149,14 +149,7 @@ remove_action: Any = Action(
 species_context_menu: Any = [edit_action, remove_action]
 vernname_context_menu: Any = [edit_action]
 
-
 class SynonymSearch(search.SearchStrategy):
-    """
-    Return any synonyms for matching species.
-
-    bauble.search.return_synonyms in the prefs toggles this.
-    """
-
     return_synonyms_pref: str = "bauble.search.return_synonyms"
 
     def __init__(self) -> None:
@@ -165,61 +158,53 @@ class SynonymSearch(search.SearchStrategy):
             prefs[self.return_synonyms_pref] = True
             prefs.save()
 
-    def search(text: str, session: Optional[Session] = None) -> List[Any]:
-        # from .genus import Genus, GenusSynonym
-
+    def search(self, text, session, seed: Optional[Set[Any]] = None, **_):
         super().search(text, session)
         if not session or not prefs[self.return_synonyms_pref]:
             return set()
-        mapper_search = search.get_strategy("MapperSearch")
-        # Seed with base results from MapperSearch (your original intent)
-        base = set(mapper_search.search(text, session))
+
+        # use the provided base if available to avoid re-running MapperSearch
+        if seed is not None:
+            base = set(seed)
+        else:
+            # fallback if called directly
+            mapper_search = search.get_strategy("MapperSearch")
+            base = set(mapper_search.search(text, session))
+
         if not base:
             return set()
+
+        # adjust imports to where your synonym ORM classes actually are
+        from bauble.plugins.plants.species_model import SpeciesSynonym
         from sqlalchemy import select
-        from bauble.plugins.plants.genus import Genus
-        from bauble.plugins.plants.species import Species, VernacularName
-        # adapt to your actual synonym model locations:
-        from bauble.plugins.plants.species_model import SpeciesSynonym, GenusSynonym
 
-        out = set(base)
-        for result in base:
-            # iterate through the results and for all objects considered
-            # synonym of something else, include that something else. that
-            # is, the accepted name.
-            if isinstance(result, Species):
-                syns = (
-                    session.execute(
-                        select(SpeciesSynonym).where(
-                            SpeciesSynonym.synonym_id == result.id
-                        )
-                    )
-                    .scalars()
-                    .all()
-                )
-                out.update(syn.species for syn in syns if syn.species is not None)
-            elif isinstance(result, Genus):
-                syns = (
-                    session.execute(
-                        select(GenusSynonym).where(GenusSynonym.synonym_id == result.id)
-                    )
-                    .scalars()
-                    .all()
-                )
-                out.update(syn.genus for syn in syns if syn.genus is not None)
-            elif isinstance(result, VernacularName):
-                syns = (
-                    session.execute(
-                        select(SpeciesSynonym).where(
-                            SpeciesSynonym.synonym_id == result.species.id
-                        )
-                    )
-                    .scalars()
-                    .all()
-                )
-                out.update(syn.species for syn in syns if syn.species is not None))
-        return out
+        # Build synonyms only (let the dispatcher union with base)
+        synonyms: Set[Any] = set()
 
+        # Optional micro-optimization: batch synonym lookups
+        species_ids = [o.id for o in base if isinstance(o, Species)]
+        genus_ids   = [o.id for o in base if isinstance(o, Genus)]
+        vname_sids  = [o.species.id for o in base if isinstance(o, VernacularName)]
+
+        if species_ids:
+            syns = session.scalars(
+                select(SpeciesSynonym).where(SpeciesSynonym.synonym_id.in_(species_ids))
+            ).all()
+            synonyms.update(syn.species for syn in syns if syn.species is not None)
+
+        if genus_ids:
+            syns = session.scalars(
+                select(GenusSynonym).where(GenusSynonym.synonym_id.in_(genus_ids))
+            ).all()
+            synonyms.update(syn.genus for syn in syns if syn.genus is not None)
+
+        if vname_sids:
+            syns = session.scalars(
+                select(SpeciesSynonym).where(SpeciesSynonym.synonym_id.in_(vname_sids))
+            ).all()
+            synonyms.update(syn.species for syn in syns if syn.species is not None)
+
+        return synonyms - base
 
 #
 # Species infobox for SearchView
@@ -409,28 +394,28 @@ class GeneralSpeciesExpander(InfoExpander):
 
         awards = ""
         if row.awards:
-            awards = utils.utf8(row.awards)
+            awards = utils.to_unicode(row.awards)
         self.widget_set_value("sp_awards_data", awards)
 
         logger.debug(f"setting cites data from row {row}")
         cites = ""
         if row.cites:
-            cites = utils.utf8(row.cites)
+            cites = utils.to_unicode(row.cites)
         self.widget_set_value("sp_cites_data", cites)
 
         # zone = ''
         # if row.hardiness_zone:
-        #     awards = utils.utf8(row.hardiness_zone)
+        #     awards = utils.to_unicode(row.hardiness_zone)
         # self.widget_set_value('sp_hardiness_data', zone)
 
         habit = ""
         if row.habit:
-            habit = utils.utf8(row.habit)
+            habit = utils.to_unicode(row.habit)
         self.widget_set_value("sp_habit_data", habit)
 
         dist = ""
         if row.distribution:
-            dist = utils.utf8(row.distribution_str())
+            dist = utils.to_unicode(row.distribution_str())
         self.widget_set_value("sp_dist_data", dist)
 
         dist = ""
@@ -634,4 +619,5 @@ class VernacularNameInfoBox(SpeciesInfoBox):
     def update(self, row) -> None:
         logger.info(f"VernacularNameInfoBox.update {row.__class__.__name__}({row})")
         if isinstance(row, VernacularName):
+            super().update(row.species)
             super().update(row.species)

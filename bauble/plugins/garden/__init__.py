@@ -224,7 +224,7 @@ class GardenPlugin(pluginmgr.Plugin):
         )
 
         # Species
-        SearchView.row_meta[Species].child = "accessions"
+        # SearchView.row_meta[Species].children = "accessions"
 
     @classmethod
     def _setup_gui_menus(cls) -> None:
@@ -294,7 +294,7 @@ def init_location_comboentry(presenter, combo, on_select, required: bool = True)
     re_code_name_splitter = re.compile(r"\(([^)]+)\) ?(.*)")
 
     def cell_data_func(col, cell, model, treeiter, data=None):
-        safe_set_text(cell, utils.utf8(model[treeiter][0]))
+        safe_set_text(cell, utils.to_unicode(model[treeiter][0]))
 
     from bauble.gtkinit import Gtk
     from bauble.plugins.garden.models import Location
@@ -345,7 +345,7 @@ def init_location_comboentry(presenter, combo, on_select, required: bool = True)
 
     def on_entry_changed(entry, presenter):
         logger.debug("on_entry_changed(%s, %s)", entry, presenter)
-        text = utils.utf8(entry.get_text())
+        text = utils.to_unicode(entry.get_text())
 
         if not text and not required:
             presenter.remove_problem(PROBLEM, entry)
@@ -356,7 +356,7 @@ def init_location_comboentry(presenter, combo, on_select, required: bool = True)
         compl_model = completion.get_model()
 
         def _cmp(row, data):
-            return utils.utf8(row[0]) == data
+            return utils.to_unicode(row[0]) == data
 
         found = utils.search_tree_model(compl_model, text, _cmp)
         if len(found) == 1:
@@ -372,12 +372,12 @@ def init_location_comboentry(presenter, combo, on_select, required: bool = True)
         codes = list(
             presenter.session.execute(
                 select(Location).where(
-                    utils.ilike(Location.code, f"{utils.utf8(code)}")
+                    utils.ilike(Location.code, f"{utils.to_unicode(code)}")
                 )
             ).scalars()
         )
         names = presenter.session.execute(
-            select(Location).where(utils.ilike(Location.name, f"{utils.utf8(name)}"))
+            select(Location).where(utils.ilike(Location.name, f"{utils.to_unicode(name)}"))
         ).scalars()
         if len(codes) == 1:
             logger.debug("location matches code")
