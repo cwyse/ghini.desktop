@@ -1491,7 +1491,7 @@ def make_label_clickable(label, on_clicked, *args) -> None:
     def on_release(widget, event, label, *args):
         if label.__pressed:
             label.__pressed = False
-            label.set_property("color", None)
+            styler.reset_styles(widget, label)
             label.__on_clicked(label, event, *args)
 
     try:

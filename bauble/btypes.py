@@ -208,7 +208,7 @@ class Enum(types.TypeDecorator):
         """Validate against allowed values when strict and value is meaningful."""
         if not self.strict:
             return
-        if value is None:
+        if value is None or (isinstance(value, str) and value.strip() == ""):
             return  # None is always OK (DB NULL)
         if value == "" and self.empty_to_none:
             return  # will be stored as NULL

@@ -20,7 +20,9 @@ import logging
 from typing import Any, Optional
 
 import bauble.utils as utils
+from bauble.db import Session
 from bauble.gtkinit import Gtk
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -74,13 +76,24 @@ class PicturesView:
             child.destroy()
 
         for obj in selection or []:
+            pics = []
             try:
-                pics = obj.pictures
+                # first attempt — will fail if obj is detached
+                pics = getattr(obj, "pictures")
             except AttributeError:
                 logger.debug(f"Object {obj} does not define 'pictures' attribute")
-                pics = []
+                continue
+            except DetachedInstanceError:
+                # Reattach to a short-lived session and retry once
+                with Session() as s:
+                    try:
+                        obj = s.merge(obj, load=False)  # cheap reattach
+                        pics = getattr(obj, "pictures")
+                    except Exception as e:
+                        logger.warning("Could not load pictures for %r after merge: %s", obj, e)
+                        pics = []
 
-            for pic in pics:
+            for pic in pics or []:
                 logger.debug(f"Object {obj} has picture {pic}")
                 self.add_picture(pic)
 

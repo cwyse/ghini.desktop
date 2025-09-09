@@ -20,7 +20,7 @@
 import logging
 from gettext import gettext as _
 from itertools import chain
-from typing import Any, ClassVar, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional, Union
 
 import bauble.btypes as types
 import bauble.db as db
@@ -47,6 +47,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 # from sqlalchemy.orm import foreign
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.orm.session import object_session
 
 __all__ = ["Species"]
 logger: Any = logging.getLogger(__name__)
@@ -275,35 +276,70 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             logger.error(f"Error retrieving Species with criteria {keys}: {e}")
             return None
 
+
+
+
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
         try:
-            if len(self.vernacular_names) > 0:
-                substring = "{} -- {}".format(
-                    self.genus.family,
-                    ", ".join([str(v) for v in self.vernacular_names]),
-                )
+            sess = object_session(self)
+
+            def _rel_loaded(name: str) -> bool:
+                # relationship present in __dict__ => already loaded, no lazy load
+                return name in self.__dict__
+
+            # --- vernacular names (list) ---
+            if sess is not None:
+                vern_list = list(self.vernacular_names or [])
             else:
-                substring = f"{self.genus.family}"
+                vern_list = list(self.__dict__.get("vernacular_names") or [])
+
+            # --- family (via genus) ---
+            family_txt = ""
+            if sess is not None:
+                try:
+                    family_txt = f"{self.genus.family}"
+                except Exception:
+                    family_txt = ""
+            else:
+                g = self.__dict__.get("genus")
+                if g is not None:
+                    try:
+                        family_txt = f"{getattr(g, 'family', '') or ''}"
+                    except Exception:
+                        family_txt = ""
+
+            # build the second line (substring)
+            if vern_list:
+                vtxt = ", ".join(str(v) for v in vern_list if v is not None)
+                substring = f"{family_txt} -- {vtxt}" if family_txt else vtxt
+            else:
+                substring = family_txt
+
+            # --- synonym trail (accepted) ---
             trail = ""
-            if self.accepted:
+            accepted = self.accepted if (sess is not None) else self.__dict__.get("accepted")
+            if accepted:
                 trail += (
-                    '<span foreground="#555555" size="small" '
-                    'weight="light"> - ' + _("synonym of %s") + "</span>"
-                ) % self.accepted.markup(authors=True)
+                    '<span foreground="#555555" size="small" weight="light"> - '
+                    + _("synonym of %s") + "</span>"
+                ) % accepted.markup(authors=True)
+
+            # --- main citation ---
             citation = self.markup(authors=True)
             authorship_text = utils.xml_safe(self.author)
             if authorship_text:
                 citation = citation.replace(
                     authorship_text,
-                    '<span weight="light">' + authorship_text + "</span>",
+                    f'<span weight="light">{authorship_text}</span>',
                 )
-            return citation + trail, substring
+
+            return citation + trail, substring or ""
         except Exception:
             import traceback
-
             logger.warning(traceback.format_exc())
             return "...", "..."
+
 
     @property
     def cites(self):
@@ -397,7 +433,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         return ""
 
     # columns
-    sp: ClassVar[str] = synonym("epithet")
+    sp = synonym("epithet")
     sp2: Mapped[str] = mapped_column(Unicode(64), index=True)  # in case hybrid=True
     author: Mapped[Optional[str]] = mapped_column(Unicode(128))
     order_by: Any = [asc(epithet), asc(author)]
@@ -1156,4 +1192,6 @@ class Color(db.Base):
 
 db.Species = Species
 db.SpeciesNote = SpeciesNote
+db.VernacularName = VernacularName
+db.VernacularName = VernacularName
 db.VernacularName = VernacularName

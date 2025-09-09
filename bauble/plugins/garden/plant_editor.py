@@ -66,6 +66,11 @@ if TYPE_CHECKING:
     from bauble.plugins.garden.models import Accession, Location
 
 
+# at module load time
+utils._install_css("""
+.entry-error { background-color: rgba(255, 235, 235, 1); }
+.entry-error:focus { background-color: rgba(255, 217, 217, 1); }
+""")
 
 
 
@@ -537,11 +542,12 @@ class PlantEditorPresenter(GenericEditorPresenter):
         ):
 
             self.add_problem(self.PROBLEM_DUPLICATE_PLANT_CODE, entry)
+            # highlight as invalid
+            entry.get_style_context().add_class("entry-error")
         else:
             # remove_problem() won't complain if problem doesn't exist
             self.remove_problem(self.PROBLEM_DUPLICATE_PLANT_CODE, entry)
-            entry.set_property("background-color", None)
-            entry.queue_draw()
+            entry.get_style_context().remove_class("entry-error")
 
         self.refresh_sensitivity()
 
