@@ -132,9 +132,6 @@ class GardenPlugin(pluginmgr.Plugin):
 
         from bauble import db, search, utils
 
-        # Models – use db re-exports for stability
-        from bauble.db import Accession, Location, Plant
-
         # UI – new paths live in *_editor modules
         from bauble.plugins.garden.accession_editor import (
             AccessionInfoBox,
@@ -144,6 +141,9 @@ class GardenPlugin(pluginmgr.Plugin):
             LocationInfoBox,
             loc_context_menu,
         )
+
+        # Models – use db re-exports for stability
+        from bauble.plugins.garden.models import Accession, Location, Plant
         from bauble.plugins.garden.models.contact import Contact
         from bauble.plugins.garden.models.plant import PlantSearch
 
