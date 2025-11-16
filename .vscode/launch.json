@@ -1,6 +1,6 @@
 {
     "version": "0.2.0",
-    "debugOptions": ["DebugStdLib"],
+    //"debugOptions": ["DebugStdLib"],
     "configurations": [
         {
             "name": "Python: Attach to Container",
@@ -12,14 +12,14 @@
             },
             "pathMappings": [
                 {
-                    "localRoot": "/home/chris/debug/ghini.desktop",  
+                    "localRoot": "${workspaceFolder}",  
                     "remoteRoot": "/app"  
                 }
             ],
             "preLaunchTask": "Wait for Container",
             "justMyCode": false,
             "logToFile": true,
-            "subProcess": false,
+            "subProcess": false
         //  "description": "Attaches the debugger to the main Ghini desktop Docker container. Ensures container initialization completes by waiting for the container readiness task."        
         },
         {
@@ -32,14 +32,14 @@
             },
             "pathMappings": [
                 {
-                    "localRoot": "/home/chris/debug/ghini.desktop", 
+                    "localRoot": "${workspaceFolder}", 
                     "remoteRoot": "/app" 
                 }
             ],
             "preLaunchTask": "Wait for Test Container",
             "justMyCode": false,
             "logToFile": true,
-            "consoleName": "integratedTerminal",
+            "consoleName": "integratedTerminal"
         //  "description": "Debug configuration for attaching to the dedicated pytest Docker container. It initializes the container specifically configured for testing, ensuring the environment is fully prepared before debugger attachment."
         },
         {
@@ -52,13 +52,13 @@
             },
             "pathMappings": [
                 {
-                    "localRoot": "/home/chris/debug/ghini.desktop",  
+                    "localRoot": "${workspaceFolder}",  
                     "remoteRoot": "/app" 
                 }
             ],
             "justMyCode": false,
             "logToFile": true,
-            "consoleName": "integratedTerminal",
+            "consoleName": "integratedTerminal"
         //  "description": "Secondary debugging configuration that attaches directly to the pytest Docker container using debugpy on port 5678, useful for alternative test scenarios."
         }        
     ]

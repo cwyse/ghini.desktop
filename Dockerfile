@@ -34,11 +34,12 @@ ENV DOCKER_RUN_CMD="\
                      -e KRB5_CONFIG=/krb5/krb5.conf                    \
                      -e KRB5_CLIENT_KTNAME=/krb5/krb5.keytab           \
                      -e NO_AT_BRIDGE=1                                 \
-                     -v /tmp/.X11-unix:/tmp/.X11-unix                  \
+                     -v /tmp/.X11-unix:/tmp/.X11-unix:rw               \
                      -v $HOME/krb5:/krb5:ro                            \
                      -v $HOME/.bauble/3.1:/home/ghini/.bauble/3.1      \
-                     -v $HOME/debug/ghini.desktop:/app                 \
+                     -v $HOME/repositories/ghini.desktop:/app          \
                      -v /usr/lib/dri:/usr/lib/dri                      \
+                     -v ~/.Xauthority:/root/.Xauthority:ro             \
                      --device /dev/dri:/dev/dri                        \
                      --user $(id -u):$(id -g)                          \
                      --name ghini                                      \
