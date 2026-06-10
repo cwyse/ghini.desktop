@@ -101,7 +101,7 @@
     <tr>
       <td colspan="2" class="name">
 	<div class="species">
-	  ${plant.accession.species_str(markup=True)}
+	  ${plant.accession.species_str(markup=True, authors=True)}
 	</div>
 	<div class="vernacular">
 	  <% 

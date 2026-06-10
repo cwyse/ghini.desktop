@@ -105,7 +105,7 @@
   <div>
     <div class="family">${plant.accession.species.genus.family}</div>
     <div class="name">
-      <div class="species">${plant.accession.species_str(markup=True)}</div>
+      <div class="species">${plant.accession.species_str(markup=True, authors=True)}</div>
       <div class="vernacular">${plant.accession.species.default_vernacular_name or '&nbsp;'}</div>
     </div>
     <div class="distribution">${plant.accession.species.distribution_str()}</div>

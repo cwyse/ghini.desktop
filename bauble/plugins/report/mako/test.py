@@ -143,6 +143,24 @@ def test_format_mako_templates(session, use_qr) -> None:
         assert isinstance(report, bytes)
 
 
+def test_html_label_templates_include_species_author(session) -> None:
+    plant = session.get(Plant, 1)
+    plant.accession.species.author = "L."
+    if session.in_transaction():
+        session.commit()
+
+    templates_dir = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "templates"
+    )
+    for template_name in ("labels.html.mako", "labels_small.html.mako"):
+        filename = os.path.join(templates_dir, template_name)
+        report = MakoFormatterPlugin.format([plant], template=filename).decode("utf8")
+
+        assert "L." in report
+        assert "gen1" in report
+        assert "sp1" in report
+
+
 def test_format_qr_postscript_templates(session) -> None:
     """
     Test formatting mako templates with QR codes and PostScript.
