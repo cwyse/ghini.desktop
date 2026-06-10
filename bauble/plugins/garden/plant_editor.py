@@ -437,8 +437,8 @@ class PlantEditorPresenter(GenericEditorPresenter):
                 self.view.widgets.reason_combo, "changed", on_reason_changed
             )
             sensitive = True
-        self.view.widgets.reason_combo.set_sensitive = sensitive
-        self.view.widgets.reason_label.set_sensitive = sensitive
+        self.view.widgets.reason_combo.set_sensitive(sensitive)
+        self.view.widgets.reason_label.set_sensitive(sensitive)
 
         self.view.connect("plant_date_entry", "changed", self.on_date_entry_changed)
 

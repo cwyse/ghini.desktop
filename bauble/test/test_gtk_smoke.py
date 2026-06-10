@@ -468,6 +468,26 @@ def test_generic_editor_view_loads_root_widget(relative_name, root_widget):
             Gtk.main_iteration_do(False)
 
 
+def test_generic_dialog_ctrl_enter_accepts_sensitive_ok_response():
+    view = GenericEditorView(
+        str(LIB_DIR / "plugins" / "garden" / "institution.glade"),
+        root_widget_name="inst_dialog",
+    )
+    dialog = view.get_window()
+    event = SimpleNamespace(
+        keyval=Gdk.KEY_Return,
+        state=Gdk.ModifierType.CONTROL_MASK,
+    )
+
+    try:
+        assert view.on_dialog_key_press(dialog, event) is True
+        assert view.response == Gtk.ResponseType.OK
+    finally:
+        dialog.destroy()
+        while Gtk.events_pending():
+            Gtk.main_iteration_do(False)
+
+
 def test_infobox_page_packs_info_expander_widgets():
     page = view.InfoBoxPage()
     expander = DummyInfoExpander("General")
@@ -1705,6 +1725,18 @@ def test_plant_material_choices_match_release_baseline():
     }
 
 
+def test_plant_editor_existing_plant_enables_current_change_reason(
+    monkeypatch, session, plant_editor_view
+):
+    monkeypatch.setattr(prefs, "testing", False)
+    plant = make_test_plant(session)
+
+    PlantEditorPresenter(plant, plant_editor_view)
+
+    assert plant_editor_view.widgets.reason_combo.get_sensitive()
+    assert plant_editor_view.widgets.reason_label.get_sensitive()
+
+
 def test_plant_editor_quantity_changes_update_model(
     monkeypatch, session, plant_editor_view
 ):
@@ -2083,7 +2115,9 @@ def test_accession_editor_intended_location_button_adds_location_and_enables_cre
 
     presenter = AccessionEditorPresenter(accession, accession_editor_view)
 
-    assert not accession_editor_view.widgets.intended_loc_create_plant_checkbutton.get_sensitive()
+    assert (
+        not accession_editor_view.widgets.intended_loc_create_plant_checkbutton.get_sensitive()
+    )
 
     accession_editor_view.widgets.intended_loc_add_button.emit("clicked")
     drain_gtk_events()
@@ -2093,7 +2127,9 @@ def test_accession_editor_intended_location_button_adds_location_and_enables_cre
         accession_editor_view.widget_get_value("intended_loc_comboentry")
         == "(FERN) Fern Room"
     )
-    assert accession_editor_view.widgets.intended_loc_create_plant_checkbutton.get_sensitive()
+    assert (
+        accession_editor_view.widgets.intended_loc_create_plant_checkbutton.get_sensitive()
+    )
 
 
 def test_accession_editor_new_accession_clears_intended_location_fields(

@@ -304,7 +304,20 @@ class GenericEditorView:
             if isinstance(window, Gtk.Dialog):
                 self.connect(window, "close", self.on_dialog_close)
                 self.connect(window, "response", self.on_dialog_response)
+                self.connect(window, "key-press-event", self.on_dialog_key_press)
         self.box = set()  # the top level, meant for warnings.
+
+    def on_dialog_key_press(self, dialog, event):
+        if event.keyval not in (Gdk.KEY_Return, Gdk.KEY_KP_Enter):
+            return False
+        if not event.state & Gdk.ModifierType.CONTROL_MASK:
+            return False
+        for response in (Gtk.ResponseType.OK, Gtk.ResponseType.ACCEPT):
+            widget = dialog.get_widget_for_response(response)
+            if widget and widget.get_sensitive():
+                dialog.response(response)
+                return True
+        return False
 
     def cancel_threads(self) -> None:
         pass
