@@ -21,6 +21,10 @@ taxonomy-to-accession-to-plant workflow.
 | [#425](https://github.com/Ghini/ghini.desktop/issues/425) Error `(psycopg2.InterfaceError) connection already closed` | Covered | Closed locally by PostgreSQL dropped-connection recovery and `postgres-check` coverage. |
 | [#308](https://github.com/Ghini/ghini.desktop/issues/308) Missing timezone in MapperBase timestamps | Covered | Closed locally by local date/UTC audit timestamp policy. |
 | [#130](https://github.com/Ghini/ghini.desktop/issues/130) Cannot expand row if expanded while nothing depends on it | Covered | Closed locally by result expansion retry fix and GTK smoke coverage. |
+| [#55](https://github.com/Ghini/ghini.desktop/issues/55) Intended-location buttons do not activate | Covered | Closed locally by accession intended-location button regression coverage. |
+| [#56](https://github.com/Ghini/ghini.desktop/issues/56) New accession reuses previous intended locations | Covered | Closed locally by fresh-accession intended-location regression coverage. |
+| [#157](https://github.com/Ghini/ghini.desktop/issues/157) Deleted top-level objects remain in result view | Covered | Closed locally by pruning deleted objects from the active search result tree after successful delete callbacks. |
+| [#252](https://github.com/Ghini/ghini.desktop/issues/252) Empty location cannot be deleted after prior use | Covered | Closed locally by clearing historical `PlantChange` location references before deleting an otherwise empty location. |
 | [#463](https://github.com/Ghini/ghini.desktop/issues/463) The Plant List to World Flora Online | Imported | Covered by GitLab #24. |
 | [#472](https://github.com/Ghini/ghini.desktop/issues/472) TNRS moved | Imported | Covered by GitLab #24. |
 | [#111](https://github.com/Ghini/ghini.desktop/issues/111) Autocomplete for manual query properties | Partially imported | Daily-workflow autocomplete is covered by GitLab #30; full query-builder-style completion remains deferred. |
@@ -38,10 +42,6 @@ after current-code reproduction.
 | [#461](https://github.com/Ghini/ghini.desktop/issues/461) Quick CSV export stops on `None` values | Export should tolerate optional fields. This is part of the import/export release gate. | Imported as GitLab #33. |
 | [#441](https://github.com/Ghini/ghini.desktop/issues/441) Taxon import with `accepted` field does not import both taxa | Taxonomic import/data integrity issue. It overlaps the SQLAlchemy/import regression gate. | Imported as GitLab #34. |
 | [#399](https://github.com/Ghini/ghini.desktop/issues/399) Text entries do not validate database field lengths | Can turn normal editor input into database errors, especially for long location/source names. | Imported as GitLab #35, scoped to daily editors first. |
-| [#55](https://github.com/Ghini/ghini.desktop/issues/55) Intended-location buttons do not activate | Accession and plant workflow touches intended/current location controls. | Include in daily workflow verification; import if reproduced. |
-| [#56](https://github.com/Ghini/ghini.desktop/issues/56) New accession reuses previous intended locations | Could silently attach wrong location state during accession entry. | Include in daily workflow verification; import if reproduced. |
-| [#252](https://github.com/Ghini/ghini.desktop/issues/252) Empty location cannot be deleted after prior use | Relationship/cascade behavior can affect cleanup after plant moves. | Reproduce after relationship audit; likely release-deferred unless daily cleanup fails. |
-| [#157](https://github.com/Ghini/ghini.desktop/issues/157) Deleted top-level objects remain in result view | Search-result state after deletion is part of navigation safety. | Include in delete-confirmation regression; import if current coverage does not prove it fixed. |
 
 ## Defer From First Baseline Release
 
@@ -70,7 +70,6 @@ baseline unless a current test proves they break the supported workflow.
 ## Follow-Up
 
 1. Add current-code reproduction tests before fixing broad issues.
-2. Decide whether upstream #55, #56, #157, and #252 reproduce on
-   `ghini-4-dev-clean`.
+2. Continue upstream backlog triage when release blockers are stable.
 3. Update this table when an upstream issue is fixed, imported, or explicitly
    deferred.

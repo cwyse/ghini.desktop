@@ -1814,6 +1814,25 @@ def select_in_search_results(obj):
     return row_iter
 
 
+def remove_from_search_results(obj):
+    """
+    Remove an object from the active search results, if the current view is the
+    search view and the object is present there.
+    """
+    check(obj is not None, "remove_from_search_results: arg is None")
+    if getattr(bauble, "gui", None) is None:
+        return False
+    view = bauble.gui.get_view()
+    if not isinstance(view, SearchView):
+        return False
+    model = view.results_view.get_model()
+    found = utils.search_tree_model(model, obj)
+    if not found:
+        return False
+    model.remove(found[0])
+    return True
+
+
 class DefaultCommandHandler(pluginmgr.CommandHandler):
 
     def __init__(self) -> None:

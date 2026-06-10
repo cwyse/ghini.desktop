@@ -51,7 +51,12 @@ from bauble.plugins.plants.species_model import SpeciesSynonym as SpeciesSynonym
 from bauble.plugins.plants.species_model import VernacularName as VernacularName
 from bauble.prefs import prefs
 from bauble.shared import InfoExpander
-from bauble.view import Action, InfoBox, PropertiesExpander, select_in_search_results
+from bauble.view import (
+    Action,
+    InfoBox,
+    PropertiesExpander,
+    select_in_search_results,
+)
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm.session import object_session
 
@@ -109,6 +114,7 @@ def remove_callback(values):
         session.delete(obj)
         if session.in_transaction():
             session.commit()
+        view.remove_from_search_results(species)
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
         utils.message_details_dialog(

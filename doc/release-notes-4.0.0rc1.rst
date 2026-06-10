@@ -130,16 +130,14 @@ Deferred Issues
 The following work is intentionally deferred from ``v4.0.0rc1``:
 
 * #7 Triage the full upstream GitHub issue backlog.
-* #37 Modernize batch taxonomy check with provider-backed lookup.
 
 Known Scope Limits
 ------------------
 
 * The root ``Dockerfile`` is older experimental packaging work. Use
   ``Dockerfile.dev`` and ``scripts/docker-dev`` for this release candidate.
-* The batch taxonomy-check workflow remains a manual TNRS file-import workflow.
-  It points at the current TNRS site, but provider-backed batch lookup is
-  deferred to #37.
+* The batch taxonomy-check workflow now uses the provider-backed WFO lookup
+  path instead of the old TNRS file-import flow.
 * Full report and label generation are not yet treated as release-blocking
   daily workflow gates unless a specific tested workflow is added before final
   release.
@@ -188,7 +186,9 @@ if the release candidate is rebuilt from a fresh checkout before tagging.
 * Open GitLab issue review completed at ``32b59e85``:
 
   * #31 remains open as the release tracker;
-  * #7 and #37 remain open and are marked ``release-deferred``.
+  * #7 remains open as ``release-deferred``;
+  * #37 is implemented in-tree and closed in the tracker after the WFO batch
+    lookup update.
 
 Earlier release hardening also verified a live WFO provider smoke query from
 the Docker image. That check should be rerun if the release candidate is

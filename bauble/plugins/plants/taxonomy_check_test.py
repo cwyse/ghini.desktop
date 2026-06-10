@@ -20,12 +20,29 @@ from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus
 from sqlalchemy import text
 
-from .taxonomy_check import TNRS_WEB_URL
+from .taxonomy_check import build_batch_lookup_rows
 from .taxonomy_check import species_to_fix as species_to_fix
+from .taxon_lookup import (
+    TaxonLookupRequest,
+    TaxonLookupResponse,
+    TaxonLookupResult,
+    TaxonLookupStatus,
+)
 
 
-def test_tnrs_web_url_points_to_current_service() -> None:
-    assert TNRS_WEB_URL == "https://tnrs.biendata.org/"
+class FakeProvider:
+    name = "wfo"
+
+    def __init__(self, responses) -> None:
+        self.responses = responses
+        self.requests = []
+
+    def lookup(self, request: TaxonLookupRequest) -> TaxonLookupResponse:
+        self.requests.append(request.name)
+        return self.responses.get(
+            request.name,
+            TaxonLookupResponse(request=request, provider=self.name, results=[]),
+        )
 
 
 @pytest.fixture(scope="function")
@@ -56,6 +73,107 @@ def clear_family_table(db_session) -> None:
 
 @pytest.mark.usefixtures("db_session", "setup_data")
 class TestTaxonomyCheck:
+    def test_batch_lookup_uses_wfo_mapping(self) -> None:
+        accepted = TaxonLookupResult(
+            submitted_name="Guidedgenus guidedspecies",
+            provider="wfo",
+            provider_id="wfo-accepted",
+            matched_name="Guidedgenus guidedspecies",
+            genus="Guidedgenus",
+            species="guidedspecies",
+            family="Guidedaceae",
+            authorship="Guided Author",
+            rank="species",
+            status=TaxonLookupStatus.ACCEPTED,
+            accepted_provider_id="wfo-accepted",
+            title="Guidedgenus guidedspecies Guided Author",
+        )
+        synonym = TaxonLookupResult(
+            submitted_name="Guidedgenus dailyensis",
+            provider="wfo",
+            provider_id="wfo-synonym",
+            matched_name="Guidedgenus dailyensis",
+            genus="Guidedgenus",
+            species="dailyensis",
+            family="Guidedaceae",
+            authorship="Guided Author",
+            rank="species",
+            status=TaxonLookupStatus.SYNONYM,
+            accepted_provider_id="wfo-accepted",
+            title="Guidedgenus dailyensis Guided Author",
+        )
+        accepted_match = TaxonLookupResult(
+            submitted_name="wfo-accepted",
+            provider="wfo",
+            provider_id="wfo-accepted",
+            matched_name="Guidedgenus guidedspecies",
+            genus="Guidedgenus",
+            species="guidedspecies",
+            family="Guidedaceae",
+            authorship="Guided Author",
+            rank="species",
+            status=TaxonLookupStatus.ACCEPTED,
+            accepted_provider_id="wfo-accepted",
+            title="Guidedgenus guidedspecies Guided Author",
+        )
+        provider = FakeProvider(
+            {
+                "Guidedgenus guidedspecies": TaxonLookupResponse(
+                    request=TaxonLookupRequest(name="Guidedgenus guidedspecies"),
+                    provider="wfo",
+                    results=[accepted],
+                ),
+                "Guidedgenus dailyensis": TaxonLookupResponse(
+                    request=TaxonLookupRequest(name="Guidedgenus dailyensis"),
+                    provider="wfo",
+                    results=[synonym],
+                ),
+                "wfo-accepted": TaxonLookupResponse(
+                    request=TaxonLookupRequest(name="wfo-accepted"),
+                    provider="wfo",
+                    results=[accepted_match],
+                ),
+                "No match": TaxonLookupResponse(
+                    request=TaxonLookupRequest(name="No match"),
+                    provider="wfo",
+                    results=[],
+                ),
+            }
+        )
+
+        rows = build_batch_lookup_rows(
+            ["Guidedgenus guidedspecies", "Guidedgenus dailyensis", "No match"],
+            provider,
+        )
+
+        assert provider.requests == [
+            "Guidedgenus guidedspecies",
+            "Guidedgenus dailyensis",
+            "wfo-accepted",
+            "No match",
+        ]
+        assert rows[0][2:6] == [
+            "Guidedgenus guidedspecies",
+            "Guidedgenus guidedspecies",
+            "Guided Author",
+            "Accepted",
+        ]
+        assert rows[0][8] is True
+        assert rows[1][2:6] == [
+            "Guidedgenus dailyensis",
+            "Guidedgenus dailyensis",
+            "Guided Author",
+            "Synonym",
+        ]
+        assert rows[1][6:8] == ["Guidedgenus guidedspecies", "Guided Author"]
+        assert rows[2][2:6] == [
+            "",
+            "Guidedgenus guidedspecies",
+            "Guided Author",
+            "Accepted",
+        ]
+        assert rows[3][2:6] == ["No match", "", "", "No match"]
+        assert rows[3][8] is False
 
     def test_species_author(self, db_session) -> None:
         """

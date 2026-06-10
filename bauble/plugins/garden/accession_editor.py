@@ -216,6 +216,7 @@ def remove_callback(accessions):
         session.delete(obj)
         if session.in_transaction():
             session.commit()
+        view.remove_from_search_results(acc)
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(str(e))
         utils.message_details_dialog(
@@ -1800,26 +1801,10 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         )
 
         self.has_plants = len(model.plants) > 0
-        view.widget_set_sensitive(
-            "intended_loc_create_plant_checkbutton", not self.has_plants
-        )
+        self._refresh_create_plant_checkbutton_sensitivity()
 
         def refresh_create_plant_checkbutton_sensitivity(*args):
-            if self.has_plants:
-                view.widget_set_sensitive(
-                    "intended_loc_create_plant_checkbutton", False
-                )
-                return
-            location_chosen = bool(self.model.intended_location)
-            has_quantity = (
-                self.model.quantity_recvd
-                and bool(int(self.model.quantity_recvd))
-                or False
-            )
-            view.widget_set_sensitive(
-                "intended_loc_create_plant_checkbutton",
-                has_quantity and location_chosen,
-            )
+            self._refresh_create_plant_checkbutton_sensitivity()
 
         self.assign_simple_handler("acc_quantity_recvd_entry", "quantity_recvd")
         self.view.connect_after(
@@ -2058,6 +2043,22 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             self.remove_problem(None, target_widget)
             self.view.widget_set_value(target_widget, location)
             self.set_model_attr(target_field, location)
+            self._refresh_create_plant_checkbutton_sensitivity()
+
+    def _refresh_create_plant_checkbutton_sensitivity(self) -> None:
+        if self.has_plants:
+            self.view.widget_set_sensitive(
+                "intended_loc_create_plant_checkbutton", False
+            )
+            return
+        location_chosen = bool(self.model.intended_location)
+        has_quantity = (
+            self.model.quantity_recvd and bool(int(self.model.quantity_recvd)) or False
+        )
+        self.view.widget_set_sensitive(
+            "intended_loc_create_plant_checkbutton",
+            has_quantity and location_chosen,
+        )
 
     def is_dirty(self):
         if self.initializing:

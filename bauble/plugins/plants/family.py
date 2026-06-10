@@ -127,6 +127,7 @@ def remove_callback(families):
             session.delete(obj)
             if session.in_transaction():
                 session.commit()
+            view.remove_from_search_results(family)
         except Exception as e:
             msg = _("Could not delete.\n\n%s") % utils.xml_safe(str(e))
             utils.message_details_dialog(

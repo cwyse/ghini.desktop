@@ -19,7 +19,9 @@
 # Refactored for Pytest and SQLAlchemy 2.0.36 compatibility
 
 import pytest
+import sqlalchemy as sa
 from bauble import db
+import bauble.prefs as prefs_module
 from bauble.plugins.garden.models import AccessionNote
 from bauble.plugins.plants.genus import Genus
 from bauble.prefs import prefs
@@ -76,6 +78,46 @@ def test_sqlite_testing_connection_uses_sqlite_timeout() -> None:
     """
     Keep the existing SQLite testing timeout behavior.
     """
-    connect_args = db._connect_args_for_uri("sqlite:////tmp/ghini-test.sqlite")
+    previous = prefs_module.testing
+    prefs_module.testing = True
+    try:
+        connect_args = db._connect_args_for_uri("sqlite:////tmp/ghini-test.sqlite")
+    finally:
+        prefs_module.testing = previous
 
     assert connect_args["timeout"] == 30
+
+
+@pytest.mark.parametrize(
+    "exc, expected",
+    [
+        (
+            sa.exc.OperationalError(
+                statement="select 1",
+                params=None,
+                orig=Exception("server closed the connection unexpectedly"),
+            ),
+            True,
+        ),
+        (
+            sa.exc.InterfaceError(
+                statement="select 1",
+                params=None,
+                orig=Exception("connection already closed"),
+            ),
+            True,
+        ),
+        (
+            sa.exc.OperationalError(
+                statement="select 1",
+                params=None,
+                orig=Exception("some other database error"),
+            ),
+            False,
+        ),
+    ],
+)
+def test_is_connection_invalidated_error_matches_postgresql_disconnects(
+    exc, expected
+) -> None:
+    assert db.is_connection_invalidated_error(exc) is expected

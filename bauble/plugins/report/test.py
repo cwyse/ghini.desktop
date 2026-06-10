@@ -170,6 +170,21 @@ class TestReport:
         assert _resolve_export_value(species, "habit.name") is None
         assert _resolve_export_value(species, "sp") == "sp1"
 
+    def test_flat_export_optional_step_in_middle_of_path_is_safe(self):
+        class Leaf:
+            def __init__(self, label):
+                self.label = label
+
+        class Branch:
+            def __init__(self, child=None):
+                self.child = child
+
+        root = Branch(child=None)
+        assert _resolve_export_value(root, "child.label") is None
+
+        root = Branch(child=Leaf("ready"))
+        assert _resolve_export_value(root, "child.label") == "ready"
+
     def test_get_species_pertinent_to_element(self):
         """
         Test getting the species from a family type.

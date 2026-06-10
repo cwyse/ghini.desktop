@@ -21,6 +21,7 @@
 #
 import os
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
@@ -29,6 +30,7 @@ from bauble import prefs as prefs
 from bauble import querybuilder as querybuilder
 from bauble import search as search
 from bauble.editor import GenericEditorView
+from bauble.gtkinit import Gtk
 from bauble.plugins.garden.models import Accession, Collection, Contact, Location, Plant
 from bauble.plugins.plants.family import Family
 from bauble.plugins.plants.genus import Genus, GenusNote
@@ -38,6 +40,7 @@ from bauble.search import NoneToken as NoneToken
 from bauble.search import SearchParser as SearchParser
 from bauble.search import get_strategy as get_strategy
 from bauble.utils import paths
+from bauble import view as bauble_view
 from pyparsing import ParseException
 from sqlalchemy import text
 from sqlalchemy.sql import select
@@ -298,6 +301,33 @@ class TestSearchParser:
         """
         with pytest.raises(ParseException):
             parser.value_list.parse_string(query, parse_all=True)
+
+
+def test_remove_from_search_results_prunes_matching_top_level_row(monkeypatch):
+    model = Gtk.TreeStore(object)
+    family = Family(epithet="Arecaceae", qualifier="")
+    row = model.append(None, [family])
+    model.append(row, ["-"])
+
+    class FakeResultsView:
+        def __init__(self, model) -> None:
+            self._model = model
+
+        def get_model(self):
+            return self._model
+
+    class FakeSearchView:
+        def __init__(self, model) -> None:
+            self.results_view = FakeResultsView(model)
+
+    monkeypatch.setattr(bauble_view, "SearchView", FakeSearchView)
+    monkeypatch.setattr(
+        bauble_view.bauble,
+        "gui",
+        SimpleNamespace(get_view=lambda: FakeSearchView(model)),
+    )
+    assert bauble_view.remove_from_search_results(family)
+    assert model.get_iter_first() is None
 
 
 @pytest.mark.usefixtures("db_session", "setup_test_data")

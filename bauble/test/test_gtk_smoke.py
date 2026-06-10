@@ -30,6 +30,7 @@ from bauble.plugins.garden.location_editor import (
     LocationEditorPresenter,
     LocationEditorView,
 )
+import bauble.plugins.garden.location_editor as location_editor_module
 from bauble.plugins.garden.accession_editor import (
     AccessionEditor,
     AccessionEditorPresenter,
@@ -2059,6 +2060,76 @@ def test_accession_editor_from_species_id_populates_taxon_and_commits(session):
         accession_editor.presenter.cleanup()
         accession_editor.presenter.view.get_window().destroy()
         accession_editor.session.close()
+
+
+class _FakeLocationEditor:
+    location = None
+
+    def __init__(self, parent=None) -> None:
+        self.parent = parent
+        self.presenter = SimpleNamespace(model=self.location)
+
+    def start(self):
+        return True
+
+
+def test_accession_editor_intended_location_button_adds_location_and_enables_create_plant(
+    monkeypatch, session, accession_editor_view
+):
+    accession = make_test_accession(session)
+    location = Location(code="FERN", name="Fern Room")
+    _FakeLocationEditor.location = location
+    monkeypatch.setattr(location_editor_module, "LocationEditor", _FakeLocationEditor)
+
+    presenter = AccessionEditorPresenter(accession, accession_editor_view)
+
+    assert not accession_editor_view.widgets.intended_loc_create_plant_checkbutton.get_sensitive()
+
+    accession_editor_view.widgets.intended_loc_add_button.emit("clicked")
+    drain_gtk_events()
+
+    assert accession.intended_location is location
+    assert (
+        accession_editor_view.widget_get_value("intended_loc_comboentry")
+        == "(FERN) Fern Room"
+    )
+    assert accession_editor_view.widgets.intended_loc_create_plant_checkbutton.get_sensitive()
+
+
+def test_accession_editor_new_accession_clears_intended_location_fields(
+    monkeypatch, session, accession_editor_view
+):
+    first_accession = make_test_accession(session)
+    first_location = Location(code="FERN", name="Fern Room")
+    _FakeLocationEditor.location = first_location
+    monkeypatch.setattr(location_editor_module, "LocationEditor", _FakeLocationEditor)
+
+    first_presenter = AccessionEditorPresenter(first_accession, accession_editor_view)
+    accession_editor_view.widgets.intended_loc_add_button.emit("clicked")
+    drain_gtk_events()
+    assert first_accession.intended_location is first_location
+
+    second_accession = Accession(
+        code="2026.002",
+        species=first_accession.species,
+        quantity_recvd=2,
+        recvd_type="PLNT",
+        private=False,
+    )
+    second_view = AccessionEditorView()
+    second_presenter = AccessionEditorPresenter(
+        second_accession, second_view, session=session
+    )
+
+    assert second_accession.intended_location is None
+    assert second_accession.intended2_location is None
+    assert second_view.widget_get_value("intended_loc_comboentry") == ""
+    assert second_view.widget_get_value("intended2_loc_comboentry") == ""
+
+    first_presenter.cleanup()
+    second_presenter.cleanup()
+    first_presenter.view.get_window().destroy()
+    second_presenter.view.get_window().destroy()
 
 
 def test_accession_species_completion_waits_for_full_species_text(

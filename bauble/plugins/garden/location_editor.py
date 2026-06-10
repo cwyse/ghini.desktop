@@ -31,6 +31,7 @@ import bauble
 import bauble.db as db
 import bauble.paths as paths
 import bauble.utils as utils
+import bauble.view as view
 from bauble.editor import GenericEditorPresenter as GenericEditorPresenter
 from bauble.editor import GenericEditorView as GenericEditorView
 from bauble.editor import (
@@ -44,7 +45,7 @@ from bauble.shared import InfoExpander
 from bauble.view import Action, InfoBox, MapInfoExpander, PropertiesExpander
 
 # from sqlalchemy import text
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm.session import object_session
 
@@ -85,10 +86,21 @@ def remove_callback(locations):
         return
     try:
         with db.Session() as session:
+            from bauble.plugins.garden.models import PlantChange
+
+            session.execute(
+                update(PlantChange)
+                .where(
+                    (PlantChange.from_location_id == loc.id)
+                    | (PlantChange.to_location_id == loc.id)
+                )
+                .values(from_location_id=None, to_location_id=None)
+            )
             obj = session.get(Location, loc.id)
             session.delete(obj)
             if session.in_transaction():
                 session.commit()
+        view.remove_from_search_results(loc)
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
         utils.message_details_dialog(

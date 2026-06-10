@@ -184,7 +184,7 @@ MANUAL_ISSUE_REGRESSION_COVERAGE = {
         (
             "test_wfo_provider_maps_accepted_result",
             "test_wfo_provider_maps_synonym_result",
-            "test_tnrs_web_url_points_to_current_service",
+            "test_wfo_provider_returns_no_results_for_empty_answer",
         ),
     ),
     25: (
@@ -297,6 +297,24 @@ MANUAL_ISSUE_REGRESSION_COVERAGE = {
             "test_plant_editor_commit_discards_blank_seed_propagation_detail",
         ),
     ),
+    157: (
+        "Deleted search results disappear from the current result view",
+        ("test_remove_from_search_results_prunes_matching_top_level_row",),
+    ),
+    252: (
+        "Previously used empty locations can be deleted cleanly",
+        ("test_location_delete_clears_historical_plant_change_references",),
+    ),
+    55: (
+        "Accession intended-location buttons activate and save selected locations",
+        (
+            "test_accession_editor_intended_location_button_adds_location_and_enables_create_plant",
+        ),
+    ),
+    56: (
+        "New accession editors start without previous intended locations",
+        ("test_accession_editor_new_accession_clears_intended_location_fields",),
+    ),
 }
 
 
@@ -357,6 +375,10 @@ def test_manual_issue_regression_coverage_lists_all_tracked_manual_issues():
         40,
         41,
         42,
+        157,
+        252,
+        55,
+        56,
     }
 
     assert set(MANUAL_ISSUE_REGRESSION_COVERAGE) == expected_issue_numbers

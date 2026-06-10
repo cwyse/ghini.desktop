@@ -60,9 +60,8 @@ behavior is:
 The current implementation provides that normalized layer and the first WFO
 provider. The WFO Plant List API documents both GraphQL and REST matching
 interfaces, open access without API keys, stable WFO identifiers, and data
-snapshots every six months. The TNRS service also has a maintained API suitable
-for batch workflows; it should plug into the same contract if it remains part
-of the release scope.
+snapshots every six months. The batch taxonomy check now uses that same
+provider contract.
 
 The WFO server has been observed to omit the Network Solutions RSA OV SSL CA 3
 intermediate certificate from its TLS chain. The Docker development image
@@ -90,16 +89,10 @@ Remaining Work
 The legacy ``AskTPL`` name and species-editor callback names can be renamed
 later, but that should be a separate compatibility cleanup.
 
-``bauble/plugins/plants/taxonomy_check.py`` still documents a TNRS file-based
-workflow for batch checks. The manual workflow points at the current TNRS web
-application, but it does not yet call a provider API directly. Before closing
-the release-blocking taxonomy lookup issue, decide whether that workflow
-should:
-
-* keep importing user-supplied TNRS files,
-* switch to WFO matching exports,
-* call the WFO matching or GraphQL API directly,
-* or support both TNRS and WFO through the normalized provider interface.
+``bauble/plugins/plants/taxonomy_check.py`` now uses the same normalized
+provider interface as the interactive species lookup, with WFO as the first
+batch provider. Future providers can be added by implementing the same
+adapter contract, without changing the batch workflow or the editor code.
 
 The current daily-entry priority is the interactive species lookup used to
 confirm author names while entering new species.

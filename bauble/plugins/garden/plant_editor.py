@@ -129,6 +129,8 @@ def remove_callback(plants):
     try:
         if session.in_transaction():
             session.commit()
+        for plant in plants:
+            view.remove_from_search_results(plant)
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)
 

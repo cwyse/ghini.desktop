@@ -171,6 +171,7 @@ def remove_callback(genera):
         session.delete(obj)
         if session.in_transaction():
             session.commit()
+        view.remove_from_search_results(genus)
 
     except Exception as e:
         msg = _("Could not delete.\n\n%s") % utils.xml_safe(e)

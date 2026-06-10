@@ -27,24 +27,16 @@
     </columns>
   </object>
   <object class="GtkTextBuffer" id="textbuffer1">
-    <property name="text" translatable="yes">Please interact with the https://tnrs.biendata.org/ page.
+    <property name="text" translatable="yes">Please review the selected taxa against World Flora Online.
 
 On this screen you should:
-1. use the below 'copy' button to copy the selection into the clipboard
-2. use the below 'browse' button to open the TNRS web page
+1. use the below 'copy' button to copy the selection into the clipboard if you want to review it elsewhere
+2. use the below 'lookup' button to query WFO directly
 
-On that page you should:
-1. copy the content of the clipboard to the text field there
-2. click on submit list
-3. wait until the request is completed
-4. click on download results
-5. change download format to detailed if that option is available
-6. notice the name of the file about to be downloaded
-7. click on OK
-
-Back to this screen you should:
-1. load the TNRS results file
-2. continue to 'next' screen</property>
+Back on the next screen you should:
+1. review the returned matches
+2. toggle any rows you do not want to apply
+3. continue to the final review screen</property>
   </object>
   <object class="GtkTextBuffer" id="textbuffer3"/>
   <object class="GtkDialog" id="dialog1">
@@ -116,14 +108,14 @@ Back to this screen you should:
                               <object class="GtkButton" id="filebtnbrowse">
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">select TNRS results</property>
+                                <property name="tooltip-text" translatable="yes">query World Flora Online directly</property>
                                 <property name="use-action-appearance">False</property>
                                 <property name="visible">True</property>
-                                <signal name="clicked" handler="on_filebtnbrowse_clicked"/>
+                                <signal name="clicked" handler="on_lookup_button_clicked"/>
                                 <child>
                                   <object class="GtkImage" id="image9">
                                     <property name="can-focus">False</property>
-                                    <property name="stock">gtk-open</property>
+                                    <property name="stock">gtk-find</property>
                                     <property name="visible">True</property>
                                     <property name="xpad">3</property>
                                     <property name="ypad">3</property>
@@ -190,13 +182,13 @@ Back to this screen you should:
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkButton" id="tnrs_browse_button">
+                              <object class="GtkButton" id="lookup_button">
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">start TNRS lookup</property>
+                                <property name="tooltip-text" translatable="yes">start WFO lookup</property>
                                 <property name="use-action-appearance">False</property>
                                 <property name="visible">True</property>
-                                <signal name="clicked" handler="on_tnrs_browse_button_clicked"/>
+                                <signal name="clicked" handler="on_lookup_button_clicked"/>
                                 <child>
                                   <object class="GtkBox" id="hbox7">
                                     <property name="can-focus">False</property>
@@ -215,7 +207,7 @@ Back to this screen you should:
                                     <child>
                                       <object class="GtkLabel" id="label7">
                                         <property name="can-focus">False</property>
-                                        <property name="label" translatable="yes">browse</property>
+                                        <property name="label" translatable="yes">lookup</property>
                                         <property name="visible">True</property>
                                       </object>
                                       <packing>
@@ -235,8 +227,7 @@ Back to this screen you should:
                               <object class="GtkButton" id="button1">
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">use this data and
-continue to next screen</property>
+                                <property name="tooltip-text" translatable="yes">query World Flora Online and move to the review screen</property>
                                 <property name="use-action-appearance">False</property>
                                 <property name="visible">True</property>
                                 <signal name="clicked" handler="on_frame1_next"/>
@@ -247,7 +238,7 @@ continue to next screen</property>
                                     <child>
                                       <object class="GtkLabel" id="label8">
                                         <property name="can-focus">False</property>
-                                        <property name="label" translatable="yes">next</property>
+                                        <property name="label" translatable="yes">lookup</property>
                                         <property name="visible">True</property>
                                       </object>
                                       <packing>
@@ -258,7 +249,7 @@ continue to next screen</property>
                                     <child>
                                       <object class="GtkImage" id="image1">
                                         <property name="can-focus">False</property>
-                                        <property name="stock">gtk-go-forward</property>
+                                        <property name="stock">gtk-find</property>
                                         <property name="visible">True</property>
                                       </object>
                                       <packing>
@@ -287,7 +278,7 @@ continue to next screen</property>
                 <child type="label">
                   <object class="GtkLabel" id="label1">
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">TNRSapp - Taxonomic Name Resolution Service</property>
+                    <property name="label" translatable="yes">WFO batch taxonomy check</property>
                     <property name="visible">True</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>

@@ -17,6 +17,7 @@
 # along with ghini.desktop. If not, see <http://www.gnu.org/licenses/>.
 import logging
 import os
+import threading
 from functools import reduce
 from gettext import gettext as _
 from typing import Any, Optional
@@ -25,10 +26,15 @@ from bauble import paths, pluginmgr, utils
 from bauble.editor import GenericEditorPresenter, GenericEditorView
 from bauble.gtkinit import Pango
 from bauble.plugins.plants import Species
+from bauble.plugins.plants.taxon_lookup import (
+    TaxonLookupProvider,
+    TaxonLookupRequest,
+    TaxonLookupResult,
+    TaxonLookupStatus,
+    WfoTaxonLookupProvider,
+)
 
 logger: Any = logging.getLogger(__name__)
-
-TNRS_WEB_URL = "https://tnrs.biendata.org/"
 
 
 def safe_set_text(gtk_widget, text) -> None:
@@ -41,6 +47,109 @@ def safe_set_text(gtk_widget, text) -> None:
     if text is None:
         text = ""
     gtk_widget.set_text(text)
+
+
+def _result_display_name(result: TaxonLookupResult) -> str:
+    return result.matched_name or result.canonical_name or ""
+
+
+def _best_result(
+    query: str, results: list[TaxonLookupResult]
+) -> Optional[TaxonLookupResult]:
+    if not results:
+        return None
+    if len(results) == 1:
+        return results[0]
+
+    import difflib
+
+    scored = [
+        (
+            difflib.SequenceMatcher(
+                a=query,
+                b=item.canonical_name or item.matched_name or "",
+            ).ratio(),
+            item.status,
+            item,
+        )
+        for item in results
+    ]
+    _score, _status, found = sorted(scored, key=lambda item: item[:2])[-1]
+    return found
+
+
+def build_batch_lookup_rows(
+    binomials: list[str],
+    provider: TaxonLookupProvider,
+) -> list[list[Any]]:
+    rows: list[list[Any]] = []
+    for binomial in binomials:
+        try:
+            response = provider.lookup(TaxonLookupRequest(name=binomial))
+            result = _best_result(binomial, response.results)
+        except Exception as err:
+            logger.warning("batch taxonomy lookup failed for %s: %s", binomial, err)
+            result = None
+
+        if result is None:
+            rows.append(
+                [False, NO_ICON, binomial, "", "", _("No match"), "", "", False]
+            )
+            continue
+
+        matched_name = _result_display_name(result)
+        acceptable = result.status in (
+            TaxonLookupStatus.ACCEPTED,
+            TaxonLookupStatus.SYNONYM,
+        )
+        row = [
+            acceptable,
+            acceptable and YES_ICON or NO_ICON,
+            binomial,
+            matched_name,
+            result.authorship or "",
+            result.status.title().replace("_", " "),
+            "",
+            "",
+            acceptable,
+        ]
+
+        if result.status == TaxonLookupStatus.SYNONYM and result.accepted_provider_id:
+            try:
+                accepted_response = provider.lookup(
+                    TaxonLookupRequest(name=result.accepted_provider_id)
+                )
+                accepted_result = _best_result(
+                    result.accepted_provider_id, accepted_response.results
+                )
+            except Exception as err:
+                logger.warning(
+                    "batch taxonomy accepted-name lookup failed for %s: %s",
+                    result.accepted_provider_id,
+                    err,
+                )
+                accepted_result = None
+            if accepted_result is not None:
+                row[ACCEPTED_BINOMIAL] = _result_display_name(accepted_result)
+                row[ACCEPTED_AUTHORSHIP] = accepted_result.authorship or ""
+                rows.append(row)
+                rows.append(
+                    [
+                        True,
+                        YES_ICON,
+                        "",
+                        _result_display_name(accepted_result),
+                        accepted_result.authorship or "",
+                        "Accepted",
+                        "",
+                        "",
+                        True,
+                    ]
+                )
+                continue
+
+        rows.append(row)
+    return rows
 
 
 def start_taxonomy_check():
@@ -56,7 +165,6 @@ def start_taxonomy_check():
     model.selection = view.get_selection()
     model.tick_off = None
     model.report = None
-    model.file_path = ""
 
     if model.selection is None:
         return
@@ -136,14 +244,10 @@ def set_row_active(tick_off_row, to_process) -> None:
 
 class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
     """
-    the batch taxonomy check (BTC) can run if you have an equal rank
-    selection of taxa in your search results. The BTC exports the names
-    to the clipboard and opens the browser on the
-    current TNRS web application.
-
-    the user will run the service on the remote site, then save the results to
-    a file. then back to Ghini's BTC, the user will open the file and finally
-    interact with the BTC view.
+    The batch taxonomy check (BTC) can run if you have an equal rank
+    selection of taxa in your search results. The BTC queries WFO directly
+    through the normalized taxonomic lookup interface and then lets the user
+    review the returned rows before applying them.
 
     the Model of the BTC is a list of tuples.
 
@@ -151,10 +255,16 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
 
     tick_off_list: Any
     binomials: Any
-    widget_to_field_map: Any = {"file_path_entry": "file_path"}
+    widget_to_field_map: Any = {}
     view_accept_buttons: Any = ["ok_button"]
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        lookup_provider: Optional[TaxonLookupProvider] = None,
+        **kwargs,
+    ) -> None:
+        self.lookup_provider = lookup_provider or WfoTaxonLookupProvider()
         super().__init__(*args, **kwargs)
         self.refresh_visible_frame()
         self.tick_off_list = self.view.widgets.liststore2
@@ -171,44 +281,29 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
         self.view.widget_set_sensitive("ok_button", self.model.page == 3)
 
     def on_frame1_next(self, *args) -> None:
-        "parse the results into the liststore2 and move to frame 2"
-        responses = []
+        "query WFO and populate the liststore2 before moving to frame 2"
+        self.view.widget_set_sensitive("button1", False)
+        self.view.widget_set_value(
+            "file_path_entry", _("Querying WFO for selected taxa...")
+        )
         self.tick_off_list.clear()
-        import codecs
 
-        with codecs.open(self.model.file_path, "r", "utf16") as f:
-            keys = f.readline().strip().split("\t")
-            for l in f.readlines():
-                l = l.strip()
-                values = [i.strip() for i in l.split("\t")]
-                responses.append(dict(list(zip(keys, values))))
-        for binomial, response in zip(self.binomials, responses):
-            acceptable = response["Name_matched_rank"] == "species"
-            row = [acceptable, acceptable and YES_ICON or NO_ICON, binomial]
-            for key in [
-                "Name_matched",
-                "Name_matched_author",
-                "Taxonomic_status",
-                "Accepted_name",
-                "Accepted_name_author",
-            ]:
-                row.append(response[key])
-            row.append(acceptable)
+        def worker() -> None:
+            rows = build_batch_lookup_rows(self.binomials, self.lookup_provider)
+            from bauble.gtkinit import GLib
+
+            GLib.idle_add(self._finish_frame1_lookup, rows)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _finish_frame1_lookup(self, rows) -> bool:
+        self.tick_off_list.clear()
+        for row in rows:
             self.tick_off_list.append(row)
-            if response["Taxonomic_status"] == "Synonym":
-                row = [
-                    True,
-                    YES_ICON,
-                    "",
-                    response["Accepted_name"],
-                    response["Accepted_name_author"],
-                    "Accepted",
-                    "",
-                    "",
-                    True,
-                ]
-                self.tick_off_list.append(row)
-        self.on_frame_next(*args)
+        self.view.widget_set_sensitive("button1", True)
+        self.view.widget_set_value("file_path_entry", _("WFO lookup complete"))
+        self.on_frame_next()
+        return False
 
     def on_frame2_next(self, *args) -> None:
         "execute all that is selected in liststore2 and move to frame 3"
@@ -292,10 +387,8 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
         clipboard = Gtk.Clipboard()
         safe_set_text(clipboard, text)
 
-    def on_tnrs_browse_button_clicked(self, *args) -> None:
-        from bauble.utils import desktop
-
-        desktop.open(TNRS_WEB_URL)
+    def on_lookup_button_clicked(self, *args) -> None:
+        self.on_frame1_next(*args)
 
     def on_tick_off_view_row_activated(
         self, view, path, column, data: Optional[Any] = None
@@ -328,29 +421,6 @@ class BatchTaxonomicCheckPresenter(GenericEditorPresenter):
             row[TO_PROCESS] = to_process
             stock_id = to_process and YES_ICON or NO_ICON
             row[STOCK_ID] = stock_id
-
-    def on_filebtnbrowse_clicked(self, *args) -> None:
-        from bauble.gtkinit import Gtk
-
-        previously = self.view.widget_get_value("file_path_entry")
-        last_folder, bn = os.path.split(previously)
-
-        # Use the window from self.view
-        parent_window = self.view.get_window()
-
-        self.view.run_file_chooser_dialog(
-            _("Choose a file…"),
-            parent=parent_window,
-            action=Gtk.FileChooserAction.SAVE,
-            buttons=[
-                _("Ok"),
-                Gtk.ResponseType.ACCEPT,
-                _("Cancel"),
-                Gtk.ResponseType.CANCEL,
-            ],
-            last_folder=last_folder,
-            target="file_path_entry",
-        )
 
 
 class TaxonomyCheckTool(pluginmgr.Tool):

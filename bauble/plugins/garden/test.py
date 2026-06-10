@@ -622,6 +622,41 @@ def setup_location(db_session):
     return location
 
 
+def test_location_delete_clears_historical_plant_change_references(
+    monkeypatch, db_session, setup_accession2, setup_location
+) -> None:
+    from bauble.plugins.garden.location_editor import remove_callback
+
+    location = setup_location
+    other_location = Location(name="Other Site", code="OTH")
+    accession = setup_accession2["accession"]
+    plant = Plant(accession=accession, location=other_location, code="1", quantity=1)
+    change = PlantChange(plant=plant, from_location=location, quantity=1)
+    db_session.add_all([other_location, plant, change])
+    if db_session.in_transaction():
+        db_session.commit()
+    location_id = location.id
+    change_id = change.id
+
+    monkeypatch.setattr(
+        "bauble.plugins.garden.location_editor.utils.yes_no_dialog",
+        lambda *a, **k: True,
+    )
+
+    assert remove_callback([location])
+
+    db_session.expire_all()
+    assert (
+        db_session.execute(select(Location).where(Location.id == location_id)).first()
+        is None
+    )
+    stored_change = db_session.execute(
+        select(PlantChange).where(PlantChange.id == change_id)
+    ).scalar_one()
+    assert stored_change.from_location_id is None
+    assert stored_change.to_location_id is None
+
+
 def test_source_propagation_cleanup(db_session, setup_accession2) -> None:
     """Test cleanup of propagation when disassociated from a source."""
     accession = setup_accession2["accession"]
