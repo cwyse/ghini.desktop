@@ -80,6 +80,8 @@ GUI workflow
   testing.
 * Fixed editor handling for vernacular-name persistence and database length
   validation.
+* Made Ctrl-Enter accept editor dialogs when the OK/Accept response is enabled.
+* Enabled current-change reason controls for existing plant records.
 
 Import and export
 ~~~~~~~~~~~~~~~~~
@@ -88,6 +90,15 @@ Import and export
 * Added tests that accepted-name imports preserve both the original and
   accepted taxa.
 * Kept useful exception details in import failure dialogs.
+* Refreshed both the active view and home count view after CSV restore/import
+  operations.
+
+Reports and labels
+~~~~~~~~~~~~~~~~~~
+
+* Included species authors in the HTML plant label templates.
+* Added focused regression coverage for author rendering in the small and
+  standard HTML label templates.
 
 Taxonomic lookup
 ~~~~~~~~~~~~~~~~
@@ -124,6 +135,10 @@ candidate:
 * #41 Add Accession from new Species can fail with detached Species instance.
 * #42 Add Accession can autoflush incomplete seed propagation during editor
   startup.
+* Upstream #63 identification qualifiers now render in the expected position.
+* Upstream #397 editor dialogs accept Ctrl-Enter for enabled OK/Accept actions.
+* Upstream #452 backup restore/import refreshes the home count view.
+* Upstream #454 HTML plant labels include species authors.
 * Upstream #55/#56 intended-location regressions.
 * Upstream #157 deleted top-level records remain in search results.
 * Upstream #252 previously used empty locations cannot be deleted.
@@ -142,9 +157,9 @@ Known Scope Limits
   ``Dockerfile.dev`` and ``scripts/docker-dev`` for this release candidate.
 * The batch taxonomy-check workflow now uses the provider-backed WFO lookup
   path instead of the old TNRS file-import flow.
-* Full report and label generation are not yet treated as release-blocking
-  daily workflow gates unless a specific tested workflow is added before final
-  release.
+* Full report generation is not yet treated as a release-blocking daily
+  workflow gate. HTML plant-label author rendering is covered by a focused
+  regression test.
 * GTK menu icon warnings are tracked as non-blocking unless they affect daily
   workflow behavior.
 

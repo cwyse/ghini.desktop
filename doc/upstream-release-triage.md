@@ -30,6 +30,10 @@ taxonomy-to-accession-to-plant workflow.
 | [#111](https://github.com/Ghini/ghini.desktop/issues/111) Autocomplete for manual query properties | Partially imported | Daily-workflow autocomplete is covered by GitLab #30; full query-builder-style completion remains deferred. |
 | [#58](https://github.com/Ghini/ghini.desktop/issues/58) ID format and wild status in accession editor | Covered by release gate | The current Accession Editor exposes ID format and wild status fields. Keep this in the daily workflow guided test rather than importing separately unless testing fails. |
 | [#72](https://github.com/Ghini/ghini.desktop/issues/72) Error creating connection manager presenter | Covered by release gate | Connection manager startup is covered by automated and guided tests. Import only if reproduced on GTK 3.24. |
+| [#63](https://github.com/Ghini/ghini.desktop/issues/63) Identification qualifier spacing | Covered | Genus-level accession qualifiers now render between genus and epithet, and accession species-string caching includes qualifier state. |
+| [#454](https://github.com/Ghini/ghini.desktop/issues/454) Authors missing on some labels | Covered | HTML label templates now render species authors, with Mako template regression coverage. |
+| [#397](https://github.com/Ghini/ghini.desktop/issues/397) Ctrl-Enter accelerator consistency | Covered | Generic editor dialogs now accept sensitive OK/Accept responses on Ctrl-Enter. |
+| [#452](https://github.com/Ghini/ghini.desktop/issues/452) Backup restore home count refresh | Covered | CSV restore updates both the active view and cached home view after import progress changes. |
 
 ## Include In Release Scope
 
@@ -50,15 +54,13 @@ baseline unless a current test proves they break the supported workflow.
 
 | Upstream | Decision |
 | --- | --- |
-| [#9](https://github.com/Ghini/ghini.desktop/issues/9) User-defined type-of-material values | Useful enhancement; current release only requires existing type choices to save correctly. |
-| [#14](https://github.com/Ghini/ghini.desktop/issues/14) User-defined reason for current change | Enhancement; not needed for baseline workflow. |
+| [#9](https://github.com/Ghini/ghini.desktop/issues/9) User-defined type-of-material values | Partially addressed by adding offset and rooted-offset accession material values. True user-managed vocabularies need a schema/UI design and remain deferred. |
+| [#14](https://github.com/Ghini/ghini.desktop/issues/14) User-defined reason for current change | Current-change reason controls are enabled correctly for existing plants. True user-managed reasons need a schema/UI design and remain deferred. |
 | [#15](https://github.com/Ghini/ghini.desktop/issues/15) List for accession intended locations | Enhancement; verify current controls but do not expand behavior for baseline. |
-| [#36](https://github.com/Ghini/ghini.desktop/issues/36) Provenance list | Enhancement/question; current list must work, but expanding it can wait. |
-| [#63](https://github.com/Ghini/ghini.desktop/issues/63) Identification qualifier spacing | Display-quality bug; defer unless user workflow depends on qualified accession labels. |
+| [#36](https://github.com/Ghini/ghini.desktop/issues/36) Provenance list | Partially addressed by adding provenance values for donation, confiscated material, collection, propagule, and in vitro material. A fully configurable list remains deferred. |
 | [#98](https://github.com/Ghini/ghini.desktop/issues/98) Accession ID qualifier semantics | Broader taxonomy/design question; defer. |
 | [#180](https://github.com/Ghini/ghini.desktop/issues/180) Notes tab in propagations | Enhancement; propagation save/display is the release-critical path. |
-| [#235](https://github.com/Ghini/ghini.desktop/issues/235) Accession source categories | Enhancement; source selector correctness is covered locally by GitLab #29. |
-| [#454](https://github.com/Ghini/ghini.desktop/issues/454) Authors missing on some labels | Defer unless label output becomes part of the `v4.0.0` acceptance test. |
+| [#235](https://github.com/Ghini/ghini.desktop/issues/235) Accession source categories | Partially addressed by adding top-level provenance/source-origin categories. Structured source-specific fields remain deferred. |
 | [#466](https://github.com/Ghini/ghini.desktop/issues/466) Quantity units and fuzzy support | Enhancement/design work; current numeric quantity must save correctly. |
 | [#465](https://github.com/Ghini/ghini.desktop/issues/465) Better plant culture information | Enhancement/design work. |
 | [#458](https://github.com/Ghini/ghini.desktop/issues/458) GBIF as taxonomic source | Provider decision belongs to GitLab #24, not baseline runtime stability. |
