@@ -151,7 +151,8 @@ Known Scope Limits
 Test Evidence
 -------------
 
-Automated release evidence for current application code at ``55348508``:
+Automated release evidence for the current application code at ``55348508``
+was rerun after release documentation commit ``a1f8f1d2``:
 
 * ``scripts/docker-dev test-smoke`` passed:
 
@@ -168,13 +169,6 @@ Automated release evidence for current application code at ``55348508``:
 * ``scripts/docker-dev postgres-check`` passed:
 
   * PostgreSQL lane against a disposable schema: 3 passed.
-
-Previous PostgreSQL release evidence at ``c961bfe2``:
-
-* ``scripts/docker-dev postgres-smoke`` passed against a disposable local
-  PostgreSQL database initialized through the PostgreSQL lane:
-
-  * external read-only smoke lane: 8 passed.
 
 * ``GHINI_SOURCE_POSTGRES_URI=... scripts/docker-dev postgres-release`` passed
   against representative PostgreSQL data from ``ghini_test3`` on
@@ -201,11 +195,9 @@ rebuilt after additional dependency or certificate changes.
 Pending Release Gates
 ---------------------
 
+No automated release gates remain pending for the current application code.
 Before tagging ``v4.0.0rc1``:
 
-* rerun ``GHINI_SOURCE_POSTGRES_URI=... scripts/docker-dev postgres-release``
-  against representative PostgreSQL data if final release policy requires all
-  PostgreSQL evidence to be at commit ``55348508`` or later;
 * perform final review of the release notes and open issue classifications;
 * tag ``v4.0.0rc1`` after final review is complete.
 
