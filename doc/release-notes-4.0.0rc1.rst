@@ -98,8 +98,8 @@ Taxonomic lookup
   adapter.
 * Verified live WFO lookup from the Docker image with HTTPS verification
   enabled.
-* Updated the legacy manual batch TNRS workflow to point at the current TNRS
-  site.
+* Updated the legacy manual batch TNRS workflow to use the WFO-backed provider
+  lookup path.
 
 Fixed Release-Blocking Issues
 -----------------------------
@@ -117,12 +117,16 @@ candidate:
 * #35 Daily editor fields should validate or safely handle database length
   limits.
 * #36 PlantsPlugin initialization fails when preferences are unavailable.
+* #37 Modernize batch taxonomy check with provider-backed lookup.
 * #38 Main search field unusable after species editor save.
 * #39 Species Notes editor can hang during routine species entry.
 * #40 Daily searches log infobox tracebacks during result display.
 * #41 Add Accession from new Species can fail with detached Species instance.
 * #42 Add Accession can autoflush incomplete seed propagation during editor
   startup.
+* Upstream #55/#56 intended-location regressions.
+* Upstream #157 deleted top-level records remain in search results.
+* Upstream #252 previously used empty locations cannot be deleted.
 
 Deferred Issues
 ---------------
@@ -147,25 +151,25 @@ Known Scope Limits
 Test Evidence
 -------------
 
-Automated release evidence for current application code at ``c961bfe2``:
+Automated release evidence for current application code at ``55348508``:
 
 * ``scripts/docker-dev test-smoke`` passed:
 
   * changed-file check: 16 passed;
-  * GTK smoke suite: 156 passed;
+  * GTK smoke suite: 158 passed;
   * core GUI E2E subset: 6 passed, 23 deselected.
 
-* ``scripts/docker-dev gui-regression`` passed:
+* ``scripts/docker-dev test-regression`` passed:
 
+  * warning-gated suite: 441 passed, 43 skipped;
+  * GTK smoke suite: 158 passed;
   * full automated Dogtail GUI E2E suite: 29 passed.
-
-* ``scripts/docker-dev warnings`` passed:
-
-  * warning-gated suite: 435 passed, 43 skipped.
 
 * ``scripts/docker-dev postgres-check`` passed:
 
   * PostgreSQL lane against a disposable schema: 3 passed.
+
+Previous PostgreSQL release evidence at ``c961bfe2``:
 
 * ``scripts/docker-dev postgres-smoke`` passed against a disposable local
   PostgreSQL database initialized through the PostgreSQL lane:
@@ -187,8 +191,8 @@ if the release candidate is rebuilt from a fresh checkout before tagging.
 
   * #31 remains open as the release tracker;
   * #7 remains open as ``release-deferred``;
-  * #37 is implemented in-tree and closed in the tracker after the WFO batch
-    lookup update.
+  * #37 and the imported release-scope upstream workflow items are implemented
+    in-tree and closed in the tracker.
 
 Earlier release hardening also verified a live WFO provider smoke query from
 the Docker image. That check should be rerun if the release candidate is
@@ -197,9 +201,11 @@ rebuilt after additional dependency or certificate changes.
 Pending Release Gates
 ---------------------
 
-No automated release gates remain pending in this draft evidence. Before
-tagging ``v4.0.0rc1``:
+Before tagging ``v4.0.0rc1``:
 
+* rerun ``GHINI_SOURCE_POSTGRES_URI=... scripts/docker-dev postgres-release``
+  against representative PostgreSQL data if final release policy requires all
+  PostgreSQL evidence to be at commit ``55348508`` or later;
 * perform final review of the release notes and open issue classifications;
 * tag ``v4.0.0rc1`` after final review is complete.
 
