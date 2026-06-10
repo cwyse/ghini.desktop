@@ -769,7 +769,7 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             elif not rank:
                 binomial[2] += " (" + qual + ")"
             elif rank == "genus":
-                binomial.insert(0, qual)
+                binomial.insert(1, qual)
             elif rank == "infrasp":
                 if infrasp_parts:
                     infrasp_parts.insert(0, qual)

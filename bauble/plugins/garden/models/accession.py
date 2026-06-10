@@ -55,6 +55,11 @@ prov_type_values: ClassVar[list[tuple[Optional[str], str]]] = [
     ("Cultivated", _("Propagule(s) from a wild source plant")),
     ("NotWild", _("Accession not of wild source")),
     ("Purchase", _("Purchase or gift")),
+    ("Donation", _("Donation")),
+    ("Confiscated", _("Confiscated material")),
+    ("Collection", _("Collection")),
+    ("Propagule", _("Propagule")),
+    ("InVitro", _("In vitro material")),
     ("InsufficientData", _("Insufficient Data")),
     ("Unknown", _("Unknown")),
     (None, ""),
@@ -121,11 +126,13 @@ recvd_type_values: ClassVar[dict[Optional[str], str]] = {
     "CLUM": _("Clump"),
     "CORM": _("Corm"),
     "DIVI": _("Division"),
+    "OFFS": _("Offset"),
     "GRAF": _("Graft"),
     "LAYE": _("Layer"),
     "PLNT": _("Planting"),
     "PSBU": _("Pseudobulb"),
     "RCUT": _("Rooted cutting"),
+    "ROFF": _("Rooted offset"),
     "RHIZ": _("Rhizome"),
     "ROOC": _("Root cutting"),
     "ROOT": _("Root"),
@@ -160,10 +167,12 @@ accession_type_to_plant_material: ClassVar[dict[Optional[str], str]] = {
     "CLUM": "Vegetative",
     "CORM": "Vegetative",
     "DIVI": "Vegetative",
+    "OFFS": "Vegetative",
     "GRAF": "Vegetative",
     "LAYE": "Vegetative",
     "PSBU": "Vegetative",
     "RCUT": "Vegetative",
+    "ROFF": "Vegetative",
     "RHIZ": "Vegetative",
     "ROOC": "Vegetative",
     "ROOT": "Vegetative",
@@ -555,10 +564,11 @@ class Accession(Base, Serializable, WithNotes):
 
         # WARNING: don't use session.is_modified() here because it
         # will query lots of dependencies
+        cache_key = (markup, authors, self.id_qual_rank, self.id_qual)
         try:
-            cached = self.__cached_species_str[(markup, authors)]
+            cached = self.__cached_species_str[cache_key]
         except KeyError:
-            self.__cached_species_str[(markup, authors)] = None
+            self.__cached_species_str[cache_key] = None
             cached = None
         session = object_session(self.species)
         if session:
@@ -598,7 +608,7 @@ class Accession(Base, Serializable, WithNotes):
         else:
             sp_str = self.species.str(authors, markup, remove_zws=True)
 
-        self.__cached_species_str[(markup, authors)] = sp_str
+        self.__cached_species_str[cache_key] = sp_str
         return sp_str
 
     def markup(self):

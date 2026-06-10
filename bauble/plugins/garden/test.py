@@ -43,6 +43,9 @@ from bauble.plugins.garden.models import (
     PropCuttingRooted,
     PropSeed,
     Source,
+    accession_type_to_plant_material,
+    prov_type_values,
+    recvd_type_values,
 )
 from bauble.plugins.garden.models import Voucher as Voucher
 from bauble.plugins.garden.plant_editor import branch_callback, is_code_unique
@@ -743,6 +746,26 @@ def test_accession_species_str(db_session, setup_accession2) -> None:
     sp_str = accession.species_str(markup=True)
     expected = "<i>Echinocactus</i> cf. <i>grusonii</i>"
     assert remove_zws(sp_str) == expected
+
+    accession.id_qual = "?"
+    accession.id_qual_rank = "genus"
+    sp_str = accession.species_str()
+    expected = "Echinocactus ? grusonii"
+    assert remove_zws(sp_str) == expected
+
+
+def test_accession_material_and_provenance_vocabularies_include_daily_workflow_values():
+    assert recvd_type_values["OFFS"] == "Offset"
+    assert recvd_type_values["ROFF"] == "Rooted offset"
+    assert accession_type_to_plant_material["OFFS"] == "Vegetative"
+    assert accession_type_to_plant_material["ROFF"] == "Vegetative"
+
+    provenance = dict(prov_type_values)
+    assert provenance["Donation"] == "Donation"
+    assert provenance["Confiscated"] == "Confiscated material"
+    assert provenance["Collection"] == "Collection"
+    assert provenance["Propagule"] == "Propagule"
+    assert provenance["InVitro"] == "In vitro material"
 
 
 def test_accession_delete_cascades(
