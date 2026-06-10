@@ -26,6 +26,7 @@ import shutil
 import tempfile
 from collections.abc import Generator
 from tempfile import mkdtemp, mkstemp
+from types import SimpleNamespace
 from typing import Any
 
 import bauble.plugins.garden.test as garden_test
@@ -311,6 +312,28 @@ class TestCSV:
         assert t.col1 is False
 
         BoolTest.__table__.drop(bind=db.engine)
+
+    def test_importer_updates_active_and_home_views(self, monkeypatch) -> None:
+        import bauble
+        from bauble.ui import SplashCommandHandler
+
+        active_view = SimpleNamespace(updated=0)
+        home_view = SimpleNamespace(updated=0)
+        active_view.update = lambda: setattr(
+            active_view, "updated", active_view.updated + 1
+        )
+        home_view.update = lambda: setattr(home_view, "updated", home_view.updated + 1)
+        monkeypatch.setattr(
+            bauble,
+            "gui",
+            SimpleNamespace(get_view=lambda: active_view),
+        )
+        monkeypatch.setattr(SplashCommandHandler, "view", home_view)
+
+        CSVImporter()._update_gui()
+
+        assert active_view.updated == 1
+        assert home_view.updated == 1
 
     def test_with_open_connection(
         self, db_session, test_directory, setup_test_files

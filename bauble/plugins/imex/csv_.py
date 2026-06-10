@@ -858,9 +858,15 @@ class CSVImporter(Importer):
         """
         try:
             from bauble import gui
+            from bauble.ui import SplashCommandHandler
 
             if gui is not None:
-                gui.get_view().update()
+                active_view = gui.get_view()
+                if active_view is not None:
+                    active_view.update()
+                home_view = SplashCommandHandler.view
+                if home_view is not None and home_view is not active_view:
+                    home_view.update()
         except ImportError as e:
             logger.warning(f"GUI module import failed: {e}")
         except Exception as e:
