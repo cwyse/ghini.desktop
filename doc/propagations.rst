@@ -49,8 +49,8 @@ Using a Propagation
 A Propagation trial may be successful and result in a new Accession.
 
 Ghini helps you reflect this in the database: create a new Accession,
-immediately switch to the Source tab and select "Garden Propagation" in the
-(admittedly somewhat misleading) Contact field.
+immediately switch to the Source tab and select the garden propagation source
+type.
 
 Start typing the plant number and a list of matching plants with propagation
 trials will appear for you to select from.

@@ -2012,8 +2012,9 @@ def test_accession_source_combo_orders_dedupes_and_matches_text(
     alpha = Contact(name="Alpha Nursery")
     alpha_duplicate = Contact(name="alpha nursery")
     beta = Contact(name="Beta Nursery")
+    garden_contact = Contact(name="Garden Propagation")
     zulu = Contact(name="Zulu Nursery")
-    session.add_all([zulu, alpha_duplicate, beta, alpha])
+    session.add_all([zulu, alpha_duplicate, beta, alpha, garden_contact])
     session.flush()
 
     presenter = AccessionEditorPresenter(accession, accession_editor_view)
@@ -2026,10 +2027,11 @@ def test_accession_source_combo_orders_dedupes_and_matches_text(
 
     values = [_source_display_text(row[0]) for row in model]
 
-    assert values[:2] == ["", source_presenter.garden_prop_str]
-    assert [value.casefold() for value in values[2:]] == [
+    assert values[:1] == [""]
+    assert [value.casefold() for value in values[1:]] == [
         "alpha nursery",
         "beta nursery",
+        "garden propagation",
         "zulu nursery",
     ]
     assert completion.get_model() is model
@@ -2039,7 +2041,38 @@ def test_accession_source_combo_orders_dedupes_and_matches_text(
     assert _source_matches_text(beta, "eta")
     assert _source_matches_text(beta, str(beta.id))
     assert source_presenter._source_detail_from_text(model, "Beta") is beta
+    assert (
+        source_presenter._source_detail_from_text(model, "Garden Propagation")
+        is garden_contact
+    )
     assert source_presenter._source_detail_from_text(model, "Nursery") is None
+
+
+def test_accession_source_mode_separates_contact_and_garden_propagation(
+    session, accession_editor_view
+):
+    accession = make_test_accession(session)
+    presenter = AccessionEditorPresenter(accession, accession_editor_view)
+    source_presenter = presenter.source_presenter
+    source_presenter.start()
+
+    assert (
+        accession_editor_view.widgets.source_mode_combo.get_active_id()
+        == source_presenter.source_mode_contact
+    )
+    assert accession_editor_view.widgets.source_contact_row.get_visible()
+    assert not accession_editor_view.widgets.source_garden_prop_box.get_visible()
+
+    source_presenter.set_source_mode(source_presenter.source_mode_garden_prop)
+
+    assert (
+        accession_editor_view.widgets.source_mode_combo.get_active_id()
+        == source_presenter.source_mode_garden_prop
+    )
+    assert not accession_editor_view.widgets.source_contact_row.get_visible()
+    assert accession_editor_view.widgets.source_garden_prop_box.get_visible()
+    assert accession.source is source_presenter.source
+    assert accession.source.source_detail is None
 
 
 def test_accession_source_entry_exact_match_attaches_source_detail(
@@ -2063,6 +2096,31 @@ def test_accession_source_entry_exact_match_attaches_source_detail(
     assert not source_presenter.has_problems(entry)
     assert accession_editor_view.widgets.source_sw.get_visible()
     assert not accession_editor_view.widgets.source_none_label.get_visible()
+
+
+def test_accession_source_garden_propagation_contact_stays_contact(
+    session, accession_editor_view
+):
+    accession = make_test_accession(session)
+    source = Contact(name="Garden Propagation")
+    session.add(source)
+    session.flush()
+
+    presenter = AccessionEditorPresenter(accession, accession_editor_view)
+    source_presenter = presenter.source_presenter
+    source_presenter.start()
+    entry = accession_editor_view.widgets.acc_source_comboentry.get_child()
+
+    entry.set_text("Garden Propagation")
+    drain_gtk_events()
+
+    assert source_presenter.source_mode == source_presenter.source_mode_contact
+    assert accession.source is source_presenter.source
+    assert accession.source.source_detail is source
+    assert accession.source.plant_propagation is None
+    assert accession_editor_view.widgets.source_contact_row.get_visible()
+    assert accession_editor_view.widgets.source_sw.get_visible()
+    assert not accession_editor_view.widgets.source_garden_prop_box.get_visible()
 
 
 def test_accession_editor_from_species_id_populates_taxon_and_commits(session):

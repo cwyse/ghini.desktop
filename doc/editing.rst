@@ -145,17 +145,18 @@ Accession Source
 """"""""""""""""
 
 The source of the accessions lets you add more information about where this
-accession came from.  Select a Contact from the drop-down list, or choose
-"Garden Propagation", which is placed as a default first item in the list of
-contacts.
+accession came from.  Select the source type first.  Use an external
+contact/source when material came from outside the garden, then choose a
+Contact from the drop-down list.  Use garden propagation when material came
+from a propagation trial already recorded in the garden.
 
 A Garden Propagation is the result of successful Propagation.
 
 When accessing material from a Garden Propagation, you would initially leave
-the first tab alone (General) and start from the second tab (Source).
-Select as Contact "Garden Propagation", indicate which plant is the parent
-plant and choose among the still not completely accessed propagations the
-one you intend to add as an accession in your database.
+the first tab alone (General) and start from the second tab (Source).  Select
+garden propagation as the source type, indicate which plant is the parent plant
+and choose among the still not completely accessed propagations the one you
+intend to add as an accession in your database.
 
 Once you select a propagation, the software will set several fields in the
 General tab, which you can now review.  The Taxon (maybe you managed to

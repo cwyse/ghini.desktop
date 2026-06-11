@@ -45,7 +45,6 @@ def test_source_completion_matches_case_insensitive_substrings_and_ids():
 def test_source_model_partial_match_keeps_typing_valid():
     model = [
         [""],
-        ["Garden Propagation"],
         [ContactStub("Daily Workflow Nursery", id=42)],
     ]
 
@@ -61,3 +60,10 @@ def test_source_exact_match_accepts_display_text_or_id():
     assert _source_exact_text_match(contact, "daily workflow nursery")
     assert _source_exact_text_match(contact, "42")
     assert not _source_exact_text_match(contact, "daily")
+
+
+def test_real_garden_propagation_contact_is_a_normal_contact():
+    contact = ContactStub("Garden Propagation", id=7)
+
+    assert _source_matches_text(contact, "garden")
+    assert _source_exact_text_match(contact, "Garden Propagation")

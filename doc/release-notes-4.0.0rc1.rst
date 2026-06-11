@@ -82,6 +82,9 @@ GUI workflow
   validation.
 * Made Ctrl-Enter accept editor dialogs when the OK/Accept response is enabled.
 * Enabled current-change reason controls for existing plant records.
+* Split accession source mode from contact selection so garden propagation is
+  no longer shown as a contact, while real contacts remain sorted and
+  deduplicated.
 
 Import and export
 ~~~~~~~~~~~~~~~~~

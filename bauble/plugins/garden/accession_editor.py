@@ -955,6 +955,12 @@ class SourcePresenter(editor.GenericEditorPresenter):
     prop_chooser_presenter: Any
     collection_presenter: Any
     garden_prop_str: Any = _("Garden Propagation")
+    source_mode_contact: ClassVar[str] = "contact"
+    source_mode_garden_prop: ClassVar[str] = "garden-propagation"
+    source_mode_values: ClassVar[list[tuple[str, str]]] = [
+        (source_mode_contact, _("External contact/source")),
+        (source_mode_garden_prop, _("Garden propagation")),
+    ]
     SOURCE_CODE_PROBLEM = "BAD_VALUE_sources_code"
     source_code_validator = editor.MaxLengthValidator(
         32, editor.UnicodeOrNoneValidator()
@@ -977,6 +983,9 @@ class SourcePresenter(editor.GenericEditorPresenter):
         self.parent_ref = weakref.ref(parent)
         self.session = session
         self._dirty = False
+        self.source_mode = self.source_mode_contact
+        self._source_mode_changed_handler = None
+        self._install_source_mode_controls()
 
         self.view.connect(
             "new_source_button", "clicked", self.on_new_source_button_clicked
@@ -993,9 +1002,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
             elif isinstance(source, Contact):
                 self._attach_source_to_model()
                 self.source.source_detail = source
-            elif source == self.garden_prop_str:
-                self._attach_source_to_model()
-                self.source.source_detail = None
+                self.source.plant_propagation = None
             else:
                 logger.warning(f"unknown source: {source}")
             # self.model.source = self.source
@@ -1086,6 +1093,70 @@ class SourcePresenter(editor.GenericEditorPresenter):
             self.on_prop_remove_button_clicked,
         )
 
+    def _install_source_mode_controls(self) -> None:
+        source_box = self.view.widgets.source_box
+        contact_row = self.view.widgets.hbox8
+        mode_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        mode_row.set_visible(True)
+
+        label = Gtk.Label(label=_("Source type"))
+        label.set_visible(True)
+        label.set_xalign(0)
+        mode_row.pack_start(label, False, True, 0)
+
+        combo = Gtk.ComboBoxText()
+        combo.set_visible(True)
+        for value, text in self.source_mode_values:
+            combo.append(value, text)
+        combo.set_active_id(self.source_mode_contact)
+        mode_row.pack_start(combo, True, True, 0)
+
+        source_box.pack_start(mode_row, False, True, 0)
+        source_box.reorder_child(mode_row, 0)
+        label.set_mnemonic_widget(combo)
+
+        self.view.widgets.source_mode_row = mode_row
+        self.view.widgets.source_mode_label = label
+        self.view.widgets.source_mode_combo = combo
+        self.view.widgets.source_contact_row = contact_row
+        self._source_mode_changed_handler = combo.connect(
+            "changed", self.on_source_mode_changed
+        )
+
+    def on_source_mode_changed(self, combo, *args) -> None:
+        mode = combo.get_active_id() or self.source_mode_contact
+        self.set_source_mode(mode, mark_dirty=True)
+
+    def set_source_mode(self, mode: str, mark_dirty: bool = False) -> None:
+        if mode not in dict(self.source_mode_values):
+            mode = self.source_mode_contact
+        changed = self.source_mode != mode
+        self.source_mode = mode
+        combo = self.view.widgets.source_mode_combo
+        if combo.get_active_id() != mode:
+            handler_id = getattr(self, "_source_mode_changed_handler", None)
+            if handler_id is not None:
+                combo.handler_block(handler_id)
+            try:
+                combo.set_active_id(mode)
+            finally:
+                if handler_id is not None:
+                    combo.handler_unblock(handler_id)
+
+        if mode == self.source_mode_garden_prop:
+            self._attach_source_to_model()
+            self.source.source_detail = None
+            self.view.widgets.source_contact_row.set_visible(False)
+        else:
+            if mark_dirty and changed:
+                self.source.plant_propagation = None
+            self.view.widgets.source_contact_row.set_visible(True)
+
+        self.update_source_visibility()
+        if mark_dirty and changed:
+            self._dirty = True
+            self.refresh_sensitivity()
+
     def all_problems(self):
         """
         Return a union of all the problems from this presenter and
@@ -1119,12 +1190,14 @@ class SourcePresenter(editor.GenericEditorPresenter):
 
     def start(self) -> None:
         active = None
+        source_mode = self.source_mode_contact
         if self.model.source:
             if self.model.source.source_detail:
                 active = self.model.source.source_detail
             elif self.model.source.plant_propagation:
-                active = self.garden_prop_str
+                source_mode = self.source_mode_garden_prop
         self.populate_source_combo(active)
+        self.set_source_mode(source_mode)
 
     def is_dirty(self):
         return (
@@ -1162,7 +1235,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         ):
             return
 
-        if entry_text == self.garden_prop_str:
+        if self.source_mode == self.source_mode_garden_prop:
             self._attach_source_to_model()
             self.source.source_detail = None
             return
@@ -1173,6 +1246,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
             if source_detail is not None:
                 self._attach_source_to_model()
                 self.source.source_detail = source_detail
+                self.source.plant_propagation = None
                 return
 
         if self.source.sources_code:
@@ -1304,13 +1378,11 @@ class SourcePresenter(editor.GenericEditorPresenter):
         combo.set_model(None)
         model = Gtk.ListStore(object)
         none_iter = model.append([""])
-        model.append([self.garden_prop_str])
         contacts = list(
             self.session.execute(Contact.query_with_default_order()).scalars()
         )
         if (
             active
-            and active != self.garden_prop_str
             and _source_display_text(active)
             and not any(_source_same_value(contact, active) for contact in contacts)
         ):
@@ -1379,7 +1451,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
                 source_garden_prop_box=False,
                 source_none_label=False,
             )
-            if entry.get_text() == self.garden_prop_str:
+            if self.source_mode == self.source_mode_garden_prop:
                 widget_visibility["source_garden_prop_box"] = True
             elif not self.model.source or not self.model.source.source_detail:
                 widget_visibility["source_none_label"] = True
