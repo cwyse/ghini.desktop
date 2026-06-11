@@ -23,6 +23,7 @@ Defines the plant table and handled editing plants
 """
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 import re
@@ -41,6 +42,7 @@ from bauble.editor import GenericEditorView as GenericEditorView
 from bauble.editor import (
     GenericModelViewPresenterEditor as GenericModelViewPresenterEditor,
 )
+from bauble.editor import DateValidator as DateValidator
 from bauble.editor import MaxLengthValidator as MaxLengthValidator
 from bauble.editor import NotesPresenter, PicturesPresenter
 from bauble.editor import UnicodeOrNoneValidator as UnicodeOrNoneValidator
@@ -68,6 +70,19 @@ from sqlalchemy.orm.session import object_session
 
 if TYPE_CHECKING:
     from bauble.plugins.garden.models import Accession, Location
+
+
+CUSTOM_CHANGE_REASON_KEY = "OTHR"
+CUSTOM_CHANGE_REASON_CATEGORY = "[change-reason]"
+
+
+def change_reason_label(change) -> str:
+    """Return display text for a plant change reason."""
+    if change.reason == CUSTOM_CHANGE_REASON_KEY:
+        note = getattr(change, "note", None)
+        if note is not None and getattr(note, "note", None):
+            return note.note
+    return change_reasons.get(change.reason, change.reason or "")
 
 
 # at module load time
@@ -298,6 +313,7 @@ class PlantEditorView(GenericEditorView):
         )
         self.init_translatable_combo("plant_acc_type_combo", acc_type_values)
         self.init_translatable_combo("reason_combo", change_reasons)
+        self.widgets.reason_combo.set_entry_text_column(1)
         utils.setup_date_button(self, "plant_date_entry", "plant_date_button")
         self.widgets.notebook.set_current_page(0)
 
@@ -426,19 +442,20 @@ class PlantEditorPresenter(GenericEditorPresenter):
         self.change.plant = self.model
         self.change.from_location = self.model.location
         self.change.quantity = self.model.quantity
-
-        def on_reason_changed(combo):
-            it = combo.get_active_iter()
-            self.change.reason = combo.get_model()[it][0]
+        self.change.date = db.utc_now()
 
         sensitive = False
         if self.model not in self.session.new:
             self.view.connect(
-                self.view.widgets.reason_combo, "changed", on_reason_changed
+                self.view.widgets.reason_combo, "changed", self.on_reason_changed
             )
+            reason_entry = self.view.widgets.reason_combo.get_child()
+            if isinstance(reason_entry, Gtk.Entry):
+                self.view.connect(reason_entry, "changed", self.on_reason_entry_changed)
             sensitive = True
         self.view.widgets.reason_combo.set_sensitive(sensitive)
         self.view.widgets.reason_label.set_sensitive(sensitive)
+        self.view.widget_set_value("plant_date_entry", self.change.date)
 
         self.view.connect("plant_date_entry", "changed", self.on_date_entry_changed)
 
@@ -544,7 +561,87 @@ class PlantEditorPresenter(GenericEditorPresenter):
         )
 
     def on_date_entry_changed(self, entry, *args) -> None:
-        self.change.date = entry.set_text
+        problem = "BAD_CHANGE_DATE"
+        try:
+            value = DateValidator().to_python(entry.get_text())
+            if value is None:
+                raise ValidatorError(_("Date of change is required."))
+        except ValidatorError as e:
+            logger.debug(e)
+            self.add_problem(problem, entry)
+        else:
+            if not isinstance(value, datetime.datetime):
+                value = datetime.datetime.combine(value, datetime.time.min)
+            self.change.date = value
+            self.remove_problem(problem, entry)
+            self._dirty = True
+        self.refresh_sensitivity()
+
+    def _known_change_reason_from_text(self, text):
+        normalized = utils.to_unicode(text).strip()
+        if not normalized:
+            return None
+        for key, label in change_reasons.items():
+            if normalized in (utils.to_unicode(key), utils.to_unicode(label)):
+                return key
+        return CUSTOM_CHANGE_REASON_KEY
+
+    def _set_custom_change_reason_note(self, text: Optional[str]) -> None:
+        if not text:
+            note = getattr(self.change, "note", None)
+            if note is not None:
+                utils.delete_or_expunge(note)
+                self.change.note = None
+            return
+
+        from bauble.plugins.garden.models import PlantNote
+
+        note = getattr(self.change, "note", None)
+        if note is None:
+            note = PlantNote(
+                plant=self.model,
+                category=CUSTOM_CHANGE_REASON_CATEGORY,
+                note=text,
+            )
+            self.change.note = note
+            self.session.add(note)
+        else:
+            note.category = CUSTOM_CHANGE_REASON_CATEGORY
+            note.note = text
+
+    def _set_change_reason_from_text(self, text: str) -> None:
+        reason = self._known_change_reason_from_text(text)
+        if reason is None:
+            self.change.reason = None
+            self._set_custom_change_reason_note(None)
+        elif reason == CUSTOM_CHANGE_REASON_KEY:
+            self.change.reason = CUSTOM_CHANGE_REASON_KEY
+            if (
+                utils.to_unicode(text).strip()
+                == change_reasons[CUSTOM_CHANGE_REASON_KEY]
+            ):
+                self._set_custom_change_reason_note(None)
+            else:
+                self._set_custom_change_reason_note(utils.to_unicode(text).strip())
+        else:
+            self.change.reason = reason
+            self._set_custom_change_reason_note(None)
+        self._dirty = True
+        self.refresh_sensitivity()
+
+    def on_reason_changed(self, combo, *args) -> None:
+        it = combo.get_active_iter()
+        if not it:
+            return
+        reason = combo.get_model()[it][0]
+        self.change.reason = reason
+        if reason != CUSTOM_CHANGE_REASON_KEY:
+            self._set_custom_change_reason_note(None)
+        self._dirty = True
+        self.refresh_sensitivity()
+
+    def on_reason_entry_changed(self, entry, *args) -> None:
+        self._set_change_reason_from_text(entry.get_text())
 
     def on_quantity_changed(self, entry, *args) -> None:
         value = entry.get_text()
@@ -875,6 +972,9 @@ class PlantEditor(GenericModelViewPresenterEditor):
                 and change.quantity == self.presenter._original_quantity
             ):
                 # if quantity and location haven't changed, nothing changed.
+                if getattr(change, "note", None) is not None:
+                    utils.delete_or_expunge(change.note)
+                    change.note = None
                 utils.delete_or_expunge(change)
                 self.model.change = None
             else:
@@ -1181,7 +1281,7 @@ class ChangesExpander(InfoExpander):
             else:
                 s = f"{change.quantity}: {change.from_location} -> {change.to_location}"
             if change.reason is not None:
-                s += f"\n{change_reasons[change.reason]}"
+                s += f"\n{change_reason_label(change)}"
             label = Gtk.Label(label=s)
             label.set_alignment(0, 0.5)
             self.table.attach(label, 1, current_row, 1, 1)

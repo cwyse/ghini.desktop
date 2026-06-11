@@ -32,7 +32,7 @@ from bauble.plugins.garden.constants import change_reasons
 
 # from sqlalchemy import text
 from sqlalchemy import ForeignKey, Integer, Unicode, asc
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 logger: Any = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -76,6 +76,7 @@ class PlantChange(Base):
     note_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("plant_note.id"), nullable=True
     )
+    note: Mapped[Optional[Any]] = relationship("PlantNote", uselist=False)
 
     reason: Mapped[Optional[str]] = mapped_column(
         types.Enum(

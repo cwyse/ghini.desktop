@@ -40,6 +40,10 @@ logger = logging.getLogger(__name__)
 
 source_type_values: Any = [
     ("Expedition", _("Expedition")),
+    ("Collection", _("Collection")),
+    ("Donation", _("Donation")),
+    ("Purchase", _("Purchase")),
+    ("Confiscated", _("Confiscated material")),
     ("GeneBank", _("Gene Bank")),
     ("BG", _("Botanic Garden or Arboretum")),
     ("Research/FieldStation", _("Research/Field Station")),

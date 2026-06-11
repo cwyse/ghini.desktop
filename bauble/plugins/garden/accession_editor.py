@@ -23,6 +23,7 @@
 
 import logging
 import os
+import re
 import traceback
 import weakref
 from gettext import gettext as _
@@ -44,6 +45,7 @@ from bauble.plugins.garden.datums import datums
 # you already import several things from models; include this mapping too
 from bauble.plugins.garden.models import (
     Accession,
+    AccessionNote,
     Verification,
     Voucher,
     accession_type_to_plant_material,
@@ -76,6 +78,33 @@ from sqlalchemy.orm import object_session
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+CUSTOM_RECVD_TYPE_KEY = "UNKN"
+CUSTOM_RECVD_TYPE_NOTE_CATEGORY = "[received-type]"
+CUSTOM_QUANTITY_RECVD_NOTE_CATEGORY = "[quantity-received]"
+
+
+def received_type_label(accession) -> str:
+    """Return display text for an accession material type."""
+    if accession.recvd_type == CUSTOM_RECVD_TYPE_KEY:
+        for note in accession.notes:
+            if note.category == CUSTOM_RECVD_TYPE_NOTE_CATEGORY and getattr(
+                note, "note", None
+            ):
+                return note.note
+    return recvd_type_values.get(accession.recvd_type, "")
+
+
+def received_quantity_label(accession) -> str:
+    """Return display text for an accession received quantity."""
+    for note in accession.notes:
+        if note.category == CUSTOM_QUANTITY_RECVD_NOTE_CATEGORY and getattr(
+            note, "note", None
+        ):
+            return note.note
+    if accession.quantity_recvd is not None:
+        return utils.to_unicode(accession.quantity_recvd)
+    return ""
 
 
 def _source_display_text(source: Any) -> str:
@@ -1878,7 +1907,9 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         def refresh_create_plant_checkbutton_sensitivity(*args):
             self._refresh_create_plant_checkbutton_sensitivity()
 
-        self.assign_simple_handler("acc_quantity_recvd_entry", "quantity_recvd")
+        self.view.connect(
+            "acc_quantity_recvd_entry", "changed", self.on_quantity_recvd_entry_changed
+        )
         self.view.connect_after(
             "acc_quantity_recvd_entry",
             "changed",
@@ -2144,6 +2175,48 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         dirty_kids = [p.is_dirty() for p in presenters]
         return self._dirty or True in dirty_kids
 
+    def _custom_accession_note(self, category: str):
+        for note in self.model.notes:
+            if note.category == category:
+                return note
+        return None
+
+    def _set_custom_accession_note(self, category: str, text: Optional[str]) -> None:
+        note = self._custom_accession_note(category)
+        if not text:
+            if note is not None:
+                utils.delete_or_expunge(note)
+                try:
+                    self.model.notes.remove(note)
+                except ValueError:
+                    pass
+            return
+
+        if note is None:
+            note = AccessionNote(
+                accession=self.model,
+                category=category,
+                note=text,
+            )
+            self.session.add(note)
+        else:
+            note.category = category
+            note.note = text
+
+    def _set_custom_received_type_note(self, text: Optional[str]) -> None:
+        self._set_custom_accession_note(CUSTOM_RECVD_TYPE_NOTE_CATEGORY, text)
+
+    def _received_type_has_prefix_match(self, text: str) -> bool:
+        needle = utils.to_unicode(text).strip().casefold()
+        if not needle:
+            return False
+        for key, label in recvd_type_values.items():
+            if key is not None and utils.to_unicode(key).casefold().startswith(needle):
+                return True
+            if utils.to_unicode(label).casefold().startswith(needle):
+                return True
+        return False
+
     def on_recvd_type_comboentry_changed(self, combo, *args):
         """ """
         value = None
@@ -2176,10 +2249,41 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
         results = utils.search_tree_model(model, text, match_func)
         if results and len(results) == 1:  # is match is unique
             self.remove_problem(problem, entry)
+            self._set_custom_received_type_note(None)
             self.set_model_attr("recvd_type", model[results[0]][0])
-        else:
+        elif self._received_type_has_prefix_match(text):
             self.add_problem(problem, entry)
+            self._set_custom_received_type_note(None)
             self.set_model_attr("recvd_type", None)
+        else:
+            self.remove_problem(problem, entry)
+            self._set_custom_received_type_note(utils.to_unicode(text).strip())
+            self.set_model_attr("recvd_type", CUSTOM_RECVD_TYPE_KEY)
+
+    def on_quantity_recvd_entry_changed(self, entry, *args) -> None:
+        problem = "BAD_QUANTITY_RECVD"
+        text = utils.to_unicode(entry.get_text()).strip()
+        if not text:
+            self.remove_problem(problem, entry)
+            self._set_custom_accession_note(CUSTOM_QUANTITY_RECVD_NOTE_CATEGORY, None)
+            self.set_model_attr("quantity_recvd", None)
+            return
+
+        if text.isdigit():
+            self.remove_problem(problem, entry)
+            self._set_custom_accession_note(CUSTOM_QUANTITY_RECVD_NOTE_CATEGORY, None)
+            self.set_model_attr("quantity_recvd", int(text))
+            return
+
+        match = re.search(r"\d+", text)
+        if not match:
+            self.add_problem(problem, entry)
+            self.set_model_attr("quantity_recvd", None)
+            return
+
+        self.remove_problem(problem, entry)
+        self._set_custom_accession_note(CUSTOM_QUANTITY_RECVD_NOTE_CATEGORY, text)
+        self.set_model_attr("quantity_recvd", int(match.group(0)))
 
     def on_acc_code_entry_changed(self, entry, data: Optional[Any] = None) -> None:
         text = utils.to_unicode(entry.get_text()).strip()
@@ -2818,12 +2922,9 @@ class GeneralAccessionExpander(InfoExpander):
 
         type_str = ""
         if row.recvd_type:
-            type_str = recvd_type_values[row.recvd_type]
+            type_str = received_type_label(row)
         self.set_labeled_value("recvd_type", type_str)
-        quantity_str = ""
-        if row.quantity_recvd:
-            quantity_str = row.quantity_recvd
-        self.set_labeled_value("quantity_recvd", quantity_str)
+        self.set_labeled_value("quantity_recvd", received_quantity_label(row))
 
         prov_str = dict(prov_type_values).get(row.prov_type, "")
         if row.prov_type == "Wild" and row.wild_prov_status:

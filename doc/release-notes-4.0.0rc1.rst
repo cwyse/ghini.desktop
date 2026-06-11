@@ -82,9 +82,18 @@ GUI workflow
   validation.
 * Made Ctrl-Enter accept editor dialogs when the OK/Accept response is enabled.
 * Enabled current-change reason controls for existing plant records.
+* Allowed custom current-change reason text without changing the legacy schema:
+  the stored reason remains ``Other`` and the exact text is attached through
+  the existing change-note relationship.
+* Allowed custom accession material text and fuzzy received quantities while
+  preserving legacy database columns. Custom material stores ``Unknown`` plus
+  an accession note; fuzzy quantities store the parsed integer plus the exact
+  quantity phrase in an accession note.
 * Split accession source mode from contact selection so garden propagation is
   no longer shown as a contact, while real contacts remain sorted and
   deduplicated.
+* Added source/contact categories for collection, donation, purchase, and
+  confiscated material.
 
 Import and export
 ~~~~~~~~~~~~~~~~~
@@ -145,6 +154,16 @@ candidate:
 * Upstream #55/#56 intended-location regressions.
 * Upstream #157 deleted top-level records remain in search results.
 * Upstream #252 previously used empty locations cannot be deleted.
+* Upstream #9 accession material can record offset/rooted offset and preserve
+  custom typed material.
+* Upstream #14 plant current-change reasons can preserve custom typed text.
+* Upstream #36 provenance values include donation, confiscated material,
+  collection, propagule, and in vitro material.
+* Upstream #235 accession source/contact categories include collection,
+  donation, purchase, and confiscated material, and garden propagation is a
+  source mode rather than a pseudo-contact.
+* Upstream #466 accession received quantity can preserve fuzzy quantity text
+  while keeping a parsed integer for legacy quantity behavior.
 
 Deferred Issues
 ---------------

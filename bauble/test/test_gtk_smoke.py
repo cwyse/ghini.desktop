@@ -35,21 +35,28 @@ from bauble.plugins.garden.accession_editor import (
     AccessionEditor,
     AccessionEditorPresenter,
     AccessionEditorView,
+    CUSTOM_QUANTITY_RECVD_NOTE_CATEGORY,
+    CUSTOM_RECVD_TYPE_NOTE_CATEGORY,
     _source_display_text,
     _source_matches_text,
     _unique_source_contacts,
+    received_quantity_label,
+    received_type_label,
 )
 from bauble.plugins.garden.constants import acc_type_values
 from bauble.plugins.garden.models.accession import Accession
-from bauble.plugins.garden.models.contact import Contact
+from bauble.plugins.garden.models.contact import Contact, source_type_values
 from bauble.plugins.garden.models.location import Location
 from bauble.plugins.garden.models.plant import Plant
+from bauble.plugins.garden.models.plant_change import PlantChange
 from bauble.plugins.garden.models.source import Collection, Source
 from bauble.plugins.garden.plant_editor import (
+    CUSTOM_CHANGE_REASON_CATEGORY,
     PlantEditor,
     PlantEditorPresenter,
     PlantEditorView,
     PlantInfoBox,
+    change_reason_label,
 )
 from bauble.plugins.garden.propagation_editor import (
     PropagationEditorPresenter,
@@ -1725,6 +1732,15 @@ def test_plant_material_choices_match_release_baseline():
     }
 
 
+def test_contact_source_type_values_include_priority_source_categories():
+    source_types = dict(source_type_values)
+
+    assert source_types["Collection"] == "Collection"
+    assert source_types["Donation"] == "Donation"
+    assert source_types["Purchase"] == "Purchase"
+    assert source_types["Confiscated"] == "Confiscated material"
+
+
 def test_plant_editor_existing_plant_enables_current_change_reason(
     monkeypatch, session, plant_editor_view
 ):
@@ -1735,6 +1751,40 @@ def test_plant_editor_existing_plant_enables_current_change_reason(
 
     assert plant_editor_view.widgets.reason_combo.get_sensitive()
     assert plant_editor_view.widgets.reason_label.get_sensitive()
+    assert isinstance(plant_editor_view.widgets.reason_combo.get_child(), Gtk.Entry)
+
+
+def test_plant_editor_accepts_custom_change_reason(
+    monkeypatch, session, plant_editor_view
+):
+    monkeypatch.setattr(prefs, "testing", False)
+    plant = make_test_plant(session)
+
+    presenter = PlantEditorPresenter(plant, plant_editor_view)
+    reason_entry = plant_editor_view.widgets.reason_combo.get_child()
+
+    reason_entry.set_text("Moved before greenhouse repair")
+    drain_gtk_events()
+
+    assert presenter.change.reason == "OTHR"
+    assert presenter.change.note.category == CUSTOM_CHANGE_REASON_CATEGORY
+    assert presenter.change.note.note == "Moved before greenhouse repair"
+    assert change_reason_label(presenter.change) == "Moved before greenhouse repair"
+    assert presenter.is_dirty()
+
+
+def test_plant_editor_current_change_date_updates_model(
+    monkeypatch, session, plant_editor_view
+):
+    monkeypatch.setattr(prefs, "testing", False)
+    plant = make_test_plant(session)
+
+    presenter = PlantEditorPresenter(plant, plant_editor_view)
+    plant_editor_view.widgets.plant_date_entry.set_text("14-05-2026")
+    drain_gtk_events()
+
+    assert presenter.change.date.date() == datetime.date(2026, 5, 14)
+    assert not presenter.has_problems(plant_editor_view.widgets.plant_date_entry)
 
 
 def test_plant_editor_quantity_changes_update_model(
@@ -1854,6 +1904,36 @@ def test_plant_editor_commit_discards_blank_seed_propagation_detail(
     assert session.get(Propagation, propagation.id) is not None
 
 
+def test_plant_editor_commit_persists_custom_change_reason_note(
+    session, plant_editor_view
+):
+    plant = make_test_plant(session)
+    presenter = PlantEditorPresenter(plant, plant_editor_view)
+    reason_entry = plant_editor_view.widgets.reason_combo.get_child()
+
+    plant_editor_view.widget_set_value("plant_quantity_entry", "2")
+    presenter.on_quantity_changed(plant_editor_view.widgets.plant_quantity_entry)
+    reason_entry.set_text("Moved before greenhouse repair")
+    drain_gtk_events()
+
+    editor = PlantEditor.__new__(PlantEditor)
+    editor.session = session
+    editor.model = plant
+    editor.presenter = presenter
+    editor.branched_plant = None
+    editor._committed = []
+
+    editor.commit_changes()
+
+    change = session.scalars(
+        select(PlantChange).where(PlantChange.plant_id == plant.id)
+    ).one()
+    assert change.reason == "OTHR"
+    assert change.note.category == CUSTOM_CHANGE_REASON_CATEGORY
+    assert change.note.note == "Moved before greenhouse repair"
+    assert change_reason_label(change) == "Moved before greenhouse repair"
+
+
 def test_accession_editor_presenter_populates_and_edits_core_fields(
     session, accession_editor_view
 ):
@@ -1874,18 +1954,109 @@ def test_accession_editor_presenter_populates_and_edits_core_fields(
 
     accession_editor_view.widgets.acc_code_entry.set_text("2026.002")
     presenter.on_acc_code_entry_changed(accession_editor_view.widgets.acc_code_entry)
-    accession_editor_view.widget_set_value("acc_quantity_recvd_entry", "3")
-    presenter.on_text_entry_changed("acc_quantity_recvd_entry")
+    accession_editor_view.widgets.acc_quantity_recvd_entry.set_text("3")
+    drain_gtk_events()
     accession_editor_view.widget_set_active("acc_private_check", True)
     presenter.on_chkbx_toggled("acc_private_check")
 
     assert accession.code == "2026.002"
-    assert accession.quantity_recvd == "3"
+    assert accession.quantity_recvd == 3
     assert accession.private is True
     assert presenter.is_dirty()
     assert accession_editor_view.widgets.acc_ok_button.get_sensitive()
     assert accession_editor_view.widgets.acc_ok_and_add_button.get_sensitive()
     assert accession_editor_view.widgets.acc_next_button.get_sensitive()
+
+
+def test_accession_editor_accepts_custom_received_type(session, accession_editor_view):
+    accession = make_test_accession(session)
+    presenter = AccessionEditorPresenter(accession, accession_editor_view)
+    combo = accession_editor_view.widgets.acc_recvd_type_comboentry
+    entry = combo.get_child()
+
+    entry.set_text("Fresh rhizome piece")
+    drain_gtk_events()
+
+    assert accession.recvd_type == "UNKN"
+    assert not presenter.has_problems(entry)
+    assert received_type_label(accession) == "Fresh rhizome piece"
+    assert any(
+        note.category == CUSTOM_RECVD_TYPE_NOTE_CATEGORY
+        and note.note == "Fresh rhizome piece"
+        for note in accession.notes
+    )
+
+    entry.set_text("Seed")
+    drain_gtk_events()
+
+    assert accession.recvd_type == "SEED"
+    assert received_type_label(accession) == "Seed"
+    assert not any(
+        note.category == CUSTOM_RECVD_TYPE_NOTE_CATEGORY for note in accession.notes
+    )
+
+
+def test_accession_editor_keeps_partial_received_type_unresolved(
+    session, accession_editor_view
+):
+    accession = make_test_accession(session)
+    presenter = AccessionEditorPresenter(accession, accession_editor_view)
+    entry = accession_editor_view.widgets.acc_recvd_type_comboentry.get_child()
+
+    entry.set_text("See")
+    drain_gtk_events()
+
+    assert accession.recvd_type is None
+    assert presenter.has_problems(entry)
+
+
+def test_accession_editor_accepts_fuzzy_quantity_received(
+    session, accession_editor_view
+):
+    accession = make_test_accession(session)
+    presenter = AccessionEditorPresenter(accession, accession_editor_view)
+    entry = accession_editor_view.widgets.acc_quantity_recvd_entry
+
+    entry.set_text("about 100 seeds")
+    drain_gtk_events()
+
+    assert accession.quantity_recvd == 100
+    assert not presenter.has_problems(entry)
+    assert received_quantity_label(accession) == "about 100 seeds"
+    assert any(
+        note.category == CUSTOM_QUANTITY_RECVD_NOTE_CATEGORY
+        and note.note == "about 100 seeds"
+        for note in accession.notes
+    )
+
+    entry.set_text("25")
+    drain_gtk_events()
+
+    assert accession.quantity_recvd == 25
+    assert received_quantity_label(accession) == "25"
+    assert not any(
+        note.category == CUSTOM_QUANTITY_RECVD_NOTE_CATEGORY for note in accession.notes
+    )
+
+    entry.set_text("0")
+    drain_gtk_events()
+
+    assert accession.quantity_recvd == 0
+    assert received_quantity_label(accession) == "0"
+
+
+def test_accession_editor_blocks_quantity_without_number(
+    session, accession_editor_view
+):
+    accession = make_test_accession(session)
+    presenter = AccessionEditorPresenter(accession, accession_editor_view)
+    entry = accession_editor_view.widgets.acc_quantity_recvd_entry
+
+    entry.set_text("several seeds")
+    drain_gtk_events()
+
+    assert accession.quantity_recvd is None
+    assert presenter.has_problems(entry)
 
 
 def test_accession_editor_duplicate_code_blocks_accept(session, accession_editor_view):

@@ -138,10 +138,13 @@ MANUAL_ISSUE_REGRESSION_COVERAGE = {
         ),
     ),
     17: (
-        "Plant Editor persists planting code edits",
+        "Plant Editor persists planting code and current-change edits",
         (
             "test_plant_editor_presenter_populates_and_edits_code",
             "test_plant_editor_blocks_overlong_code",
+            "test_plant_editor_accepts_custom_change_reason",
+            "test_plant_editor_current_change_date_updates_model",
+            "test_plant_editor_commit_persists_custom_change_reason_note",
             "test_can_edit_existing_plant_from_result_context_menu",
         ),
     ),
@@ -159,14 +162,19 @@ MANUAL_ISSUE_REGRESSION_COVERAGE = {
     20: (
         "Accession source selector is deduplicated, sorted, and searchable",
         (
+            "test_contact_source_type_values_include_priority_source_categories",
             "test_source_contacts_are_sorted_and_deduplicated_for_combo_display",
             "test_source_completion_matches_case_insensitive_substrings_and_ids",
             "test_can_select_existing_source_when_editing_accession",
         ),
     ),
     21: (
-        "Plant material choices are explicit for the release baseline",
-        ("test_plant_material_choices_match_release_baseline",),
+        "Plant and accession material choices are explicit for the release baseline",
+        (
+            "test_plant_material_choices_match_release_baseline",
+            "test_accession_editor_accepts_custom_received_type",
+            "test_accession_editor_keeps_partial_received_type_unresolved",
+        ),
     ),
     22: (
         "Quick CSV export tolerates empty optional relationships",
@@ -259,6 +267,8 @@ MANUAL_ISSUE_REGRESSION_COVERAGE = {
             "test_species_editor_blocks_overlong_names",
             "test_location_editor_blocks_overlong_code_and_name",
             "test_accession_editor_blocks_overlong_code",
+            "test_accession_editor_accepts_fuzzy_quantity_received",
+            "test_accession_editor_blocks_quantity_without_number",
             "test_accession_source_id_blocks_overlong_value",
         ),
     ),

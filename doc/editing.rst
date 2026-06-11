@@ -138,7 +138,15 @@ qualifier, at the proper rank, so you can for example have a plant initially
 identified as *Iris* cf. *florentina* by choosing *Iris florentina* in the
 taxon name, identification qualifier 'cf.', qualified rank 'species'.
 
-Type the Accession ID, preferably also the Quantity received.
+Type the Accession ID, preferably also the Quantity received.  The Quantity
+field accepts a plain number or a short phrase containing a number, such as
+``about 100 seeds``.  Ghini stores the number in the legacy quantity column and
+keeps the exact phrase in an accession note for display and future migration.
+
+The Type of material field uses the controlled material list where possible.
+If the material is not in the list, type the material description anyway:
+Ghini stores the legacy ``Unknown`` material code and keeps your exact text in
+an accession note.
 
 
 Accession Source

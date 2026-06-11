@@ -34,6 +34,11 @@ taxonomy-to-accession-to-plant workflow.
 | [#454](https://github.com/Ghini/ghini.desktop/issues/454) Authors missing on some labels | Covered | HTML label templates now render species authors, with Mako template regression coverage. |
 | [#397](https://github.com/Ghini/ghini.desktop/issues/397) Ctrl-Enter accelerator consistency | Covered | Generic editor dialogs now accept sensitive OK/Accept responses on Ctrl-Enter. |
 | [#452](https://github.com/Ghini/ghini.desktop/issues/452) Backup restore home count refresh | Covered | CSV restore updates both the active view and cached home view after import progress changes. |
+| [#9](https://github.com/Ghini/ghini.desktop/issues/9) User-defined type-of-material values | Covered for baseline | Accession material now includes offset and rooted offset. Unknown typed material is preserved in an accession note while storing the legacy `UNKN` material code. |
+| [#14](https://github.com/Ghini/ghini.desktop/issues/14) User-defined reason for current change | Covered for baseline | Plant current-change reasons now accept typed custom text. The change stores legacy reason `OTHR` and preserves the exact custom reason through the existing `plant_change.note_id` relationship. |
+| [#36](https://github.com/Ghini/ghini.desktop/issues/36) Provenance list | Covered for baseline | Provenance values now include donation, confiscated material, collection, propagule, and in vitro material. |
+| [#235](https://github.com/Ghini/ghini.desktop/issues/235) Accession source categories | Covered for baseline | The Source tab separates external contact/source records from garden propagation sources, source contacts are sorted/deduplicated, and contact source types include collection, donation, purchase, and confiscated material. |
+| [#466](https://github.com/Ghini/ghini.desktop/issues/466) Quantity units and fuzzy support | Covered for accession baseline | Accession received quantity now accepts phrases with a number, stores the parsed integer quantity, and preserves the exact phrase in an accession note for display and future schema migration. |
 
 ## Include In Release Scope
 
@@ -54,14 +59,9 @@ baseline unless a current test proves they break the supported workflow.
 
 | Upstream | Decision |
 | --- | --- |
-| [#9](https://github.com/Ghini/ghini.desktop/issues/9) User-defined type-of-material values | Partially addressed by adding offset and rooted-offset accession material values. True user-managed vocabularies need a schema/UI design and remain deferred. |
-| [#14](https://github.com/Ghini/ghini.desktop/issues/14) User-defined reason for current change | Current-change reason controls are enabled correctly for existing plants. True user-managed reasons need a schema/UI design and remain deferred. |
 | [#15](https://github.com/Ghini/ghini.desktop/issues/15) List for accession intended locations | Enhancement; verify current controls but do not expand behavior for baseline. |
-| [#36](https://github.com/Ghini/ghini.desktop/issues/36) Provenance list | Partially addressed by adding provenance values for donation, confiscated material, collection, propagule, and in vitro material. A fully configurable list remains deferred. |
 | [#98](https://github.com/Ghini/ghini.desktop/issues/98) Accession ID qualifier semantics | Broader taxonomy/design question; defer. |
 | [#180](https://github.com/Ghini/ghini.desktop/issues/180) Notes tab in propagations | Enhancement; propagation save/display is the release-critical path. |
-| [#235](https://github.com/Ghini/ghini.desktop/issues/235) Accession source categories | Partially addressed by adding top-level provenance/source-origin categories. Structured source-specific fields remain deferred. |
-| [#466](https://github.com/Ghini/ghini.desktop/issues/466) Quantity units and fuzzy support | Enhancement/design work; current numeric quantity must save correctly. |
 | [#465](https://github.com/Ghini/ghini.desktop/issues/465) Better plant culture information | Enhancement/design work. |
 | [#458](https://github.com/Ghini/ghini.desktop/issues/458) GBIF as taxonomic source | Provider decision belongs to GitLab #24, not baseline runtime stability. |
 | [#457](https://github.com/Ghini/ghini.desktop/issues/457) Implement autonyms | Taxonomy enhancement; defer. |
