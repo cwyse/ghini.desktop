@@ -39,6 +39,8 @@ taxonomy-to-accession-to-plant workflow.
 | [#36](https://github.com/Ghini/ghini.desktop/issues/36) Provenance list | Covered for baseline | Provenance values now include donation, confiscated material, collection, propagule, and in vitro material. |
 | [#235](https://github.com/Ghini/ghini.desktop/issues/235) Accession source categories | Covered for baseline | The Source tab separates external contact/source records from garden propagation sources, source contacts are sorted/deduplicated, and contact source types include collection, donation, purchase, and confiscated material. |
 | [#466](https://github.com/Ghini/ghini.desktop/issues/466) Quantity units and fuzzy support | Covered for accession baseline | Accession received quantity now accepts phrases with a number, stores the parsed integer quantity, and preserves the exact phrase in an accession note for display and future schema migration. |
+| [#180](https://github.com/Ghini/ghini.desktop/issues/180) Notes tab in propagations | Covered | Propagation editors now expose structured notes through the same note presenter used elsewhere, including user/category/date/note persistence and focused GTK smoke coverage. |
+| [#457](https://github.com/Ghini/ghini.desktop/issues/457) Implement autonyms | Covered for core taxonomy workflow | Non-cultivar infraspecific taxa now create/reuse the required autonym sibling, exact species retrieval distinguishes infraspecific taxa, and an existing base species is linked to the autonym as its accepted taxon. Covered by plants model tests. |
 
 ## Include In Release Scope
 
@@ -60,14 +62,93 @@ baseline unless a current test proves they break the supported workflow.
 | Upstream | Decision |
 | --- | --- |
 | [#15](https://github.com/Ghini/ghini.desktop/issues/15) List for accession intended locations | Enhancement; verify current controls but do not expand behavior for baseline. |
-| [#98](https://github.com/Ghini/ghini.desktop/issues/98) Accession ID qualifier semantics | Broader taxonomy/design question; defer. |
-| [#180](https://github.com/Ghini/ghini.desktop/issues/180) Notes tab in propagations | Enhancement; propagation save/display is the release-critical path. |
-| [#465](https://github.com/Ghini/ghini.desktop/issues/465) Better plant culture information | Enhancement/design work. |
+| [#98](https://github.com/Ghini/ghini.desktop/issues/98) Accession ID qualifier semantics | Broader taxonomy/design question; researched below, not implemented. |
+| [#465](https://github.com/Ghini/ghini.desktop/issues/465) Better plant culture information | Enhancement/design work; researched below, not implemented. |
 | [#458](https://github.com/Ghini/ghini.desktop/issues/458) GBIF as taxonomic source | Provider decision belongs to GitLab #24, not baseline runtime stability. |
-| [#457](https://github.com/Ghini/ghini.desktop/issues/457) Implement autonyms | Taxonomy enhancement; defer. |
 | [#444](https://github.com/Ghini/ghini.desktop/issues/444) Improved renaming and synonyms workflow | Important but larger than baseline stabilization. |
 | [#403](https://github.com/Ghini/ghini.desktop/issues/403) Windows installer | Out of scope for Ubuntu/Docker baseline release. |
 | [#432](https://github.com/Ghini/ghini.desktop/issues/432), [#325](https://github.com/Ghini/ghini.desktop/issues/325), [#245](https://github.com/Ghini/ghini.desktop/issues/245) macOS/OSX items | Out of scope for Ubuntu/Docker baseline release. |
+
+## Researched Future Work
+
+### #465 Better plant culture information
+
+Current state: Ghini has species-level `habit`, `awards`, `label_distribution`,
+`bc_distribution`, notes, and source habitat text. It does not have structured,
+queryable culture requirements for common horticultural dimensions such as
+moisture, light, pH, soil/drainage, temperature, frost tolerance, or greenhouse
+conditions.
+
+Recommended implementation subtasks:
+
+1. Define scope and ownership:
+   decide whether culture data belongs to Species, Accession, Plant, Location,
+   or a combination. Default recommendation is Species-level defaults with
+   optional Plant/Accession overrides later.
+2. Define controlled vocabularies:
+   choose stable value sets for moisture, light, temperature, soil/drainage,
+   pH range, growth rate, and seasonal care. Keep free-text notes for uncommon
+   detail instead of overfitting the first schema.
+3. Add a normalized model:
+   create culture-profile tables with controlled-value rows and optional numeric
+   ranges where search/reporting needs them. Avoid encoding this in generic notes
+   if the intent is searchable culture data.
+4. Build import/export mapping:
+   include CSV/JSON fields for the culture profile and make absent values safe
+   for SQLite and PostgreSQL.
+5. Add Species Editor UI:
+   add a Culture or Properties tab with compact controls, validation, and no
+   regression to the existing Additional info and Notes tabs.
+6. Add search/report support:
+   expose culture fields to search, infobox display, labels where useful, and
+   flat export.
+7. Add tests:
+   cover schema creation, editor save/reopen, CSV round trip, search predicates,
+   and PostgreSQL release smoke.
+
+Do not implement until the vocabulary and ownership decisions are made. The
+first implementation should be small enough to avoid forcing all gardens into
+one culture model.
+
+### #98 Accession ID qualifier semantics
+
+Current state: Accession stores `id_qual` plus `id_qual_rank` and injects the
+qualifier into the selected taxon string. This handles simple cases such as
+`Iris cf. florentina`, but it cannot represent a comparison target such as
+`Genus species_1 aff. Genus species_2` as structured data.
+
+Recommended implementation subtasks:
+
+1. Define identification model semantics:
+   distinguish the recorded taxon, qualifier, qualified rank, comparison target,
+   determiner, verification date, confidence, and current accepted
+   identification.
+2. Reconcile with existing verifications:
+   decide whether this is an extension of accession verifications or a new
+   identification table. Prefer extending verification concepts if they already
+   represent taxonomic determinations.
+3. Preserve backward compatibility:
+   keep `id_qual` and `id_qual_rank` readable/writable, and derive the old string
+   display from the richer model during a transition.
+4. Add comparison target support:
+   allow a qualifier such as `aff.` or `cf.` to reference another Species record
+   or a typed unresolved name when the comparison taxon is not in the database.
+5. Update Accession Editor UX:
+   add fields for qualifier target and determiner without making the common
+   unqualified case slower.
+6. Update formatting/search:
+   centralize display generation so labels, search results, reports, and exports
+   render the same identification phrase.
+7. Add migration/import/export:
+   migrate existing `id_qual` rows into the richer representation and include CSV
+   and JSON round-trip coverage.
+8. Add tests:
+   cover simple legacy qualifiers, comparison-target qualifiers, unresolved
+   targets, report output, search output, and PostgreSQL behavior.
+
+Do not implement until the verification relationship is decided. The risk is not
+the UI field itself; the risk is creating a second identification system that
+conflicts with accession verifications.
 
 ## Follow-Up
 

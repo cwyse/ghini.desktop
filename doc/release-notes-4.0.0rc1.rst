@@ -164,6 +164,8 @@ candidate:
   source mode rather than a pseudo-contact.
 * Upstream #466 accession received quantity can preserve fuzzy quantity text
   while keeping a parsed integer for legacy quantity behavior.
+* Upstream #180 propagation editors include structured notes.
+* Upstream #457 infraspecific taxa create/reuse required autonym taxa.
 
 Deferred Issues
 ---------------
