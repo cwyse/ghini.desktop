@@ -38,6 +38,7 @@ from sqlalchemy import (
     UniqueConstraint,
     asc,
     func,
+    or_,
     select,
     text,
 )
@@ -128,6 +129,44 @@ def get_genus():
     return Genus
 
 
+_empty_values = (None, "")
+_infraspecific_identity_fields = (
+    "infrasp1_rank",
+    "infrasp1",
+    "infrasp1_author",
+    "infrasp2_rank",
+    "infrasp2",
+    "infrasp2_author",
+    "infrasp3_rank",
+    "infrasp3",
+    "infrasp3_author",
+    "infrasp4_rank",
+    "infrasp4",
+    "infrasp4_author",
+)
+_species_identity_fields = (
+    "sp2",
+    "author",
+    "hybrid",
+    "sp_qual",
+    "cv_group",
+    "trade_name",
+) + _infraspecific_identity_fields
+_autonym_ranks = {"subsp.", "var.", "subvar.", "f.", "subf."}
+
+
+def _is_empty(value) -> bool:
+    return value in _empty_values
+
+
+def _column_matches(column, value):
+    if _is_empty(value):
+        return or_(column.is_(None), column == "")
+    if isinstance(value, str):
+        return func.lower(column) == func.lower(func.trim(value))
+    return column == value
+
+
 class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     """
     :Table name: species
@@ -200,7 +239,29 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     )
     genus_id: Mapped[int] = mapped_column(ForeignKey("genus.id"), nullable=False)
     __table_args__: Any = (
-        UniqueConstraint("genus_id", "epithet", name="_genus_epithet_uc"),
+        UniqueConstraint(
+            "genus_id",
+            "epithet",
+            "sp2",
+            "author",
+            "hybrid",
+            "sp_qual",
+            "cv_group",
+            "trade_name",
+            "infrasp1_rank",
+            "infrasp1",
+            "infrasp1_author",
+            "infrasp2_rank",
+            "infrasp2",
+            "infrasp2_author",
+            "infrasp3_rank",
+            "infrasp3",
+            "infrasp3_author",
+            "infrasp4_rank",
+            "infrasp4",
+            "infrasp4_author",
+            name="species_taxon_identity_uc",
+        ),
     )
 
     # Define relationship to Genus
@@ -248,14 +309,44 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
             ht = keys.get("ht-epithet")
 
             if ep:
-                stmt = stmt.where(func.lower(cls.epithet) == func.lower(func.trim(ep)))
+                stmt = stmt.where(_column_matches(cls.epithet, ep))
             if ht:
                 stmt = stmt.where(
                     func.lower(Genus.epithet) == func.lower(func.trim(ht))
                 )
 
-            # One row or None
-            result = session.execute(stmt).scalars().one_or_none()
+            has_infraspecific_keys = any(
+                keys.get(field) not in _empty_values
+                for field in _infraspecific_identity_fields
+            )
+            for field in _species_identity_fields:
+                if field in keys:
+                    stmt = stmt.where(_column_matches(getattr(cls, field), keys[field]))
+
+            if not has_infraspecific_keys:
+                base_stmt = stmt
+                for field in _infraspecific_identity_fields:
+                    base_stmt = base_stmt.where(
+                        _column_matches(getattr(cls, field), None)
+                    )
+                result = session.execute(base_stmt).scalars().one_or_none()
+                if result:
+                    return result
+
+                candidates = session.execute(stmt).scalars().all()
+                autonyms = [
+                    candidate for candidate in candidates if candidate.is_autonym
+                ]
+                if len(autonyms) == 1:
+                    return autonyms[0]
+                if len(candidates) == 1:
+                    return candidates[0]
+                if len(candidates) > 1:
+                    logger.warning(f"Multiple Species found for criteria: {keys}")
+                    return None
+                result = None
+            else:
+                result = session.execute(stmt).scalars().one_or_none()
 
             if result:
                 return result
@@ -270,6 +361,15 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         except Exception as e:
             logger.error(f"Error retrieving Species with criteria {keys}: {e}")
             return None
+
+    @classmethod
+    def retrieve_or_create(
+        cls, session, keys, create: bool = True, update: bool = True
+    ):
+        species = super().retrieve_or_create(session, keys, create, update)
+        if species is not None:
+            ensure_autonym_for_species(session, species)
+        return species
 
     def search_view_markup_pair(self):
         """provide the two lines describing object for SearchView row."""
@@ -413,6 +513,26 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
     @property
     def infraspecific_author(self):
         return self.__lowest_infraspecific()[2] or ""
+
+    @property
+    def is_autonym(self) -> bool:
+        part = self.autonym_parent_part
+        return bool(
+            part
+            and self.epithet
+            and _remove_zws(part[2]).casefold() == _remove_zws(self.epithet).casefold()
+        )
+
+    @property
+    def autonym_parent_part(self):
+        parts = []
+        for level in range(1, 5):
+            rank, epithet, author = self.get_infrasp(level)
+            if rank in _autonym_ranks and epithet:
+                parts.append((level, rank, epithet, author))
+        if not parts:
+            return None
+        return sorted(parts, key=lambda part: rank_level(part[1]))[0]
 
     @property
     def cultivar_epithet(self):
@@ -922,6 +1042,108 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
                 if a.source and a.source.source_detail
             },
         }
+
+
+def _species_genus_filter(species):
+    if species.genus_id is not None:
+        return Species.genus_id == species.genus_id
+    if species.genus is not None and getattr(species.genus, "id", None) is not None:
+        return Species.genus_id == species.genus.id
+    if species.genus is not None:
+        return Species.genus == species.genus
+    return None
+
+
+def _base_species_statement(species):
+    genus_filter = _species_genus_filter(species)
+    if genus_filter is None or not species.epithet:
+        return None
+    stmt = select(Species).where(
+        genus_filter, _column_matches(Species.epithet, species.epithet)
+    )
+    for field in _infraspecific_identity_fields:
+        stmt = stmt.where(_column_matches(getattr(Species, field), None))
+    if species.id is not None:
+        stmt = stmt.where(Species.id != species.id)
+    return stmt
+
+
+def _autonym_statement(species, part):
+    genus_filter = _species_genus_filter(species)
+    if genus_filter is None or not species.epithet:
+        return None
+    level, rank, _epithet, _author = part
+    stmt = select(Species).where(
+        genus_filter, _column_matches(Species.epithet, species.epithet)
+    )
+    for field in ("sp2", "author", "hybrid", "sp_qual", "cv_group", "trade_name"):
+        stmt = stmt.where(
+            _column_matches(getattr(Species, field), getattr(species, field))
+        )
+    target_fields = {
+        f"infrasp{level}_rank",
+        f"infrasp{level}",
+        f"infrasp{level}_author",
+    }
+    for field in _infraspecific_identity_fields:
+        if field in target_fields:
+            continue
+        stmt = stmt.where(_column_matches(getattr(Species, field), None))
+    stmt = stmt.where(
+        _column_matches(getattr(Species, f"infrasp{level}_rank"), rank),
+        _column_matches(getattr(Species, f"infrasp{level}"), species.epithet),
+        _column_matches(getattr(Species, f"infrasp{level}_author"), None),
+    )
+    if species.id is not None:
+        stmt = stmt.where(Species.id != species.id)
+    return stmt
+
+
+def ensure_autonym_for_species(session, species):
+    """Create or reuse the autonym sibling required by an infraspecific taxon."""
+    if species is None or not isinstance(species, Species):
+        return None
+    if not species.epithet or not (species.genus or species.genus_id):
+        return None
+
+    part = species.autonym_parent_part
+    if part is None or species.is_autonym:
+        return species if species.is_autonym else None
+
+    with session.no_autoflush:
+        stmt = _autonym_statement(species, part)
+        autonym = session.scalars(stmt).first() if stmt is not None else None
+
+    if autonym is None:
+        level, rank, _epithet, _author = part
+        kwargs = {
+            "epithet": species.epithet,
+            "sp2": species.sp2,
+            "author": species.author,
+            "hybrid": species.hybrid,
+            "sp_qual": species.sp_qual,
+            "cv_group": species.cv_group,
+            "trade_name": species.trade_name,
+        }
+        if species.genus is not None:
+            kwargs["genus"] = species.genus
+        else:
+            kwargs["genus_id"] = species.genus_id
+        autonym = Species(**kwargs)
+        autonym.set_infrasp(level, rank, species.epithet)
+        session.add(autonym)
+        session.flush()
+
+    with session.no_autoflush:
+        base_stmt = _base_species_statement(species)
+        base_species = (
+            session.scalars(base_stmt).first() if base_stmt is not None else None
+        )
+    if base_species is not None and base_species.accepted is None:
+        base_species.accepted = autonym
+
+    session.flush()
+    return autonym
 
 
 def as_dict(self):

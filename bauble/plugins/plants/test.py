@@ -50,6 +50,7 @@ from bauble.plugins.plants.species import SpeciesSynonym as SpeciesSynonym
 from bauble.plugins.plants.species import VernacularName as VernacularName
 from bauble.plugins.plants.species import edit_species as edit_species
 from bauble.plugins.plants.species_model import Color, Habit
+from bauble.plugins.plants.species_model import ensure_autonym_for_species
 from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
 from bauble.plugins.plants.species_model import _remove_zws as remove_zws
 from bauble.test import check_dupids, mockfunc
@@ -2006,6 +2007,129 @@ class TestSpeciesInfraspecificProp:
                 "epithet": "triacanthos",
             },
         )
+
+
+class TestSpeciesAutonyms:
+    """Autonym creation for non-cultivar infraspecific taxa."""
+
+    def _add_genus(self, session, family_name="Araucariaceae", genus_name="Araucaria"):
+        family = Family(epithet=family_name)
+        genus = Genus(family=family, epithet=genus_name)
+        session.add_all([family, genus])
+        session.flush()
+        return genus
+
+    def _species_rows(self, session, genus, epithet):
+        return session.scalars(
+            select(Species)
+            .where(Species.genus == genus, Species.epithet == epithet)
+            .order_by(Species.infrasp1)
+        ).all()
+
+    def test_retrieve_or_create_creates_autonym_for_variety(self, session) -> None:
+        genus = self._add_genus(session)
+
+        variety = Species.retrieve_or_create(
+            session,
+            {
+                "object": "taxon",
+                "ht-rank": "genus",
+                "ht-epithet": "Araucaria",
+                "rank": "species",
+                "epithet": "cunninghamii",
+                "author": "Mudie",
+                "infrasp1_rank": "var.",
+                "infrasp1": "papuana",
+            },
+        )
+
+        rows = self._species_rows(session, genus, "cunninghamii")
+        autonym = next(row for row in rows if row.is_autonym)
+        assert len(rows) == 2
+        assert variety.infrasp1 == "papuana"
+        assert variety.accepted is None
+        assert autonym.author == "Mudie"
+        assert autonym.infrasp1_rank == "var."
+        assert autonym.infrasp1 == "cunninghamii"
+        assert remove_zws(autonym.str(authors=True)) == (
+            "Araucaria cunninghamii Mudie var. cunninghamii"
+        )
+
+    def test_autonym_creation_is_idempotent(self, session) -> None:
+        genus = self._add_genus(session)
+        variety = Species(
+            genus=genus,
+            epithet="cunninghamii",
+            author="Mudie",
+            infrasp1_rank="var.",
+            infrasp1="papuana",
+        )
+        session.add(variety)
+        session.flush()
+
+        autonym = ensure_autonym_for_species(session, variety)
+        same_autonym = ensure_autonym_for_species(session, variety)
+
+        assert same_autonym is autonym
+        assert len(self._species_rows(session, genus, "cunninghamii")) == 2
+
+    def test_existing_base_species_points_to_autonym(self, session) -> None:
+        genus = self._add_genus(session, "Lauraceae", "Cinnamomum")
+        base = Species(genus=genus, epithet="camphora", author="(L.) J.Presl")
+        variety = Species(
+            genus=genus,
+            epithet="camphora",
+            author="(L.) J.Presl",
+            infrasp1_rank="var.",
+            infrasp1="linaloolifera",
+        )
+        session.add_all([base, variety])
+        session.flush()
+
+        autonym = ensure_autonym_for_species(session, variety)
+
+        assert autonym.is_autonym
+        assert base.accepted == autonym
+        assert variety.accepted is None
+
+    def test_sibling_infraspecific_taxa_can_share_species_epithet(
+        self, session
+    ) -> None:
+        genus = self._add_genus(session)
+
+        Species.retrieve_or_create(
+            session,
+            {
+                "object": "taxon",
+                "ht-rank": "genus",
+                "ht-epithet": "Araucaria",
+                "rank": "species",
+                "epithet": "cunninghamii",
+                "author": "Mudie",
+                "infrasp1_rank": "var.",
+                "infrasp1": "papuana",
+            },
+        )
+        Species.retrieve_or_create(
+            session,
+            {
+                "object": "taxon",
+                "ht-rank": "genus",
+                "ht-epithet": "Araucaria",
+                "rank": "species",
+                "epithet": "cunninghamii",
+                "author": "Mudie",
+                "infrasp1_rank": "var.",
+                "infrasp1": "robusta",
+            },
+        )
+
+        rows = self._species_rows(session, genus, "cunninghamii")
+        assert {row.infrasp1 for row in rows} == {
+            "cunninghamii",
+            "papuana",
+            "robusta",
+        }
 
 
 @pytest.mark.usefixtures("setup_plant_data")

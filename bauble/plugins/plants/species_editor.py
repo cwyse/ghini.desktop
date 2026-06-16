@@ -43,6 +43,9 @@ from bauble.plugins.plants.species_model import SpeciesSynonym as SpeciesSynonym
 from bauble.plugins.plants.species_model import VernacularName as VernacularName
 from bauble.plugins.plants.species_model import compare_rank as compare_rank
 from bauble.plugins.plants.species_model import (
+    ensure_autonym_for_species as ensure_autonym_for_species,
+)
+from bauble.plugins.plants.species_model import (
     infrasp_rank_values as infrasp_rank_values,
 )
 from bauble.prefs import prefs
@@ -1663,6 +1666,7 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
                 self.model.vernacular_names.remove(vn)
                 utils.delete_or_expunge(vn)
                 del vn
+        ensure_autonym_for_species(self.session, self.model)
         super().commit_changes()
 
     def start(self):
