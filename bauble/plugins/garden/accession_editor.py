@@ -999,6 +999,8 @@ class SourcePresenter(editor.GenericEditorPresenter):
         from bauble.plugins.garden.models import (
             Collection,
             Contact,
+            PropCutting,
+            PropSeed,
             Propagation,
             Source,
         )
@@ -1012,6 +1014,14 @@ class SourcePresenter(editor.GenericEditorPresenter):
         self.parent_ref = weakref.ref(parent)
         self.session = session
         self._dirty = False
+        self._source_presenter_initial_new = set(session.new)
+        self._source_placeholder_types = (
+            Collection,
+            PropCutting,
+            PropSeed,
+            Propagation,
+            Source,
+        )
         self.source_mode = self.source_mode_contact
         self._source_mode_changed_handler = None
         self._install_source_mode_controls()
@@ -1054,6 +1064,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         else:
             self.collection = Collection()
             enabled = False
+        self._source_had_existing_collection = enabled
         self.view.widgets.source_coll_add_button.set_sensitive(not enabled)
         self.view.widgets.source_coll_remove_button.set_sensitive(enabled)
         self.view.widgets.source_coll_expander.set_expanded(enabled)
@@ -1065,6 +1076,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         else:
             self.propagation = Propagation()
             enabled = False
+        self._source_had_existing_propagation = enabled
         self.view.widgets.source_prop_add_button.set_sensitive(not enabled)
         self.view.widgets.source_prop_remove_button.set_sensitive(enabled)
         self.view.widgets.source_prop_expander.set_expanded(enabled)
@@ -1121,6 +1133,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
             "clicked",
             self.on_prop_remove_button_clicked,
         )
+        self._expunge_disabled_source_placeholders()
 
     def _install_source_mode_controls(self) -> None:
         source_box = self.view.widgets.source_box
@@ -1210,6 +1223,61 @@ class SourcePresenter(editor.GenericEditorPresenter):
             orm_attributes.set_committed_value(self.source, "accession", None)
         orm_attributes.set_committed_value(self.model, "source", self.source)
         orm_attributes.set_committed_value(self.source, "accession", self.model)
+
+    def _source_has_data(self) -> bool:
+        return any(
+            (
+                self.source.source_detail,
+                self.source.sources_code,
+                (
+                    self.source.collection
+                    if self._source_had_existing_collection
+                    else None
+                ),
+                (
+                    self.source.propagation
+                    if self._source_had_existing_propagation
+                    else None
+                ),
+                self.source.plant_propagation,
+            )
+        )
+
+    def _expunge_disabled_source_placeholders(self) -> None:
+        if not self._source_had_existing_collection:
+            orm_attributes.set_committed_value(self.source, "collection", None)
+        if not self._source_had_existing_propagation:
+            orm_attributes.set_committed_value(self.source, "propagation", None)
+        if not self._source_has_data() and self.model.source is self.source:
+            orm_attributes.set_committed_value(self.model, "source", None)
+            orm_attributes.set_committed_value(self.source, "accession", None)
+
+        propagation = getattr(self, "propagation", None)
+        placeholders = [
+            *(
+                []
+                if self._source_had_existing_propagation
+                else [
+                    getattr(propagation, "_cutting", None),
+                    getattr(propagation, "_seed", None),
+                    propagation,
+                ]
+            ),
+            None if self._source_had_existing_collection else self.collection,
+            None if self._source_has_data() else self.source,
+        ]
+        placeholders.extend(
+            obj
+            for obj in list(self.session.new)
+            if obj not in self._source_presenter_initial_new
+            and isinstance(obj, self._source_placeholder_types)
+        )
+        for placeholder in placeholders:
+            if placeholder is None:
+                continue
+            placeholder_session = object_session(placeholder)
+            if placeholder_session is not None:
+                placeholder_session.expunge(placeholder)
 
     def cleanup(self) -> None:
         super().cleanup()

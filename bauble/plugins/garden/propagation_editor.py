@@ -68,6 +68,48 @@ def ensure_propagation_date(propagation):
     return propagation.date
 
 
+def _view_has_widget(view, name: str) -> bool:
+    if name in view.widgets.__dict__:
+        return True
+    try:
+        view.widgets[name]
+    except KeyError:
+        return False
+    return True
+
+
+def ensure_propagation_notebook(view) -> None:
+    """Wrap propagation fields in General/Notes tabs if not already wrapped."""
+    if view.widgets.__dict__.get("_propagation_notebook_ready", False):
+        return
+
+    prop_main_box = view.widgets.prop_main_box
+    prop_type_box = view.widgets.prop_type_box
+    prop_box_align = view.widgets.prop_box_align
+
+    prop_main_box.remove(prop_type_box)
+    prop_main_box.remove(prop_box_align)
+
+    notebook = Gtk.Notebook()
+    notebook.set_visible(True)
+
+    general_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+    general_box.set_visible(True)
+    general_box.pack_start(prop_type_box, False, False, 0)
+    general_box.pack_start(prop_box_align, True, True, 0)
+    notebook.append_page(general_box, Gtk.Label(label=_("General")))
+
+    notes_parent_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    notes_parent_box.set_visible(True)
+    notebook.append_page(notes_parent_box, Gtk.Label(label=_("Notes")))
+
+    prop_main_box.pack_start(notebook, True, True, 0)
+
+    view.widgets.prop_notebook = notebook
+    view.widgets.prop_notes_parent_box = notes_parent_box
+    view.widgets._propagation_notebook_ready = True
+
+
 class PropagationHandler:
     _dirty: bool
 
@@ -257,6 +299,7 @@ class PropagationEditorView(editor.GenericEditorView):
             parent=parent,
         )
         self.init_translatable_combo("prop_type_combo", prop_type_values)
+        ensure_propagation_notebook(self)
 
     def get_window(self):
         """ """
@@ -639,6 +682,7 @@ class PropagationPresenter(editor.ChildPresenter):
     session: Any
     _cutting_presenter: Any
     _seed_presenter: Any
+    notes_presenter: Any
     _dirty: bool
     widget_to_field_map: Any = {
         "prop_type_combo": "prop_type",
@@ -661,10 +705,15 @@ class PropagationPresenter(editor.ChildPresenter):
         if self.model.prop_type:
             self.view.widget_set_value("prop_type_combo", self.model.prop_type)
 
+        self.notes_presenter = None
         self._cutting_presenter = CuttingPresenter(
             self, self.model, self.view, self.session
         )
         self._seed_presenter = SeedPresenter(self, self.model, self.view, self.session)
+        if _view_has_widget(self.view, "prop_notes_parent_box"):
+            notes_parent = self.view.widgets.prop_notes_parent_box
+            notes_parent.foreach(notes_parent.remove)
+            self.notes_presenter = editor.NotesPresenter(self, "notes", notes_parent)
 
         self.assign_simple_handler("prop_date_entry", "date", editor.DateValidator())
         ensure_propagation_date(self.model)
@@ -695,12 +744,13 @@ class PropagationPresenter(editor.ChildPresenter):
             self.view.widgets.prop_date_entry.emit("changed")
 
     def is_dirty(self):
+        notes_dirty = self.notes_presenter and self.notes_presenter.is_dirty()
         if self.model.prop_type == "UnrootedCutting":
-            return self._cutting_presenter.is_dirty() or self._dirty
+            return self._cutting_presenter.is_dirty() or self._dirty or notes_dirty
         elif self.model.prop_type == "Seed":
-            return self._seed_presenter.is_dirty() or self._dirty
+            return self._seed_presenter.is_dirty() or self._dirty or notes_dirty
         else:
-            return self._dirty
+            return self._dirty or notes_dirty
 
     def set_model_attr(self, field, value, validator: Optional[Any] = None) -> None:
         """
@@ -712,6 +762,8 @@ class PropagationPresenter(editor.ChildPresenter):
         self.refresh_sensitivity()
 
     def cleanup(self) -> None:
+        if self.notes_presenter:
+            self.notes_presenter.cleanup()
         self._cutting_presenter.cleanup()
         self._seed_presenter.cleanup()
 
@@ -753,6 +805,7 @@ class SourcePropagationPresenter(PropagationPresenter):
         prop_main_box = view.widgets.prop_main_box
         view.widgets.remove_parent(prop_main_box)
         view.widgets.acc_prop_box_parent.add(prop_main_box)
+        ensure_propagation_notebook(view)
 
         # since the view here will be an AccessionEditorView and not a
         # PropagationEditorView then we need to do anything here that
@@ -836,6 +889,8 @@ class PropagationEditorPresenter(PropagationPresenter):
             if invalid:
                 sensitive = False
         else:
+            sensitive = False
+        if self.notes_presenter and self.notes_presenter.has_problems():
             sensitive = False
         self.view.widgets.prop_ok_button.set_sensitive(sensitive)
 

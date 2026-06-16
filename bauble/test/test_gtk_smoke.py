@@ -14,6 +14,7 @@ import bauble.paths as paths
 import bauble.pluginmgr as pluginmgr
 import bauble.prefs as prefs
 import bauble.ui as ui
+import bauble.utils as utils
 import bauble.view as view
 from bauble.connmgr import ConnMgrPresenter
 from bauble.editor import (
@@ -64,6 +65,7 @@ from bauble.plugins.garden.propagation_editor import (
 )
 from bauble.plugins.garden.models.propagation import (
     PropCutting,
+    PropagationNote,
     PropSeed,
     Propagation,
 )
@@ -2156,7 +2158,12 @@ def test_accession_editor_does_not_pending_disabled_source_placeholders(
         Propagation,
         Source,
     )
-    assert not any(isinstance(obj, source_placeholder_types) for obj in session.new)
+    pending_placeholders = [
+        type(obj).__name__
+        for obj in session.new
+        if isinstance(obj, source_placeholder_types)
+    ]
+    assert not pending_placeholders
 
 
 def test_source_contacts_are_sorted_and_deduplicated_for_selection():
@@ -2498,6 +2505,43 @@ def test_propagation_editor_seed_fields_enable_accept(session, propagation_edito
     assert presenter.is_dirty()
     presenter.refresh_sensitivity()
     assert propagation_editor_view.widgets.prop_ok_button.get_sensitive()
+
+
+def test_propagation_editor_notes_tab_persists_structured_note(
+    session, propagation_editor_view
+):
+    propagation = Propagation(
+        prop_type="Seed",
+        date=datetime.date(2026, 4, 22),
+    )
+    session.add(propagation)
+    date_text = propagation.date.strftime(prefs.prefs[prefs.date_format_pref])
+
+    presenter = PropagationEditorPresenter(propagation, propagation_editor_view)
+
+    assert propagation_editor_view.widgets.prop_notebook.get_n_pages() == 2
+    assert presenter.notes_presenter is not None
+
+    propagation_editor_view.widget_set_value("seed_nseeds_entry", "12")
+    propagation_editor_view.widget_set_value("seed_sown_entry", date_text)
+
+    note_box = presenter.notes_presenter.add_note()
+    note_box.widgets.user_entry.set_text("cwyse")
+    note_box.widgets.category_comboentry.get_child().set_text("germination")
+    utils.set_widget_value(note_box.widgets.note_textview, "First tray showed growth")
+    drain_gtk_events()
+
+    assert presenter.is_dirty()
+    assert not presenter.notes_presenter.has_problems()
+    presenter.refresh_sensitivity()
+    assert propagation_editor_view.widgets.prop_ok_button.get_sensitive()
+
+    session.flush()
+    note = session.scalars(select(PropagationNote)).one()
+    assert note.propagation is propagation
+    assert note.user == "cwyse"
+    assert note.category == "germination"
+    assert note.note == "First tray showed growth"
 
 
 def test_propagation_editor_cutting_fields_and_rooted_rows(
