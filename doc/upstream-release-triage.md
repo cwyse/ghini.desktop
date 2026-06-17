@@ -108,7 +108,8 @@ Recommended implementation subtasks:
 
 Do not implement until the vocabulary and ownership decisions are made. The
 first implementation should be small enough to avoid forcing all gardens into
-one culture model.
+one culture model. A first-pass design proposal is documented in
+`doc/culture-profile-design.md`.
 
 ### #98 Accession ID qualifier semantics
 
