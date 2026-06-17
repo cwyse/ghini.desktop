@@ -49,7 +49,18 @@ from bauble.plugins.plants.species import SpeciesNote as SpeciesNote
 from bauble.plugins.plants.species import SpeciesSynonym as SpeciesSynonym
 from bauble.plugins.plants.species import VernacularName as VernacularName
 from bauble.plugins.plants.species import edit_species as edit_species
-from bauble.plugins.plants.species_model import Color, Habit
+from bauble.plugins.plants.species_model import (
+    Color,
+    CultureDuration,
+    CultureEnvironment,
+    CultureRecommendedPropagation,
+    CultureSoilDrainage,
+    CultureSoilType,
+    CultureSunlight,
+    Habit,
+    SpeciesCultureProfile,
+    SpeciesCultureProfileMonth,
+)
 from bauble.plugins.plants.species_model import ensure_autonym_for_species
 from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
 from bauble.plugins.plants.species_model import _remove_zws as remove_zws
@@ -581,6 +592,164 @@ class TestSpecies:
 
     def assertFalse(self, value, msg=None) -> None:
         assert not value, msg or f"{value!r} is not false"
+
+    def test_culture_profile_tables_are_registered(self) -> None:
+        """Culture profile tables should be part of the shared metadata."""
+        expected_tables = {
+            "species_culture_profile",
+            "species_culture_profile_duration",
+            "species_culture_profile_sunlight",
+            "species_culture_profile_soil_drainage",
+            "species_culture_profile_soil_type",
+            "species_culture_profile_recommended_propagation",
+            "species_culture_profile_environment",
+            "species_culture_profile_month",
+            "culture_duration",
+            "culture_sunlight",
+            "culture_soil_drainage",
+            "culture_soil_type",
+            "culture_recommended_propagation",
+            "culture_environment",
+        }
+
+        assert expected_tables <= set(db.metadata.tables)
+
+    def test_culture_profile_persists_species_defaults(self, session) -> None:
+        """Species culture defaults should persist without touching editors."""
+        family = Family(epithet="Cultureaceae")
+        genus = Genus(epithet="Culturegenus", family=family)
+        species = Species(genus=genus, epithet="culture")
+        duration = CultureDuration(code="perennial", label="Perennial", sort_order=10)
+        sunlight = CultureSunlight(code="full_sun", label="Full sun", sort_order=10)
+        drainage = CultureSoilDrainage(
+            code="well_drained", label="Well drained", sort_order=10
+        )
+        soil_type = CultureSoilType(code="loam", label="Loam", sort_order=10)
+        propagation = CultureRecommendedPropagation(
+            code="cutting", label="Cutting", sort_order=10
+        )
+        environment = CultureEnvironment(
+            code="warm_greenhouse", label="Warm greenhouse", sort_order=10
+        )
+        profile = SpeciesCultureProfile(
+            species=species,
+            light_min=6,
+            light_max=10,
+            soil_moisture_min=3,
+            soil_moisture_max=6,
+            atmospheric_humidity_min=4,
+            atmospheric_humidity_max=8,
+            soil_ph_min=5.5,
+            soil_ph_max=6.8,
+            temperature_min_c=5.0,
+            temperature_max_c=32.0,
+            hardiness_zone_min=7,
+            hardiness_zone_max=10,
+            soil_nutrient_min=3,
+            soil_nutrient_max=8,
+            soil_salinity_tolerance=1,
+            soil_texture_min=2,
+            soil_texture_max=6,
+            watering="average",
+            growth_rate="moderate",
+            maintenance="low",
+            drought_tolerant=True,
+            frost_sensitive=False,
+            culture_notes="Keep evenly moist during active growth.",
+        )
+        profile.duration_terms.append(duration)
+        profile.sunlight_terms.append(sunlight)
+        profile.soil_drainage_terms.append(drainage)
+        profile.soil_type_terms.append(soil_type)
+        profile.recommended_propagation_terms.append(propagation)
+        profile.environment_terms.append(environment)
+        profile.months.append(SpeciesCultureProfileMonth(month_type="bloom", month=5))
+        session.add(profile)
+        session.commit()
+        session.expire_all()
+
+        loaded = session.execute(
+            select(SpeciesCultureProfile).where(
+                SpeciesCultureProfile.species_id == species.id
+            )
+        ).scalar_one()
+
+        assert loaded.species.epithet == "culture"
+        assert [term.code for term in loaded.duration_terms] == ["perennial"]
+        assert [term.code for term in loaded.sunlight_terms] == ["full_sun"]
+        assert [term.code for term in loaded.soil_drainage_terms] == ["well_drained"]
+        assert [term.code for term in loaded.soil_type_terms] == ["loam"]
+        assert [term.code for term in loaded.recommended_propagation_terms] == [
+            "cutting"
+        ]
+        assert [term.code for term in loaded.environment_terms] == ["warm_greenhouse"]
+        assert [(row.month_type, row.month) for row in loaded.months] == [("bloom", 5)]
+
+    def test_culture_profile_rejects_invalid_ranges(self, session) -> None:
+        """Database constraints should reject invalid culture ranges."""
+        family = Family(epithet="Badcultureaceae")
+        genus = Genus(epithet="Badculturegenus", family=family)
+        species = Species(genus=genus, epithet="badculture")
+        session.add(
+            SpeciesCultureProfile(
+                species=species,
+                light_min=9,
+                light_max=3,
+            )
+        )
+
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
+
+    def test_culture_lookup_defaults_import(self, session) -> None:
+        """Default culture lookup CSV files should import through CSVImporter."""
+        default_path = os.path.join(os.path.dirname(__file__), "default")
+        filenames = [
+            os.path.join(default_path, filename)
+            for filename in (
+                "culture_duration.txt",
+                "culture_sunlight.txt",
+                "culture_soil_drainage.txt",
+                "culture_soil_type.txt",
+                "culture_recommended_propagation.txt",
+                "culture_environment.txt",
+            )
+        ]
+
+        if session.in_transaction():
+            session.rollback()
+        session.close()
+        db.Session.remove()
+
+        CSVImporter().start(filenames, metadata=db.metadata, force=True)
+        fresh_session = db.Session()
+
+        try:
+            assert {
+                row.code
+                for row in fresh_session.execute(select(CultureDuration)).scalars()
+            } == {
+                "annual",
+                "biennial",
+                "perennial",
+                "monocarpic_perennial",
+                "short_lived_perennial",
+            }
+            assert {
+                row.code
+                for row in fresh_session.execute(select(CultureSunlight)).scalars()
+            } == {"full_shade", "part_shade", "part_sun", "full_sun"}
+            assert fresh_session.execute(select(CultureSoilDrainage)).scalars().all()
+            assert fresh_session.execute(select(CultureSoilType)).scalars().all()
+            assert (
+                fresh_session.execute(select(CultureRecommendedPropagation))
+                .scalars()
+                .all()
+            )
+            assert fresh_session.execute(select(CultureEnvironment)).scalars().all()
+        finally:
+            fresh_session.close()
 
     @pytest.mark.skip(reason="opens the interactive Species editor")
     def test_species_editor(self, session) -> None:

@@ -1,0 +1,9 @@
+id,code,label,description,sort_order,active
+,seed,Seed,,10,1
+,cutting,Cutting,,20,1
+,division,Division,,30,1
+,grafting,Grafting,,40,1
+,layering,Layering,,50,1
+,offsets,Offsets,,60,1
+,spores,Spores,,70,1
+,tissue_culture,Tissue culture,,80,1

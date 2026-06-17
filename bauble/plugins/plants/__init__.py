@@ -554,6 +554,12 @@ class PlantsPlugin(pluginmgr.Plugin):
                 "genus_synonym.txt",
                 "geographic_area.txt",
                 "habit.txt",
+                "culture_duration.txt",
+                "culture_sunlight.txt",
+                "culture_soil_drainage.txt",
+                "culture_soil_type.txt",
+                "culture_recommended_propagation.txt",
+                "culture_environment.txt",
                 "family_note.txt",
             )
         ]

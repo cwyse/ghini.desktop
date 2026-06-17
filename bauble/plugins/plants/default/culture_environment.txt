@@ -1,0 +1,7 @@
+id,code,label,description,sort_order,active
+,outdoor,Outdoor,,10,1
+,indoor,Indoor,,20,1
+,cool_greenhouse,Cool greenhouse,,30,1
+,warm_greenhouse,Warm greenhouse,,40,1
+,hot_house,Hot house,,50,1
+,seasonal_protection,Seasonal protection,,60,1

@@ -28,11 +28,16 @@ import bauble.error as error
 import bauble.utils as utils
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     delete,
     event,
     ForeignKey,
+    Index,
     Integer,
+    Numeric,
+    SmallInteger,
+    Table,
     Unicode,
     UnicodeText,
     UniqueConstraint,
@@ -653,6 +658,14 @@ class Species(db.Base, db.Serializable, db.DefiningPictures, db.WithNotes):
         back_populates="species",
         single_parent=False,
         uselist=True,
+        active_history=True,
+    )
+    culture_profile: Mapped[Optional["SpeciesCultureProfile"]] = relationship(
+        "SpeciesCultureProfile",
+        cascade="all, delete-orphan",
+        back_populates="species",
+        single_parent=True,
+        uselist=False,
         active_history=True,
     )
 
@@ -1453,6 +1466,406 @@ SpeciesDistribution.geographic_area = relationship(
     primaryjoin="SpeciesDistribution.geographic_area_id==GeographicArea.id",
     uselist=False,
 )
+
+
+def _nullable_range_check(column, lower, upper, suffix):
+    return CheckConstraint(
+        f"{column} IS NULL OR ({column} >= {lower} AND {column} <= {upper})",
+        name=f"ck_culture_{column}_{suffix}",
+    )
+
+
+def _nullable_order_check(lower_column, upper_column, name=None):
+    return CheckConstraint(
+        f"{lower_column} IS NULL OR {upper_column} IS NULL "
+        f"OR {lower_column} <= {upper_column}",
+        name=name or f"ck_culture_{lower_column}_lte_{upper_column}",
+    )
+
+
+def _nullable_values_check(column, values):
+    allowed = ", ".join(f"'{value}'" for value in values)
+    return CheckConstraint(
+        f"{column} IS NULL OR {column} IN ({allowed})",
+        name=f"ck_culture_{column}_values",
+    )
+
+
+culture_watering_values = ("none", "minimum", "average", "frequent")
+culture_growth_rate_values = ("slow", "moderate", "fast")
+culture_maintenance_values = ("low", "moderate", "high")
+culture_month_type_values = ("growth", "bloom", "fruit", "pruning")
+
+
+species_culture_profile_duration_table = Table(
+    "species_culture_profile_duration",
+    db.metadata,
+    Column(
+        "profile_id",
+        Integer,
+        ForeignKey("species_culture_profile.id"),
+        primary_key=True,
+    ),
+    Column(
+        "duration_id",
+        Integer,
+        ForeignKey("culture_duration.id"),
+        primary_key=True,
+    ),
+    Index("ix_scp_duration_duration_id", "duration_id"),
+)
+
+species_culture_profile_sunlight_table = Table(
+    "species_culture_profile_sunlight",
+    db.metadata,
+    Column(
+        "profile_id",
+        Integer,
+        ForeignKey("species_culture_profile.id"),
+        primary_key=True,
+    ),
+    Column(
+        "sunlight_id",
+        Integer,
+        ForeignKey("culture_sunlight.id"),
+        primary_key=True,
+    ),
+    Index("ix_scp_sunlight_sunlight_id", "sunlight_id"),
+)
+
+species_culture_profile_soil_drainage_table = Table(
+    "species_culture_profile_soil_drainage",
+    db.metadata,
+    Column(
+        "profile_id",
+        Integer,
+        ForeignKey("species_culture_profile.id"),
+        primary_key=True,
+    ),
+    Column(
+        "soil_drainage_id",
+        Integer,
+        ForeignKey("culture_soil_drainage.id"),
+        primary_key=True,
+    ),
+    Index("ix_scp_drainage_drainage_id", "soil_drainage_id"),
+)
+
+species_culture_profile_soil_type_table = Table(
+    "species_culture_profile_soil_type",
+    db.metadata,
+    Column(
+        "profile_id",
+        Integer,
+        ForeignKey("species_culture_profile.id"),
+        primary_key=True,
+    ),
+    Column(
+        "soil_type_id",
+        Integer,
+        ForeignKey("culture_soil_type.id"),
+        primary_key=True,
+    ),
+    Index("ix_scp_soil_type_soil_type_id", "soil_type_id"),
+)
+
+species_culture_profile_recommended_propagation_table = Table(
+    "species_culture_profile_recommended_propagation",
+    db.metadata,
+    Column(
+        "profile_id",
+        Integer,
+        ForeignKey("species_culture_profile.id"),
+        primary_key=True,
+    ),
+    Column(
+        "recommended_propagation_id",
+        Integer,
+        ForeignKey("culture_recommended_propagation.id"),
+        primary_key=True,
+    ),
+    Index("ix_scp_recommended_prop_id", "recommended_propagation_id"),
+)
+
+species_culture_profile_environment_table = Table(
+    "species_culture_profile_environment",
+    db.metadata,
+    Column(
+        "profile_id",
+        Integer,
+        ForeignKey("species_culture_profile.id"),
+        primary_key=True,
+    ),
+    Column(
+        "environment_id",
+        Integer,
+        ForeignKey("culture_environment.id"),
+        primary_key=True,
+    ),
+    Index("ix_scp_environment_environment_id", "environment_id"),
+)
+
+
+class SpeciesCultureProfile(db.Base):
+    __tablename__: str = "species_culture_profile"
+    __table_args__: Any = (
+        _nullable_range_check("light_min", 0, 10, "0_10"),
+        _nullable_range_check("light_max", 0, 10, "0_10"),
+        _nullable_order_check("light_min", "light_max", "ck_culture_light_order"),
+        _nullable_range_check("soil_moisture_min", 0, 10, "0_10"),
+        _nullable_range_check("soil_moisture_max", 0, 10, "0_10"),
+        _nullable_order_check(
+            "soil_moisture_min",
+            "soil_moisture_max",
+            "ck_culture_soil_moisture_order",
+        ),
+        _nullable_range_check("atmospheric_humidity_min", 0, 10, "0_10"),
+        _nullable_range_check("atmospheric_humidity_max", 0, 10, "0_10"),
+        _nullable_order_check(
+            "atmospheric_humidity_min",
+            "atmospheric_humidity_max",
+            "ck_culture_atm_humidity_order",
+        ),
+        _nullable_range_check("soil_ph_min", 0, 14, "0_14"),
+        _nullable_range_check("soil_ph_max", 0, 14, "0_14"),
+        _nullable_order_check("soil_ph_min", "soil_ph_max", "ck_culture_ph_order"),
+        _nullable_order_check(
+            "temperature_min_c",
+            "temperature_max_c",
+            "ck_culture_temperature_order",
+        ),
+        _nullable_range_check("hardiness_zone_min", 1, 13, "1_13"),
+        _nullable_range_check("hardiness_zone_max", 1, 13, "1_13"),
+        _nullable_order_check(
+            "hardiness_zone_min",
+            "hardiness_zone_max",
+            "ck_culture_hardiness_order",
+        ),
+        _nullable_range_check("soil_nutrient_min", 0, 10, "0_10"),
+        _nullable_range_check("soil_nutrient_max", 0, 10, "0_10"),
+        _nullable_order_check(
+            "soil_nutrient_min",
+            "soil_nutrient_max",
+            "ck_culture_soil_nutrient_order",
+        ),
+        _nullable_range_check("soil_salinity_tolerance", 0, 10, "0_10"),
+        _nullable_range_check("soil_texture_min", 0, 10, "0_10"),
+        _nullable_range_check("soil_texture_max", 0, 10, "0_10"),
+        _nullable_order_check(
+            "soil_texture_min",
+            "soil_texture_max",
+            "ck_culture_soil_texture_order",
+        ),
+        _nullable_values_check("watering", culture_watering_values),
+        _nullable_values_check("growth_rate", culture_growth_rate_values),
+        _nullable_values_check("maintenance", culture_maintenance_values),
+        Index(
+            "ix_species_culture_profile_light",
+            "light_min",
+            "light_max",
+        ),
+        Index(
+            "ix_species_culture_profile_soil_moisture",
+            "soil_moisture_min",
+            "soil_moisture_max",
+        ),
+        Index(
+            "ix_species_culture_profile_soil_ph",
+            "soil_ph_min",
+            "soil_ph_max",
+        ),
+        Index(
+            "ix_species_culture_profile_temperature",
+            "temperature_min_c",
+            "temperature_max_c",
+        ),
+        Index(
+            "ix_species_culture_profile_hardiness",
+            "hardiness_zone_min",
+            "hardiness_zone_max",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    species_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("species.id"), nullable=False, unique=True
+    )
+    species: Mapped["Species"] = relationship(
+        "Species", back_populates="culture_profile", uselist=False
+    )
+
+    light_min: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+    light_max: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+    soil_moisture_min: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True
+    )
+    soil_moisture_max: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True
+    )
+    atmospheric_humidity_min: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True
+    )
+    atmospheric_humidity_max: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True
+    )
+    soil_ph_min: Mapped[Optional[float]] = mapped_column(
+        Numeric(3, 1, asdecimal=False), nullable=True
+    )
+    soil_ph_max: Mapped[Optional[float]] = mapped_column(
+        Numeric(3, 1, asdecimal=False), nullable=True
+    )
+    temperature_min_c: Mapped[Optional[float]] = mapped_column(
+        Numeric(5, 2, asdecimal=False), nullable=True
+    )
+    temperature_max_c: Mapped[Optional[float]] = mapped_column(
+        Numeric(5, 2, asdecimal=False), nullable=True
+    )
+    hardiness_zone_min: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True
+    )
+    hardiness_zone_max: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True
+    )
+    soil_nutrient_min: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True
+    )
+    soil_nutrient_max: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True
+    )
+    soil_salinity_tolerance: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True
+    )
+    soil_texture_min: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+    soil_texture_max: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+    watering: Mapped[Optional[str]] = mapped_column(
+        types.Enum(values=culture_watering_values, omit_aliases=False),
+        nullable=True,
+    )
+    growth_rate: Mapped[Optional[str]] = mapped_column(
+        types.Enum(values=culture_growth_rate_values, omit_aliases=False),
+        nullable=True,
+    )
+    maintenance: Mapped[Optional[str]] = mapped_column(
+        types.Enum(values=culture_maintenance_values, omit_aliases=False),
+        nullable=True,
+    )
+
+    drought_tolerant: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    salt_tolerant: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    frost_sensitive: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    indoor_suitable: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    greenhouse_required: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+
+    culture_notes: Mapped[Optional[str]] = mapped_column(UnicodeText, nullable=True)
+    source_citation: Mapped[Optional[str]] = mapped_column(UnicodeText, nullable=True)
+    local_notes: Mapped[Optional[str]] = mapped_column(UnicodeText, nullable=True)
+
+    duration_terms: Mapped[List["CultureDuration"]] = relationship(
+        "CultureDuration",
+        secondary=species_culture_profile_duration_table,
+        order_by="CultureDuration.sort_order",
+    )
+    sunlight_terms: Mapped[List["CultureSunlight"]] = relationship(
+        "CultureSunlight",
+        secondary=species_culture_profile_sunlight_table,
+        order_by="CultureSunlight.sort_order",
+    )
+    soil_drainage_terms: Mapped[List["CultureSoilDrainage"]] = relationship(
+        "CultureSoilDrainage",
+        secondary=species_culture_profile_soil_drainage_table,
+        order_by="CultureSoilDrainage.sort_order",
+    )
+    soil_type_terms: Mapped[List["CultureSoilType"]] = relationship(
+        "CultureSoilType",
+        secondary=species_culture_profile_soil_type_table,
+        order_by="CultureSoilType.sort_order",
+    )
+    recommended_propagation_terms: Mapped[List["CultureRecommendedPropagation"]] = (
+        relationship(
+            "CultureRecommendedPropagation",
+            secondary=species_culture_profile_recommended_propagation_table,
+            order_by="CultureRecommendedPropagation.sort_order",
+        )
+    )
+    environment_terms: Mapped[List["CultureEnvironment"]] = relationship(
+        "CultureEnvironment",
+        secondary=species_culture_profile_environment_table,
+        order_by="CultureEnvironment.sort_order",
+    )
+    months: Mapped[List["SpeciesCultureProfileMonth"]] = relationship(
+        "SpeciesCultureProfileMonth",
+        cascade="all, delete-orphan",
+        back_populates="profile",
+        uselist=True,
+    )
+
+
+class SpeciesCultureProfileMonth(db.Base):
+    __tablename__: str = "species_culture_profile_month"
+    __table_args__: Any = (
+        UniqueConstraint(
+            "profile_id",
+            "month_type",
+            "month",
+            name="uc_species_culture_profile_month",
+        ),
+        CheckConstraint(
+            "month >= 1 AND month <= 12",
+            name="ck_species_culture_profile_month_1_12",
+        ),
+        _nullable_values_check("month_type", culture_month_type_values),
+        Index("ix_species_culture_profile_month_lookup", "month_type", "month"),
+    )
+
+    profile_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("species_culture_profile.id"), nullable=False
+    )
+    month_type: Mapped[str] = mapped_column(
+        types.Enum(values=culture_month_type_values, omit_aliases=False),
+        nullable=False,
+    )
+    month: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    profile: Mapped["SpeciesCultureProfile"] = relationship(
+        "SpeciesCultureProfile", back_populates="months", uselist=False
+    )
+
+
+class _CultureLookupMixin:
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(Unicode(40), nullable=False, unique=True)
+    label: Mapped[str] = mapped_column(Unicode(80), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(UnicodeText, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
+
+    def __str__(self) -> str:
+        return self.label or self.code
+
+
+class CultureDuration(_CultureLookupMixin, db.Base):
+    __tablename__: str = "culture_duration"
+
+
+class CultureSunlight(_CultureLookupMixin, db.Base):
+    __tablename__: str = "culture_sunlight"
+
+
+class CultureSoilDrainage(_CultureLookupMixin, db.Base):
+    __tablename__: str = "culture_soil_drainage"
+
+
+class CultureSoilType(_CultureLookupMixin, db.Base):
+    __tablename__: str = "culture_soil_type"
+
+
+class CultureRecommendedPropagation(_CultureLookupMixin, db.Base):
+    __tablename__: str = "culture_recommended_propagation"
+
+
+class CultureEnvironment(_CultureLookupMixin, db.Base):
+    __tablename__: str = "culture_environment"
 
 
 class Habit(db.Base):

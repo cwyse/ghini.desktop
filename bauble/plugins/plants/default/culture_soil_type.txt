@@ -1,0 +1,9 @@
+id,code,label,description,sort_order,active
+,clay,Clay,,10,1
+,loam,Loam,,20,1
+,sand,Sand,,30,1
+,gravel,Gravel,,40,1
+,rock,Rock,,50,1
+,organic,Organic,,60,1
+,bark,Bark,,70,1
+,aquatic,Aquatic,,80,1

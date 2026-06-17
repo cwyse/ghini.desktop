@@ -1,0 +1,6 @@
+id,code,label,description,sort_order,active
+,annual,Annual,,10,1
+,biennial,Biennial,,20,1
+,perennial,Perennial,,30,1
+,monocarpic_perennial,Monocarpic perennial,,40,1
+,short_lived_perennial,Short-lived perennial,,50,1

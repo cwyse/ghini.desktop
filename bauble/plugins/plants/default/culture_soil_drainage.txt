@@ -1,0 +1,5 @@
+id,code,label,description,sort_order,active
+,poor,Poor,,10,1
+,moderate,Moderate,,20,1
+,well_drained,Well drained,,30,1
+,sharply_drained,Sharply drained,,40,1
