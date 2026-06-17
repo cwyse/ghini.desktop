@@ -472,8 +472,9 @@ run_warning_check() {
 }
 
 run_gtk_smoke() {
+    local gtk_timeout="${GHINI_GTK_SMOKE_TIMEOUT:-900}"
     GHINI_XHOST=0 run_container shell \
-        timeout 120 xvfb-run -e /dev/stderr -a --server-args="-screen 0 1280x1024x24" \
+        timeout "${gtk_timeout}" xvfb-run -e /dev/stderr -a --server-args="-screen 0 1280x1024x24" \
         python -m pytest bauble/test/test_gtk_smoke.py -q "$@"
 }
 

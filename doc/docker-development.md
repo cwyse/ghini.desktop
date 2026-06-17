@@ -179,6 +179,9 @@ presenters under Xvfb. It is fast enough for regular development and catches
 many GTK, validation, and presenter wiring regressions, but it does not drive
 the application as a black-box user.
 
+The default GTK smoke timeout is 900 seconds. Override it for slower machines
+or local investigation with `GHINI_GTK_SMOKE_TIMEOUT=<seconds>`.
+
 Run the GUI end-to-end suite:
 
 ```sh
