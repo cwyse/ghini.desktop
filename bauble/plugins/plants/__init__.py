@@ -26,6 +26,7 @@
 # with the same name as the other table that defines new columns/joins
 # for that class or probably not add new columns but add new joins
 # dynamically
+import csv
 import logging
 import os
 
@@ -401,6 +402,7 @@ class PlantsPlugin(pluginmgr.Plugin):
     @classmethod
     def init(cls) -> None:
         pluginmgr.provided.update(cls.provides)
+        cls.ensure_culture_schema()
 
         # Check for GardenPlugin and modify menus accordingly
         if "GardenPlugin" in pluginmgr.plugins:
@@ -535,6 +537,109 @@ class PlantsPlugin(pluginmgr.Plugin):
                     )
                 if session.in_transaction():
                     session.commit()
+
+    @staticmethod
+    def _culture_lookup_defaults() -> tuple[tuple[Any, str], ...]:
+        from bauble.plugins.plants.species_model import (
+            CultureDuration,
+            CultureEnvironment,
+            CultureRecommendedPropagation,
+            CultureSoilDrainage,
+            CultureSoilType,
+            CultureSunlight,
+        )
+
+        return (
+            (CultureDuration, "culture_duration.txt"),
+            (CultureSunlight, "culture_sunlight.txt"),
+            (CultureSoilDrainage, "culture_soil_drainage.txt"),
+            (CultureSoilType, "culture_soil_type.txt"),
+            (CultureRecommendedPropagation, "culture_recommended_propagation.txt"),
+            (CultureEnvironment, "culture_environment.txt"),
+        )
+
+    @staticmethod
+    def _culture_default_path(filename: str) -> str:
+        return os.path.join(paths.lib_dir(), "plugins", "plants", "default", filename)
+
+    @staticmethod
+    def _read_culture_lookup_rows(filename: str) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        with open(
+            PlantsPlugin._culture_default_path(filename), newline="", encoding="utf-8"
+        ) as csv_file:
+            for row in csv.DictReader(csv_file):
+                code = row["code"]
+                if not code:
+                    continue
+                rows.append(
+                    {
+                        "code": code,
+                        "label": row["label"],
+                        "description": row["description"] or None,
+                        "sort_order": int(row["sort_order"] or 0),
+                        "active": row["active"].lower() not in {"0", "false", "no"},
+                    }
+                )
+        return rows
+
+    @classmethod
+    def culture_schema_tables(cls) -> list[Any]:
+        from bauble.plugins.plants.species_model import (
+            SpeciesCultureProfile,
+            SpeciesCultureProfileMonth,
+            species_culture_profile_duration_table,
+            species_culture_profile_environment_table,
+            species_culture_profile_recommended_propagation_table,
+            species_culture_profile_soil_drainage_table,
+            species_culture_profile_soil_type_table,
+            species_culture_profile_sunlight_table,
+        )
+
+        lookup_tables = [
+            model.__table__ for model, _filename in cls._culture_lookup_defaults()
+        ]
+        return [
+            SpeciesCultureProfile.__table__,
+            SpeciesCultureProfileMonth.__table__,
+            *lookup_tables,
+            species_culture_profile_duration_table,
+            species_culture_profile_sunlight_table,
+            species_culture_profile_soil_drainage_table,
+            species_culture_profile_soil_type_table,
+            species_culture_profile_recommended_propagation_table,
+            species_culture_profile_environment_table,
+        ]
+
+    @classmethod
+    def ensure_culture_schema(cls) -> None:
+        """Create and seed culture tables for databases created before them.
+
+        Full database creation still goes through db.create() and install(). This
+        startup path is intentionally narrow: it creates only the culture tables
+        if they are missing and inserts missing lookup codes without rewriting
+        user-edited labels or descriptions.
+        """
+        if db.engine is None:
+            logger.debug("Skipping culture schema check; database is not open")
+            return
+
+        tables = cls.culture_schema_tables()
+        db.metadata.create_all(bind=db.engine, tables=tables, checkfirst=True)
+        with db.Session() as session:
+            for model, filename in cls._culture_lookup_defaults():
+                default_rows = cls._read_culture_lookup_rows(filename)
+                codes = [row["code"] for row in default_rows]
+                if not codes:
+                    continue
+                existing_codes = set(
+                    session.scalars(select(model.code).where(model.code.in_(codes)))
+                )
+                for row in default_rows:
+                    if row["code"] not in existing_codes:
+                        session.add(model(**row))
+            if session.in_transaction():
+                session.commit()
 
     @classmethod
     def install(cls, import_defaults: bool = True) -> None:

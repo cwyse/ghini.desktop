@@ -367,6 +367,19 @@ Deletion behavior should follow Ghini's existing ORM style:
 - Deleting a culture profile deletes its lookup links and month rows.
 - Controlled culture lookup rows should not be deleted while referenced.
 
+### Database Upgrade Behavior
+
+The initial implementation adds only the database model and controlled lookup
+defaults. Existing Ghini databases are upgraded when the Plants plugin starts:
+missing culture tables are created with SQLAlchemy `create_all(checkfirst=True)`,
+and missing lookup rows are inserted by `code`.
+
+The startup upgrade intentionally does not run the general default CSV importer
+against existing databases. That importer is still used for full database
+creation, but it can drop and recreate data during forced imports. For culture
+lookup defaults, the startup path is additive and preserves any local edits to
+existing lookup labels or descriptions.
+
 ### Why Not Store Lists In Text Fields?
 
 Text lists would be simpler to add but would make search, import/export, and

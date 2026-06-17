@@ -42,6 +42,7 @@ from bauble.plugins.plants.geography import GeographicArea as GeographicArea
 from bauble.plugins.plants.geography import (
     get_species_in_geographic_area as get_species_in_geographic_area,
 )
+from bauble.plugins.plants import PlantsPlugin
 from bauble.plugins.plants.species import DefaultVernacularName as DefaultVernacularName
 from bauble.plugins.plants.species import Species as Species
 from bauble.plugins.plants.species import SpeciesDistribution as SpeciesDistribution
@@ -66,7 +67,7 @@ from bauble.plugins.plants.species_editor import SpeciesEditorPresenter
 from bauble.plugins.plants.species_model import _remove_zws as remove_zws
 from bauble.test import check_dupids, mockfunc
 from editor import GenericModelViewPresenterEditor
-from sqlalchemy import select
+from sqlalchemy import func, inspect, select
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import sessionmaker
 
@@ -750,6 +751,122 @@ class TestSpecies:
             assert fresh_session.execute(select(CultureEnvironment)).scalars().all()
         finally:
             fresh_session.close()
+
+    def test_culture_schema_upgrade_recreates_missing_tables(self, session) -> None:
+        """Startup upgrade should add culture tables to existing databases."""
+        if session.in_transaction():
+            session.rollback()
+        session.close()
+        db.Session.remove()
+
+        db.metadata.drop_all(
+            bind=db.engine, tables=PlantsPlugin.culture_schema_tables(), checkfirst=True
+        )
+        inspector = inspect(db.engine)
+        assert "culture_duration" not in inspector.get_table_names()
+
+        PlantsPlugin.ensure_culture_schema()
+
+        table_names = set(inspect(db.engine).get_table_names())
+        assert {
+            "species_culture_profile",
+            "species_culture_profile_duration",
+            "species_culture_profile_sunlight",
+            "species_culture_profile_soil_drainage",
+            "species_culture_profile_soil_type",
+            "species_culture_profile_recommended_propagation",
+            "species_culture_profile_environment",
+            "species_culture_profile_month",
+            "culture_duration",
+            "culture_sunlight",
+            "culture_soil_drainage",
+            "culture_soil_type",
+            "culture_recommended_propagation",
+            "culture_environment",
+        } <= table_names
+
+    def test_culture_schema_upgrade_seeds_lookup_defaults_once(self, session) -> None:
+        """Repeated startup checks should not duplicate culture lookup rows."""
+        if session.in_transaction():
+            session.rollback()
+        session.close()
+        db.Session.remove()
+
+        db.metadata.drop_all(
+            bind=db.engine, tables=PlantsPlugin.culture_schema_tables(), checkfirst=True
+        )
+        PlantsPlugin.ensure_culture_schema()
+        PlantsPlugin.ensure_culture_schema()
+
+        fresh_session = db.Session()
+        try:
+            assert (
+                fresh_session.scalar(select(func.count()).select_from(CultureDuration))
+                == 5
+            )
+            assert (
+                fresh_session.scalar(select(func.count()).select_from(CultureSunlight))
+                == 4
+            )
+            assert (
+                fresh_session.scalar(select(func.count()).select_from(CultureSoilType))
+                == 8
+            )
+            assert (
+                fresh_session.scalar(
+                    select(func.count())
+                    .select_from(CultureDuration)
+                    .where(CultureDuration.code == "perennial")
+                )
+                == 1
+            )
+        finally:
+            fresh_session.close()
+
+    def test_culture_schema_upgrade_preserves_lookup_customizations(
+        self, session
+    ) -> None:
+        """Default seeding should not overwrite local lookup labels."""
+        if session.in_transaction():
+            session.rollback()
+        session.close()
+        db.Session.remove()
+
+        db.metadata.drop_all(
+            bind=db.engine, tables=PlantsPlugin.culture_schema_tables(), checkfirst=True
+        )
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[CultureDuration.__table__],
+            checkfirst=True,
+        )
+        fresh_session = db.Session()
+        try:
+            fresh_session.add(
+                CultureDuration(
+                    code="perennial",
+                    label="Local perennial label",
+                    sort_order=99,
+                )
+            )
+            fresh_session.commit()
+        finally:
+            fresh_session.close()
+
+        PlantsPlugin.ensure_culture_schema()
+
+        check_session = db.Session()
+        try:
+            perennial = check_session.scalar(
+                select(CultureDuration).where(CultureDuration.code == "perennial")
+            )
+            assert perennial.label == "Local perennial label"
+            assert (
+                check_session.scalar(select(func.count()).select_from(CultureDuration))
+                == 5
+            )
+        finally:
+            check_session.close()
 
     @pytest.mark.skip(reason="opens the interactive Species editor")
     def test_species_editor(self, session) -> None:
