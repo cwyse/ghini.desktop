@@ -199,7 +199,8 @@ Known Scope Limits
 Test Evidence
 -------------
 
-Release-gate evidence was refreshed on 2026-06-18 at ``8a5920e3``:
+Release-gate evidence was refreshed on 2026-06-18 at ``c2159e62``
+with application code through ``8a5920e3``:
 
 * ``scripts/docker-dev test-regression`` passed:
 
@@ -210,15 +211,12 @@ Release-gate evidence was refreshed on 2026-06-18 at ``8a5920e3``:
 * ``scripts/docker-dev build`` completed successfully and rebuilt
   ``ghini-desktop-dev:latest`` from the current checkout.
 
-* ``scripts/docker-dev postgres-release`` partially completed:
+* ``GHINI_SOURCE_POSTGRES_URI=... scripts/docker-dev postgres-release`` passed
+  after copying representative ``ghini_test3`` data from
+  ``postgres.wysechoice.net`` into a disposable local PostgreSQL container:
 
   * disposable PostgreSQL schema lane: 3 passed;
-  * representative PostgreSQL copy/smoke lane did not run because neither
-    ``GHINI_SOURCE_POSTGRES_URI`` nor ``GHINI_EXTERNAL_POSTGRES_URI`` was set.
-
-Earlier release evidence had verified the representative PostgreSQL read-only
-smoke lane against a copied ``ghini_test3`` database. That representative-data
-gate must be rerun after the culture support changes before tagging.
+  * representative PostgreSQL read-only smoke lane: 8 passed.
 
 * Open GitLab issue review completed at ``32b59e85``:
 
@@ -236,9 +234,6 @@ Pending Release Gates
 
 Before tagging ``v4.0.0rc1`` with culture support included:
 
-* set ``GHINI_SOURCE_POSTGRES_URI`` or ``GHINI_EXTERNAL_POSTGRES_URI`` and rerun
-  ``scripts/docker-dev postgres-release`` so the representative PostgreSQL
-  smoke lane covers the current release candidate;
 * perform final review of the release notes and open issue classifications;
 * tag ``v4.0.0rc1`` after final review is complete.
 
