@@ -158,6 +158,181 @@ species_context_menu: Any = [edit_action, remove_action]
 vernname_context_menu: Any = [edit_action]
 
 
+class SpeciesCultureDetailRow:
+    def __init__(self, category, item, value) -> None:
+        self.category = category
+        self.item = item
+        self.value = value
+
+
+_CULTURE_MONTH_LABELS = (
+    _("Jan"),
+    _("Feb"),
+    _("Mar"),
+    _("Apr"),
+    _("May"),
+    _("Jun"),
+    _("Jul"),
+    _("Aug"),
+    _("Sep"),
+    _("Oct"),
+    _("Nov"),
+    _("Dec"),
+)
+
+_CULTURE_ENUM_LABELS = {
+    "none": _("None"),
+    "minimum": _("Minimum"),
+    "average": _("Average"),
+    "frequent": _("Frequent"),
+    "slow": _("Slow"),
+    "moderate": _("Moderate"),
+    "fast": _("Fast"),
+    "low": _("Low"),
+    "high": _("High"),
+}
+
+
+def _culture_terms(terms):
+    values = [str(term) for term in terms]
+    return ", ".join(values)
+
+
+def _culture_range(profile, min_field, max_field, unit=""):
+    min_value = getattr(profile, min_field)
+    max_value = getattr(profile, max_field)
+    if min_value is None and max_value is None:
+        return ""
+    suffix = f" {unit}" if unit else ""
+    if min_value is not None and max_value is not None:
+        if min_value == max_value:
+            return f"{min_value}{suffix}"
+        return f"{min_value}-{max_value}{suffix}"
+    if min_value is not None:
+        return _("at least %(value)s%(unit)s") % {"value": min_value, "unit": suffix}
+    return _("up to %(value)s%(unit)s") % {"value": max_value, "unit": suffix}
+
+
+def _culture_bool(value):
+    if value is None:
+        return ""
+    return _("Yes") if value else _("No")
+
+
+def _culture_months(profile, month_type):
+    months = sorted(
+        item.month for item in profile.months if item.month_type == month_type
+    )
+    return ", ".join(_CULTURE_MONTH_LABELS[month - 1] for month in months)
+
+
+def species_culture_detail_rows(profile):
+    rows = []
+
+    def add(category, item, value):
+        if value not in (None, ""):
+            rows.append(SpeciesCultureDetailRow(category, item, value))
+
+    add(_("Growth"), _("Duration"), _culture_terms(profile.duration_terms))
+    add(
+        _("Growth"),
+        _("Growth rate"),
+        _CULTURE_ENUM_LABELS.get(profile.growth_rate, profile.growth_rate),
+    )
+    add(
+        _("Growth"),
+        _("Maintenance"),
+        _CULTURE_ENUM_LABELS.get(profile.maintenance, profile.maintenance),
+    )
+    add(_("Growth"), _("Environment"), _culture_terms(profile.environment_terms))
+    add(
+        _("Growth"),
+        _("Recommended propagation"),
+        _culture_terms(profile.recommended_propagation_terms),
+    )
+
+    add(_("Light and water"), _("Sunlight"), _culture_terms(profile.sunlight_terms))
+    add(
+        _("Light and water"),
+        _("Light"),
+        _culture_range(profile, "light_min", "light_max"),
+    )
+    add(
+        _("Light and water"),
+        _("Watering"),
+        _CULTURE_ENUM_LABELS.get(profile.watering, profile.watering),
+    )
+    add(
+        _("Light and water"),
+        _("Soil moisture"),
+        _culture_range(profile, "soil_moisture_min", "soil_moisture_max"),
+    )
+    add(
+        _("Light and water"),
+        _("Atmospheric humidity"),
+        _culture_range(profile, "atmospheric_humidity_min", "atmospheric_humidity_max"),
+    )
+
+    add(_("Soil"), _("Soil pH"), _culture_range(profile, "soil_ph_min", "soil_ph_max"))
+    add(_("Soil"), _("Soil type"), _culture_terms(profile.soil_type_terms))
+    add(_("Soil"), _("Soil drainage"), _culture_terms(profile.soil_drainage_terms))
+    add(
+        _("Soil"),
+        _("Soil nutrients"),
+        _culture_range(profile, "soil_nutrient_min", "soil_nutrient_max"),
+    )
+    add(_("Soil"), _("Soil salinity tolerance"), profile.soil_salinity_tolerance)
+    add(
+        _("Soil"),
+        _("Soil texture"),
+        _culture_range(profile, "soil_texture_min", "soil_texture_max"),
+    )
+
+    add(
+        _("Temperature"),
+        _("Temperature"),
+        _culture_range(profile, "temperature_min_c", "temperature_max_c", "C"),
+    )
+    add(
+        _("Temperature"),
+        _("Hardiness zone"),
+        _culture_range(profile, "hardiness_zone_min", "hardiness_zone_max"),
+    )
+    add(
+        _("Temperature"), _("Drought tolerant"), _culture_bool(profile.drought_tolerant)
+    )
+    add(_("Temperature"), _("Salt tolerant"), _culture_bool(profile.salt_tolerant))
+    add(_("Temperature"), _("Frost sensitive"), _culture_bool(profile.frost_sensitive))
+    add(_("Temperature"), _("Indoor suitable"), _culture_bool(profile.indoor_suitable))
+    add(
+        _("Temperature"),
+        _("Greenhouse required"),
+        _culture_bool(profile.greenhouse_required),
+    )
+
+    add(_("Months"), _("Growth"), _culture_months(profile, "growth"))
+    add(_("Months"), _("Bloom"), _culture_months(profile, "bloom"))
+    add(_("Months"), _("Fruit"), _culture_months(profile, "fruit"))
+    add(_("Months"), _("Pruning"), _culture_months(profile, "pruning"))
+
+    add(_("Notes"), _("Culture notes"), profile.culture_notes)
+    add(_("Notes"), _("Source citation"), profile.source_citation)
+    add(_("Notes"), _("Local notes"), profile.local_notes)
+    return rows
+
+
+class SpeciesCultureDetail:
+    @staticmethod
+    def attached_to(row):
+        if isinstance(row, VernacularName):
+            row = row.species
+        if not isinstance(row, Species):
+            return []
+        if row.culture_profile is None:
+            return []
+        return species_culture_detail_rows(row.culture_profile)
+
+
 class SynonymSearch(search.SearchStrategy):
     return_synonyms_pref: str = "bauble.search.return_synonyms"
 

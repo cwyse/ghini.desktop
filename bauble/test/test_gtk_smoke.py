@@ -81,10 +81,16 @@ from bauble.plugins.plants.genus import (
     GenusEditorPresenter,
     GenusEditorView,
 )
-from bauble.plugins.plants.species import Species, SpeciesInfoBox
+from bauble.plugins.plants.species import Species, SpeciesCultureDetail, SpeciesInfoBox
 from bauble.plugins.plants.species_editor import (
     SpeciesEditorPresenter,
     SpeciesEditorView,
+)
+from bauble.plugins.plants.species_model import (
+    CultureDuration,
+    CultureSunlight,
+    SpeciesCultureProfile,
+    SpeciesCultureProfileMonth,
 )
 
 prefs.testing = True
@@ -1570,6 +1576,130 @@ def test_species_editor_note_fields_validate_and_update_model(
     assert species.notes[0].category == "label"
     assert species.notes[0].note == "Useful on plant labels"
     assert species_editor_view.widgets.sp_ok_button.get_sensitive()
+
+
+def test_species_editor_culture_tab_edits_and_persists_profile(
+    session, species_editor_view
+):
+    family = Family(epithet="Culturetabaceae", qualifier="")
+    genus = Genus(family=family, epithet="Culturetabgenus", author="L.")
+    species = Species(genus=genus, epithet="editprofile", author="L.", hybrid=False)
+    perennial = CultureDuration(
+        code="perennial", label="Perennial", sort_order=10, active=True
+    )
+    full_sun = CultureSunlight(
+        code="full_sun", label="Full sun", sort_order=10, active=True
+    )
+    session.add_all([family, genus, species, perennial, full_sun])
+    session.flush()
+
+    presenter = SpeciesEditorPresenter(species, species_editor_view)
+
+    assert species.culture_profile is None
+    assert "culture_culture_notes_textview" in species_editor_view.culture_widgets
+
+    species_editor_view.culture_widgets["culture_light_min_entry"].set_text("4")
+    species_editor_view.culture_widgets["culture_light_max_entry"].set_text("9")
+    species_editor_view.culture_widgets["culture_watering_combo"].set_active_id(
+        "average"
+    )
+    species_editor_view.culture_widgets["culture_duration_perennial_check"].set_active(
+        True
+    )
+    species_editor_view.culture_widgets["culture_sunlight_full_sun_check"].set_active(
+        True
+    )
+    species_editor_view.culture_widgets["culture_month_bloom_5_check"].set_active(True)
+    species_editor_view.culture_widgets[
+        "culture_culture_notes_textview"
+    ].get_buffer().set_text("Keep evenly moist during active growth.")
+    drain_gtk_events()
+
+    assert presenter.culture_presenter.is_dirty()
+    assert species.culture_profile.light_min == 4
+    assert species.culture_profile.light_max == 9
+    assert species.culture_profile.watering == "average"
+    assert [term.code for term in species.culture_profile.duration_terms] == [
+        "perennial"
+    ]
+    assert [term.code for term in species.culture_profile.sunlight_terms] == [
+        "full_sun"
+    ]
+    assert [
+        (item.month_type, item.month) for item in species.culture_profile.months
+    ] == [("bloom", 5)]
+    assert species_editor_view.widgets.sp_ok_button.get_sensitive()
+
+    session.commit()
+    species_id = species.id
+    session.expire_all()
+    loaded = session.get(Species, species_id)
+
+    assert loaded.culture_profile.light_min == 4
+    assert loaded.culture_profile.light_max == 9
+    assert loaded.culture_profile.culture_notes.startswith("Keep evenly")
+    assert [term.code for term in loaded.culture_profile.duration_terms] == [
+        "perennial"
+    ]
+
+
+def test_species_editor_culture_tab_blocks_invalid_ranges(session, species_editor_view):
+    family = Family(epithet="Culturebadaceae", qualifier="")
+    genus = Genus(family=family, epithet="Culturebadgenus", author="L.")
+    species = Species(genus=genus, epithet="badrange", author="L.", hybrid=False)
+    session.add_all([family, genus, species])
+    session.flush()
+
+    presenter = SpeciesEditorPresenter(species, species_editor_view)
+    min_entry = species_editor_view.culture_widgets["culture_light_min_entry"]
+    max_entry = species_editor_view.culture_widgets["culture_light_max_entry"]
+
+    min_entry.set_text("8")
+    max_entry.set_text("3")
+    drain_gtk_events()
+
+    assert presenter.culture_presenter.has_problems(min_entry)
+    assert presenter.culture_presenter.has_problems(max_entry)
+    assert not species_editor_view.widgets.sp_ok_button.get_sensitive()
+
+    max_entry.set_text("10")
+    drain_gtk_events()
+
+    assert not presenter.culture_presenter.has_problems(min_entry)
+    assert not presenter.culture_presenter.has_problems(max_entry)
+    assert species_editor_view.widgets.sp_ok_button.get_sensitive()
+
+
+def test_species_culture_detail_rows_show_selected_species_profile(session):
+    family = Family(epithet="Culturedetailaceae", qualifier="")
+    genus = Genus(family=family, epithet="Culturedetailgenus", author="L.")
+    species = Species(genus=genus, epithet="details", author="L.", hybrid=False)
+    perennial = CultureDuration(
+        code="perennial", label="Perennial", sort_order=10, active=True
+    )
+    full_sun = CultureSunlight(
+        code="full_sun", label="Full sun", sort_order=10, active=True
+    )
+    profile = SpeciesCultureProfile(
+        species=species,
+        light_min=6,
+        light_max=10,
+        watering="average",
+        culture_notes="General species-level guidance.",
+    )
+    profile.duration_terms.append(perennial)
+    profile.sunlight_terms.append(full_sun)
+    profile.months.append(SpeciesCultureProfileMonth(month_type="bloom", month=5))
+    session.add_all([family, genus, species, perennial, full_sun, profile])
+    session.flush()
+
+    rows = SpeciesCultureDetail.attached_to(species)
+    row_values = {(row.category, row.item, row.value) for row in rows}
+
+    assert ("Growth", "Duration", "Perennial") in row_values
+    assert ("Light and water", "Sunlight", "Full sun") in row_values
+    assert ("Light and water", "Light", "6-10") in row_values
+    assert ("Notes", "Culture notes", "General species-level guidance.") in row_values
 
 
 def test_location_editor_presenter_populates_and_edits_fields(

@@ -41,6 +41,20 @@ from bauble.plugins.plants.species_model import (
 )
 from bauble.plugins.plants.species_model import SpeciesSynonym as SpeciesSynonym
 from bauble.plugins.plants.species_model import VernacularName as VernacularName
+from bauble.plugins.plants.species_model import (
+    CultureDuration,
+    CultureEnvironment,
+    CultureRecommendedPropagation,
+    CultureSoilDrainage,
+    CultureSoilType,
+    CultureSunlight,
+    SpeciesCultureProfile,
+    SpeciesCultureProfileMonth,
+    culture_growth_rate_values,
+    culture_maintenance_values,
+    culture_month_type_values,
+    culture_watering_values,
+)
 from bauble.plugins.plants.species_model import compare_rank as compare_rank
 from bauble.plugins.plants.species_model import (
     ensure_autonym_for_species as ensure_autonym_for_species,
@@ -68,6 +82,502 @@ def safe_set_text(gtk_widget, text) -> None:
     if text is None:
         text = ""
     gtk_widget.set_text(text)
+
+
+_CULTURE_RANGE_FIELDS = (
+    ("light", _("Light"), "light_min", "light_max", int, 0, 10, _("0-10")),
+    (
+        "soil_moisture",
+        _("Soil moisture"),
+        "soil_moisture_min",
+        "soil_moisture_max",
+        int,
+        0,
+        10,
+        _("0-10"),
+    ),
+    (
+        "atmospheric_humidity",
+        _("Atmospheric humidity"),
+        "atmospheric_humidity_min",
+        "atmospheric_humidity_max",
+        int,
+        0,
+        10,
+        _("0-10"),
+    ),
+    ("soil_ph", _("Soil pH"), "soil_ph_min", "soil_ph_max", float, 0, 14, _("0-14")),
+    (
+        "temperature",
+        _("Temperature C"),
+        "temperature_min_c",
+        "temperature_max_c",
+        float,
+        None,
+        None,
+        _("C"),
+    ),
+    (
+        "hardiness_zone",
+        _("Hardiness zone"),
+        "hardiness_zone_min",
+        "hardiness_zone_max",
+        int,
+        1,
+        13,
+        _("1-13"),
+    ),
+    (
+        "soil_nutrient",
+        _("Soil nutrients"),
+        "soil_nutrient_min",
+        "soil_nutrient_max",
+        int,
+        0,
+        10,
+        _("0-10"),
+    ),
+    (
+        "soil_texture",
+        _("Soil texture"),
+        "soil_texture_min",
+        "soil_texture_max",
+        int,
+        0,
+        10,
+        _("0-10"),
+    ),
+)
+
+_CULTURE_SINGLE_NUMBER_FIELDS = (
+    (
+        "soil_salinity_tolerance",
+        _("Soil salinity tolerance"),
+        int,
+        0,
+        10,
+        _("0-10"),
+    ),
+)
+
+_CULTURE_ENUM_FIELDS = (
+    ("watering", _("Watering"), culture_watering_values),
+    ("growth_rate", _("Growth rate"), culture_growth_rate_values),
+    ("maintenance", _("Maintenance"), culture_maintenance_values),
+)
+
+_CULTURE_BOOLEAN_FIELDS = (
+    ("drought_tolerant", _("Drought tolerant")),
+    ("salt_tolerant", _("Salt tolerant")),
+    ("frost_sensitive", _("Frost sensitive")),
+    ("indoor_suitable", _("Indoor suitable")),
+    ("greenhouse_required", _("Greenhouse required")),
+)
+
+_CULTURE_TEXT_FIELDS = (
+    ("culture_notes", _("Culture notes")),
+    ("source_citation", _("Source citation")),
+    ("local_notes", _("Local notes")),
+)
+
+_CULTURE_LOOKUP_FIELDS = (
+    ("duration_terms", CultureDuration, "duration", _("Duration")),
+    ("sunlight_terms", CultureSunlight, "sunlight", _("Sunlight")),
+    ("soil_drainage_terms", CultureSoilDrainage, "soil_drainage", _("Soil drainage")),
+    ("soil_type_terms", CultureSoilType, "soil_type", _("Soil type")),
+    (
+        "recommended_propagation_terms",
+        CultureRecommendedPropagation,
+        "recommended_propagation",
+        _("Recommended propagation"),
+    ),
+    ("environment_terms", CultureEnvironment, "environment", _("Environment")),
+)
+
+_CULTURE_MONTH_TYPES = tuple(
+    (value, value.capitalize()) for value in culture_month_type_values
+)
+_CULTURE_MONTH_LABELS = (
+    _("Jan"),
+    _("Feb"),
+    _("Mar"),
+    _("Apr"),
+    _("May"),
+    _("Jun"),
+    _("Jul"),
+    _("Aug"),
+    _("Sep"),
+    _("Oct"),
+    _("Nov"),
+    _("Dec"),
+)
+
+
+def _culture_widget_name(*parts):
+    return "culture_" + "_".join(str(part) for part in parts)
+
+
+class CulturePresenter(editor.GenericEditorPresenter):
+    """Presenter for species-level culture guidance."""
+
+    PROBLEM_BAD_NUMBER = "culture-bad-number"
+    PROBLEM_BAD_RANGE = "culture-bad-range"
+
+    def __init__(self, parent) -> None:
+        super().__init__(parent.model, parent.view)
+        self.parent_ref = weakref.ref(parent)
+        self._dirty = False
+        self._refreshing = False
+        self._lookup_buttons = {}
+        self._populate_enum_widgets()
+        self._populate_lookup_widgets()
+        self._connect_widgets()
+        self.refresh_view()
+
+    def is_dirty(self):
+        return self._dirty
+
+    def _mark_dirty(self) -> None:
+        self._dirty = True
+        self.parent_ref().refresh_sensitivity()
+
+    def _profile(self):
+        return self.model.culture_profile
+
+    def _ensure_profile(self):
+        if self.model.culture_profile is None:
+            self.model.culture_profile = SpeciesCultureProfile()
+        return self.model.culture_profile
+
+    def _populate_enum_widgets(self) -> None:
+        for field, _label, values in _CULTURE_ENUM_FIELDS:
+            combo = self.view.culture_widgets[_culture_widget_name(field, "combo")]
+            combo.append("", "")
+            for value in values:
+                combo.append(value, value.replace("_", " ").capitalize())
+
+    def _populate_lookup_widgets(self) -> None:
+        for attr, klass, prefix, _label in _CULTURE_LOOKUP_FIELDS:
+            box = self.view.culture_widgets[_culture_widget_name(prefix, "box")]
+            for child in box.get_children():
+                box.remove(child)
+            stmt = (
+                select(klass)
+                .where(klass.active.is_(True))
+                .order_by(klass.sort_order, klass.label)
+            )
+            for term in self.session.scalars(stmt):
+                name = _culture_widget_name(prefix, term.code, "check")
+                button = Gtk.CheckButton(label=term.label)
+                self.view.register_culture_widget(name, button)
+                button.set_tooltip_text(term.description or term.label)
+                box.add(button)
+                self._lookup_buttons[(attr, term.code)] = button
+                self.view.connect(button, "toggled", self.on_lookup_toggled, attr, term)
+            box.show_all()
+
+    def _connect_widgets(self) -> None:
+        for (
+            _key,
+            _label,
+            min_field,
+            max_field,
+            _parser,
+            _minimum,
+            _maximum,
+            _hint,
+        ) in _CULTURE_RANGE_FIELDS:
+            for field in (min_field, max_field):
+                widget = self.view.culture_widgets[_culture_widget_name(field, "entry")]
+                self.view.connect(widget, "changed", self.on_number_changed, field)
+
+        for (
+            field,
+            _label,
+            _parser,
+            _minimum,
+            _maximum,
+            _hint,
+        ) in _CULTURE_SINGLE_NUMBER_FIELDS:
+            widget = self.view.culture_widgets[_culture_widget_name(field, "entry")]
+            self.view.connect(widget, "changed", self.on_number_changed, field)
+
+        for field, _label, _values in _CULTURE_ENUM_FIELDS:
+            widget = self.view.culture_widgets[_culture_widget_name(field, "combo")]
+            self.view.connect(widget, "changed", self.on_enum_changed, field)
+
+        for field, _label in _CULTURE_BOOLEAN_FIELDS:
+            widget = self.view.culture_widgets[_culture_widget_name(field, "check")]
+            self.view.connect(widget, "toggled", self.on_boolean_toggled, field)
+
+        for field, _label in _CULTURE_TEXT_FIELDS:
+            widget = self.view.culture_widgets[_culture_widget_name(field, "textview")]
+            self.view.connect(
+                widget.get_buffer(), "changed", self.on_text_changed, field
+            )
+
+        for month_type, _label in _CULTURE_MONTH_TYPES:
+            for month in range(1, 13):
+                name = _culture_widget_name("month", month_type, month, "check")
+                widget = self.view.culture_widgets[name]
+                self.view.connect(
+                    widget, "toggled", self.on_month_toggled, month_type, month
+                )
+
+    def _field_spec(self, field):
+        for (
+            _key,
+            _label,
+            min_field,
+            max_field,
+            parser,
+            minimum,
+            maximum,
+            _hint,
+        ) in _CULTURE_RANGE_FIELDS:
+            if field in (min_field, max_field):
+                return parser, minimum, maximum
+        for (
+            name,
+            _label,
+            parser,
+            minimum,
+            maximum,
+            _hint,
+        ) in _CULTURE_SINGLE_NUMBER_FIELDS:
+            if field == name:
+                return parser, minimum, maximum
+        return str, None, None
+
+    def _range_pair(self, field):
+        for (
+            _key,
+            _label,
+            min_field,
+            max_field,
+            _parser,
+            _minimum,
+            _maximum,
+            _hint,
+        ) in _CULTURE_RANGE_FIELDS:
+            if field in (min_field, max_field):
+                return min_field, max_field
+        return None
+
+    def _parse_number(self, widget, field):
+        text = widget.get_text().strip()
+        if text == "":
+            self.remove_problem((self.PROBLEM_BAD_NUMBER, field), widget)
+            return True, None
+        parser, minimum, maximum = self._field_spec(field)
+        try:
+            value = parser(text)
+        except ValueError:
+            self.add_problem((self.PROBLEM_BAD_NUMBER, field), widget)
+            return False, None
+        if (minimum is not None and value < minimum) or (
+            maximum is not None and value > maximum
+        ):
+            self.add_problem((self.PROBLEM_BAD_NUMBER, field), widget)
+            return False, None
+        self.remove_problem((self.PROBLEM_BAD_NUMBER, field), widget)
+        return True, value
+
+    def _validate_range_pair(self, pair) -> bool:
+        if pair is None:
+            return True
+        min_field, max_field = pair
+        min_widget = self.view.culture_widgets[_culture_widget_name(min_field, "entry")]
+        max_widget = self.view.culture_widgets[_culture_widget_name(max_field, "entry")]
+        ok_min, min_value = self._parse_number(min_widget, min_field)
+        ok_max, max_value = self._parse_number(max_widget, max_field)
+        problem_id = (self.PROBLEM_BAD_RANGE, min_field, max_field)
+        if ok_min and ok_max and min_value is not None and max_value is not None:
+            if min_value > max_value:
+                self.add_problem(problem_id, [min_widget, max_widget])
+                return False
+        self.remove_problem(problem_id, min_widget)
+        self.remove_problem(problem_id, max_widget)
+        return ok_min and ok_max
+
+    def on_number_changed(self, widget, field) -> None:
+        if self._refreshing:
+            return
+        ok, value = self._parse_number(widget, field)
+        self._validate_range_pair(self._range_pair(field))
+        if ok:
+            setattr(self._ensure_profile(), field, value)
+            self._mark_dirty()
+        else:
+            self.parent_ref().refresh_sensitivity()
+
+    def on_enum_changed(self, widget, field) -> None:
+        if self._refreshing:
+            return
+        value = widget.get_active_id() or None
+        setattr(self._ensure_profile(), field, value)
+        self._mark_dirty()
+
+    def on_boolean_toggled(self, widget, field) -> None:
+        if self._refreshing:
+            return
+        setattr(self._ensure_profile(), field, widget.get_active())
+        self._mark_dirty()
+
+    def on_text_changed(self, buffer, field) -> None:
+        if self._refreshing:
+            return
+        start = buffer.get_start_iter()
+        end = buffer.get_end_iter()
+        value = buffer.get_text(start, end, False).strip() or None
+        setattr(self._ensure_profile(), field, value)
+        self._mark_dirty()
+
+    def on_lookup_toggled(self, widget, attr, term) -> None:
+        if self._refreshing:
+            return
+        profile = self._ensure_profile()
+        terms = getattr(profile, attr)
+        if widget.get_active():
+            if term not in terms:
+                terms.append(term)
+        elif term in terms:
+            terms.remove(term)
+        self._mark_dirty()
+
+    def on_month_toggled(self, widget, month_type, month) -> None:
+        if self._refreshing:
+            return
+        profile = self._ensure_profile()
+        existing = [
+            item
+            for item in profile.months
+            if item.month_type == month_type and item.month == month
+        ]
+        if widget.get_active() and not existing:
+            profile.months.append(
+                SpeciesCultureProfileMonth(month_type=month_type, month=month)
+            )
+        elif not widget.get_active():
+            for item in existing:
+                profile.months.remove(item)
+                utils.delete_or_expunge(item)
+        self._mark_dirty()
+
+    def profile_is_empty(self, profile=None) -> bool:
+        profile = profile or self._profile()
+        if profile is None:
+            return True
+        scalar_fields = []
+        for (
+            _key,
+            _label,
+            min_field,
+            max_field,
+            _parser,
+            _minimum,
+            _maximum,
+            _hint,
+        ) in _CULTURE_RANGE_FIELDS:
+            scalar_fields.extend([min_field, max_field])
+        scalar_fields.extend(
+            field
+            for field, _label, _parser, _minimum, _maximum, _hint in _CULTURE_SINGLE_NUMBER_FIELDS
+        )
+        scalar_fields.extend(field for field, _label, _values in _CULTURE_ENUM_FIELDS)
+        scalar_fields.extend(field for field, _label in _CULTURE_BOOLEAN_FIELDS)
+        scalar_fields.extend(field for field, _label in _CULTURE_TEXT_FIELDS)
+        if any(getattr(profile, field) not in (None, "") for field in scalar_fields):
+            return False
+        if any(
+            getattr(profile, attr)
+            for attr, _klass, _prefix, _label in _CULTURE_LOOKUP_FIELDS
+        ):
+            return False
+        return not profile.months
+
+    def cleanup_empty_profile(self) -> None:
+        profile = self._profile()
+        if profile is None or not self.profile_is_empty(profile):
+            return
+        self.model.culture_profile = None
+        utils.delete_or_expunge(profile)
+
+    def refresh_view(self) -> None:
+        profile = self._profile()
+        self._refreshing = True
+        try:
+            for (
+                _key,
+                _label,
+                min_field,
+                max_field,
+                _parser,
+                _minimum,
+                _maximum,
+                _hint,
+            ) in _CULTURE_RANGE_FIELDS:
+                for field in (min_field, max_field):
+                    widget = self.view.culture_widgets[
+                        _culture_widget_name(field, "entry")
+                    ]
+                    value = "" if profile is None else getattr(profile, field)
+                    value = "" if value is None else str(value)
+                    safe_set_text(widget, value)
+                    self.remove_problem((self.PROBLEM_BAD_NUMBER, field), widget)
+
+            for (
+                field,
+                _label,
+                _parser,
+                _minimum,
+                _maximum,
+                _hint,
+            ) in _CULTURE_SINGLE_NUMBER_FIELDS:
+                widget = self.view.culture_widgets[_culture_widget_name(field, "entry")]
+                value = "" if profile is None else getattr(profile, field)
+                value = "" if value is None else str(value)
+                safe_set_text(widget, value)
+                self.remove_problem((self.PROBLEM_BAD_NUMBER, field), widget)
+
+            for field, _label, _values in _CULTURE_ENUM_FIELDS:
+                widget = self.view.culture_widgets[_culture_widget_name(field, "combo")]
+                widget.set_active_id(
+                    "" if profile is None else getattr(profile, field) or ""
+                )
+
+            for field, _label in _CULTURE_BOOLEAN_FIELDS:
+                widget = self.view.culture_widgets[_culture_widget_name(field, "check")]
+                widget.set_active(bool(profile is not None and getattr(profile, field)))
+
+            for field, _label in _CULTURE_TEXT_FIELDS:
+                widget = self.view.culture_widgets[
+                    _culture_widget_name(field, "textview")
+                ]
+                text = "" if profile is None else getattr(profile, field) or ""
+                widget.get_buffer().set_text(text)
+
+            for attr, _klass, _prefix, _label in _CULTURE_LOOKUP_FIELDS:
+                selected = set()
+                if profile is not None:
+                    selected = {term.code for term in getattr(profile, attr)}
+                for (button_attr, code), button in self._lookup_buttons.items():
+                    if button_attr == attr:
+                        button.set_active(code in selected)
+
+            active_months = set()
+            if profile is not None:
+                active_months = {
+                    (item.month_type, item.month) for item in profile.months
+                }
+            for month_type, _label in _CULTURE_MONTH_TYPES:
+                for month in range(1, 13):
+                    name = _culture_widget_name("month", month_type, month, "check")
+                    self.view.culture_widgets[name].set_active(
+                        (month_type, month) in active_months
+                    )
+        finally:
+            self._refreshing = False
 
 
 class SpeciesEditorPresenter(editor.GenericEditorPresenter):
@@ -125,6 +635,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         self.synonyms_presenter = SynonymsPresenter(self)
         self.dist_presenter = DistributionPresenter(self)
         self.infrasp_presenter = InfraspPresenter(self)
+        self.culture_presenter = CulturePresenter(self)
 
         # Ignore this warning:  g_value_get_int: assertion 'G_VALUE_HOLDS_INT (value)' failed
         # It is a known python bug:  https://bugzilla.gnome.org/show_bug.cgi?id=708676
@@ -493,6 +1004,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         del self.dist_presenter.view
         del self.notes_presenter.view
         del self.infrasp_presenter.view
+        del self.culture_presenter.view
 
     def is_dirty(self):
         return (
@@ -503,6 +1015,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             or self.dist_presenter.is_dirty()
             or self.infrasp_presenter.is_dirty()
             or self.notes_presenter.is_dirty()
+            or self.culture_presenter.is_dirty()
         )
 
     def has_child_problems(self) -> bool:
@@ -514,6 +1027,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
             or self.notes_presenter.problems
             or self.pictures_presenter.problems
             or self.infrasp_presenter.problems
+            or self.culture_presenter.problems
         )
 
     def set_model_attr(self, field, value, validator: Optional[Any] = None) -> None:
@@ -668,6 +1182,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         self.synonyms_presenter.cleanup()
         self.dist_presenter.cleanup()
         self.infrasp_presenter.cleanup()
+        self.culture_presenter.cleanup()
 
     def start(self):
         r = self.view.start()
@@ -688,6 +1203,7 @@ class SpeciesEditorPresenter(editor.GenericEditorPresenter):
         self.vern_presenter.refresh_view(self.model.default_vernacular_name)
         self.synonyms_presenter.refresh_view()
         self.dist_presenter.refresh_view()
+        self.culture_presenter.refresh_view()
 
 
 class InfraspPresenter(editor.GenericEditorPresenter):
@@ -1443,6 +1959,8 @@ class SpeciesEditorView(editor.GenericEditorView):
             paths.lib_dir(), "plugins", "plants", "species_editor.glade"
         )
         super().__init__(filename, parent=parent)
+        self.culture_widgets = {}
+        self.add_culture_tab()
         self.attach_completion(
             "sp_genus_entry",
             self.genus_completion_cell_data_func,
@@ -1453,6 +1971,167 @@ class SpeciesEditorView(editor.GenericEditorView):
         self.widgets.notebook.set_current_page(0)
         self.restore_state()
         self.boxes = set()
+
+    def register_culture_widget(self, name, widget):
+        widget.set_name(name)
+        self.culture_widgets[name] = widget
+        return widget
+
+    def _culture_section(self, parent, title):
+        frame = Gtk.Frame(label=title)
+        frame.set_shadow_type(Gtk.ShadowType.NONE)
+        frame.set_border_width(6)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box.set_border_width(6)
+        frame.add(box)
+        parent.pack_start(frame, False, False, 0)
+        return box
+
+    def _culture_entry(self, name, width=7):
+        entry = Gtk.Entry()
+        entry.set_width_chars(width)
+        entry.set_max_width_chars(width)
+        entry.set_input_purpose(Gtk.InputPurpose.NUMBER)
+        return self.register_culture_widget(name, entry)
+
+    def _culture_textview(self, name):
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_min_content_height(80)
+        textview = Gtk.TextView()
+        textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        scrolled.add(textview)
+        self.register_culture_widget(name, textview)
+        return scrolled
+
+    def add_culture_tab(self) -> None:
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        page.set_border_width(10)
+        scrolled.add(page)
+
+        ranges = self._culture_section(page, _("Ranges"))
+        grid = Gtk.Grid()
+        grid.set_row_spacing(6)
+        grid.set_column_spacing(6)
+        ranges.pack_start(grid, False, False, 0)
+        headers = ("", _("Min"), _("Max"), _("Scale"))
+        for column, label in enumerate(headers):
+            header = Gtk.Label(label=label)
+            header.set_xalign(0)
+            grid.attach(header, column, 0, 1, 1)
+        for row, (
+            _key,
+            label,
+            min_field,
+            max_field,
+            _parser,
+            _minimum,
+            _maximum,
+            hint,
+        ) in enumerate(_CULTURE_RANGE_FIELDS, 1):
+            field_label = Gtk.Label(label=label)
+            field_label.set_xalign(0)
+            grid.attach(field_label, 0, row, 1, 1)
+            grid.attach(
+                self._culture_entry(_culture_widget_name(min_field, "entry")),
+                1,
+                row,
+                1,
+                1,
+            )
+            grid.attach(
+                self._culture_entry(_culture_widget_name(max_field, "entry")),
+                2,
+                row,
+                1,
+                1,
+            )
+            scale_label = Gtk.Label(label=hint)
+            scale_label.set_xalign(0)
+            grid.attach(scale_label, 3, row, 1, 1)
+
+        next_row = len(_CULTURE_RANGE_FIELDS) + 1
+        for row_offset, (field, label, _parser, _minimum, _maximum, hint) in enumerate(
+            _CULTURE_SINGLE_NUMBER_FIELDS
+        ):
+            row = next_row + row_offset
+            field_label = Gtk.Label(label=label)
+            field_label.set_xalign(0)
+            grid.attach(field_label, 0, row, 1, 1)
+            grid.attach(
+                self._culture_entry(_culture_widget_name(field, "entry")),
+                1,
+                row,
+                1,
+                1,
+            )
+            scale_label = Gtk.Label(label=hint)
+            scale_label.set_xalign(0)
+            grid.attach(scale_label, 3, row, 1, 1)
+
+        controlled = self._culture_section(page, _("Controlled values"))
+        controlled_grid = Gtk.Grid()
+        controlled_grid.set_row_spacing(6)
+        controlled_grid.set_column_spacing(12)
+        controlled.pack_start(controlled_grid, False, False, 0)
+        for row, (field, label, _values) in enumerate(_CULTURE_ENUM_FIELDS):
+            field_label = Gtk.Label(label=label)
+            field_label.set_xalign(0)
+            controlled_grid.attach(field_label, 0, row, 1, 1)
+            combo = Gtk.ComboBoxText()
+            self.register_culture_widget(_culture_widget_name(field, "combo"), combo)
+            controlled_grid.attach(combo, 1, row, 1, 1)
+
+        flags = self._culture_section(page, _("Flags"))
+        flags_grid = Gtk.Grid()
+        flags_grid.set_row_spacing(4)
+        flags_grid.set_column_spacing(12)
+        flags.pack_start(flags_grid, False, False, 0)
+        for index, (field, label) in enumerate(_CULTURE_BOOLEAN_FIELDS):
+            button = Gtk.CheckButton(label=label)
+            self.register_culture_widget(_culture_widget_name(field, "check"), button)
+            flags_grid.attach(button, index % 2, index // 2, 1, 1)
+
+        for _attr, _klass, prefix, label in _CULTURE_LOOKUP_FIELDS:
+            box = self._culture_section(page, label)
+            flow = Gtk.FlowBox()
+            flow.set_selection_mode(Gtk.SelectionMode.NONE)
+            flow.set_max_children_per_line(4)
+            self.register_culture_widget(_culture_widget_name(prefix, "box"), flow)
+            box.pack_start(flow, False, False, 0)
+
+        months = self._culture_section(page, _("Months"))
+        month_grid = Gtk.Grid()
+        month_grid.set_row_spacing(4)
+        month_grid.set_column_spacing(5)
+        months.pack_start(month_grid, False, False, 0)
+        for column, label in enumerate(_CULTURE_MONTH_LABELS, 1):
+            month_label = Gtk.Label(label=label)
+            month_grid.attach(month_label, column, 0, 1, 1)
+        for row, (month_type, label) in enumerate(_CULTURE_MONTH_TYPES, 1):
+            row_label = Gtk.Label(label=_(label))
+            row_label.set_xalign(0)
+            month_grid.attach(row_label, 0, row, 1, 1)
+            for month in range(1, 13):
+                name = _culture_widget_name("month", month_type, month, "check")
+                button = Gtk.CheckButton()
+                self.register_culture_widget(name, button)
+                month_grid.attach(button, month, row, 1, 1)
+
+        notes = self._culture_section(page, _("Notes"))
+        for field, label in _CULTURE_TEXT_FIELDS:
+            notes.pack_start(Gtk.Label(label=label, xalign=0), False, False, 0)
+            notes.pack_start(
+                self._culture_textview(_culture_widget_name(field, "textview")),
+                False,
+                False,
+                0,
+            )
+
+        self.widgets.notebook.append_page(scrolled, Gtk.Label(label=_("Culture")))
+        scrolled.show_all()
 
     def get_window(self):
         """
@@ -1666,6 +2345,7 @@ class SpeciesEditor(editor.GenericModelViewPresenterEditor):
                 self.model.vernacular_names.remove(vn)
                 utils.delete_or_expunge(vn)
                 del vn
+        self.presenter.culture_presenter.cleanup_empty_profile()
         ensure_autonym_for_species(self.session, self.model)
         super().commit_changes()
 

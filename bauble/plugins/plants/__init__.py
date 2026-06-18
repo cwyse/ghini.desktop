@@ -58,6 +58,7 @@ from bauble.plugins.plants.geography import (
     get_species_in_geographic_area as get_species_in_geographic_area,
 )
 from bauble.plugins.plants.species import Species as Species
+from bauble.plugins.plants.species import SpeciesCultureDetail as SpeciesCultureDetail
 from bauble.plugins.plants.species import SpeciesDistribution as SpeciesDistribution
 from bauble.plugins.plants.species import SpeciesEditor as SpeciesEditor
 from bauble.plugins.plants.species import SpeciesInfoBox as SpeciesInfoBox
@@ -457,6 +458,14 @@ class PlantsPlugin(pluginmgr.Plugin):
             infobox=SpeciesInfoBox,
             context_menu=species_context_menu,
         )
+        SearchView.bottom_info[SpeciesCultureDetail] = {
+            "page_widget": "species_culture_scrolledwindow",
+            "fields_used": ["category", "item", "value"],
+            "glade_name": os.path.join(
+                paths.lib_dir(), "plugins/plants/species_culture.glade"
+            ),
+            "name": _("Culture"),
+        }
 
         # VernacularName meta
         mapper_search.add_meta(
