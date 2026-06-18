@@ -164,6 +164,7 @@ explicitly deferred in GitLab and release notes. See
 | Create plant from accession | yes | yes | Dogtail E2E covers plant material selection, quantity, location completion, and persisted plant/location rows; guided test checks usability. |
 | Create seed propagation from plant | yes | yes | Dogtail E2E verifies seed propagation and database state. |
 | Species notes and vernacular details | yes | yes | GTK smoke covers vernacular editing and tab navigation; Dogtail E2E verifies daily-workflow vernacular/default-name and note persistence. |
+| Species culture profile | yes | yes | GTK smoke covers culture editor persistence, text fields, range validation, month rows, and detail rows; Dogtail E2E verifies result-edit workflow, range validation state, saved database state, and result-detail visibility; guided scenario: `culture-workflow`. |
 | Edit existing family/genus/species/accession/plant/location | partial | yes | Family, accession, location, and plant edit pass; genus/species edit remain covered by creation-chain and guided workflows. |
 | Delete/remove confirmation dialogs | yes | yes | Family delete cancel/confirm covered by Dogtail E2E. |
 
@@ -177,7 +178,7 @@ Use this gate sequence before a release candidate:
 3. `GHINI_SOURCE_POSTGRES_URI=postgresql://... scripts/docker-dev postgres-release`
 5. Optional guided visual scenarios for startup, connection, taxonomy creation,
    location creation, record editing, delete confirmation, daily accession
-   workflow, and propagation workflow
+   workflow, propagation workflow, and species culture workflow
 
 Known failures are acceptable only when they are marked `xfail` or recorded in
 GitLab with a release decision. A defect should block release when it affects

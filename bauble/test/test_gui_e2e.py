@@ -1662,6 +1662,101 @@ def test_daily_species_editor_add_accession_creates_plant_with_source(
     assert diagnostic_rows["notes"] == [(note_user, note_category, note_text)]
 
 
+def test_species_culture_editor_persists_profile_from_result_edit(
+    dogtail_modules, sqlite_connection, ghini_process
+):
+    dogtail_tree, _dogtail_predicate, dogtail_rawinput = dogtail_modules
+    family_name = "EECULTUREACEAE"
+    genus_name = "Eeculturegenus"
+    species_name = "eoculture"
+
+    seed_taxonomy_location_fixture(
+        sqlite_connection["database_file"],
+        family_name=family_name,
+        genus_name=genus_name,
+        species_name=species_name,
+        location_code="ECUL",
+        location_name="E2E Culture Bed",
+    )
+
+    main_window = connect_to_sqlite_database(dogtail_tree, sqlite_connection["name"])
+    search_entry = find_child_by_role(main_window, "text")
+    assert search_entry is not None, dump_accessible_tree(main_window)
+    enter_text(
+        search_entry, f"species where genus.epithet={genus_name}", dogtail_rawinput
+    )
+    dogtail_rawinput.pressKey("Enter")
+
+    result = wait_for_node(
+        dogtail_tree,
+        lambda node: node.roleName in {"table cell", "label"}
+        and species_name in node.name,
+        timeout=20,
+    )
+    right_click_node_center(result, dogtail_rawinput)
+    activate_menu_item(dogtail_tree.root, "Edit", role_name="menu item")
+
+    species_editor = wait_for_node(
+        dogtail_tree,
+        lambda node: node.roleName == "dialog" and node.name == "Species Editor",
+    )
+    culture_tab = find_named_child(species_editor, "Culture", showing_only=True)
+    assert culture_tab is not None, dump_accessible_tree(species_editor)
+    click_node_center(culture_tab, dogtail_rawinput)
+
+    culture_entries = wait_for_visible_text_entries(species_editor, minimum=6)
+    light_min_entry, light_max_entry = culture_entries[0], culture_entries[1]
+    ok_button = find_named_child(species_editor, "OK", role_name="push button")
+    assert ok_button is not None, dump_accessible_tree(species_editor)
+
+    enter_text_by_keyboard(light_min_entry, "9", dogtail_rawinput)
+    enter_text_by_keyboard(light_max_entry, "4", dogtail_rawinput)
+    assert not getattr(ok_button, "sensitive", True), describe_text_entries(
+        species_editor
+    )
+
+    enter_text_by_keyboard(light_max_entry, "10", dogtail_rawinput)
+    wait_for_sensitive(ok_button)
+    ok_button.click()
+    fail_on_visible_error_alert(dogtail_tree, dogtail_rawinput, ghini_process)
+    wait_for_absence(
+        dogtail_tree,
+        lambda node: node.roleName == "dialog" and node.name == "Species Editor",
+        timeout=20,
+    )
+
+    enter_text(
+        search_entry, f"species where genus.epithet={genus_name}", dogtail_rawinput
+    )
+    dogtail_rawinput.pressKey("Enter")
+    wait_for_node(
+        dogtail_tree,
+        lambda node: node.name == "Culture" and getattr(node, "showing", True),
+        timeout=20,
+    )
+    fail_on_visible_error_alert(dogtail_tree, dogtail_rawinput, ghini_process)
+    terminate_process(ghini_process)
+
+    culture_rows = fetch_sqlite_database(
+        sqlite_connection["database_file"],
+        (
+            "select species_culture_profile.light_min, "
+            "species_culture_profile.light_max "
+            "from species_culture_profile "
+            "join species on species_culture_profile.species_id = species.id "
+            "join genus on species.genus_id = genus.id "
+            "join family on genus.family_id = family.id "
+            "where species.epithet = ? "
+            "and genus.epithet = ? "
+            "and family.epithet = ?"
+        ),
+        species_name,
+        genus_name,
+        family_name,
+    )
+    assert culture_rows == [(9, 10)]
+
+
 def test_can_edit_existing_accession_from_result_context_menu(
     dogtail_modules, sqlite_connection, ghini_process
 ):

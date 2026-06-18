@@ -95,6 +95,9 @@ Taxonomy workflow
   maintained service.
 * The batch taxonomy-check workflow is either verified enough for release or
   documented as deferred with a GitLab issue.
+* Species-level culture guidance can be entered, edited, saved, and displayed
+  from the species workflow. Culture support is species-level only; accession,
+  plant, location, and greenhouse overrides are intentionally out of scope.
 
 Accession and source workflow
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -208,6 +211,7 @@ The guided scenarios that cover the supported daily workflow are:
    scripts/docker-dev gui-guided delete-confirmation --sqlite-fixture
    scripts/docker-dev gui-guided daily-accession-workflow --sqlite-fixture
    scripts/docker-dev gui-guided propagation-workflow --sqlite-fixture
+   scripts/docker-dev gui-guided culture-workflow --sqlite-fixture
 
 Guided tests are not a substitute for automated assertions. They are used for
 workflow confirmation, visual behavior, and tester notes. Any failure found

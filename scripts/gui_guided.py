@@ -39,6 +39,8 @@ GUIDED_FIXTURE = {
     "daily_source_id": "DW-2026-001",
     "daily_location_code": "DAILY",
     "daily_location_name": "Daily Workflow Bed",
+    "culture_notes": "Keep evenly moist during active growth.",
+    "culture_source_citation": "Guided culture source.",
 }
 GUIDED_FIXTURE_SEED_SCRIPT = """
 import sqlite3
@@ -532,6 +534,63 @@ SCENARIOS = {
                     "The propagation appears in the Plant Editor Propagations tab.",
                     "The saved propagation remains visible after reopening the plant.",
                     "No integrity error dialog appears.",
+                ),
+            ),
+        ),
+    ),
+    "culture-workflow": Scenario(
+        name="culture-workflow",
+        description=(
+            "Exercise species-level culture entry and display visually. "
+            "Use --sqlite-fixture for a disposable database."
+        ),
+        checkpoints=(
+            Checkpoint(
+                name="Culture tab opens with reviewed layout",
+                instructions=(
+                    f"Connect to {GUIDED_CONNECTION_NAME} with --sqlite-fixture.",
+                    (
+                        "Search for species: "
+                        f"{GUIDED_FIXTURE['genus_name']} "
+                        f"{GUIDED_FIXTURE['species_name']}."
+                    ),
+                    "Open the Species Editor for the result.",
+                    "Open the Culture tab.",
+                ),
+                expected=(
+                    "The Culture tab opens without an error dialog.",
+                    "Culture fields are grouped with visible section labels.",
+                    "Culture notes and source citation are visibly editable fields.",
+                    "No Local notes field is shown.",
+                    "The Months section includes Active growth, Bloom, Fruit, and Pruning rows.",
+                ),
+            ),
+            Checkpoint(
+                name="Culture profile saves and displays",
+                instructions=(
+                    "Enter light range 4 to 9.",
+                    "Set watering to Average.",
+                    "Select Perennial and Full sun.",
+                    "Select Seed as recommended propagation.",
+                    "Select at least one Bloom month and one Pruning month.",
+                    f"Enter culture notes: {GUIDED_FIXTURE['culture_notes']}",
+                    (
+                        "Enter source citation: "
+                        f"{GUIDED_FIXTURE['culture_source_citation']}"
+                    ),
+                    "Save the Species Editor.",
+                    (
+                        "Search again for species: "
+                        f"{GUIDED_FIXTURE['genus_name']} "
+                        f"{GUIDED_FIXTURE['species_name']}."
+                    ),
+                    "Select the species result and inspect the lower detail pane.",
+                ),
+                expected=(
+                    "The Species Editor saves without an error dialog.",
+                    "The species result remains searchable.",
+                    "The lower detail pane shows the saved Culture information.",
+                    "Saved culture values are displayed as species-level guidance.",
                 ),
             ),
         ),

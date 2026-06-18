@@ -1,7 +1,8 @@
-# Culture Profile Design Draft
+# Culture Profile Design
 
-Status: draft, pending approval. This is definition work only; no schema,
-model, import/export, search, or UI implementation is approved by this document.
+Status: implemented for the Ghini 4 release baseline. This document records
+the approved species-level scope and the schema/UI decisions used by the
+implementation.
 
 ## Goal
 
@@ -9,10 +10,10 @@ Add structured, searchable plant culture information for Ghini issue #465 while
 keeping entry manual and reliable. The first implementation should support the
 daily garden workflow without becoming a complete trait database.
 
-The profile should describe default culture requirements for a species. Local
-garden reality can differ by accession, plant, location, greenhouse, or season,
-so lower-level overrides should be deferred until the species-level model proves
-useful.
+The profile describes default culture requirements for a species. Local garden
+observations belong in normal notes on the relevant species, accession, plant,
+location, or propagation record. Lower-level culture overrides are intentionally
+out of scope.
 
 ## Existing Ghini Context
 
@@ -98,7 +99,7 @@ Phase 1 should add one culture profile per species:
 - It is independent of actual propagation events.
 - It does not change accession, plant, location, or source behavior.
 
-Deferred:
+Not included:
 
 - Accession-specific culture overrides.
 - Plant/location/greenhouse overrides.
@@ -187,7 +188,7 @@ Free text should supplement, not replace, structured fields:
 | --- | --- |
 | `culture_notes` | Short horticultural notes not captured by controlled fields. |
 | `source_citation` | Manual reference text or URL for the profile values. |
-| `local_notes` | Garden-specific caveats, optional. |
+| `local_notes` | Dormant compatibility column. Not exposed in the UI; use normal notes for local observations. |
 
 ## UI Vocabulary Labels
 
@@ -227,9 +228,9 @@ Distribution is intentionally excluded from this schema. Existing
 `SpeciesDistribution`, `GeographicArea`, `Species.label_distribution`, and
 `Species.bc_distribution` behavior should remain unchanged.
 
-The proposed schema is species-level only. It stores culture defaults for a
-species and leaves accession-, plant-, location-, or greenhouse-specific
-overrides for later work.
+The schema is species-level only. It stores culture defaults for a species.
+Accession-, plant-, location-, and greenhouse-specific culture overrides are
+not planned for this release path; use normal Ghini notes for those cases.
 
 ### `species_culture_profile`
 
@@ -266,7 +267,7 @@ One optional profile per species.
 | `greenhouse_required` | boolean | yes | Tri-state. |
 | `culture_notes` | unicode text | yes | Structured fields should be preferred for search. |
 | `source_citation` | unicode text | yes | Manual reference text or URL. |
-| `local_notes` | unicode text | yes | Garden-specific caveats. |
+| `local_notes` | unicode text | yes | Dormant compatibility column; not exposed in the v4.0.0rc1 UI. |
 
 Recommended constraints:
 
@@ -387,17 +388,17 @@ PostgreSQL/SQLite consistency weaker. The join-table approach lets Ghini answer
 questions such as "show full-sun perennials that tolerate dry soil" without
 string parsing.
 
-## Recommended First Implementation Boundary
+## First Implementation Boundary
 
-If approved, implement in this order:
+The approved implementation boundary was:
 
 1. Add model and defaults for controlled values.
 2. Add tests for SQLite and PostgreSQL schema behavior.
-3. Add CSV/JSON import/export round trip.
-4. Add Species Editor Culture tab with compact controls.
-5. Add search predicates and infobox display.
-6. Add guided and automated GUI coverage for save/reopen/search.
+3. Add Species Editor Culture tab with compact grouped controls.
+4. Add result-detail display for selected species.
+5. Add guided and automated GUI coverage for save/reopen/search.
 
-Do not add API integrations in the first implementation. The model should be
-compatible with later provider mappings from Trefle, Perenual, or another
-source, but all data entry should be manual for #465.
+Do not add API integrations or import/export in the first implementation. The
+model should be compatible with later provider mappings from Trefle, Perenual,
+or another source if that becomes useful, but all data entry should be manual
+for #465.

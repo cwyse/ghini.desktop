@@ -34,6 +34,7 @@ workflow:
 * use genus autocomplete while creating species;
 * validate species names through the WFO-backed taxonomic lookup path;
 * add vernacular names and notes;
+* add species-level structured culture guidance;
 * create accessions from species;
 * select or create accession sources;
 * create locations and plants;
@@ -89,6 +90,9 @@ GUI workflow
   preserving legacy database columns. Custom material stores ``Unknown`` plus
   an accession note; fuzzy quantities store the parsed integer plus the exact
   quantity phrase in an accession note.
+* Added species-level culture profiles with controlled terms, numeric ranges,
+  practical flags, active growth/bloom/fruit/pruning months, notes, source
+  citation, a Species Editor Culture tab, and result-detail display.
 * Split accession source mode from contact selection so garden propagation is
   no longer shown as a contact, while real contacts remain sorted and
   deduplicated.
@@ -166,6 +170,8 @@ candidate:
   while keeping a parsed integer for legacy quantity behavior.
 * Upstream #180 propagation editors include structured notes.
 * Upstream #457 infraspecific taxa create/reuse required autonym taxa.
+* Upstream #465 species-level culture information can be recorded manually
+  through structured culture profiles.
 
 Deferred Issues
 ---------------
@@ -181,6 +187,9 @@ Known Scope Limits
   ``Dockerfile.dev`` and ``scripts/docker-dev`` for this release candidate.
 * The batch taxonomy-check workflow now uses the provider-backed WFO lookup
   path instead of the old TNRS file-import flow.
+* Culture profiles are manually entered species-level guidance. Import/export,
+  external culture-data providers, and lower-level accession/plant/location
+  culture overrides are not included in this release candidate.
 * Full report generation is not yet treated as a release-blocking daily
   workflow gate. HTML plant-label author rendering is covered by a focused
   regression test.
@@ -190,8 +199,8 @@ Known Scope Limits
 Test Evidence
 -------------
 
-Automated release evidence for the current application code at ``55348508``
-was rerun after release documentation commit ``a1f8f1d2``:
+Earlier automated release evidence for application code at ``55348508`` was
+rerun after release documentation commit ``a1f8f1d2``:
 
 * ``scripts/docker-dev test-smoke`` passed:
 
@@ -231,12 +240,22 @@ Earlier release hardening also verified a live WFO provider smoke query from
 the Docker image. That check should be rerun if the release candidate is
 rebuilt after additional dependency or certificate changes.
 
+After adding species culture support and automated culture workflow coverage,
+``scripts/docker-dev test-smoke`` passed:
+
+* changed-file check: 16 passed;
+* GTK smoke suite: 175 passed;
+* core GUI E2E subset: 7 passed, 23 deselected.
+
 Pending Release Gates
 ---------------------
 
-No automated release gates remain pending for the current application code.
-Before tagging ``v4.0.0rc1``:
+Before tagging ``v4.0.0rc1`` with culture support included:
 
+* rerun ``scripts/docker-dev test-regression``;
+* rerun ``GHINI_SOURCE_POSTGRES_URI=... scripts/docker-dev postgres-release``;
+* rerun ``scripts/docker-dev build`` from a fresh checkout if the release image
+  is rebuilt;
 * perform final review of the release notes and open issue classifications;
 * tag ``v4.0.0rc1`` after final review is complete.
 

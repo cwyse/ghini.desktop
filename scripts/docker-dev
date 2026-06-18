@@ -506,6 +506,7 @@ run_test_smoke() {
     gui_smoke_selector+=" or create_family"
     gui_smoke_selector+=" or create_location"
     gui_smoke_selector+=" or daily_species_editor_add_accession"
+    gui_smoke_selector+=" or species_culture_editor_persists_profile"
 
     GHINI_XHOST=0 GHINI_CONTAINER="${GHINI_CONTAINER:-ghini-smoke-check}" \
         "${script_dir}/docker-dev" check
