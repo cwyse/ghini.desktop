@@ -199,35 +199,26 @@ Known Scope Limits
 Test Evidence
 -------------
 
-Earlier automated release evidence for application code at ``55348508`` was
-rerun after release documentation commit ``a1f8f1d2``:
-
-* ``scripts/docker-dev test-smoke`` passed:
-
-  * changed-file check: 16 passed;
-  * GTK smoke suite: 158 passed;
-  * core GUI E2E subset: 6 passed, 23 deselected.
+Release-gate evidence was refreshed on 2026-06-18 at ``8a5920e3``:
 
 * ``scripts/docker-dev test-regression`` passed:
 
-  * warning-gated suite: 441 passed, 43 skipped;
-  * GTK smoke suite: 158 passed;
-  * full automated Dogtail GUI E2E suite: 29 passed.
+  * warning-gated suite: 459 passed, 44 skipped;
+  * GTK smoke suite: 175 passed;
+  * full automated Dogtail GUI E2E suite: 30 passed.
 
-* ``scripts/docker-dev postgres-check`` passed:
+* ``scripts/docker-dev build`` completed successfully and rebuilt
+  ``ghini-desktop-dev:latest`` from the current checkout.
 
-  * PostgreSQL lane against a disposable schema: 3 passed.
-
-* ``GHINI_SOURCE_POSTGRES_URI=... scripts/docker-dev postgres-release`` passed
-  against representative PostgreSQL data from ``ghini_test3`` on
-  ``postgres.wysechoice.net`` after restoring the dump into a disposable local
-  PostgreSQL container:
+* ``scripts/docker-dev postgres-release`` partially completed:
 
   * disposable PostgreSQL schema lane: 3 passed;
-  * representative PostgreSQL read-only smoke lane: 8 passed.
+  * representative PostgreSQL copy/smoke lane did not run because neither
+    ``GHINI_SOURCE_POSTGRES_URI`` nor ``GHINI_EXTERNAL_POSTGRES_URI`` was set.
 
-Earlier release evidence verified ``scripts/docker-dev build``. Rerun the build
-if the release candidate is rebuilt from a fresh checkout before tagging.
+Earlier release evidence had verified the representative PostgreSQL read-only
+smoke lane against a copied ``ghini_test3`` database. That representative-data
+gate must be rerun after the culture support changes before tagging.
 
 * Open GitLab issue review completed at ``32b59e85``:
 
@@ -240,22 +231,14 @@ Earlier release hardening also verified a live WFO provider smoke query from
 the Docker image. That check should be rerun if the release candidate is
 rebuilt after additional dependency or certificate changes.
 
-After adding species culture support and automated culture workflow coverage,
-``scripts/docker-dev test-smoke`` passed:
-
-* changed-file check: 16 passed;
-* GTK smoke suite: 175 passed;
-* core GUI E2E subset: 7 passed, 23 deselected.
-
 Pending Release Gates
 ---------------------
 
 Before tagging ``v4.0.0rc1`` with culture support included:
 
-* rerun ``scripts/docker-dev test-regression``;
-* rerun ``GHINI_SOURCE_POSTGRES_URI=... scripts/docker-dev postgres-release``;
-* rerun ``scripts/docker-dev build`` from a fresh checkout if the release image
-  is rebuilt;
+* set ``GHINI_SOURCE_POSTGRES_URI`` or ``GHINI_EXTERNAL_POSTGRES_URI`` and rerun
+  ``scripts/docker-dev postgres-release`` so the representative PostgreSQL
+  smoke lane covers the current release candidate;
 * perform final review of the release notes and open issue classifications;
 * tag ``v4.0.0rc1`` after final review is complete.
 
