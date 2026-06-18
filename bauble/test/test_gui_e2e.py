@@ -1360,7 +1360,7 @@ def test_daily_species_editor_add_accession_creates_plant_with_source(
         genus_name=genus_name,
         location_code=location_code,
         location_name=location_name,
-        source_name=source_name,
+        source_name=None,
     )
 
     ghini_process = ghini_process_factory()
@@ -1453,9 +1453,34 @@ def test_daily_species_editor_add_accession_creates_plant_with_source(
     assert source_tab is not None, dump_accessible_tree(accession_editor)
     click_node_center(source_tab, dogtail_rawinput)
 
+    new_button = find_named_child(accession_editor, "New", role_name="push button")
+    assert new_button is not None, dump_accessible_tree(accession_editor)
+    new_button.click()
+
+    contact_editor = wait_for_node(
+        dogtail_tree,
+        lambda node: node.roleName == "dialog"
+        and node.name == "Contact (Donor) Editor",
+    )
+    contact_entries = find_visible_text_entries_by_position(contact_editor)
+    assert contact_entries, dump_accessible_tree(contact_editor)
+    enter_text_by_keyboard(contact_entries[0], source_name, dogtail_rawinput)
+
+    contact_ok = find_named_child(contact_editor, "OK", role_name="push button")
+    assert contact_ok is not None, dump_accessible_tree(contact_editor)
+    assert getattr(contact_ok, "sensitive", True), dump_accessible_tree(contact_editor)
+    click_node_center(contact_ok, dogtail_rawinput)
+    wait_for_absence(
+        dogtail_tree,
+        lambda node: node.roleName == "dialog"
+        and node.name == "Contact (Donor) Editor",
+        timeout=20,
+    )
+
     source_entries = wait_for_visible_text_entries(accession_editor, minimum=1)
-    enter_text(source_entries[0], source_name, dogtail_rawinput)
-    dogtail_rawinput.pressKey("Tab")
+    assert accessible_text(source_entries[0]) == source_name, describe_text_entries(
+        accession_editor
+    )
     source_entries = wait_for_visible_text_entries(accession_editor, minimum=2)
     enter_text_by_keyboard(source_entries[1], source_code, dogtail_rawinput)
     source_field_values = [accessible_text(entry) for entry in source_entries]
@@ -3185,7 +3210,7 @@ def seed_family_genus_location_source_fixture(
     genus_name,
     location_code,
     location_name,
-    source_name,
+    source_name=None,
 ):
     timestamp = "2026-05-13 00:00:00"
     with sqlite3.connect(database_file) as connection:
@@ -3213,13 +3238,14 @@ def seed_family_genus_location_source_fixture(
             ),
             (location_code, location_name, timestamp, timestamp),
         )
-        cursor.execute(
-            (
-                "insert into contact (name, description, _created, _last_updated) "
-                "values (?, '', ?, ?)"
-            ),
-            (source_name, timestamp, timestamp),
-        )
+        if source_name:
+            cursor.execute(
+                (
+                    "insert into contact (name, description, _created, _last_updated) "
+                    "values (?, '', ?, ?)"
+                ),
+                (source_name, timestamp, timestamp),
+            )
 
 
 def seed_plant_fixture(

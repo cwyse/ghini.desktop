@@ -221,3 +221,14 @@ def open_url(
     from bauble.gtkinit import Gdk, Gtk
 
     Gtk.show_uri_on_window(None, url, Gdk.CURRENT_TIME)
+
+
+def open(
+    url: str,
+    desktop: Optional[str] = None,
+    wait: int = 0,
+    dialog_on_error: bool = False,
+) -> None:
+    """Compatibility wrapper used by existing Ghini callers."""
+
+    open_url(url, desktop, wait, dialog_on_error)

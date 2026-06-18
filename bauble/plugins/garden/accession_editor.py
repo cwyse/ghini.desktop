@@ -1416,9 +1416,10 @@ class SourcePresenter(editor.GenericEditorPresenter):
 
         committed = create_contact(parent=self.view.get_window())
         if committed:
-            new_detail = self.session.merge(committed[0])
-            self.populate_source_combo(new_detail)
-            self.select_source_detail(new_detail)
+            with self.session.no_autoflush:
+                new_detail = self.session.merge(committed[0])
+                self.populate_source_combo(new_detail)
+                self.select_source_detail(new_detail)
             self._dirty = True
             self.refresh_sensitivity()
 
@@ -1427,6 +1428,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         entry = combo.get_child()
         selected_detail = source_detail
         model = combo.get_model()
+        results = []
         if model is not None:
             results = utils.search_tree_model(
                 model,
@@ -1475,9 +1477,10 @@ class SourcePresenter(editor.GenericEditorPresenter):
         combo.set_model(None)
         model = Gtk.ListStore(object)
         none_iter = model.append([""])
-        contacts = list(
-            self.session.execute(Contact.query_with_default_order()).scalars()
-        )
+        with self.session.no_autoflush:
+            contacts = list(
+                self.session.execute(Contact.query_with_default_order()).scalars()
+            )
         if (
             active
             and _source_display_text(active)
@@ -2370,7 +2373,8 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             .select_from(Accession)
             .where(Accession.code == str(code))
         )
-        count = self.session.execute(stmt).scalar_one()
+        with self.session.no_autoflush:
+            count = self.session.execute(stmt).scalar_one()
         if code != self._original_code and count > 0:
             self.add_problem(
                 self.PROBLEM_DUPLICATE_ACCESSION,

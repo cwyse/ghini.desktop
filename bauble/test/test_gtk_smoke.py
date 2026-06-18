@@ -532,14 +532,20 @@ def test_plant_infobox_constructs_with_expander_widgets():
             Gtk.main_iteration_do(False)
 
 
-def test_links_expander_packs_link_button_widgets():
+def test_links_expander_packs_link_button_widgets(monkeypatch):
+    opened_urls = []
+
+    monkeypatch.setattr(
+        "bauble.utils.web.desktop.open",
+        lambda url, **kwargs: opened_urls.append((url, kwargs)),
+    )
     expander = view.LinksExpander(
         links=[
             {
                 "name": "SearchButton",
                 "_base_uri": "https://example.test/search?q=%s",
                 "_space": "+",
-                "title": "Search",
+                "title": "Search Example",
                 "tooltip": "Search example",
             }
         ]
@@ -549,10 +555,15 @@ def test_links_expander_packs_link_button_widgets():
 
     assert widget in expander.vbox.get_children()
     assert widget.get_halign() == Gtk.Align.START
+    assert widget.get_label() == "Search Example"
 
     expander.update("Guided family")
 
     assert widget.get_uri() == "https://example.test/search?q=Guided+family"
+    assert widget.emit("activate-link")
+    assert opened_urls == [
+        ("https://example.test/search?q=Guided+family", {"dialog_on_error": True})
+    ]
 
 
 def test_family_infobox_updates_builder_widgets(session):

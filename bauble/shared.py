@@ -88,11 +88,11 @@ class InfoExpander:
         :param prefix: The identifier for the label and data widgets.
         :param value: The value to set. If empty, hides the widgets.
         """
-        label_widget = self.widgets.get(f"{prefix}_label")
-        data_widget = self.widgets.get(f"{prefix}_data")
+        label_widget = self._widget_or_none(f"{prefix}_label")
+        data_widget = self._widget_or_none(f"{prefix}_data")
 
         if data_widget and label_widget:
-            if value:
+            if value not in (None, ""):
                 self.widget_set_value(f"{prefix}_data", value)
                 label_widget.set_visible(True)
                 data_widget.set_visible(True)
@@ -101,6 +101,12 @@ class InfoExpander:
                 data_widget.set_visible(False)
         else:
             logger.warning(f"Widgets for prefix '{prefix}' not found.")
+
+    def _widget_or_none(self, widget_name):
+        try:
+            return self.widgets[widget_name]
+        except (KeyError, TypeError):
+            return None
 
     def widget_set_value(
         self, widget_name, value, markup: bool = False, default: Optional[Any] = None

@@ -32,7 +32,8 @@ logger.setLevel(logging.INFO)
 def _open_link(data: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
     """Open a web link"""
     logger.debug(f"_open_link received data={data}, args={args}, kwargs={kwargs}")
-    desktop.open(data)  # type: ignore[attr-defined]
+    if data:
+        desktop.open(data)  # type: ignore[attr-defined]
 
 
 class BaubleLinkButton:
@@ -49,9 +50,14 @@ class BaubleLinkButton:
     tooltip: Optional[str] = None
     pt: re.Pattern[str] = re.compile(r"%\(([a-z_\.]*)\)s")
 
-    def __init__(self, title: str = _("Search"), tooltip: Optional[str] = None) -> None:
+    def __init__(
+        self, title: Optional[str] = None, tooltip: Optional[str] = None
+    ) -> None:
         # Create the Gtk.LinkButton instance
+        title = title or self.title
+        tooltip = tooltip if tooltip is not None else self.tooltip
         self.link_button = Gtk.LinkButton(label=title, uri="")
+        self.link_button.connect("activate-link", self.on_activate_link)
         self.set_tooltip(tooltip or title)
 
         # Find the fields based on the URI pattern
@@ -79,6 +85,13 @@ class BaubleLinkButton:
                     value = getattr(value, step, "-")
                 values[key] = str(value) if value == str(value) else ""
             self.link_button.set_uri(self._base_uri % values)
+
+    def on_activate_link(self, button: Gtk.LinkButton) -> bool:
+        """Open the current link URI through Ghini's desktop helper."""
+        uri = button.get_uri()
+        if uri:
+            desktop.open(uri, dialog_on_error=True)  # type: ignore[attr-defined]
+        return True
 
     def get_widget(self) -> Gtk.LinkButton:
         """

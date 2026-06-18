@@ -1513,8 +1513,9 @@ class SearchView(pluginmgr.View):
         # fix our string caching issues
         def invalidate_cache(model, path, treeiter, data=None):
             obj = model[path][0]
-            if hasattr(obj, "invalidate_str_cache"):
-                obj.invalidate_str_cache()
+            invalidate = getattr(type(obj), "invalidate_str_cache", None)
+            if callable(invalidate):
+                invalidate(obj)
 
         model.foreach(invalidate_cache)
         expanded_rows = self.get_expanded_rows()
