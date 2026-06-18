@@ -310,14 +310,13 @@ def species_culture_detail_rows(profile):
         _culture_bool(profile.greenhouse_required),
     )
 
-    add(_("Months"), _("Growth"), _culture_months(profile, "growth"))
+    add(_("Months"), _("Active growth"), _culture_months(profile, "growth"))
     add(_("Months"), _("Bloom"), _culture_months(profile, "bloom"))
     add(_("Months"), _("Fruit"), _culture_months(profile, "fruit"))
     add(_("Months"), _("Pruning"), _culture_months(profile, "pruning"))
 
     add(_("Notes"), _("Culture notes"), profile.culture_notes)
     add(_("Notes"), _("Source citation"), profile.source_citation)
-    add(_("Notes"), _("Local notes"), profile.local_notes)
     return rows
 
 

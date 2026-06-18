@@ -52,7 +52,6 @@ from bauble.plugins.plants.species_model import (
     SpeciesCultureProfileMonth,
     culture_growth_rate_values,
     culture_maintenance_values,
-    culture_month_type_values,
     culture_watering_values,
 )
 from bauble.plugins.plants.species_model import compare_rank as compare_rank
@@ -177,8 +176,8 @@ _CULTURE_BOOLEAN_FIELDS = (
 _CULTURE_TEXT_FIELDS = (
     ("culture_notes", _("Culture notes")),
     ("source_citation", _("Source citation")),
-    ("local_notes", _("Local notes")),
 )
+_CULTURE_HIDDEN_TEXT_FIELDS = ("local_notes",)
 
 _CULTURE_LOOKUP_FIELDS = (
     ("duration_terms", CultureDuration, "duration", _("Duration")),
@@ -194,8 +193,19 @@ _CULTURE_LOOKUP_FIELDS = (
     ("environment_terms", CultureEnvironment, "environment", _("Environment")),
 )
 
-_CULTURE_MONTH_TYPES = tuple(
-    (value, value.capitalize()) for value in culture_month_type_values
+_CULTURE_MONTH_TYPES = (
+    (
+        "growth",
+        _("Active growth"),
+        _("Months when the species is normally in active vegetative growth."),
+    ),
+    ("bloom", _("Bloom"), _("Months when flowering is normally expected.")),
+    ("fruit", _("Fruit"), _("Months when fruit is normally expected.")),
+    (
+        "pruning",
+        _("Pruning"),
+        _("General pruning or cut-back window; leave blank if not relevant."),
+    ),
 )
 _CULTURE_MONTH_LABELS = (
     _("Jan"),
@@ -316,7 +326,7 @@ class CulturePresenter(editor.GenericEditorPresenter):
                 widget.get_buffer(), "changed", self.on_text_changed, field
             )
 
-        for month_type, _label in _CULTURE_MONTH_TYPES:
+        for month_type, _label, _tooltip in _CULTURE_MONTH_TYPES:
             for month in range(1, 13):
                 name = _culture_widget_name("month", month_type, month, "check")
                 widget = self.view.culture_widgets[name]
@@ -487,6 +497,7 @@ class CulturePresenter(editor.GenericEditorPresenter):
         scalar_fields.extend(field for field, _label, _values in _CULTURE_ENUM_FIELDS)
         scalar_fields.extend(field for field, _label in _CULTURE_BOOLEAN_FIELDS)
         scalar_fields.extend(field for field, _label in _CULTURE_TEXT_FIELDS)
+        scalar_fields.extend(_CULTURE_HIDDEN_TEXT_FIELDS)
         if any(getattr(profile, field) not in (None, "") for field in scalar_fields):
             return False
         if any(
@@ -570,7 +581,7 @@ class CulturePresenter(editor.GenericEditorPresenter):
                 active_months = {
                     (item.month_type, item.month) for item in profile.months
                 }
-            for month_type, _label in _CULTURE_MONTH_TYPES:
+            for month_type, _label, _tooltip in _CULTURE_MONTH_TYPES:
                 for month in range(1, 13):
                     name = _culture_widget_name("month", month_type, month, "check")
                     self.view.culture_widgets[name].set_active(
@@ -1978,11 +1989,17 @@ class SpeciesEditorView(editor.GenericEditorView):
         return widget
 
     def _culture_section(self, parent, title):
-        frame = Gtk.Frame(label=title)
-        frame.set_shadow_type(Gtk.ShadowType.NONE)
+        frame = Gtk.Frame()
+        frame.set_shadow_type(Gtk.ShadowType.ETCHED_IN)
         frame.set_border_width(6)
+        label = Gtk.Label()
+        label.set_markup(
+            "<b>%s</b>" % GLib.markup_escape_text(str(title), len(str(title)))
+        )
+        frame.set_label_widget(label)
+        frame.set_label_align(0.02, 0.5)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        box.set_border_width(6)
+        box.set_border_width(8)
         frame.add(box)
         parent.pack_start(frame, False, False, 0)
         return box
@@ -1997,9 +2014,14 @@ class SpeciesEditorView(editor.GenericEditorView):
     def _culture_textview(self, name):
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scrolled.set_min_content_height(80)
+        scrolled.set_min_content_height(96)
+        scrolled.set_shadow_type(Gtk.ShadowType.IN)
         textview = Gtk.TextView()
         textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        textview.set_left_margin(6)
+        textview.set_right_margin(6)
+        textview.set_top_margin(6)
+        textview.set_bottom_margin(6)
         scrolled.add(textview)
         self.register_culture_widget(name, textview)
         return scrolled
@@ -2110,9 +2132,10 @@ class SpeciesEditorView(editor.GenericEditorView):
         for column, label in enumerate(_CULTURE_MONTH_LABELS, 1):
             month_label = Gtk.Label(label=label)
             month_grid.attach(month_label, column, 0, 1, 1)
-        for row, (month_type, label) in enumerate(_CULTURE_MONTH_TYPES, 1):
-            row_label = Gtk.Label(label=_(label))
+        for row, (month_type, label, tooltip) in enumerate(_CULTURE_MONTH_TYPES, 1):
+            row_label = Gtk.Label(label=label)
             row_label.set_xalign(0)
+            row_label.set_tooltip_text(tooltip)
             month_grid.attach(row_label, 0, row, 1, 1)
             for month in range(1, 13):
                 name = _culture_widget_name("month", month_type, month, "check")
