@@ -368,15 +368,14 @@ class Genus(Base, Serializable, WithNotes):
     def accepted(self) -> Any:
         """Return the accepted name for this genus (if it is a synonym)."""
         session = object_session(self)
-        if session:
-            session.flush()  # Synchronize in-memory changes with the database
-        else:
+        if not session:
             logger.warning("genus:accepted - object not in session")
             return None
 
-        if not self._synonyms_synonym:
-            return None
-        return self._synonyms_synonym[0].genus if self._synonyms_synonym else None
+        with session.no_autoflush:
+            if not self._synonyms_synonym:
+                return None
+            return self._synonyms_synonym[0].genus if self._synonyms_synonym else None
 
     @accepted.setter
     def accepted(self, value):

@@ -26,6 +26,7 @@ import os
 import sys
 import threading
 import traceback
+from contextlib import nullcontext
 from gettext import gettext as _
 from typing import Any, Optional
 
@@ -949,32 +950,34 @@ class SearchView(pluginmgr.View):
         self.view.widget_set_visible("bottom_notebook", True)
         row = values[0]  # the selected row
         logger.debug(f"update_bottom_notebook - for {type(row).__name__}({row})")
+        session = object_session(row)
 
         # loop over bottom_info plugin classes (eg: Tag)
-        for klass, bottom_info in list(self.bottom_info.items()):
-            logger.debug(
-                f"update_bottom_notebook - for {klass.__name__}({bottom_info})"
-            )
-            if "label" not in bottom_info:  # late initialization
-                self.add_page_to_bottom_notebook(bottom_info)
-            label = bottom_info["label"]
-            if not hasattr(klass, "attached_to"):
-                logging.warning(f"class {klass} does not implement attached_to")
-                continue
-            objs = klass.attached_to(row)
-            model = bottom_info["tree"].get_model()
-            model.clear()
-            if len(objs) == 0:
-                label.set_property("use_markup", False)
-                label.set_label(bottom_info["name"])
-            else:
-                label.set_property("use_markup", True)
-                label.set_label("<b>{}</b>".format(bottom_info["name"]))
-                for obj in objs:
-                    model.append(
-                        [f"{getattr(obj, k)}" for k in bottom_info["fields_used"]]
-                    )
-            logger.debug(f"done {len(objs)} for {klass.__name__}")
+        with session.no_autoflush if session is not None else nullcontext():
+            for klass, bottom_info in list(self.bottom_info.items()):
+                logger.debug(
+                    f"update_bottom_notebook - for {klass.__name__}({bottom_info})"
+                )
+                if "label" not in bottom_info:  # late initialization
+                    self.add_page_to_bottom_notebook(bottom_info)
+                label = bottom_info["label"]
+                if not hasattr(klass, "attached_to"):
+                    logging.warning(f"class {klass} does not implement attached_to")
+                    continue
+                objs = klass.attached_to(row)
+                model = bottom_info["tree"].get_model()
+                model.clear()
+                if len(objs) == 0:
+                    label.set_property("use_markup", False)
+                    label.set_label(bottom_info["name"])
+                else:
+                    label.set_property("use_markup", True)
+                    label.set_label("<b>{}</b>".format(bottom_info["name"]))
+                    for obj in objs:
+                        model.append(
+                            [f"{getattr(obj, k)}" for k in bottom_info["fields_used"]]
+                        )
+                logger.debug(f"done {len(objs)} for {klass.__name__}")
         logger.debug("update_bottom_notebook - exiting")
 
     def update_infobox(self) -> None:
@@ -1058,8 +1061,11 @@ class SearchView(pluginmgr.View):
             logger.debug("cannot populate info box from detached object")
             return
 
+        session = object_session(values[0])
+
         try:
-            set_infobox_from_row(values[0])
+            with session.no_autoflush:
+                set_infobox_from_row(values[0])
         except Exception as e:
             # if an error occurrs, log it and empty infobox.
             logger.exception("SearchView.update_infobox failed: %s", e)

@@ -15,6 +15,7 @@ import bauble.pluginmgr as pluginmgr
 import bauble.prefs as prefs
 import bauble.ui as ui
 import bauble.utils as utils
+import bauble.utils.desktop as desktop
 import bauble.view as view
 from bauble.connmgr import ConnMgrPresenter
 from bauble.editor import (
@@ -566,6 +567,25 @@ def test_links_expander_packs_link_button_widgets(monkeypatch):
     ]
 
 
+def test_desktop_open_url_uses_launcher_fallback(monkeypatch):
+    launched = []
+
+    def raise_unsupported(*args, **kwargs):
+        raise RuntimeError("operation not supported")
+
+    monkeypatch.setattr(Gtk, "show_uri_on_window", raise_unsupported)
+    monkeypatch.setenv("DESKTOP_LAUNCH", "host-open --url")
+    monkeypatch.setattr(
+        desktop,
+        "_launch_command",
+        lambda cmd, wait: launched.append((cmd, wait)) or True,
+    )
+
+    desktop.open_url("https://example.test/name", _wait=1)
+
+    assert launched == [(["host-open", "--url", "https://example.test/name"], 1)]
+
+
 def test_family_infobox_updates_builder_widgets(session):
     family = Family(epithet="Guidedaceae", qualifier="")
     session.add(family)
@@ -628,6 +648,26 @@ def test_genus_author_markup_escapes_xml():
     genus = Genus(epithet="Escapegenus", qualifier="", author="A & B")
 
     assert Genus.str(genus, author=True) == "Escapegenus A &amp; B"
+
+
+def test_genus_accepted_does_not_flush_pending_accession(session):
+    family = Family(epithet="Noautoflushaceae", qualifier="")
+    genus = Genus(family=family, epithet="Noautoflushgenus")
+    species = Species(genus=genus, sp="pendingensis")
+    existing = Accession(species=species, code="2026.0001")
+    session.add_all([family, genus, species, existing])
+    session.flush()
+
+    duplicate = Accession(species=species, code="2026.0001")
+    session.add(duplicate)
+    old_autoflush = session.autoflush
+    session.autoflush = True
+
+    try:
+        assert genus.accepted is None
+        assert duplicate in session.new
+    finally:
+        session.autoflush = old_autoflush
 
 
 def test_species_infobox_counts_garden_rows(session, monkeypatch):

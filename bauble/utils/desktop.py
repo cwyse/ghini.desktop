@@ -70,9 +70,14 @@ here: http://lists.freedesktop.org/archives/xdg/2004-August/004489.html
 __version__: str = "0.2.4"
 
 import os
+import logging
+import shlex
+import shutil
 import subprocess
 import sys
 from typing import Optional, Union
+
+logger = logging.getLogger(__name__)
 
 # Provide suitable process creation functions.
 
@@ -99,6 +104,46 @@ def _status(cmd: Union[str, list[str]], shell: bool) -> bool:
     opener = subprocess.Popen(cmd, shell=shell)
     opener.wait()
     return opener.returncode == 0
+
+
+def _launch_command(cmd: list[str], wait: int) -> bool:
+    try:
+        opener = subprocess.Popen(cmd)
+    except OSError as exc:
+        logger.debug("desktop opener failed to start %s: %s", cmd, exc)
+        return False
+
+    if wait:
+        opener.wait()
+        return opener.returncode == 0
+    return True
+
+
+def _open_with_desktop_launch(url: str, wait: int) -> bool:
+    launcher = os.environ.get("DESKTOP_LAUNCH")
+    if not launcher:
+        return False
+
+    try:
+        cmd = shlex.split(launcher)
+    except ValueError as exc:
+        logger.warning("Invalid DESKTOP_LAUNCH value %r: %s", launcher, exc)
+        return False
+
+    if not cmd:
+        return False
+    return _launch_command([*cmd, url], wait)
+
+
+def _open_with_known_launcher(url: str, wait: int) -> bool:
+    for launcher in ("xdg-open", "gio"):
+        path = shutil.which(launcher)
+        if not path:
+            continue
+        cmd = [path, "open", url] if launcher == "gio" else [path, url]
+        if _launch_command(cmd, wait):
+            return True
+    return False
 
 
 # import subprocess
@@ -220,7 +265,19 @@ def open_url(
 
     from bauble.gtkinit import Gdk, Gtk
 
-    Gtk.show_uri_on_window(None, url, Gdk.CURRENT_TIME)
+    try:
+        Gtk.show_uri_on_window(None, url, Gdk.CURRENT_TIME)
+        return
+    except Exception as exc:
+        logger.debug("Gtk could not open URL %s: %s", url, exc)
+
+    if _open_with_desktop_launch(url, _wait):
+        return
+
+    if _open_with_known_launcher(url, _wait):
+        return
+
+    logger.warning("Could not open URL %s in this desktop environment", url)
 
 
 def open(
