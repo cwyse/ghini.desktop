@@ -61,11 +61,12 @@ from bauble.view import (
 )
 
 # from sqlalchemy import text
-from sqlalchemy import and_, bindparam, func, select
+from sqlalchemy import and_, bindparam, func, inspect as sa_inspect, select
 
 # from sqlalchemy.exc import DBAPIError
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import object_mapper
+from sqlalchemy.orm import object_mapper, sessionmaker
+from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy.orm.session import object_session
 
 if TYPE_CHECKING:
@@ -353,6 +354,7 @@ class PlantEditorPresenter(GenericEditorPresenter):
     PROBLEM_DUPLICATE_PLANT_CODE: Any = str(random())
     PROBLEM_INVALID_QUANTITY: Any = str(random())
     PROBLEM_INVALID_CODE_LENGTH = "BAD_VALUE_code"
+    PROBLEM_UNKNOWN_LOCATION = "UNKNOWN_LOCATION"
     code_validator = MaxLengthValidator(6, UnicodeOrNoneValidator())
 
     def __init__(self, model, view) -> None:
@@ -365,6 +367,10 @@ class PlantEditorPresenter(GenericEditorPresenter):
         super().__init__(model, view)
         self.create_toolbar()
         self.session = object_session(model)
+        if self.model.accession is None and self.model.accession_id is not None:
+            from bauble.plugins.garden.models import Accession
+
+            self.model.accession = self.session.get(Accession, self.model.accession_id)
         self._original_accession_id = self.model.accession_id
         self._original_code = self.model.code
 
@@ -758,17 +764,21 @@ class PlantEditorPresenter(GenericEditorPresenter):
         self.view.widgets.pad_next_button.set_sensitive(sensitive)
         self.view.widgets.split_planting_button.set_visible = False
 
-    def _resolve_location_entry(self) -> None:
-        if self.model.location is not None:
-            return
-        entry = self.view.widgets.plant_loc_comboentry.get_child()
-        text = utils.to_unicode(entry.get_text()).strip()
+    def _entry_text_matches_location(self, text, location) -> bool:
+        if not text or location is None:
+            return False
+        code = utils.to_unicode(getattr(location, "code", "")).strip()
+        name = utils.to_unicode(getattr(location, "name", "")).strip()
+        location_text = utils.to_unicode(location).strip()
+        return text in {code, name, location_text}
+
+    def _location_from_text(self, text):
         if not text:
-            return
+            return None
 
         match = re.match(r"\(([^)]+)\) ?(.*)", text)
-        code = match.group(1) if match else text
-        name = match.group(2) if match else text
+        code = match.group(1).strip() if match else text
+        name = match.group(2).strip() if match else text
 
         combo_model = self.view.widgets.plant_loc_comboentry.get_model()
         if combo_model is not None:
@@ -777,26 +787,85 @@ class PlantEditorPresenter(GenericEditorPresenter):
                 if not location:
                     continue
                 if (
-                    utils.to_unicode(getattr(location, "code", "")) == code
-                    or utils.to_unicode(getattr(location, "name", "")) == name
-                    or utils.to_unicode(location) == text
+                    utils.to_unicode(getattr(location, "code", "")).strip() == code
+                    or utils.to_unicode(getattr(location, "name", "")).strip() == name
+                    or utils.to_unicode(location).strip() == text
                 ):
-                    self.model.location = location
-                    self.remove_problem(None, entry)
-                    return
+                    return location
 
         from bauble.plugins.garden.models import Location
 
-        location = self.session.execute(
-            select(Location).where(utils.ilike(Location.code, code))
-        ).scalar_one_or_none()
-        if location is None:
+        with self.session.no_autoflush:
             location = self.session.execute(
-                select(Location).where(utils.ilike(Location.name, name))
+                select(Location).where(utils.ilike(Location.code, code))
             ).scalar_one_or_none()
-        if location is not None:
+            if location is None:
+                location = self.session.execute(
+                    select(Location).where(utils.ilike(Location.name, name))
+                ).scalar_one_or_none()
+        return location
+
+    def _location_bound_to_session(self, location):
+        if location is None:
+            return None
+        if object_session(location) is self.session:
+            return location
+
+        from bauble.plugins.garden.models import Location
+
+        state = sa_inspect(location, raiseerr=False)
+        location_id = None
+        if state is not None and state.identity:
+            location_id = state.identity[0]
+        if location_id is None:
+            try:
+                location_id = getattr(location, "id", None)
+            except DetachedInstanceError:
+                location_id = None
+        if location_id is not None:
+            bound_location = self.session.get(Location, location_id)
+            if bound_location is not None:
+                return bound_location
+        return self.session.merge(location)
+
+    def _mark_unknown_location(self, entry) -> None:
+        self.add_problem(self.PROBLEM_UNKNOWN_LOCATION, entry)
+        self.model.location = None
+
+    def _clear_unknown_location(self, entry) -> None:
+        self.remove_problem(self.PROBLEM_UNKNOWN_LOCATION)
+
+    def _resolve_location_entry(self) -> None:
+        entry = self.view.widgets.plant_loc_comboentry.get_child()
+        text = utils.to_unicode(entry.get_text()).strip()
+        if not text:
+            self._clear_unknown_location(entry)
+            return
+
+        if self._entry_text_matches_location(text, self.model.location):
+            self._clear_unknown_location(entry)
+            return
+
+        location = self._location_from_text(text)
+        if location is None:
+            self._mark_unknown_location(entry)
+            return
+
+        location = self._location_bound_to_session(location)
+        if self.model.location is not location:
             self.model.location = location
-            self.remove_problem(None, entry)
+            self._dirty = True
+        self._clear_unknown_location(entry)
+
+    def validate(self) -> bool:
+        self._resolve_location_entry()
+        return (
+            self.model.accession is not None
+            and self.model.code is not None
+            and self.model.location is not None
+            and self.model.quantity is not None
+            and len(self.problems) == 0
+        )
 
     def set_model_attr(self, field, value, validator: Optional[Any] = None) -> None:
         logger.debug(f"set_model_attr({field}, {value})")
@@ -804,21 +873,30 @@ class PlantEditorPresenter(GenericEditorPresenter):
         self._dirty = True
         self.refresh_sensitivity()
 
-    def on_loc_button_clicked(self, button, cmd: Optional[Any] = None) -> None:
+    def _location_editor(self, location: Optional[Any] = None):
         from bauble.plugins.garden import LocationEditor as LocationEditor
 
+        session = sessionmaker(bind=db.engine, autoflush=False, future=True)()
+        return LocationEditor(
+            location,
+            parent=self.view.get_window(),
+            session=session,
+        )
+
+    def on_loc_button_clicked(self, button, cmd: Optional[Any] = None) -> None:
         location = self.model.location
         combo = self.view.widgets.plant_loc_comboentry
         if cmd == "edit" and location:
-            LocationEditor(location, parent=self.view.get_window()).start()
-            self.session.refresh(location)
-            self.view.widget_set_value(combo, location)
-        else:
-            editor = LocationEditor(parent=self.view.get_window())
+            editor = self._location_editor(location)
             if editor.start():
-                location = self.model.location = editor.presenter.model
-                self.session.add(location)
-                self.remove_problem(None, combo)
+                location = self._location_bound_to_session(editor.presenter.model)
+            self.view.widget_set_value(combo, location)
+            self.set_model_attr("location", location)
+        else:
+            editor = self._location_editor()
+            if editor.start():
+                location = self._location_bound_to_session(editor.presenter.model)
+                self._clear_unknown_location(combo.get_child())
                 self.view.widget_set_value(combo, location)
                 self.set_model_attr("location", location)
 
@@ -1039,6 +1117,9 @@ class PlantEditor(GenericModelViewPresenterEditor):
 
         not_ok_msg = _("Are you sure you want to lose your changes?")
         if response == Gtk.ResponseType.OK or response in self.ok_responses:
+            if not self.presenter.validate():
+                self.presenter.refresh_sensitivity()
+                return False
             if self.presenter.dirty() or self.model in self.session.new:
                 try:
                     self.commit_changes()

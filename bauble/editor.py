@@ -805,7 +805,7 @@ class GenericEditorView:
         completion.set_property("inline_completion", True)
         completion.set_property("inline_selection", True)
         completion.set_property("popup-set-width", False)
-        completion.set_popup_single_match(False)
+        completion.set_popup_single_match(True)
         if isinstance(entry, str):
             self.widgets[entry].set_completion(completion)
         else:
@@ -2194,9 +2194,13 @@ class GenericModelViewPresenterEditor:
     ok_responses: Any = ()
 
     def __init__(
-        self, model, parent: Optional[Any] = None, prefs: Optional[Any] = None
+        self,
+        model,
+        parent: Optional[Any] = None,
+        prefs: Optional[Any] = None,
+        session: Optional[Any] = None,
     ) -> None:
-        self.session = Session()
+        self.session = session or Session()
         self.model = self.session.merge(model)
 
     def commit_changes(self):

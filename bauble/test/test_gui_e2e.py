@@ -1042,6 +1042,68 @@ def test_species_editor_partial_genus_keeps_accept_disabled_until_exact_match(
     assert species_count == 1
 
 
+def test_species_editor_genus_completion_stays_visible_for_guided_prefix(
+    dogtail_modules, sqlite_connection, ghini_process
+):
+    dogtail_tree, _dogtail_predicate, dogtail_rawinput = dogtail_modules
+    family_name = "EEGUIDECOMPACEAE"
+    genus_name = "Guidecompletiongenus"
+    timestamp = "2026-05-13 00:00:00"
+
+    execute_sqlite_database(
+        sqlite_connection["database_file"],
+        (
+            "insert into family (epithet, author, qualifier, _created, _last_updated) "
+            "values (?, '', '', ?, ?)"
+        ),
+        family_name,
+        timestamp,
+        timestamp,
+    )
+    execute_sqlite_database(
+        sqlite_connection["database_file"],
+        (
+            "insert into genus "
+            "(epithet, author, qualifier, family_id, _created, _last_updated) "
+            "values (?, '', '', (select id from family where epithet = ?), ?, ?)"
+        ),
+        genus_name,
+        family_name,
+        timestamp,
+        timestamp,
+    )
+
+    main_window = connect_to_sqlite_database(dogtail_tree, sqlite_connection["name"])
+    activate_menu_item(main_window, "Insert", role_name="menu")
+    activate_menu_item(dogtail_tree.root, "Species", role_name="menu item")
+
+    species_editor = wait_for_node(
+        dogtail_tree,
+        lambda node: node.roleName == "dialog" and node.name == "Species Editor",
+    )
+    species_entries = find_visible_text_entries_by_position(species_editor)
+    assert len(species_entries) >= 3, describe_text_entries(species_editor)
+    genus_entry, _species_entry = species_name_entries(species_entries)
+
+    click_node_center(genus_entry, dogtail_rawinput)
+    dogtail_rawinput.typeText("Guid")
+    wait_for_node(
+        dogtail_tree,
+        lambda node: getattr(node, "showing", True)
+        and genus_name in getattr(node, "name", ""),
+        timeout=10,
+    )
+    dogtail_rawinput.typeText("e")
+    wait_for_node(
+        dogtail_tree,
+        lambda node: getattr(node, "showing", True)
+        and genus_name in getattr(node, "name", ""),
+        timeout=10,
+    )
+
+    terminate_process(ghini_process)
+
+
 def test_species_editor_notes_tab_adds_note_and_persists(
     dogtail_modules, sqlite_connection, ghini_process
 ):
@@ -1685,6 +1747,160 @@ def test_daily_species_editor_add_accession_creates_plant_with_source(
     )
     assert diagnostic_rows["vernacular"] == [(vernacular_name, vernacular_language, 1)]
     assert diagnostic_rows["notes"] == [(note_user, note_category, note_text)]
+
+
+def test_plant_editor_add_location_selects_created_location(
+    dogtail_modules, sqlite_connection, ghini_process
+):
+    dogtail_tree, _dogtail_predicate, dogtail_rawinput = dogtail_modules
+    family_name = "EEPLANTLOCACEAE"
+    genus_name = "Eeplantlocgenus"
+    species_name = "eoplantlocation"
+    accession_code = "PLANT-LOC-E2E"
+    plant_code = "1"
+    plant_quantity = "5"
+    location_code = "DAILY"
+    location_name = "Daily Workflow Bed"
+    timestamp = "2026-05-13 00:00:00"
+
+    with sqlite3.connect(sqlite_connection["database_file"]) as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            (
+                "insert into family (epithet, author, qualifier, _created, _last_updated) "
+                "values (?, '', '', ?, ?)"
+            ),
+            (family_name, timestamp, timestamp),
+        )
+        family_id = cursor.lastrowid
+        cursor.execute(
+            (
+                "insert into genus "
+                "(epithet, author, qualifier, family_id, _created, _last_updated) "
+                "values (?, '', '', ?, ?, ?)"
+            ),
+            (genus_name, family_id, timestamp, timestamp),
+        )
+        genus_id = cursor.lastrowid
+        cursor.execute(
+            (
+                "insert into species (epithet, genus_id, _created, _last_updated) "
+                "values (?, ?, ?, ?)"
+            ),
+            (species_name, genus_id, timestamp, timestamp),
+        )
+        species_id = cursor.lastrowid
+        cursor.execute(
+            (
+                "insert into accession "
+                "(code, id_qual, private, species_id, _created, _last_updated) "
+                "values (?, '', 0, ?, ?, ?)"
+            ),
+            (accession_code, species_id, timestamp, timestamp),
+        )
+
+    main_window = connect_to_sqlite_database(dogtail_tree, sqlite_connection["name"])
+    search_entry = find_child_by_role(main_window, "text")
+    assert search_entry is not None, dump_accessible_tree(main_window)
+    enter_text(search_entry, accession_code, dogtail_rawinput)
+    dogtail_rawinput.pressKey("Enter")
+
+    result = wait_for_node(
+        dogtail_tree,
+        lambda node: node.roleName in {"table cell", "label"}
+        and accession_code in node.name,
+        timeout=20,
+    )
+    right_click_node_center(result, dogtail_rawinput)
+    activate_menu_item(dogtail_tree.root, "Edit", role_name="menu item")
+
+    accession_editor = wait_for_node(
+        dogtail_tree,
+        lambda node: node.roleName == "dialog" and node.name == "Accession Editor",
+    )
+    add_plants_button = find_named_child(
+        accession_editor, "Add plants", role_name="push button"
+    )
+    assert add_plants_button is not None, dump_accessible_tree(accession_editor)
+    add_plants_button.click()
+
+    plant_editor = wait_for_node(
+        dogtail_tree,
+        lambda node: node.roleName == "dialog" and node.name.startswith("Plant Editor"),
+    )
+    plant_entries = find_children_by_role(plant_editor, "text")
+    assert len(plant_entries) >= 4, describe_text_entries(plant_editor)
+    assert accessible_text(plant_entries[1]) == plant_code, describe_text_entries(
+        plant_editor
+    )
+
+    enter_text(plant_entries[3], plant_quantity, dogtail_rawinput)
+    enter_text(plant_entries[2], location_code, dogtail_rawinput)
+
+    location_add_button = visible_button_near(
+        plant_editor,
+        "Add",
+        x_min=plant_entries[2].position[0] + plant_entries[2].size[0],
+        y_min=plant_entries[2].position[1] - 30,
+        y_max=plant_entries[2].position[1] + 60,
+    )
+    assert location_add_button is not None, dump_accessible_tree(plant_editor)
+    click_node_center(location_add_button, dogtail_rawinput)
+
+    location_editor = wait_for_node(dogtail_tree, is_location_editor_dialog)
+    location_entries = find_visible_text_entries_by_position(location_editor)
+    assert len(location_entries) >= 2, describe_text_entries(location_editor)
+    enter_text_by_keyboard(location_entries[0], location_code, dogtail_rawinput)
+    enter_text_by_keyboard(location_entries[1], location_name, dogtail_rawinput)
+
+    location_ok = find_named_child(location_editor, "OK", role_name="push button")
+    assert location_ok is not None, dump_accessible_tree(location_editor)
+    wait_for_sensitive(location_ok)
+    location_ok.click()
+    wait_for_absence(
+        dogtail_tree,
+        is_location_editor_dialog,
+        timeout=20,
+    )
+
+    deadline = time.monotonic() + 10
+    location_text = ""
+    while time.monotonic() < deadline:
+        plant_entries = find_children_by_role(plant_editor, "text")
+        if len(plant_entries) >= 3:
+            location_text = accessible_text(plant_entries[2])
+            if location_code in location_text:
+                break
+        time.sleep(0.25)
+    assert location_code in location_text, describe_text_entries(plant_editor)
+
+    plant_ok = find_named_child(plant_editor, "OK", role_name="push button")
+    assert plant_ok is not None, dump_accessible_tree(plant_editor)
+    wait_for_sensitive(plant_ok)
+    plant_ok.click()
+    time.sleep(0.5)
+    fail_on_visible_error_alert(dogtail_tree, dogtail_rawinput, ghini_process)
+    wait_for_absence(
+        dogtail_tree,
+        lambda node: node.roleName == "dialog" and node.name.startswith("Plant Editor"),
+        timeout=20,
+    )
+    terminate_process(ghini_process)
+
+    plant_rows = fetch_sqlite_database(
+        sqlite_connection["database_file"],
+        (
+            "select plant.code, plant.quantity, location.code, location.name "
+            "from plant "
+            "join accession on plant.accession_id = accession.id "
+            "join location on plant.location_id = location.id "
+            "where accession.code = ?"
+        ),
+        accession_code,
+    )
+    assert plant_rows == [
+        (plant_code, int(plant_quantity), location_code, location_name)
+    ]
 
 
 def test_species_culture_editor_persists_profile_from_result_edit(
@@ -2685,6 +2901,16 @@ def find_named_child(node, name, role_name=None, showing_only=None):
         retry=False,
         requireResult=False,
         showingOnly=showing_only,
+    )
+
+
+def is_location_editor_dialog(node):
+    return (
+        node.roleName == "dialog"
+        and find_named_child(node, "Code", role_name="label") is not None
+        and find_named_child(node, "Name", role_name="label") is not None
+        and find_named_child(node, "Description", role_name="label") is not None
+        and find_named_child(node, "OK", role_name="push button") is not None
     )
 
 

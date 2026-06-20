@@ -101,14 +101,18 @@ def _readfrom(cmd: Union[str, list[str]], shell: bool) -> bytes:
 
 
 def _status(cmd: Union[str, list[str]], shell: bool) -> bool:
-    opener = subprocess.Popen(cmd, shell=shell)
+    opener = subprocess.Popen(
+        cmd, shell=shell, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
     opener.wait()
     return opener.returncode == 0
 
 
 def _launch_command(cmd: list[str], wait: int) -> bool:
     try:
-        opener = subprocess.Popen(cmd)
+        opener = subprocess.Popen(
+            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
     except OSError as exc:
         logger.debug("desktop opener failed to start %s: %s", cmd, exc)
         return False

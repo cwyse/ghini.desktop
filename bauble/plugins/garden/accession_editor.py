@@ -31,6 +31,7 @@ from random import random
 from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
 import bauble
+import bauble.db as db
 import bauble.editor as editor
 import bauble.meta as meta
 import bauble.paths as paths
@@ -74,7 +75,7 @@ from sqlalchemy import delete, inspect as sa_inspect, or_, select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import attributes as orm_attributes
 from sqlalchemy.orm.exc import DetachedInstanceError
-from sqlalchemy.orm import object_session
+from sqlalchemy.orm import object_session, sessionmaker
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -109,7 +110,15 @@ def received_quantity_label(accession) -> str:
 
 def _source_display_text(source: Any) -> str:
     """Return the text shown for a source combo value."""
-    return utils.to_unicode(source).strip()
+    try:
+        return utils.to_unicode(source).strip()
+    except DetachedInstanceError:
+        state = sa_inspect(source, raiseerr=False)
+        if state is not None:
+            name = state.dict.get("name")
+            if name:
+                return utils.to_unicode(name).strip()
+        return ""
 
 
 def _source_sort_key(source: Any) -> tuple[str, int]:
@@ -215,7 +224,7 @@ def add_plants_callback(accessions):
 
     session = Session()
     acc = session.merge(accessions[0])
-    e = PlantEditor(model=Plant(accession=acc))
+    e = PlantEditor(model=Plant(accession_id=acc.id))
     # session creates unbound object.  editor decides what to do with it.
     session.close()
     return e.start() is not None
@@ -1417,13 +1426,37 @@ class SourcePresenter(editor.GenericEditorPresenter):
         committed = create_contact(parent=self.view.get_window())
         if committed:
             with self.session.no_autoflush:
-                new_detail = self.session.merge(committed[0])
+                new_detail = self._source_bound_to_session(committed[0])
                 self.populate_source_combo(new_detail)
                 self.select_source_detail(new_detail)
             self._dirty = True
             self.refresh_sensitivity()
 
+    def _source_bound_to_session(self, source_detail: Any) -> Any:
+        if not source_detail or source_detail == self.garden_prop_str:
+            return source_detail
+        if object_session(source_detail) is self.session:
+            return source_detail
+
+        from bauble.plugins.garden.source import Contact
+
+        state = sa_inspect(source_detail, raiseerr=False)
+        source_id = None
+        if state is not None and state.identity:
+            source_id = state.identity[0]
+        if source_id is None:
+            try:
+                source_id = getattr(source_detail, "id", None)
+            except DetachedInstanceError:
+                source_id = None
+        if source_id is not None:
+            bound_source = self.session.get(Contact, source_id)
+            if bound_source is not None:
+                return bound_source
+        return self.session.merge(source_detail)
+
     def select_source_detail(self, source_detail: Any) -> None:
+        source_detail = self._source_bound_to_session(source_detail)
         combo = self.view.widgets.acc_source_comboentry
         entry = combo.get_child()
         selected_detail = source_detail
@@ -1474,6 +1507,8 @@ class SourcePresenter(editor.GenericEditorPresenter):
             treeiter = combo.get_active_iter()
             if treeiter:
                 active = combo.get_model()[treeiter][0]
+        if active:
+            active = self._source_bound_to_session(active)
         combo.set_model(None)
         model = Gtk.ListStore(object)
         none_iter = model.append([""])
@@ -1517,7 +1552,7 @@ class SourcePresenter(editor.GenericEditorPresenter):
         PROBLEM = "unknown_source"
 
         def cell_data_func(col, cell, model, treeiter, data=None):
-            cell.set_property("text", utils.to_unicode(model[treeiter][0]))
+            cell.set_property("text", _source_display_text(model[treeiter][0]))
 
         combo = self.view.widgets.acc_source_comboentry
         combo.clear()
@@ -2204,16 +2239,39 @@ class AccessionEditorPresenter(editor.GenericEditorPresenter):
             self.model.species = species
         return species
 
+    def _location_bound_to_session(self, location: Any) -> Any:
+        if location is None:
+            return None
+        if object_session(location) is self.session:
+            return location
+
+        from bauble.plugins.garden.models import Location
+
+        state = sa_inspect(location, raiseerr=False)
+        location_id = None
+        if state is not None and state.identity:
+            location_id = state.identity[0]
+        if location_id is None:
+            try:
+                location_id = getattr(location, "id", None)
+            except DetachedInstanceError:
+                location_id = None
+        if location_id is not None:
+            bound_location = self.session.get(Location, location_id)
+            if bound_location is not None:
+                return bound_location
+        return self.session.merge(location)
+
     def on_loc_button_clicked(self, button, target_widget, target_field) -> None:
         logger.debug(
             f"on_loc_button_clicked {self}, {button}, {target_widget}, {target_field}"
         )
         from bauble.plugins.garden.location_editor import LocationEditor
 
-        editor = LocationEditor(parent=self.view.get_window())
+        location_session = sessionmaker(bind=db.engine, autoflush=False, future=True)()
+        editor = LocationEditor(parent=self.view.get_window(), session=location_session)
         if editor.start():
-            location = editor.presenter.model
-            self.session.add(location)
+            location = self._location_bound_to_session(editor.presenter.model)
             self.remove_problem(None, target_widget)
             self.view.widget_set_value(target_widget, location)
             self.set_model_attr(target_field, location)
@@ -2612,6 +2670,15 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
         else:
             view.widgets.acc_code_entry.grab_focus()
 
+    def _model_identity(self) -> Optional[Any]:
+        state = sa_inspect(self.model, raiseerr=False)
+        if state is not None and state.identity:
+            return state.identity[0]
+        try:
+            return self.model.id
+        except DetachedInstanceError:
+            return None
+
     def handle_response(self, response):
         """
         handle the response from self.presenter.start() in self.start()
@@ -2668,7 +2735,7 @@ class AccessionEditor(editor.GenericModelViewPresenterEditor):
             from bauble.plugins.garden import PlantEditor
             from bauble.plugins.garden.models import Plant
 
-            e = PlantEditor(Plant(accession=self.model), self.parent)
+            e = PlantEditor(Plant(accession_id=self._model_identity()), self.parent)
             more_committed = e.start()
 
         if more_committed is not None:

@@ -396,7 +396,10 @@ class LocationEditor(GenericModelViewPresenterEditor):
     ok_responses: Any = (RESPONSE_OK_AND_ADD, RESPONSE_NEXT)
 
     def __init__(
-        self, model: Optional[Any] = None, parent: Optional[Any] = None
+        self,
+        model: Optional[Any] = None,
+        parent: Optional[Any] = None,
+        session: Optional[Any] = None,
     ) -> None:
         """
         :param model: Location instance or None
@@ -409,7 +412,7 @@ class LocationEditor(GenericModelViewPresenterEditor):
         self.presenter = None
         if model is None:
             model = Location()
-        super().__init__(model, parent)
+        super().__init__(model, parent, session=session)
         if not parent and bauble.gui:
             parent = bauble.gui.window
         self.parent = parent
