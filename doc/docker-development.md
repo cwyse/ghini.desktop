@@ -28,6 +28,41 @@ For password-based PostgreSQL authentication, set `DB_PASSWORD` in `.env`.
 `scripts/docker-dev` passes it through to the container but it should remain
 local and uncommitted.
 
+By default, Docker runs do not mount your personal `~/.bauble/3.1`
+configuration. Instead, `scripts/docker-dev` renders a local development config
+from `docker/ghini-config/config.template` into `.ghini-dev/bauble/3.1` and
+mounts that directory as `/home/ghini/.bauble/3.1` in the container. The
+generated config is ignored by Git and is safe for the app to update during
+development runs.
+
+The generated connection uses these `.env` values:
+
+- `GHINI_DEV_CONNECTION_NAME`, default `Docker PostgreSQL`.
+- `DB_HOST`, default `postgres`.
+- `DB_PORT`, default `5432`.
+- `DB_NAME`, default `ghini`.
+- `DB_USER`, default `ghini`.
+- `DB_SSLMODE`, default `prefer`.
+
+Regenerate the local development config after changing those values:
+
+```sh
+GHINI_REGENERATE_DEV_CONFIG=1 scripts/docker-dev config
+```
+
+Inspect the config directory that Docker will mount:
+
+```sh
+scripts/docker-dev config
+```
+
+Only opt into your personal saved Ghini connections when you really want the
+container to read and update that file:
+
+```sh
+GHINI_CONFIG_DIR="$HOME/.bauble/3.1" scripts/docker-dev app
+```
+
 `scripts/docker-dev` also passes a `TZ` value into the container so default
 dates in the GUI follow the user-visible host date rather than UTC. It uses
 `GHINI_TZ` when set, then `TZ`, then the host `/etc/timezone` or
@@ -114,10 +149,10 @@ environment.
 scripts/docker-dev app
 ```
 
-The runner mounts the source checkout at `/app`, uses `/home/ghini/.bauble/3.1`
-inside the container for Ghini configuration, and passes through X11 display
-settings. The application runs from the mounted source tree, so code edits on
-the host are visible to the container immediately.
+The runner mounts the source checkout at `/app`, mounts the configured
+development config directory as `/home/ghini/.bauble/3.1`, and passes through
+X11 display settings. The application runs from the mounted source tree, so
+code edits on the host are visible to the container immediately.
 
 ## Shell
 
@@ -360,9 +395,10 @@ typelib packages from the Docker image as the reference runtime.
 Docker does not automatically inherit host-only `/etc/hosts` aliases. By
 default, `scripts/docker-dev` resolves configured database hosts on the host and
 passes matching `--add-host` entries to Docker. This covers saved Ghini
-PostgreSQL connection hosts from the mounted configuration directory, `DB_HOST`,
-and the hosts in `GHINI_TEST_POSTGRES_URI`, `GHINI_EXTERNAL_POSTGRES_URI`, and
-`GHINI_SOURCE_POSTGRES_URI` when they resolve to an IPv4 address on the host.
+PostgreSQL connection hosts from the mounted development configuration
+directory, `DB_HOST`, and the hosts in `GHINI_TEST_POSTGRES_URI`,
+`GHINI_EXTERNAL_POSTGRES_URI`, and `GHINI_SOURCE_POSTGRES_URI` when they resolve
+to an IPv4 address on the host.
 
 Disable this behavior when you want Docker DNS or a custom Docker network to
 handle all names:

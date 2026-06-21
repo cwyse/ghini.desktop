@@ -1,0 +1,21 @@
+[bauble.config]
+version = (4, 0)
+
+[bauble]
+use_sentry_client = False
+picture_root = {pictures_root}
+default_date_format = %d-%m-%Y
+units = metric
+network_timeout = 4
+parse_dayfirst = True
+parse_yearfirst = False
+history_size = 12
+history = []
+testing = False
+
+[conn]
+list = {connections}
+default = {connection_name}
+
+[bauble.search]
+return_synonyms = True

@@ -36,6 +36,7 @@ nohup.out
 
 # Local Docker/runtime environment
 .env
+.ghini-dev/
 
 # Unit test / coverage reports
 test-results/
